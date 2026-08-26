@@ -1314,6 +1314,7 @@ export type Database = {
           proxima_recompra_chevron: string | null
           proxima_recompra_phillips66: string | null
           razon_social: string | null
+          rfc: string | null
           riesgo_cambio_marca: string | null
           rol_lubricante: string | null
           segmento_id: string | null
@@ -1382,6 +1383,7 @@ export type Database = {
           proxima_recompra_chevron?: string | null
           proxima_recompra_phillips66?: string | null
           razon_social?: string | null
+          rfc?: string | null
           riesgo_cambio_marca?: string | null
           rol_lubricante?: string | null
           segmento_id?: string | null
@@ -1450,6 +1452,7 @@ export type Database = {
           proxima_recompra_chevron?: string | null
           proxima_recompra_phillips66?: string | null
           razon_social?: string | null
+          rfc?: string | null
           riesgo_cambio_marca?: string | null
           rol_lubricante?: string | null
           segmento_id?: string | null
@@ -4087,6 +4090,7 @@ export type Database = {
           fecha_entrega_real: string | null
           fecha_oc_cliente: string | null
           fecha_vencimiento: string | null
+          folio_fiscal_uuid: string | null
           follow_up_status: Database["public"]["Enums"]["cotizacion_followup_status"]
           forma_pago: string | null
           id: string
@@ -4146,6 +4150,7 @@ export type Database = {
           fecha_entrega_real?: string | null
           fecha_oc_cliente?: string | null
           fecha_vencimiento?: string | null
+          folio_fiscal_uuid?: string | null
           follow_up_status?: Database["public"]["Enums"]["cotizacion_followup_status"]
           forma_pago?: string | null
           id?: string
@@ -4205,6 +4210,7 @@ export type Database = {
           fecha_entrega_real?: string | null
           fecha_oc_cliente?: string | null
           fecha_vencimiento?: string | null
+          folio_fiscal_uuid?: string | null
           follow_up_status?: Database["public"]["Enums"]["cotizacion_followup_status"]
           forma_pago?: string | null
           id?: string
@@ -4433,6 +4439,140 @@ export type Database = {
           uso_cfdi?: Database["public"]["Enums"]["uso_cfdi"] | null
         }
         Relationships: []
+      }
+      documentos_xml_intake: {
+        Row: {
+          cliente_candidatos: Json | null
+          cliente_match_estatus: string
+          created_at: string
+          documento_creado_id: string | null
+          emisor_rfc: string | null
+          empresa_id_matched: string | null
+          empresa_vendedora_detectada:
+            | Database["public"]["Enums"]["empresa_vendedora"]
+            | null
+          estatus: string
+          fecha_factura: string | null
+          fecha_vencimiento: string | null
+          folio: string | null
+          forma_pago: string | null
+          id: string
+          importado_at: string | null
+          importado_por: string | null
+          metodo_pago: string | null
+          moneda: string | null
+          nombre_archivo: string | null
+          pedido_relacionado_id: string | null
+          plaza_id_detectado: string | null
+          productos_json: Json | null
+          receptor_nombre: string | null
+          receptor_rfc: string | null
+          serie: string | null
+          storage_path: string
+          subido_por: string | null
+          subtotal: number | null
+          total: number | null
+          uso_cfdi: string | null
+          uuid_fiscal: string | null
+        }
+        Insert: {
+          cliente_candidatos?: Json | null
+          cliente_match_estatus?: string
+          created_at?: string
+          documento_creado_id?: string | null
+          emisor_rfc?: string | null
+          empresa_id_matched?: string | null
+          empresa_vendedora_detectada?:
+            | Database["public"]["Enums"]["empresa_vendedora"]
+            | null
+          estatus?: string
+          fecha_factura?: string | null
+          fecha_vencimiento?: string | null
+          folio?: string | null
+          forma_pago?: string | null
+          id?: string
+          importado_at?: string | null
+          importado_por?: string | null
+          metodo_pago?: string | null
+          moneda?: string | null
+          nombre_archivo?: string | null
+          pedido_relacionado_id?: string | null
+          plaza_id_detectado?: string | null
+          productos_json?: Json | null
+          receptor_nombre?: string | null
+          receptor_rfc?: string | null
+          serie?: string | null
+          storage_path: string
+          subido_por?: string | null
+          subtotal?: number | null
+          total?: number | null
+          uso_cfdi?: string | null
+          uuid_fiscal?: string | null
+        }
+        Update: {
+          cliente_candidatos?: Json | null
+          cliente_match_estatus?: string
+          created_at?: string
+          documento_creado_id?: string | null
+          emisor_rfc?: string | null
+          empresa_id_matched?: string | null
+          empresa_vendedora_detectada?:
+            | Database["public"]["Enums"]["empresa_vendedora"]
+            | null
+          estatus?: string
+          fecha_factura?: string | null
+          fecha_vencimiento?: string | null
+          folio?: string | null
+          forma_pago?: string | null
+          id?: string
+          importado_at?: string | null
+          importado_por?: string | null
+          metodo_pago?: string | null
+          moneda?: string | null
+          nombre_archivo?: string | null
+          pedido_relacionado_id?: string | null
+          plaza_id_detectado?: string | null
+          productos_json?: Json | null
+          receptor_nombre?: string | null
+          receptor_rfc?: string | null
+          serie?: string | null
+          storage_path?: string
+          subido_por?: string | null
+          subtotal?: number | null
+          total?: number | null
+          uso_cfdi?: string | null
+          uuid_fiscal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_xml_intake_documento_creado_id_fkey"
+            columns: ["documento_creado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_xml_intake_empresa_id_matched_fkey"
+            columns: ["empresa_id_matched"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_xml_intake_pedido_relacionado_id_fkey"
+            columns: ["pedido_relacionado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_xml_intake_plaza_id_detectado_fkey"
+            columns: ["plaza_id_detectado"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_group_members: {
         Row: {

@@ -174,6 +174,7 @@ export interface CompanyData {
   origen_contacto: string | null; evaluacion_lubricante: string | null;
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
   uso_cfdi?: string | null; metodo_pago?: string | null; tipo_pago?: string | null; forma_pago?: string | null;
+  rfc?: string | null;
   id_contpaq?: string | null;
   clabe_bancaria?: string | null;
   tarjeta_ultimos4?: string | null;
@@ -198,6 +199,7 @@ const emptyForm = {
   tomador_decision: "", riesgo_cambio_marca: "", origen_contacto: "",
   evaluacion_lubricante: "", rol_lubricante: "", tipo_cliente_comercial: "",
   uso_cfdi: "", metodo_pago: "", tipo_pago: "", forma_pago: "",
+  rfc: "",
   id_contpaq: "",
   clabe_bancaria: "",
   tarjeta_ultimos4: "",
@@ -345,7 +347,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       // empty string -> null for nullable text/select fields, except name/razon_social
       if (k === "name" || k === "razon_social") {
         dbPayload[k] = (v ?? "").toString();
-      } else if (k === "id_contpaq" || k === "clabe_bancaria" || k === "tarjeta_ultimos4") {
+      } else if (k === "id_contpaq" || k === "clabe_bancaria" || k === "tarjeta_ultimos4" || k === "rfc") {
         dbPayload[k] = (v ?? "").toString().trim() || null;
       } else {
         dbPayload[k] = v === "" || v == null ? null : v;
@@ -482,6 +484,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         metodo_pago: (editData as any).metodo_pago || "",
         tipo_pago: (editData as any).tipo_pago || "",
         forma_pago: (editData as any).forma_pago || "",
+        rfc: (editData as any).rfc || "",
         id_contpaq: (editData as any).id_contpaq || "",
         clabe_bancaria: (editData as any).clabe_bancaria || "",
         tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
@@ -513,6 +516,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         metodo_pago: (editData as any).metodo_pago || "",
         tipo_pago: (editData as any).tipo_pago || "",
         forma_pago: (editData as any).forma_pago || "",
+        rfc: (editData as any).rfc || "",
         id_contpaq: (editData as any).id_contpaq || "",
         clabe_bancaria: (editData as any).clabe_bancaria || "",
         tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
@@ -606,6 +610,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       metodo_pago: form.metodo_pago || null,
       tipo_pago: form.tipo_pago || null,
       forma_pago: form.forma_pago || null,
+      rfc: (form as any).rfc?.trim() || null,
       id_contpaq: form.id_contpaq?.trim() || null,
       clabe_bancaria: form.clabe_bancaria?.trim() || null,
       tarjeta_ultimos4: form.tarjeta_ultimos4?.trim() || null,
@@ -1119,6 +1124,20 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 {renderEnumSelect("Uso de CFDI", form.uso_cfdi, "uso_cfdi", USO_CFDI_OPTS)}
               </div>
               <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">RFC</Label>
+                  <Input
+                    value={(form as any).rfc}
+                    onChange={e => setAndSchedule("rfc", e.target.value.toUpperCase())}
+                    onBlur={e => autosave.saveNow("rfc", e.target.value.toUpperCase())}
+                    className="h-9"
+                    placeholder="—"
+                    maxLength={13}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+
                 <div className="space-y-1.5">
                   <Label className="text-xs">CLABE Bancaria</Label>
                   <Input
