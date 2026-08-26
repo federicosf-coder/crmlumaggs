@@ -74,16 +74,20 @@ export default function AutorizacionPrecios() {
           </CardContent>
         </Card>
       ) : (
-        rows.map((row) => (
-          <AutorizacionPrecioCard
-            key={row.id}
-            row={row}
-            ejecutivo={row.documentos?.ejecutivo_venta_id ? data?.ejecutivos?.[row.documentos.ejecutivo_venta_id] : null}
-            onRefetch={refetch}
-            isHighlighted={highlightedId === row.id}
-          />
-        ))
+        <div className="space-y-3">
+          {rows.map((row) => (
+            <AutorizacionPrecioCard
+              key={row.id}
+              row={row}
+              ejecutivo={row.documentos?.ejecutivo_venta_id ? data?.ejecutivos?.[row.documentos.ejecutivo_venta_id] : null}
+              onRefetch={refetch}
+              isHighlighted={highlightedId === row.id}
+              defaultOpen={false}
+            />
+          ))}
+        </div>
       )}
+
     </div>
   );
 }
