@@ -1662,11 +1662,6 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-light">
                   <span>Notificada: {detalle.notificado_at ? new Date(detalle.notificado_at).toLocaleString("es-MX") : "—"}</span>
                   <span>· Factura: {detalle.factura_referencia || "—"}</span>
-                  {evidencias.map((ev) => (
-                    <Button key={ev.id} variant="ghost" size="sm" className="h-6 text-xs" onClick={() => openSigned(ev.storage_path)}>
-                      <FileText className="h-3 w-3 mr-1" /> {ev.nombre_archivo}
-                    </Button>
-                  ))}
                   {detalle.evidencia_firmada_path && (
                     <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => openSigned(detalle.evidencia_firmada_path!)}>
                       <FileText className="h-3 w-3 mr-1" /> Evidencia
