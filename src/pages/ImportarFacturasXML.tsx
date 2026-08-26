@@ -52,6 +52,46 @@ export default function ImportarFacturasXML() {
   const [plazaManual, setPlazaManual] = useState<Record<string, string>>({});
   const [clienteManual, setClienteManual] = useState<Record<string, string>>({});
   const [productoManual, setProductoManual] = useState<Record<string, Record<number, string>>>({});
+  const [ejecutivoManual, setEjecutivoManual] = useState<Record<string, string>>({});
+  const [contactoManual, setContactoManual] = useState<Record<string, string>>({});
+  const [tipoPagoManual, setTipoPagoManual] = useState<Record<string, string>>({});
+  const [fechaVencManual, setFechaVencManual] = useState<Record<string, string>>({});
+
+  interface PerfilEmpresa {
+    ejecutivoDefault: string | null;
+    contactoDefault: string | null;
+    tipoPagoDefault: string | null;
+    contactos: { id: string; label: string }[];
+  }
+  const [perfilPorEmpresa, setPerfilPorEmpresa] = useState<Record<string, PerfilEmpresa>>({});
+  const perfilCargando = useRef<Set<string>>(new Set());
+
+  const cargarPerfilEmpresa = useCallback(
+    async (empresaId: string) => {
+      if (!empresaId || perfilCargando.current.has(empresaId)) return;
+      perfilCargando.current.add(empresaId);
+      const [{ data: comp }, { data: ejec }, { data: cts }] = await Promise.all([
+        (supabase as any).from("companies").select("primary_contact_id, tipo_pago").eq("id", empresaId).maybeSingle(),
+        (supabase as any).from("company_ejecutivos").select("user_id").eq("company_id", empresaId).limit(1),
+        (supabase as any)
+          .from("contacts")
+          .select("id, first_name, last_name, job_title")
+          .eq("company_id", empresaId)
+          .eq("is_active", true),
+      ]);
+      const perfil: PerfilEmpresa = {
+        ejecutivoDefault: ejec && ejec.length ? ejec[0].user_id : null,
+        contactoDefault: comp?.primary_contact_id || null,
+        tipoPagoDefault: comp?.tipo_pago || null,
+        contactos: (cts || []).map((c: any) => ({
+          id: c.id,
+          label: `${c.first_name || ""} ${c.last_name || ""}`.trim() + (c.job_title ? ` — ${c.job_title}` : ""),
+        })),
+      };
+      setPerfilPorEmpresa((prev) => ({ ...prev, [empresaId]: perfil }));
+    },
+    []
+  );
 
   const { data: plazas = [] } = useQuery({
     queryKey: ["plazas-xml-import"],
