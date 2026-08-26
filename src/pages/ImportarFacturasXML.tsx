@@ -499,12 +499,26 @@ export default function ImportarFacturasXML() {
                         <SelectContent>
                           {(row.cliente_candidatos || []).map((c: any) => (
                             <SelectItem key={c.id} value={c.id}>
-                              {c.name}
+                              {c.razon_social || c.name}
+                              {c.name && c.razon_social && c.name !== c.razon_social ? " — " + c.name : ""}
                             </SelectItem>
                           ))}
                           <SelectItem value="__nuevo__">＋ Crear cliente nuevo</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  )}
+                  {row.cliente_match_estatus === "generico_manual" && (
+                    <div className="space-y-1.5">
+                      <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">
+                        RFC genérico (Público en General) — selecciona el cliente real manualmente
+                      </Badge>
+                      <SearchableSelect
+                        value={clienteManual[row.id] || ""}
+                        onValueChange={(v) => setClienteManual((p) => ({ ...p, [row.id]: v }))}
+                        options={companyOptions}
+                        placeholder="Buscar cliente por nombre o razón social…"
+                      />
                     </div>
                   )}
                   {row.cliente_match_estatus === "pendiente" && (
