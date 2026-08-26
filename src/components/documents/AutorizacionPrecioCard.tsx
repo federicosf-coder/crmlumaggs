@@ -858,7 +858,7 @@ export default function AutorizacionPrecioCard({
                     />
                   </div>
 
-                  <Button size="sm" onClick={guardarResultado} disabled={savingResultado}>
+                  <Button size="sm" onClick={() => guardarResultado()} disabled={savingResultado}>
                     {savingResultado && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
                     Guardar resultado
                   </Button>
