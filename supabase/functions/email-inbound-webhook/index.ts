@@ -1,6 +1,43 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1';
+import { XMLParser } from 'npm:fast-xml-parser@4';
+
+// --- Matching CFDI (réplica exacta de src/lib/xmlFacturaMatching.ts) ---
+const RFC_GENERICOS = new Set(['XAXX010101000']);
+const EMISOR_RFC_MAP: Record<string, string> = { PSM891005QY7: 'lumaggs_chevron' };
+const SERIE_PLAZA_MAP: Record<string, string> = { TIJ: 'Tijuana', MXL: 'Mexicali', ENS: 'Ensenada', MOR: 'Morelos' };
+const STOPWORDS_CFDI = new Set([
+  'SA', 'S', 'A', 'DE', 'CV', 'C', 'V', 'SAPI', 'SRL', 'RL', 'DEL', 'LA', 'EL',
+  'LOS', 'LAS', 'Y', 'SC', 'S.A.', 'S.A', 'SADECV',
+]);
+
+function mapEmisorAEmpresaVendedora(rfc: string): string | null {
+  if (!rfc) return null;
+  return EMISOR_RFC_MAP[rfc.trim().toUpperCase()] ?? null;
+}
+
+function mapSerieAPlaza(serie: string): string | null {
+  if (!serie) return null;
+  const s = serie.trim().toUpperCase();
+  for (const prefijo of Object.keys(SERIE_PLAZA_MAP)) {
+    if (s.startsWith(prefijo)) return SERIE_PLAZA_MAP[prefijo];
+  }
+  return null;
+}
+
+function normalizarTextoCfdi(s: string): string {
+  if (!s) return '';
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+}
+
+function palabrasSignificativas(nombre: string): string[] {
+  return normalizarTextoCfdi(nombre)
+    .replace(/[.,()]/g, ' ')
+    .split(' ')
+    .filter((w) => w.length >= 3 && !STOPWORDS_CFDI.has(w))
+    .slice(0, 4);
+}
 
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MODEL = 'google/gemini-2.5-flash';
