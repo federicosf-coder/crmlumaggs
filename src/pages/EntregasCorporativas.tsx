@@ -1129,11 +1129,17 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
 
   const quitarEvidencia = async (id: string) => {
     if (!detalle) return;
+    if (!window.confirm("¿Eliminar este archivo adjunto?")) return;
+    const ev = evidencias.find((e) => e.id === id);
     const { error } = await (supabase as any).from("entregas_corporativas_evidencias").delete().eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success("Evidencia eliminada");
+    if (ev?.storage_path) {
+      await supabase.storage.from(BUCKET).remove([ev.storage_path]);
+    }
+    toast.success("Archivo eliminado");
     cargarEvidencias(detalle.id);
   };
+
 
   const guardarFactura = async () => {
     if (!detalle) return;
