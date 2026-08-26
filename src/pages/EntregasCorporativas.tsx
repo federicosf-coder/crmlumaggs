@@ -1585,45 +1585,48 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 )}
               </div>
 
+              {/* Archivos adjuntos / evidencias: disponible en cualquier estatus */}
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Archivos adjuntos / evidencias firmadas</Label>
+                {evidencias.length > 0 && (
+                  <div className="rounded-md border divide-y">
+                    {evidencias.map((ev) => (
+                      <div key={ev.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                        <span className="text-xs font-light truncate">{ev.nombre_archivo}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openSigned(ev.storage_path)}>
+                            <FileText className="h-3 w-3 mr-1" /> Ver
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => quitarEvidencia(ev.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className="inline-flex">
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.doc,.docx"
+                    onChange={(e) => {
+                      const fs = Array.from(e.target.files ?? []);
+                      if (fs.length) subirEvidencias(detalle, fs);
+                      e.target.value = "";
+                    }}
+                  />
+                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer hover:bg-muted ${evidencias.length ? "text-green-700 border-green-200" : "text-muted-foreground"}`}>
+                    <Upload className="h-3 w-3" />
+                    {evidencias.length ? `Subir más archivos (${evidencias.length})` : "Subir archivos adjuntos"}
+                  </span>
+                </label>
+              </div>
+
               {detalle.estatus === "programada" ? (
                 <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">Evidencias firmadas</Label>
-                    {evidencias.length > 0 && (
-                      <div className="rounded-md border divide-y">
-                        {evidencias.map((ev) => (
-                          <div key={ev.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
-                            <span className="text-xs font-light truncate">{ev.nombre_archivo}</span>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openSigned(ev.storage_path)}>
-                                <FileText className="h-3 w-3 mr-1" /> Ver
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => quitarEvidencia(ev.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <label className="inline-flex">
-                      <input
-                        type="file"
-                        multiple
-                        className="hidden"
-                        accept=".pdf,.png,.jpg,.jpeg"
-                        onChange={(e) => {
-                          const fs = Array.from(e.target.files ?? []);
-                          if (fs.length) subirEvidencias(detalle, fs);
-                          e.target.value = "";
-                        }}
-                      />
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer hover:bg-muted ${evidencias.length ? "text-green-700 border-green-200" : "text-muted-foreground"}`}>
-                        <Upload className="h-3 w-3" />
-                        {evidencias.length ? `Subir más evidencias (${evidencias.length})` : "Subir evidencias firmadas"}
-                      </span>
-                    </label>
-                  </div>
+
 
                   <div className="flex flex-wrap items-end gap-2">
                     <div className="space-y-1.5">
