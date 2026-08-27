@@ -718,6 +718,7 @@ function ProductosTab() {
       if (editingId) {
         const { error } = await supabase.from("productos").update(payload).eq("id", editingId);
         if (error) throw error;
+        return editingId as string;
       } else {
         const { data: created, error } = await supabase.from("productos").insert(payload).select("id").single();
         if (error) throw error;
@@ -732,23 +733,24 @@ function ProductosTab() {
           });
           if (mapError) throw mapError;
         }
+        return (created?.id as string) || null;
       }
     },
-    onSuccess: () => {
+    onSuccess: (createdId) => {
       const wasHuerfano = !!huerfanoContext;
       qc.invalidateQueries({ queryKey: ["productos"] });
-      setOpen(false);
-      setForm(emptyProduct);
-      setEditingId(null);
       setRecalcOpen(false);
       if (wasHuerfano) {
         for (const key of ["huerfanos_kardex", "huerfanos_count", "fantasmas_catalogo", "stock_por_producto"]) {
           qc.invalidateQueries({ queryKey: [key] });
         }
-        setHuerfanoContext(null);
-        toast.success("Producto creado y vinculado al kardex correctamente");
-        navigate("/inventario/mapeo");
+        // Mantener el diálogo abierto para seguir editando; no navegar.
+        if (createdId) setEditingId(createdId);
+        toast.success("Producto guardado y vinculado al kardex correctamente");
       } else {
+        setOpen(false);
+        setForm(emptyProduct);
+        setEditingId(null);
         toast.success(editingId ? "Producto actualizado" : "Producto creado");
       }
     },
@@ -761,9 +763,9 @@ function ProductosTab() {
 
   const roundPrice = (n: number) => {
     if (!isFinite(n) || n <= 0) return 0;
-    if (n < 100) return Math.ceil(n);
-    return Math.round(n * 100) / 100;
+    return Math.ceil(n / 5) * 5;
   };
+
 
   const saveWithRecalc = async () => {
     try {
