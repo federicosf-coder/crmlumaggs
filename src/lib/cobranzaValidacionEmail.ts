@@ -103,7 +103,7 @@ export async function buildValidacionEmailFlow(
     monto: formatCurrency(Number(a.monto_aplicado)),
   }));
 
-  const emails: string[] = [];
+  const legacyEmails: string[] = [];
 
   // Correos PROHIBIDOS: empresa + contactos
   const blocked: string[] = [];
@@ -140,7 +140,7 @@ export async function buildValidacionEmailFlow(
     .maybeSingle();
   const list = Array.isArray(setting?.value) ? (setting!.value as any[]) : [];
   list.forEach((e: any) => {
-    if (typeof e === "string" && e && !emails.includes(e)) emails.push(e);
+    if (typeof e === "string" && e && !legacyEmails.includes(e)) legacyEmails.push(e);
   });
 
   const { data: grp } = await (supabase as any)
@@ -155,11 +155,11 @@ export async function buildValidacionEmailFlow(
       .select("email")
       .eq("group_id", grp.id);
     (members || []).forEach((m: any) => {
-      if (m.email && !emails.includes(m.email)) emails.push(m.email);
+      if (m.email && !legacyEmails.includes(m.email)) legacyEmails.push(m.email);
     });
   }
 
-  const filteredEmails = emails.filter((e) => !blocked.includes(e.toLowerCase()));
+  const legacyFiltered = legacyEmails.filter((e) => !blocked.includes(e.toLowerCase()));
 
   // Comprobantes firmados (7 días)
   const { data: archivos } = await (supabase as any)
@@ -268,9 +268,14 @@ export async function buildValidacionEmailFlow(
   const tplCc = dbTpl ? await resolveEmailRecipients(dbTpl.cc_emails) : [];
   const tplBcc = dbTpl ? await resolveEmailRecipients(dbTpl.bcc_emails) : [];
   const tplReplyTo = dbTpl?.reply_to || null;
-  tplToEmails.forEach((e) => {
-    if (!filteredEmails.includes(e) && !blocked.includes(e.toLowerCase())) filteredEmails.push(e);
-  });
+  const toEmails =
+    tplToEmails.length > 0
+      ? tplToEmails.filter((e) => !blocked.includes(e.toLowerCase()))
+      : legacyFiltered;
+  const ccEmailsFinal =
+    tplToEmails.length > 0
+      ? tplCc.filter((e) => !blocked.includes(e.toLowerCase()))
+      : legacyFiltered.filter((e) => !toEmails.includes(e));
 
   const { data: sentLogs } = await (supabase as any)
     .from("email_send_log")
@@ -280,7 +285,7 @@ export async function buildValidacionEmailFlow(
   const sentSet = new Set(
     (sentLogs || []).map((l: any) => (l.recipient_email || "").toLowerCase())
   );
-  const previouslySentEmails = filteredEmails
+  const previouslySentEmails = Array.from(new Set([...toEmails, ...ccEmailsFinal]))
     .filter((e) => sentSet.has(e.toLowerCase()))
     .map((e) => e.toLowerCase());
 
@@ -289,10 +294,10 @@ export async function buildValidacionEmailFlow(
     description: `Se enviará a los destinatarios del grupo "${groupName}". Al enviar, el estatus del pago cambiará a "Enviado a Validar".`,
     subjectOverride,
     htmlOverride,
-    cc: Array.from(new Set([...filteredEmails, ...tplCc])),
+    cc: Array.from(new Set(ccEmailsFinal)),
     bcc: tplBcc,
     replyTo: registradoPor || tplReplyTo || undefined,
-    defaultEmails: filteredEmails,
+    defaultEmails: toEmails,
     blockedEmails: blocked,
     comprobantes: signedComprobantes,
     previouslySentEmails,
