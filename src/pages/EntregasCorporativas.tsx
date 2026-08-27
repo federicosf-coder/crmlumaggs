@@ -67,7 +67,9 @@ type Entrega = {
   notificado_at: string | null;
   ubicacion?: Ubicacion | null;
   calendario_id?: string | null;
+  intake_ids?: string[] | null;
   calendario?: { id: string; nombre_archivo: string; storage_path: string } | null;
+
 };
 
 type Calendario = {
