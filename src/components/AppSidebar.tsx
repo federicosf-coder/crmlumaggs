@@ -266,6 +266,16 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     )}
+                    {hasAnyRole(["admin", "manager", "accounting", "customer_service"]) && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <NavLink to="/vincular-pedidos-facturas" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                            <Link2 className="mr-2 h-4 w-4" />
+                            {!collapsed && <span>Vincular Pedidos y Facturas</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
 
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
