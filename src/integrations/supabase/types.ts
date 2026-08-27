@@ -4440,6 +4440,45 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos_estatus_historial: {
+        Row: {
+          cambiado_at: string
+          cambiado_por: string | null
+          documento_id: string
+          estatus_anterior: Database["public"]["Enums"]["estatus_pedido"] | null
+          estatus_nuevo: Database["public"]["Enums"]["estatus_pedido"] | null
+          id: string
+        }
+        Insert: {
+          cambiado_at?: string
+          cambiado_por?: string | null
+          documento_id: string
+          estatus_anterior?:
+            | Database["public"]["Enums"]["estatus_pedido"]
+            | null
+          estatus_nuevo?: Database["public"]["Enums"]["estatus_pedido"] | null
+          id?: string
+        }
+        Update: {
+          cambiado_at?: string
+          cambiado_por?: string | null
+          documento_id?: string
+          estatus_anterior?:
+            | Database["public"]["Enums"]["estatus_pedido"]
+            | null
+          estatus_nuevo?: Database["public"]["Enums"]["estatus_pedido"] | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_estatus_historial_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_xml_intake: {
         Row: {
           cliente_candidatos: Json | null
