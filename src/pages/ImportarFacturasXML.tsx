@@ -688,7 +688,24 @@ export default function ImportarFacturasXML() {
                           <SelectItem value="__nuevo__">＋ Crear cliente nuevo</SelectItem>
                         </SelectContent>
                       </Select>
+                      {!mostrarBusquedaAmplia[row.id] ? (
+                        <button
+                          type="button"
+                          className="text-[11px] text-blue-600 hover:underline"
+                          onClick={() => setMostrarBusquedaAmplia((p) => ({ ...p, [row.id]: true }))}
+                        >
+                          ¿No está en la lista? Buscar en todo el directorio
+                        </button>
+                      ) : (
+                        <SearchableSelect
+                          value={clienteManual[row.id] || ""}
+                          onValueChange={(v) => setClienteManual((p) => ({ ...p, [row.id]: v }))}
+                          options={companyOptions}
+                          placeholder="Buscar cliente por nombre o razón social…"
+                        />
+                      )}
                     </div>
+
                   )}
                   {row.cliente_match_estatus === "generico_manual" && (
                     <div className="space-y-1.5">
