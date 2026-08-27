@@ -4107,6 +4107,10 @@ export type Database = {
           numero_oc_cliente: string | null
           numero_pedido: string | null
           pdf_url: string | null
+          pedido_relacionado_id: string | null
+          pedido_vinculado_at: string | null
+          pedido_vinculado_por: string | null
+          pedido_vinculo_automatico: boolean | null
           plaza_id: string | null
           saldo_pendiente_cobranza: number
           subtotal: number
@@ -4167,6 +4171,10 @@ export type Database = {
           numero_oc_cliente?: string | null
           numero_pedido?: string | null
           pdf_url?: string | null
+          pedido_relacionado_id?: string | null
+          pedido_vinculado_at?: string | null
+          pedido_vinculado_por?: string | null
+          pedido_vinculo_automatico?: boolean | null
           plaza_id?: string | null
           saldo_pendiente_cobranza?: number
           subtotal?: number
@@ -4227,6 +4235,10 @@ export type Database = {
           numero_oc_cliente?: string | null
           numero_pedido?: string | null
           pdf_url?: string | null
+          pedido_relacionado_id?: string | null
+          pedido_vinculado_at?: string | null
+          pedido_vinculado_por?: string | null
+          pedido_vinculo_automatico?: boolean | null
           plaza_id?: string | null
           saldo_pendiente_cobranza?: number
           subtotal?: number
@@ -4272,6 +4284,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_pedido_relacionado_id_fkey"
+            columns: ["pedido_relacionado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
             referencedColumns: ["id"]
           },
           {
