@@ -226,7 +226,7 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
         if (numeroPedido) {
           let q = (supabase as any)
             .from("entregas_corporativas")
-            .select("id")
+            .select("id, intake_ids")
             .eq("cliente", cliente)
             .eq("fecha_programada", fecha)
             .eq("numero_pedido", numeroPedido);
@@ -242,7 +242,7 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
         } else {
           let q = (supabase as any)
             .from("entregas_corporativas")
-            .select("id")
+            .select("id, intake_ids")
             .eq("cliente", cliente)
             .eq("fecha_programada", fecha);
           q = ubicacion ? q.eq("ubicacion_id", ubicacion.id) : q.is("ubicacion_id", null);
@@ -253,7 +253,11 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
         let entregaId: string;
         if (existente?.id) {
           entregaId = existente.id;
-          const upd: any = { calendario_id: null, lugar_entrega_texto: lugarTexto };
+          const upd: any = {
+            calendario_id: null,
+            lugar_entrega_texto: lugarTexto,
+            intake_ids: Array.from(new Set([...(existente.intake_ids || []), row.id])),
+          };
           if (numeroPedido) upd.numero_pedido = numeroPedido;
           await (supabase as any).from("entregas_corporativas").update(upd).eq("id", entregaId);
         } else {
@@ -268,12 +272,14 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
               calendario_id: null,
               creado_por: uid,
               estatus: "programada",
+              intake_ids: [row.id],
             })
             .select("id")
             .single();
           if (insErr) throw insErr;
           entregaId = nueva.id;
         }
+
 
         const { data: lineasExist } = await (supabase as any)
           .from("entregas_corporativas_lineas")

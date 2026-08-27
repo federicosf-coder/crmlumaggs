@@ -67,7 +67,9 @@ type Entrega = {
   notificado_at: string | null;
   ubicacion?: Ubicacion | null;
   calendario_id?: string | null;
+  intake_ids?: string[] | null;
   calendario?: { id: string; nombre_archivo: string; storage_path: string } | null;
+
 };
 
 type Calendario = {
@@ -951,6 +953,10 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   // Evidencias múltiples
   const [evidencias, setEvidencias] = useState<{ id: string; storage_path: string; nombre_archivo: string; created_at: string }[]>([]);
 
+  // Documentos de origen (correos de intake)
+  const [documentosOrigen, setDocumentosOrigen] = useState<{ id: string; storage_path: string; mime_type: string | null }[]>([]);
+
+
   // Captura manual
   const [manualOpen, setManualOpen] = useState(false);
 
@@ -959,7 +965,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     let q = (supabase as any)
       .from("entregas_corporativas")
       .select(
-        "id, cliente, fecha_programada, numero_pedido, estatus, ubicacion_id, lugar_entrega_texto, pdf_entrega_path, evidencia_firmada_path, factura_referencia, notificado_at, calendario_id, ubicacion:entregas_corporativas_ubicaciones(id, cliente, nombre, direccion, lat, lng, instrucciones, activo), calendario:entregas_corporativas_calendarios(id, nombre_archivo, storage_path)",
+        "id, cliente, fecha_programada, numero_pedido, estatus, ubicacion_id, lugar_entrega_texto, pdf_entrega_path, evidencia_firmada_path, factura_referencia, notificado_at, calendario_id, intake_ids, ubicacion:entregas_corporativas_ubicaciones(id, cliente, nombre, direccion, lat, lng, instrucciones, activo), calendario:entregas_corporativas_calendarios(id, nombre_archivo, storage_path)",
       )
       .order("fecha_programada", { ascending: true });
     if (fCliente !== "todos") q = q.eq("cliente", fCliente);
@@ -1013,6 +1019,18 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     setEvidencias((data ?? []) as any);
   };
 
+  const cargarDocumentosOrigen = async (intakeIds: string[]) => {
+    if (!intakeIds.length) {
+      setDocumentosOrigen([]);
+      return;
+    }
+    const { data } = await (supabase as any)
+      .from("entregas_corporativas_intake")
+      .select("id, storage_path, mime_type")
+      .in("id", intakeIds);
+    setDocumentosOrigen(((data ?? []) as any[]).filter((d) => !!d.storage_path) as any);
+  };
+
   const abrirDetalle = async (r: Entrega) => {
     setDetalle(r);
     setFacturaVal(r.factura_referencia || "");
@@ -1024,7 +1042,10 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     setEditFecha(r.fecha_programada || "");
     setEvidencias([]);
     cargarEvidencias(r.id);
+    setDocumentosOrigen([]);
+    cargarDocumentosOrigen(r.intake_ids || []);
     setUbicClienteList(await fetchUbicaciones(r.cliente));
+
   };
 
   const iniciarEdicion = () => {
@@ -1603,6 +1624,27 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                   </div>
                 )}
               </div>
+
+              {documentosOrigen.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Documentos de origen (correo)</Label>
+                  <div className="rounded-md border divide-y">
+                    {documentosOrigen.map((doc) => {
+                      const last = doc.storage_path.split("/").pop() || doc.storage_path;
+                      const nombre = (last.length > 37 ? last.slice(37) : last) || last;
+                      return (
+                        <div key={doc.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                          <span className="text-xs font-light truncate">{nombre}</span>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" onClick={() => openSigned(doc.storage_path)}>
+                            <FileText className="h-3 w-3 mr-1" /> Ver
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
 
               {/* Archivos adjuntos / evidencias: disponible en cualquier estatus */}
               <div className="space-y-2">
