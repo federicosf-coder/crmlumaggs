@@ -953,6 +953,10 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
   // Evidencias múltiples
   const [evidencias, setEvidencias] = useState<{ id: string; storage_path: string; nombre_archivo: string; created_at: string }[]>([]);
 
+  // Documentos de origen (correos de intake)
+  const [documentosOrigen, setDocumentosOrigen] = useState<{ id: string; storage_path: string; mime_type: string | null }[]>([]);
+
+
   // Captura manual
   const [manualOpen, setManualOpen] = useState(false);
 
