@@ -214,10 +214,27 @@ export default function ImportarFacturasXML() {
         const rfcReceptor = (cfdi.receptorRfc || "").trim().toUpperCase();
         const esGenerico = RFC_GENERICOS.has(rfcReceptor);
 
-        if (esGenerico) {
+        // 0. Alias aprendido por nombre de receptor (prioridad máxima)
+        const aliasNorm = normalizarTexto(cfdi.receptorNombre || "");
+        let aliasHit: any = null;
+        if (aliasNorm) {
+          const { data: al } = await (supabase as any)
+            .from("factura_cliente_aliases")
+            .select("empresa_id")
+            .eq("alias_normalizado", aliasNorm)
+            .maybeSingle();
+          aliasHit = al || null;
+        }
+
+        if (aliasHit?.empresa_id) {
+          clienteEstatus = "exacto_rfc";
+          empresaIdMatched = aliasHit.empresa_id;
+          candidatos = [];
+        } else if (esGenerico) {
           clienteEstatus = "generico_manual";
           candidatos = [];
         } else {
+
           // a. Cliente por RFC
           if (cfdi.receptorRfc) {
             const { data: porRfc } = await (supabase as any)
