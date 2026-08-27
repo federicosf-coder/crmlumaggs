@@ -140,55 +140,31 @@ export default function AutorizacionPrecioCard({
   };
 
   // ---- Resultado de la autorización (respuesta de Galper) ----
-  const [margenTexto, setMargenTexto] = useState<string>(row.margen_reportado_texto || "");
-  const [savingMargen, setSavingMargen] = useState(false);
-  const [resultado, setResultado] = useState<"si" | "no" | "nc">(
-    row.autorizado === true ? "si" : row.autorizado === false ? "no" : "nc"
-  );
-  const [autorizadoPor, setAutorizadoPor] = useState<string>(row.autorizado_por_texto || "");
-  const [motivo, setMotivo] = useState<string>(row.motivo || "");
   const [savingResultado, setSavingResultado] = useState(false);
-  const [editandoResultado, setEditandoResultado] = useState(false);
   const [posponiendo, setPosponiendo] = useState(false);
 
-  useEffect(() => {
-    setMargenTexto(row.margen_reportado_texto || "");
-    setResultado(row.autorizado === true ? "si" : row.autorizado === false ? "no" : "nc");
-    setAutorizadoPor(row.autorizado_por_texto || "");
-    setMotivo(row.motivo || "");
-    setEditandoResultado(false);
-  }, [row.id, row.margen_reportado_texto, row.autorizado, row.autorizado_por_texto, row.motivo]);
+  const { data: nombrePerfilActual } = useQuery({
+    queryKey: ["perfil-nombre", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return (data?.full_name as string | null) ?? null;
+    },
+  });
 
-  const resultadoCerrado =
-    (row.estatus === "autorizado" || row.estatus === "rechazado") && !editandoResultado;
-
-  const guardarMargen = async () => {
-    setSavingMargen(true);
-    try {
-      const { error } = await (supabase as any)
-        .from("documento_autorizaciones_precio")
-        .update({
-          margen_reportado_texto: margenTexto.trim() || null,
-          margen_respondido_por: user?.email ?? null,
-          margen_respondido_at: new Date().toISOString(),
-        })
-        .eq("id", row.id);
-      if (error) throw error;
-      toast.success("Margen reportado guardado");
-      onRefetch();
-    } catch (e: any) {
-      console.error(e);
-      toast.error(e.message || "No se pudo guardar el margen");
-    } finally {
-      setSavingMargen(false);
-    }
-  };
-
-  const guardarResultado = async (override?: { resultado: "si" | "no" | "nc"; autorizadoPor?: string }) => {
+  const guardarResultado = async (override: {
+    resultado: "si" | "no" | "nc";
+    autorizadoPor?: string;
+    motivo?: string | null;
+  }) => {
     setSavingResultado(true);
     try {
-      const res = override?.resultado ?? resultado;
-      const quien = override?.autorizadoPor ?? autorizadoPor;
+      const res = override.resultado;
+      const quien = (override.autorizadoPor ?? "").trim();
       const autorizado = res === "si" ? true : res === "no" ? false : null;
       const nuevoEstatus =
         res === "si" ? "autorizado" : res === "no" ? "rechazado" : "indeterminado";
@@ -196,8 +172,8 @@ export default function AutorizacionPrecioCard({
         .from("documento_autorizaciones_precio")
         .update({
           autorizado,
-          autorizado_por_texto: quien.trim() || null,
-          motivo: motivo.trim() || null,
+          autorizado_por_texto: quien || null,
+          motivo: override.motivo?.trim() || null,
           autorizacion_respondido_at: new Date().toISOString(),
           estatus: nuevoEstatus,
         })
@@ -213,11 +189,6 @@ export default function AutorizacionPrecioCard({
       }
 
       toast.success("Resultado de la autorización guardado");
-      if (override) {
-        setResultado(res);
-        setAutorizadoPor(quien);
-      }
-      setEditandoResultado(false);
       queryClient.invalidateQueries({ queryKey: ["autorizaciones-precio"] });
       queryClient.invalidateQueries({ queryKey: ["documentos"] });
       queryClient.invalidateQueries({ queryKey: ["documento", row.documento_id] });
