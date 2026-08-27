@@ -237,7 +237,10 @@ function intentarParsearHoja(raw: any[][]): Map<string, { codigo: string; costo:
 export default function GestionCostos() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [tab, setTab] = useState("biblioteca");
+  const [tab, setTab] = useState(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return t || "biblioteca";
+  });
 
   // Archivos de referencia
   const { data: archivos = [], refetch: refetchArchivos } = useQuery({
