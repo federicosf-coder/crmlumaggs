@@ -1019,6 +1019,18 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     setEvidencias((data ?? []) as any);
   };
 
+  const cargarDocumentosOrigen = async (intakeIds: string[]) => {
+    if (!intakeIds.length) {
+      setDocumentosOrigen([]);
+      return;
+    }
+    const { data } = await (supabase as any)
+      .from("entregas_corporativas_intake")
+      .select("id, storage_path, mime_type")
+      .in("id", intakeIds);
+    setDocumentosOrigen(((data ?? []) as any[]).filter((d) => !!d.storage_path) as any);
+  };
+
   const abrirDetalle = async (r: Entrega) => {
     setDetalle(r);
     setFacturaVal(r.factura_referencia || "");
@@ -1030,7 +1042,10 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     setEditFecha(r.fecha_programada || "");
     setEvidencias([]);
     cargarEvidencias(r.id);
+    setDocumentosOrigen([]);
+    cargarDocumentosOrigen(r.intake_ids || []);
     setUbicClienteList(await fetchUbicaciones(r.cliente));
+
   };
 
   const iniciarEdicion = () => {
