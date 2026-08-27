@@ -1625,6 +1625,27 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 )}
               </div>
 
+              {documentosOrigen.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Documentos de origen (correo)</Label>
+                  <div className="rounded-md border divide-y">
+                    {documentosOrigen.map((doc) => {
+                      const last = doc.storage_path.split("/").pop() || doc.storage_path;
+                      const nombre = (last.length > 37 ? last.slice(37) : last) || last;
+                      return (
+                        <div key={doc.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                          <span className="text-xs font-light truncate">{nombre}</span>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" onClick={() => openSigned(doc.storage_path)}>
+                            <FileText className="h-3 w-3 mr-1" /> Ver
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+
               {/* Archivos adjuntos / evidencias: disponible en cualquier estatus */}
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">Archivos adjuntos / evidencias firmadas</Label>
