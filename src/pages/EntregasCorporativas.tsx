@@ -961,7 +961,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     let q = (supabase as any)
       .from("entregas_corporativas")
       .select(
-        "id, cliente, fecha_programada, numero_pedido, estatus, ubicacion_id, lugar_entrega_texto, pdf_entrega_path, evidencia_firmada_path, factura_referencia, notificado_at, calendario_id, ubicacion:entregas_corporativas_ubicaciones(id, cliente, nombre, direccion, lat, lng, instrucciones, activo), calendario:entregas_corporativas_calendarios(id, nombre_archivo, storage_path)",
+        "id, cliente, fecha_programada, numero_pedido, estatus, ubicacion_id, lugar_entrega_texto, pdf_entrega_path, evidencia_firmada_path, factura_referencia, notificado_at, calendario_id, intake_ids, ubicacion:entregas_corporativas_ubicaciones(id, cliente, nombre, direccion, lat, lng, instrucciones, activo), calendario:entregas_corporativas_calendarios(id, nombre_archivo, storage_path)",
       )
       .order("fecha_programada", { ascending: true });
     if (fCliente !== "todos") q = q.eq("cliente", fCliente);
