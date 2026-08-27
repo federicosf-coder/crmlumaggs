@@ -680,6 +680,42 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
             )}
           </div>
 
+          <div
+            onClick={() => !subiendoArchivo && fileInputRef.current?.click()}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              handleSubirArchivos(Array.from(e.dataTransfer.files || []));
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            className={`flex cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-dashed p-3 text-xs transition-colors ${
+              dragOver ? "border-blue-400 bg-blue-50" : "border-muted-foreground/25 hover:bg-muted/40"
+            }`}
+          >
+            <Upload className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
+              {subiendoArchivo
+                ? "Subiendo..."
+                : "Arrastra un archivo aquí o haz clic para adjuntarlo a esta orden (PDF, PNG, JPG)"}
+            </span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.png,.jpg,.jpeg"
+              className="hidden"
+              onChange={(e) => {
+                handleSubirArchivos(Array.from(e.target.files || []));
+                e.target.value = "";
+              }}
+            />
+          </div>
+
+
           {hermanas.length > 0 && (
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Otros archivos de este correo:</p>
