@@ -1388,8 +1388,14 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   useEffect(() => {
     setNuevaFormaPago(pago?.tipo_pago || "");
     setNuevaPlazaId(pago?.plaza_id || "");
+    setNuevaFecha(pago?.fecha_pago || "");
+    setNuevoBanco((pago as any)?.banco || "");
+    setNuevaReferencia((pago as any)?.referencia_pago || "");
+    setNuevoMonto(pago?.monto_total != null ? String(pago.monto_total) : "");
+    setNuevasObservaciones(pago?.observaciones || "");
     setEditandoFormaPago(false);
-  }, [pago?.id, pago?.tipo_pago, pago?.plaza_id]);
+  }, [pago?.id, pago?.tipo_pago, pago?.plaza_id, pago?.fecha_pago, (pago as any)?.banco, (pago as any)?.referencia_pago, pago?.monto_total, pago?.observaciones]);
+
 
   const handleCancelarAplicacion = async (id: string) => {
     if (!confirm("¿Cancelar esta aplicación?")) return;
