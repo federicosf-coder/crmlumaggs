@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -178,6 +179,7 @@ function ComprobanteCard({
   const [fecha, setFecha] = useState(row.fecha_extraida || new Date().toISOString().slice(0, 10));
   const [banco, setBanco] = useState(row.banco_extraido || "");
   const [referencia, setReferencia] = useState(row.referencia_extraida || "");
+  const [observaciones, setObservaciones] = useState("");
   const [formaPago, setFormaPago] = useState("");
   const [formaPagoTocada, setFormaPagoTocada] = useState(false);
   const [metodoPago, setMetodoPago] = useState(
@@ -338,7 +340,7 @@ function ComprobanteCard({
           clabe_origen: row.clabe_extraida || null,
           tarjeta_ultimos4_origen: row.tarjeta_ultimos4_extraida || null,
           estatus_pago: "recibido" as any,
-          observaciones: `Comprobante recibido vía ${CANAL_LABEL[row.canal] || row.canal}. Creado desde bandeja de clasificación.`,
+          observaciones: observaciones.trim() || `Comprobante recibido vía ${CANAL_LABEL[row.canal] || row.canal}. Creado desde bandeja de clasificación.`,
           creado_por: user?.id,
           empresa_vendedora: empVend,
         } as any)
@@ -779,6 +781,13 @@ function ComprobanteCard({
               <Input value={referencia} onChange={(e) => setReferencia(e.target.value)} />
             </div>
           </div>
+
+          <div className="md:max-w-2xl">
+            <Label>Observaciones</Label>
+            <Textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} />
+          </div>
+
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:max-w-2xl">
             <div>
