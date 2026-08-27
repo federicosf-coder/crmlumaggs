@@ -1360,6 +1360,11 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const [editandoFormaPago, setEditandoFormaPago] = useState(false);
   const [nuevaFormaPago, setNuevaFormaPago] = useState<string>(pago?.tipo_pago || "");
   const [nuevaPlazaId, setNuevaPlazaId] = useState<string>(pago?.plaza_id || "");
+  const [nuevaFecha, setNuevaFecha] = useState<string>(pago?.fecha_pago || "");
+  const [nuevoBanco, setNuevoBanco] = useState<string>((pago as any)?.banco || "");
+  const [nuevaReferencia, setNuevaReferencia] = useState<string>((pago as any)?.referencia_pago || "");
+  const [nuevoMonto, setNuevoMonto] = useState<string>(pago?.monto_total != null ? String(pago.monto_total) : "");
+  const [nuevasObservaciones, setNuevasObservaciones] = useState<string>(pago?.observaciones || "");
   const buttonKeys = [
     "cobranza.enviar_correo_contado",
     "cobranza.enviar_correo_credito_directo",
