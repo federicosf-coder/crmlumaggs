@@ -40,6 +40,7 @@ import PedidosReclamos from "@/pages/inventario/pedidos/PedidosReclamos";
 import SolicitudesExtraordinarias from "@/pages/inventario/pedidos/SolicitudesExtraordinarias";
 import DocumentsList from "@/pages/documents/DocumentsList";
 import ImportarFacturasXML from "@/pages/ImportarFacturasXML";
+import VincularPedidosFacturas from "@/pages/VincularPedidosFacturas";
 import DocumentForm from "@/pages/documents/DocumentForm";
 import DeliverySchedule from "@/pages/documents/DeliverySchedule";
 import EntregaDetalle from "@/pages/documents/EntregaDetalle";
