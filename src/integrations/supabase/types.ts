@@ -4830,6 +4830,7 @@ export type Database = {
           factura_referencia: string | null
           fecha_programada: string
           id: string
+          intake_ids: string[] | null
           lugar_entrega_texto: string | null
           notas: string | null
           notificado_at: string | null
@@ -4849,6 +4850,7 @@ export type Database = {
           factura_referencia?: string | null
           fecha_programada: string
           id?: string
+          intake_ids?: string[] | null
           lugar_entrega_texto?: string | null
           notas?: string | null
           notificado_at?: string | null
@@ -4868,6 +4870,7 @@ export type Database = {
           factura_referencia?: string | null
           fecha_programada?: string
           id?: string
+          intake_ids?: string[] | null
           lugar_entrega_texto?: string | null
           notas?: string | null
           notificado_at?: string | null
