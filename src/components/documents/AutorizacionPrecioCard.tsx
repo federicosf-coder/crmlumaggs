@@ -602,22 +602,49 @@ export default function AutorizacionPrecioCard({
                 <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pospuesto</Badge>
               )}
               {row.estatus === "enviado" && (
-                <Button
-                  size="sm"
-                  className="h-7 bg-emerald-600 text-white hover:bg-emerald-700"
-                  disabled={savingResultado}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    guardarResultado({ resultado: "si", autorizadoPor: autorizadoPor || "José Tostado" });
-                  }}
-                >
-                  {savingResultado ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  Marcar autorizado
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    className="h-7 bg-emerald-600 text-white hover:bg-emerald-700"
+                    disabled={savingResultado}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      guardarResultado({
+                        resultado: "si",
+                        autorizadoPor: nombrePerfilActual || user?.email || "Usuario",
+                        motivo: null,
+                      });
+                    }}
+                  >
+                    {savingResultado ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Marcar autorizado
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-7"
+                    disabled={savingResultado}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      guardarResultado({
+                        resultado: "no",
+                        autorizadoPor: nombrePerfilActual || user?.email || "Usuario",
+                        motivo: null,
+                      });
+                    }}
+                  >
+                    {savingResultado ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Marcar rechazado
+                  </Button>
+                </>
               )}
 
 
