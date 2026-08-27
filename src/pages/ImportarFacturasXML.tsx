@@ -603,7 +603,37 @@ export default function ImportarFacturasXML() {
       })
       .eq("id", row.id);
     if (errUpd && !silencioso) toast.error(errUpd.message);
+
+    // Aprendizaje de alias de cliente (cuando hubo intervención manual o cliente nuevo)
+    if (row.cliente_match_estatus !== "exacto_rfc" && row.receptor_nombre && empresaId) {
+      const aliasNorm = normalizarTexto(row.receptor_nombre);
+      if (aliasNorm) {
+        const { data: existente } = await (supabase as any)
+          .from("factura_cliente_aliases")
+          .select("id, veces_usado")
+          .eq("alias_normalizado", aliasNorm)
+          .maybeSingle();
+        if (existente) {
+          await (supabase as any)
+            .from("factura_cliente_aliases")
+            .update({
+              empresa_id: empresaId,
+              veces_usado: (existente.veces_usado || 0) + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existente.id);
+        } else {
+          await (supabase as any).from("factura_cliente_aliases").insert({
+            alias_normalizado: aliasNorm,
+            empresa_id: empresaId,
+            veces_usado: 1,
+            created_by: userId,
+          });
+        }
+      }
+    }
     return true;
+
   };
 
   const handleImportar = async (row: IntakeRow) => {
