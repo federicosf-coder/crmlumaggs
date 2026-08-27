@@ -240,6 +240,12 @@ Deno.serve(async (req) => {
 
     // ============ FLUJO AUTORIZACIÓN DE PRECIO (precios@) ============
     if (esPrecios) {
+      const fromNorm = String(from ?? '').trim().toLowerCase();
+      if (fromNorm.includes('@correo.lumaggs.com.mx')) {
+        console.log('[precios] remitente propio, ignorado:', fromNorm);
+        return jsonRes({ ok: true, ignorado: 'remitente_propio' });
+      }
+
       let asuntoLimpio = String(subject ?? '').trim();
       const prefijoRe = /^(re|res|fw|fwd|aw)\s*:\s*/i;
       const corcheteRe = /^\[[^\]]*\]\s*/;
