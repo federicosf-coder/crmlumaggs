@@ -2123,11 +2123,11 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
               </TableRow>
             ) : filtered.map(r => (
               <TableRow key={r.codigo}>
-                <TableCell>
+                <TableCell className="sticky left-0 z-10 bg-background">
                   <Checkbox checked={seleccion.has(r.codigo)} onCheckedChange={(v) => toggleUno(r.codigo, !!v)} />
                 </TableCell>
-                <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
-                <TableCell>{r.nombre}</TableCell>
+                <TableCell className="font-mono text-xs sticky left-10 z-10 bg-background min-w-[90px]">{r.codigo}</TableCell>
+                <TableCell className="sticky left-[130px] z-10 bg-background min-w-[180px] border-r">{r.nombre}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">{r.presentacion ?? "—"}</TableCell>
                 <TableCell>{abcBadgeLista(r.clasificacion_abc)}</TableCell>
                 <TableCell className="text-right">{money(r.precio_uf1)}</TableCell>
