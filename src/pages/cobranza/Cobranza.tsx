@@ -1744,19 +1744,51 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
                   </select>
                   {!nuevaPlazaId && <p className="text-xs text-destructive mt-1">La plaza es requerida</p>}
                 </div>
+                <div>
+                  <Label className="text-xs">Fecha</Label>
+                  <Input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Banco</Label>
+                  <Input value={nuevoBanco} onChange={(e) => setNuevoBanco(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Referencia</Label>
+                  <Input value={nuevaReferencia} onChange={(e) => setNuevaReferencia(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Monto total</Label>
+                  <Input type="number" step="0.01" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Observaciones</Label>
+                  <Textarea value={nuevasObservaciones} onChange={(e) => setNuevasObservaciones(e.target.value)} />
+                </div>
                 <div className="flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => setEditandoFormaPago(false)}>Cancelar</Button>
                   <Button size="sm" onClick={async () => {
                     if (!nuevaPlazaId) { toast.error("La plaza es requerida"); return; }
+                    const montoNum = Number(nuevoMonto);
+                    if (!nuevoMonto || !Number.isFinite(montoNum) || montoNum <= 0) { toast.error("Monto inválido"); return; }
                     const { error } = await supabase
                       .from("cobranza_pagos")
-                      .update({ tipo_pago: (nuevaFormaPago || null) as any, plaza_id: nuevaPlazaId })
+                      .update({
+                        tipo_pago: (nuevaFormaPago || null) as any,
+                        plaza_id: nuevaPlazaId,
+                        fecha_pago: nuevaFecha,
+                        banco: nuevoBanco || null,
+                        referencia_pago: nuevaReferencia || null,
+                        monto_total: montoNum,
+                        observaciones: nuevasObservaciones || null,
+                      } as any)
                       .eq("id", pago.id);
                     if (error) { toast.error(error.message); return; }
+                    await (supabase as any).rpc("recompute_pago_balance", { _pago_id: pago.id });
                     toast.success("Pago actualizado");
                     setEditandoFormaPago(false);
                     onChanged();
                   }}>Guardar</Button>
+
                 </div>
               </CardContent>
             </Card>
