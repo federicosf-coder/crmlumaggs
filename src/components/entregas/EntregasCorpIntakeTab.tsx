@@ -379,7 +379,51 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
     onChanged();
   };
 
+  const handleSubirArchivos = async (files: File[]) => {
+    const validos = files.filter(
+      (f) => f.type === "application/pdf" || f.type.startsWith("image/"),
+    );
+    if (validos.length === 0) {
+      toast.error("Solo se permiten archivos PDF o imágenes");
+      return;
+    }
+    setSubiendoArchivo(true);
+    try {
+      for (const file of validos) {
+        const sanitizado = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
+        const path = `email-intake/${row.resend_email_id || row.id}/manual-${Date.now()}-${sanitizado}`;
+        const { error: upErr } = await supabase.storage
+          .from("entregas-corporativas")
+          .upload(path, file, { contentType: file.type, upsert: true });
+        if (upErr) throw new Error(upErr.message);
+
+        const { error: insErr } = await supabase.from("entregas_corporativas_intake").insert({
+          canal: "email",
+          remitente_email: row.remitente_email,
+          asunto_email: row.asunto_email,
+          storage_path: path,
+          mime_type: file.type,
+          email_html_storage_path: row.email_html_storage_path,
+          resend_email_id: row.resend_email_id,
+          cliente_detectado: row.cliente_detectado,
+          lugar_entrega_detectado: row.lugar_entrega_detectado,
+          numero_pedido_detectado: row.numero_pedido_detectado,
+          entregas_extraidas: null,
+          estatus: "pendiente",
+        });
+        if (insErr) throw new Error(insErr.message);
+      }
+      toast.success(validos.length === 1 ? "Archivo adjuntado" : `${validos.length} archivos adjuntados`);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo subir el archivo");
+    } finally {
+      setSubiendoArchivo(false);
+    }
+  };
+
   const handleDescartarHermana = async (h: IntakeRow) => {
+
     if (!confirm(`¿Eliminar el archivo "${nombreArchivo(h.storage_path)}" de esta bandeja?`)) return;
     setDescartandoHermana(h.id);
     const { error } = await supabase
