@@ -2174,6 +2174,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
             ))}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
     </Card>
 
