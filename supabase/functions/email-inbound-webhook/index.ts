@@ -349,9 +349,23 @@ Deno.serve(async (req) => {
 
       const { data: actual } = await admin
         .from('documento_autorizaciones_precio')
-        .select('estatus')
+        .select('estatus, documento_id')
         .eq('id', autorizacionId)
         .maybeSingle();
+
+      // Solo José Tostado puede autorizar/rechazar; otros remitentes quedan solo registrados
+      const esAutorizador = fromNorm.includes('jtostado@galper.com.mx');
+      const esDecision = clasificacion === 'autorizado' || clasificacion === 'rechazado';
+      if (esDecision && !esAutorizador) {
+        console.log('[precios] respuesta no vinculante de', fromNorm, '- clasificación:', clasificacion);
+        return jsonRes({
+          ok: true,
+          autorizacion_id: autorizacionId,
+          clasificacion,
+          aplicado: false,
+          motivo_no_aplicado: 'remitente_no_autorizador',
+        });
+      }
 
       const update: Record<string, unknown> = {
         autorizacion_respondido_at: new Date().toISOString(),
@@ -370,7 +384,15 @@ Deno.serve(async (req) => {
         .eq('id', autorizacionId);
       if (updError) console.error('error actualizando autorización:', updError.message);
 
-      return jsonRes({ ok: true, autorizacion_id: autorizacionId, clasificacion });
+      if (!updError && update.estatus === 'autorizado' && actual?.documento_id) {
+        const { error: docError } = await admin
+          .from('documentos')
+          .update({ estatus_pedido: 'precio_autorizado' })
+          .eq('id', actual.documento_id);
+        if (docError) console.error('error actualizando estatus del pedido:', docError.message);
+      }
+
+      return jsonRes({ ok: true, autorizacion_id: autorizacionId, clasificacion, aplicado: true });
     }
 
     // ===================== FLUJO FACTURAS XML (facturas@) =====================
