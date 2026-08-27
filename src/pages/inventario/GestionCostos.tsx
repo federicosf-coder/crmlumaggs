@@ -2092,14 +2092,15 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
         )}
       </CardContent>
       <CardContent className="p-0">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">
+              <TableHead className="w-10 sticky left-0 z-20 bg-background">
                 <Checkbox checked={todosSeleccionados} onCheckedChange={(v) => toggleTodos(!!v)} />
               </TableHead>
-              <Th k="codigo">Código</Th>
-              <Th k="nombre">Nombre</Th>
+              <Th k="codigo" className="sticky left-10 z-20 bg-background min-w-[90px]">Código</Th>
+              <Th k="nombre" className="sticky left-[130px] z-20 bg-background min-w-[180px] border-r">Nombre</Th>
               <Th k="presentacion">Presentación</Th>
               <Th k="clasificacion_abc">ABC</Th>
               <Th k="precio_uf1" className="text-right">Precio UF1</Th>
