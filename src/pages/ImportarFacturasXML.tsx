@@ -59,6 +59,8 @@ export default function ImportarFacturasXML() {
   const [tipoPagoManual, setTipoPagoManual] = useState<Record<string, string>>({});
   const [fechaVencManual, setFechaVencManual] = useState<Record<string, string>>({});
   const [estatusManual, setEstatusManual] = useState<Record<string, string>>({});
+  const [mostrarBusquedaAmplia, setMostrarBusquedaAmplia] = useState<Record<string, boolean>>({});
+
 
 
   interface PerfilEmpresa {
