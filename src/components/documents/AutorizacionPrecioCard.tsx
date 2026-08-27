@@ -34,6 +34,7 @@ import {
   Clock,
   Trash2,
   CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
@@ -140,55 +141,31 @@ export default function AutorizacionPrecioCard({
   };
 
   // ---- Resultado de la autorización (respuesta de Galper) ----
-  const [margenTexto, setMargenTexto] = useState<string>(row.margen_reportado_texto || "");
-  const [savingMargen, setSavingMargen] = useState(false);
-  const [resultado, setResultado] = useState<"si" | "no" | "nc">(
-    row.autorizado === true ? "si" : row.autorizado === false ? "no" : "nc"
-  );
-  const [autorizadoPor, setAutorizadoPor] = useState<string>(row.autorizado_por_texto || "");
-  const [motivo, setMotivo] = useState<string>(row.motivo || "");
   const [savingResultado, setSavingResultado] = useState(false);
-  const [editandoResultado, setEditandoResultado] = useState(false);
   const [posponiendo, setPosponiendo] = useState(false);
 
-  useEffect(() => {
-    setMargenTexto(row.margen_reportado_texto || "");
-    setResultado(row.autorizado === true ? "si" : row.autorizado === false ? "no" : "nc");
-    setAutorizadoPor(row.autorizado_por_texto || "");
-    setMotivo(row.motivo || "");
-    setEditandoResultado(false);
-  }, [row.id, row.margen_reportado_texto, row.autorizado, row.autorizado_por_texto, row.motivo]);
+  const { data: nombrePerfilActual } = useQuery({
+    queryKey: ["perfil-nombre", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return (data?.full_name as string | null) ?? null;
+    },
+  });
 
-  const resultadoCerrado =
-    (row.estatus === "autorizado" || row.estatus === "rechazado") && !editandoResultado;
-
-  const guardarMargen = async () => {
-    setSavingMargen(true);
-    try {
-      const { error } = await (supabase as any)
-        .from("documento_autorizaciones_precio")
-        .update({
-          margen_reportado_texto: margenTexto.trim() || null,
-          margen_respondido_por: user?.email ?? null,
-          margen_respondido_at: new Date().toISOString(),
-        })
-        .eq("id", row.id);
-      if (error) throw error;
-      toast.success("Margen reportado guardado");
-      onRefetch();
-    } catch (e: any) {
-      console.error(e);
-      toast.error(e.message || "No se pudo guardar el margen");
-    } finally {
-      setSavingMargen(false);
-    }
-  };
-
-  const guardarResultado = async (override?: { resultado: "si" | "no" | "nc"; autorizadoPor?: string }) => {
+  const guardarResultado = async (override: {
+    resultado: "si" | "no" | "nc";
+    autorizadoPor?: string;
+    motivo?: string | null;
+  }) => {
     setSavingResultado(true);
     try {
-      const res = override?.resultado ?? resultado;
-      const quien = override?.autorizadoPor ?? autorizadoPor;
+      const res = override.resultado;
+      const quien = (override.autorizadoPor ?? "").trim();
       const autorizado = res === "si" ? true : res === "no" ? false : null;
       const nuevoEstatus =
         res === "si" ? "autorizado" : res === "no" ? "rechazado" : "indeterminado";
@@ -196,8 +173,8 @@ export default function AutorizacionPrecioCard({
         .from("documento_autorizaciones_precio")
         .update({
           autorizado,
-          autorizado_por_texto: quien.trim() || null,
-          motivo: motivo.trim() || null,
+          autorizado_por_texto: quien || null,
+          motivo: override.motivo?.trim() || null,
           autorizacion_respondido_at: new Date().toISOString(),
           estatus: nuevoEstatus,
         })
@@ -213,11 +190,6 @@ export default function AutorizacionPrecioCard({
       }
 
       toast.success("Resultado de la autorización guardado");
-      if (override) {
-        setResultado(res);
-        setAutorizadoPor(quien);
-      }
-      setEditandoResultado(false);
       queryClient.invalidateQueries({ queryKey: ["autorizaciones-precio"] });
       queryClient.invalidateQueries({ queryKey: ["documentos"] });
       queryClient.invalidateQueries({ queryKey: ["documento", row.documento_id] });
@@ -602,22 +574,49 @@ export default function AutorizacionPrecioCard({
                 <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pospuesto</Badge>
               )}
               {row.estatus === "enviado" && (
-                <Button
-                  size="sm"
-                  className="h-7 bg-emerald-600 text-white hover:bg-emerald-700"
-                  disabled={savingResultado}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    guardarResultado({ resultado: "si", autorizadoPor: autorizadoPor || "José Tostado" });
-                  }}
-                >
-                  {savingResultado ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  Marcar autorizado
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    className="h-7 bg-emerald-600 text-white hover:bg-emerald-700"
+                    disabled={savingResultado}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      guardarResultado({
+                        resultado: "si",
+                        autorizadoPor: nombrePerfilActual || user?.email || "Usuario",
+                        motivo: null,
+                      });
+                    }}
+                  >
+                    {savingResultado ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Marcar autorizado
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-7"
+                    disabled={savingResultado}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      guardarResultado({
+                        resultado: "no",
+                        autorizadoPor: nombrePerfilActual || user?.email || "Usuario",
+                        motivo: null,
+                      });
+                    }}
+                  >
+                    {savingResultado ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Marcar rechazado
+                  </Button>
+                </>
               )}
 
 
@@ -817,108 +816,8 @@ export default function AutorizacionPrecioCard({
               )}
             </div>
 
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-4">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                Resultado de la autorización
-              </p>
 
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Margen reportado
-                </Label>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Input
-                    value={margenTexto}
-                    onChange={(e) => setMargenTexto(e.target.value)}
-                    placeholder="Ej. 16%"
-                    className="h-8 max-w-[160px] text-sm"
-                  />
-                  <Button size="sm" variant="outline" onClick={guardarMargen} disabled={savingMargen}>
-                    {savingMargen && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
-                    Guardar margen
-                  </Button>
-                  {row.margen_respondido_por && (
-                    <span className="text-xs text-muted-foreground font-light">
-                      Registrado por {row.margen_respondido_por}
-                    </span>
-                  )}
-                </div>
-              </div>
 
-              {resultadoCerrado ? (
-                <div className="space-y-1 text-sm font-light">
-                  <p>
-                    <span className="text-muted-foreground">Resultado:</span>{" "}
-                    {row.autorizado === true ? "Autorizado" : "Rechazado"}
-                    {row.autorizado_por_texto ? ` por ${row.autorizado_por_texto}` : ""}
-                  </p>
-                  {row.motivo && (
-                    <p>
-                      <span className="text-muted-foreground">Motivo:</span> {row.motivo}
-                    </p>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => setEditandoResultado(true)}>
-                    Editar
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                      ¿Se autorizó el precio?
-                    </Label>
-                    <RadioGroup
-                      value={resultado}
-                      onValueChange={(v) => setResultado(v as "si" | "no" | "nc")}
-                      className="flex flex-wrap gap-4"
-                    >
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="si" id={`res-si-${row.id}`} />
-                        <Label htmlFor={`res-si-${row.id}`} className="font-light">Sí</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="no" id={`res-no-${row.id}`} />
-                        <Label htmlFor={`res-no-${row.id}`} className="font-light">No</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="nc" id={`res-nc-${row.id}`} />
-                        <Label htmlFor={`res-nc-${row.id}`} className="font-light">No está claro</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Autorizado/rechazado por
-                    </Label>
-                    <Input
-                      value={autorizadoPor}
-                      onChange={(e) => setAutorizadoPor(e.target.value)}
-                      placeholder="Ej. José Tostado"
-                      className="h-8 max-w-[280px] text-sm"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Motivo {resultado === "no" ? "" : "(opcional)"}
-                    </Label>
-                    <Textarea
-                      value={motivo}
-                      onChange={(e) => setMotivo(e.target.value)}
-                      rows={3}
-                      className="text-sm font-light"
-                      placeholder="Motivo de la decisión"
-                    />
-                  </div>
-
-                  <Button size="sm" onClick={() => guardarResultado()} disabled={savingResultado}>
-                    {savingResultado && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
-                    Guardar resultado
-                  </Button>
-                </div>
-              )}
-            </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
               <Button
