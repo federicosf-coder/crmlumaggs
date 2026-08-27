@@ -34,6 +34,7 @@ import {
   Clock,
   Trash2,
   CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
