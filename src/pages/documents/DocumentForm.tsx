@@ -34,6 +34,7 @@ import { LastSendStamp } from "@/components/automations/LastSendStamp";
 import { EntregaCorporativaSection } from "@/components/documentos/EntregaCorporativaSection";
 import { buildAutorizacionPrecioDraft } from "@/lib/autorizacionPrecioFlow";
 import PedidoStatusStepper from "@/components/documents/PedidoStatusStepper";
+import UltimoCambioEstatus from "@/components/documents/UltimoCambioEstatus";
 import PedidoAccionesPanel from "@/components/documents/PedidoAccionesPanel";
 import AutorizacionPrecioDialog from "@/components/documents/AutorizacionPrecioDialog";
 import InstruccionesEspecialesCard from "@/components/documents/InstruccionesEspecialesCard";
@@ -864,6 +865,7 @@ export default function DocumentForm() {
           <DivisionesPedidoCard documentoId={existingDoc.id} />
           <PedidoAccionesPanel documentoId={existingDoc.id} />
           <PedidoStatusStepper estatus={form.estatus_pedido} />
+          <UltimoCambioEstatus documentoId={existingDoc.id} />
           <AutorizacionPrecioDialog
             open={autorizacionOpen}
             onOpenChange={setAutorizacionOpen}
