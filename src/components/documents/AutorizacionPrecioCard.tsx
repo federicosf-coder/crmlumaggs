@@ -442,6 +442,9 @@ export default function AutorizacionPrecioCard({
   const abrirEnvio = async () => {
     setPreparing(true);
     try {
+      if ((justificacion || "") !== (row.justificacion || "")) {
+        await guardar();
+      }
       const f = await buildAutorizacionPrecioEmailFlow(row.id);
       setFlow(f);
       setPreviewOpen(true);
