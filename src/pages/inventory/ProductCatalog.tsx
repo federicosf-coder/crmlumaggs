@@ -1206,6 +1206,26 @@ function ProductosTab() {
               >
                 Actualizar Precios
               </Button>
+              {huerfanoContext && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={save.isPending}
+                  className="flex-1"
+                  onClick={async () => {
+                    if (form.codigo && form.nombre_producto && form.producto_base_id) {
+                      try { await save.mutateAsync(undefined); } catch { return; }
+                    }
+                    setOpen(false);
+                    setForm(emptyProduct);
+                    setEditingId(null);
+                    setHuerfanoContext(null);
+                    navigate("/inventario/costos?tab=listas");
+                  }}
+                >
+                  Guardar y regresar a Listas por Marca
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
