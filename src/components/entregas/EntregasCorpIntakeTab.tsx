@@ -72,7 +72,11 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
   const [loadingEmailPreview, setLoadingEmailPreview] = useState(false);
   const [descartando, setDescartando] = useState(false);
   const [descartandoHermana, setDescartandoHermana] = useState<string | null>(null);
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const emailIframeRef = useRef<HTMLIFrameElement>(null);
+
 
   const detectado = row.cliente_detectado?.trim() || "";
   const match = detectado
