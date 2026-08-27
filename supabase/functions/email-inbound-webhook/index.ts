@@ -457,10 +457,26 @@ Deno.serve(async (req) => {
 
           if (!yaExiste) {
             const rfcReceptor = (receptorRfc || '').trim().toUpperCase();
-            if (RFC_GENERICOS.has(rfcReceptor)) {
+            // 0. Alias aprendido por nombre de receptor (tiene prioridad sobre todo)
+            const aliasNorm = normalizarTextoCfdi(receptorNombre || '');
+            let aliasHit: any = null;
+            if (aliasNorm) {
+              const { data: al } = await admin
+                .from('factura_cliente_aliases')
+                .select('empresa_id')
+                .eq('alias_normalizado', aliasNorm)
+                .maybeSingle();
+              aliasHit = al || null;
+            }
+            if (aliasHit?.empresa_id) {
+              clienteEstatus = 'exacto_rfc';
+              empresaIdMatched = aliasHit.empresa_id;
+              candidatos = [];
+            } else if (RFC_GENERICOS.has(rfcReceptor)) {
               clienteEstatus = 'generico_manual';
               candidatos = [];
             } else {
+
               if (receptorRfc) {
                 const { data: porRfc } = await admin
                   .from('companies')
