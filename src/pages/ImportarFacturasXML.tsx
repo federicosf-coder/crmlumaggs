@@ -59,6 +59,8 @@ export default function ImportarFacturasXML() {
   const [tipoPagoManual, setTipoPagoManual] = useState<Record<string, string>>({});
   const [fechaVencManual, setFechaVencManual] = useState<Record<string, string>>({});
   const [estatusManual, setEstatusManual] = useState<Record<string, string>>({});
+  const [mostrarBusquedaAmplia, setMostrarBusquedaAmplia] = useState<Record<string, boolean>>({});
+
 
 
   interface PerfilEmpresa {
@@ -214,10 +216,27 @@ export default function ImportarFacturasXML() {
         const rfcReceptor = (cfdi.receptorRfc || "").trim().toUpperCase();
         const esGenerico = RFC_GENERICOS.has(rfcReceptor);
 
-        if (esGenerico) {
+        // 0. Alias aprendido por nombre de receptor (prioridad máxima)
+        const aliasNorm = normalizarTexto(cfdi.receptorNombre || "");
+        let aliasHit: any = null;
+        if (aliasNorm) {
+          const { data: al } = await (supabase as any)
+            .from("factura_cliente_aliases")
+            .select("empresa_id")
+            .eq("alias_normalizado", aliasNorm)
+            .maybeSingle();
+          aliasHit = al || null;
+        }
+
+        if (aliasHit?.empresa_id) {
+          clienteEstatus = "exacto_rfc";
+          empresaIdMatched = aliasHit.empresa_id;
+          candidatos = [];
+        } else if (esGenerico) {
           clienteEstatus = "generico_manual";
           candidatos = [];
         } else {
+
           // a. Cliente por RFC
           if (cfdi.receptorRfc) {
             const { data: porRfc } = await (supabase as any)
@@ -586,7 +605,37 @@ export default function ImportarFacturasXML() {
       })
       .eq("id", row.id);
     if (errUpd && !silencioso) toast.error(errUpd.message);
+
+    // Aprendizaje de alias de cliente (cuando hubo intervención manual o cliente nuevo)
+    if (row.cliente_match_estatus !== "exacto_rfc" && row.receptor_nombre && empresaId) {
+      const aliasNorm = normalizarTexto(row.receptor_nombre);
+      if (aliasNorm) {
+        const { data: existente } = await (supabase as any)
+          .from("factura_cliente_aliases")
+          .select("id, veces_usado")
+          .eq("alias_normalizado", aliasNorm)
+          .maybeSingle();
+        if (existente) {
+          await (supabase as any)
+            .from("factura_cliente_aliases")
+            .update({
+              empresa_id: empresaId,
+              veces_usado: (existente.veces_usado || 0) + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existente.id);
+        } else {
+          await (supabase as any).from("factura_cliente_aliases").insert({
+            alias_normalizado: aliasNorm,
+            empresa_id: empresaId,
+            veces_usado: 1,
+            created_by: userId,
+          });
+        }
+      }
+    }
     return true;
+
   };
 
   const handleImportar = async (row: IntakeRow) => {
@@ -671,7 +720,24 @@ export default function ImportarFacturasXML() {
                           <SelectItem value="__nuevo__">＋ Crear cliente nuevo</SelectItem>
                         </SelectContent>
                       </Select>
+                      {!mostrarBusquedaAmplia[row.id] ? (
+                        <button
+                          type="button"
+                          className="text-[11px] text-blue-600 hover:underline"
+                          onClick={() => setMostrarBusquedaAmplia((p) => ({ ...p, [row.id]: true }))}
+                        >
+                          ¿No está en la lista? Buscar en todo el directorio
+                        </button>
+                      ) : (
+                        <SearchableSelect
+                          value={clienteManual[row.id] || ""}
+                          onValueChange={(v) => setClienteManual((p) => ({ ...p, [row.id]: v }))}
+                          options={companyOptions}
+                          placeholder="Buscar cliente por nombre o razón social…"
+                        />
+                      )}
                     </div>
+
                   )}
                   {row.cliente_match_estatus === "generico_manual" && (
                     <div className="space-y-1.5">

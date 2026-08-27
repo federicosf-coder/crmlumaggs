@@ -5139,6 +5139,44 @@ export type Database = {
           },
         ]
       }
+      factura_cliente_aliases: {
+        Row: {
+          alias_normalizado: string
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          id: string
+          updated_at: string
+          veces_usado: number
+        }
+        Insert: {
+          alias_normalizado: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          id?: string
+          updated_at?: string
+          veces_usado?: number
+        }
+        Update: {
+          alias_normalizado?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          id?: string
+          updated_at?: string
+          veces_usado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factura_cliente_aliases_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       industrias_catalog: {
         Row: {
           clave: string
