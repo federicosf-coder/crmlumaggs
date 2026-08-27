@@ -2092,14 +2092,15 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
         )}
       </CardContent>
       <CardContent className="p-0">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">
+              <TableHead className="w-10 sticky left-0 z-20 bg-background">
                 <Checkbox checked={todosSeleccionados} onCheckedChange={(v) => toggleTodos(!!v)} />
               </TableHead>
-              <Th k="codigo">Código</Th>
-              <Th k="nombre">Nombre</Th>
+              <Th k="codigo" className="sticky left-10 z-20 bg-background min-w-[90px]">Código</Th>
+              <Th k="nombre" className="sticky left-[130px] z-20 bg-background min-w-[180px] border-r">Nombre</Th>
               <Th k="presentacion">Presentación</Th>
               <Th k="clasificacion_abc">ABC</Th>
               <Th k="precio_uf1" className="text-right">Precio UF1</Th>
@@ -2122,11 +2123,11 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
               </TableRow>
             ) : filtered.map(r => (
               <TableRow key={r.codigo}>
-                <TableCell>
+                <TableCell className="sticky left-0 z-10 bg-background">
                   <Checkbox checked={seleccion.has(r.codigo)} onCheckedChange={(v) => toggleUno(r.codigo, !!v)} />
                 </TableCell>
-                <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
-                <TableCell>{r.nombre}</TableCell>
+                <TableCell className="font-mono text-xs sticky left-10 z-10 bg-background min-w-[90px]">{r.codigo}</TableCell>
+                <TableCell className="sticky left-[130px] z-10 bg-background min-w-[180px] border-r">{r.nombre}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">{r.presentacion ?? "—"}</TableCell>
                 <TableCell>{abcBadgeLista(r.clasificacion_abc)}</TableCell>
                 <TableCell className="text-right">{money(r.precio_uf1)}</TableCell>
@@ -2173,6 +2174,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
             ))}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
     </Card>
 
