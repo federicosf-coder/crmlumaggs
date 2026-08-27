@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, FileText, Image as ImageIcon, Mail, PackagePlus, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, FileText, Image as ImageIcon, Mail, PackagePlus, Pencil, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
 import { CLIENTES, fetchUbicaciones, emparejarUbicacion } from "@/pages/EntregasCorporativas";
@@ -72,7 +72,11 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
   const [loadingEmailPreview, setLoadingEmailPreview] = useState(false);
   const [descartando, setDescartando] = useState(false);
   const [descartandoHermana, setDescartandoHermana] = useState<string | null>(null);
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const emailIframeRef = useRef<HTMLIFrameElement>(null);
+
 
   const detectado = row.cliente_detectado?.trim() || "";
   const match = detectado
@@ -375,7 +379,51 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
     onChanged();
   };
 
+  const handleSubirArchivos = async (files: File[]) => {
+    const validos = files.filter(
+      (f) => f.type === "application/pdf" || f.type.startsWith("image/"),
+    );
+    if (validos.length === 0) {
+      toast.error("Solo se permiten archivos PDF o imágenes");
+      return;
+    }
+    setSubiendoArchivo(true);
+    try {
+      for (const file of validos) {
+        const sanitizado = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
+        const path = `email-intake/${row.resend_email_id || row.id}/manual-${Date.now()}-${sanitizado}`;
+        const { error: upErr } = await supabase.storage
+          .from("entregas-corporativas")
+          .upload(path, file, { contentType: file.type, upsert: true });
+        if (upErr) throw new Error(upErr.message);
+
+        const { error: insErr } = await supabase.from("entregas_corporativas_intake").insert({
+          canal: "email",
+          remitente_email: row.remitente_email,
+          asunto_email: row.asunto_email,
+          storage_path: path,
+          mime_type: file.type,
+          email_html_storage_path: row.email_html_storage_path,
+          resend_email_id: row.resend_email_id,
+          cliente_detectado: row.cliente_detectado,
+          lugar_entrega_detectado: row.lugar_entrega_detectado,
+          numero_pedido_detectado: row.numero_pedido_detectado,
+          entregas_extraidas: null,
+          estatus: "pendiente",
+        });
+        if (insErr) throw new Error(insErr.message);
+      }
+      toast.success(validos.length === 1 ? "Archivo adjuntado" : `${validos.length} archivos adjuntados`);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo subir el archivo");
+    } finally {
+      setSubiendoArchivo(false);
+    }
+  };
+
   const handleDescartarHermana = async (h: IntakeRow) => {
+
     if (!confirm(`¿Eliminar el archivo "${nombreArchivo(h.storage_path)}" de esta bandeja?`)) return;
     setDescartandoHermana(h.id);
     const { error } = await supabase
@@ -631,6 +679,42 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
               </Button>
             )}
           </div>
+
+          <div
+            onClick={() => !subiendoArchivo && fileInputRef.current?.click()}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              handleSubirArchivos(Array.from(e.dataTransfer.files || []));
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            className={`flex cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-dashed p-3 text-xs transition-colors ${
+              dragOver ? "border-blue-400 bg-blue-50" : "border-muted-foreground/25 hover:bg-muted/40"
+            }`}
+          >
+            <Upload className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
+              {subiendoArchivo
+                ? "Subiendo..."
+                : "Arrastra un archivo aquí o haz clic para adjuntarlo a esta orden (PDF, PNG, JPG)"}
+            </span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.png,.jpg,.jpeg"
+              className="hidden"
+              onChange={(e) => {
+                handleSubirArchivos(Array.from(e.target.files || []));
+                e.target.value = "";
+              }}
+            />
+          </div>
+
 
           {hermanas.length > 0 && (
             <div className="space-y-1">

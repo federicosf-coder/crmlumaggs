@@ -277,28 +277,57 @@ Deno.serve(async (req) => {
 
       const pedidos = extraido && Array.isArray((extraido as any).pedidos) ? ((extraido as any).pedidos as any[]) : [];
 
-      const filas: Record<string, unknown>[] =
-        pedidos.length > 0
-          ? pedidos.map((p) => ({
-              ...base,
-              cliente_detectado: asText(p?.cliente_detectado),
-              lugar_entrega_detectado: asText(p?.lugar_entrega),
-              numero_pedido_detectado: asText(p?.numero_pedido),
-              entregas_extraidas: Array.isArray(p?.entregas) ? p.entregas : null,
-              extraccion_raw: p ?? null,
-              extraccion_error: null,
-            }))
-          : [
-              {
-                ...base,
-                cliente_detectado: null,
-                lugar_entrega_detectado: null,
-                numero_pedido_detectado: null,
-                entregas_extraidas: null,
-                extraccion_raw: extraido ?? null,
-                extraccion_error: extraido ? null : extraccionError,
-              },
-            ];
+      if (extraido && pedidos.length === 0) return 0;
+
+      const filas: Record<string, unknown>[] = [];
+
+      if (pedidos.length > 0) {
+        for (const p of pedidos) {
+          const clienteDet = asText(p?.cliente_detectado);
+          const numPedidoDet = asText(p?.numero_pedido);
+
+          if (clienteDet && numPedidoDet) {
+            const { data: yaCreado } = await admin
+              .from('entregas_corporativas')
+              .select('id')
+              .eq('cliente', clienteDet)
+              .eq('numero_pedido', numPedidoDet)
+              .limit(1);
+            if (yaCreado && yaCreado.length > 0) continue;
+
+            const { data: yaPendiente } = await admin
+              .from('entregas_corporativas_intake')
+              .select('id')
+              .eq('estatus', 'pendiente')
+              .eq('cliente_detectado', clienteDet)
+              .eq('numero_pedido_detectado', numPedidoDet)
+              .limit(1);
+            if (yaPendiente && yaPendiente.length > 0) continue;
+          }
+
+          filas.push({
+            ...base,
+            cliente_detectado: clienteDet,
+            lugar_entrega_detectado: asText(p?.lugar_entrega),
+            numero_pedido_detectado: numPedidoDet,
+            entregas_extraidas: Array.isArray(p?.entregas) ? p.entregas : null,
+            extraccion_raw: p ?? null,
+            extraccion_error: null,
+          });
+        }
+        if (filas.length === 0) return 0;
+      } else {
+        filas.push({
+          ...base,
+          cliente_detectado: null,
+          lugar_entrega_detectado: null,
+          numero_pedido_detectado: null,
+          entregas_extraidas: null,
+          extraccion_raw: extraido ?? null,
+          extraccion_error: extraccionError,
+        });
+      }
+
 
       const { error: insErr } = await admin.from('entregas_corporativas_intake').insert(filas);
       if (insErr) throw new Error(`insert_failed: ${insErr.message}`);
