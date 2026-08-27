@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -1360,6 +1361,11 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const [editandoFormaPago, setEditandoFormaPago] = useState(false);
   const [nuevaFormaPago, setNuevaFormaPago] = useState<string>(pago?.tipo_pago || "");
   const [nuevaPlazaId, setNuevaPlazaId] = useState<string>(pago?.plaza_id || "");
+  const [nuevaFecha, setNuevaFecha] = useState<string>(pago?.fecha_pago || "");
+  const [nuevoBanco, setNuevoBanco] = useState<string>((pago as any)?.banco || "");
+  const [nuevaReferencia, setNuevaReferencia] = useState<string>((pago as any)?.referencia_pago || "");
+  const [nuevoMonto, setNuevoMonto] = useState<string>(pago?.monto_total != null ? String(pago.monto_total) : "");
+  const [nuevasObservaciones, setNuevasObservaciones] = useState<string>(pago?.observaciones || "");
   const buttonKeys = [
     "cobranza.enviar_correo_contado",
     "cobranza.enviar_correo_credito_directo",
@@ -1388,8 +1394,14 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   useEffect(() => {
     setNuevaFormaPago(pago?.tipo_pago || "");
     setNuevaPlazaId(pago?.plaza_id || "");
+    setNuevaFecha(pago?.fecha_pago || "");
+    setNuevoBanco((pago as any)?.banco || "");
+    setNuevaReferencia((pago as any)?.referencia_pago || "");
+    setNuevoMonto(pago?.monto_total != null ? String(pago.monto_total) : "");
+    setNuevasObservaciones(pago?.observaciones || "");
     setEditandoFormaPago(false);
-  }, [pago?.id, pago?.tipo_pago, pago?.plaza_id]);
+  }, [pago?.id, pago?.tipo_pago, pago?.plaza_id, pago?.fecha_pago, (pago as any)?.banco, (pago as any)?.referencia_pago, pago?.monto_total, pago?.observaciones]);
+
 
   const handleCancelarAplicacion = async (id: string) => {
     if (!confirm("¿Cancelar esta aplicación?")) return;
@@ -1733,19 +1745,51 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
                   </select>
                   {!nuevaPlazaId && <p className="text-xs text-destructive mt-1">La plaza es requerida</p>}
                 </div>
+                <div>
+                  <Label className="text-xs">Fecha</Label>
+                  <Input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Banco</Label>
+                  <Input value={nuevoBanco} onChange={(e) => setNuevoBanco(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Referencia</Label>
+                  <Input value={nuevaReferencia} onChange={(e) => setNuevaReferencia(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Monto total</Label>
+                  <Input type="number" step="0.01" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Observaciones</Label>
+                  <Textarea value={nuevasObservaciones} onChange={(e) => setNuevasObservaciones(e.target.value)} />
+                </div>
                 <div className="flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => setEditandoFormaPago(false)}>Cancelar</Button>
                   <Button size="sm" onClick={async () => {
                     if (!nuevaPlazaId) { toast.error("La plaza es requerida"); return; }
+                    const montoNum = Number(nuevoMonto);
+                    if (!nuevoMonto || !Number.isFinite(montoNum) || montoNum <= 0) { toast.error("Monto inválido"); return; }
                     const { error } = await supabase
                       .from("cobranza_pagos")
-                      .update({ tipo_pago: (nuevaFormaPago || null) as any, plaza_id: nuevaPlazaId })
+                      .update({
+                        tipo_pago: (nuevaFormaPago || null) as any,
+                        plaza_id: nuevaPlazaId,
+                        fecha_pago: nuevaFecha,
+                        banco: nuevoBanco || null,
+                        referencia_pago: nuevaReferencia || null,
+                        monto_total: montoNum,
+                        observaciones: nuevasObservaciones || null,
+                      } as any)
                       .eq("id", pago.id);
                     if (error) { toast.error(error.message); return; }
+                    await (supabase as any).rpc("recompute_pago_balance", { _pago_id: pago.id });
                     toast.success("Pago actualizado");
                     setEditandoFormaPago(false);
                     onChanged();
                   }}>Guardar</Button>
+
                 </div>
               </CardContent>
             </Card>
