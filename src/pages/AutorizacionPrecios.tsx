@@ -17,7 +17,7 @@ export default function AutorizacionPrecios() {
         .select(
           "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, created_at, enviado_at, margen_reportado_texto, margen_respondido_por, margen_respondido_at, autorizado, autorizado_por_texto, motivo, autorizacion_respondido_at, pospuesto, pospuesto_at, documentos(id, numero_pedido, numero_factura, fecha_documento, ejecutivo_venta_id, companies(id, name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
         )
-        .in("estatus", ["pendiente_revision", "enviado"])
+        .in("estatus", ["pendiente_revision", "enviado", "rechazado", "indeterminado"])
         .order("created_at", { ascending: true });
       if (error) throw error;
 
@@ -51,6 +51,21 @@ export default function AutorizacionPrecios() {
     }
   }, [isLoading, highlightId, rows]);
 
+  const renderCard = (row: Autorizacion) => (
+    <AutorizacionPrecioCard
+      key={row.id}
+      row={row}
+      ejecutivo={row.documentos?.ejecutivo_venta_id ? data?.ejecutivos?.[row.documentos.ejecutivo_venta_id] : null}
+      onRefetch={refetch}
+      isHighlighted={highlightedId === row.id}
+      defaultOpen={false}
+    />
+  );
+
+  const pendientes = rows.filter((r: Autorizacion) => r.estatus === "pendiente_revision");
+  const enviados = rows.filter((r: Autorizacion) => r.estatus === "enviado");
+  const atencion = rows.filter((r: Autorizacion) => r.estatus === "rechazado" || r.estatus === "indeterminado");
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -70,21 +85,40 @@ export default function AutorizacionPrecios() {
       ) : rows.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            No hay pedidos pendientes de autorización de precio.
+            No hay solicitudes de autorización de precio en seguimiento.
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {rows.map((row) => (
-            <AutorizacionPrecioCard
-              key={row.id}
-              row={row}
-              ejecutivo={row.documentos?.ejecutivo_venta_id ? data?.ejecutivos?.[row.documentos.ejecutivo_venta_id] : null}
-              onRefetch={refetch}
-              isHighlighted={highlightedId === row.id}
-              defaultOpen={false}
-            />
-          ))}
+        <div className="space-y-6">
+          {pendientes.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Pendientes de revisar
+              </h2>
+              <div className="space-y-3">{pendientes.map(renderCard)}</div>
+            </div>
+          )}
+
+          {enviados.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Esperando respuesta
+              </h2>
+              <div className="space-y-3">{enviados.map(renderCard)}</div>
+            </div>
+          )}
+
+          {atencion.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-amber-600">
+                ⚠️ Requieren atención
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Estas quedaron en un estado que necesita que alguien las revise o corrija manualmente.
+              </p>
+              <div className="space-y-3">{atencion.map(renderCard)}</div>
+            </div>
+          )}
         </div>
       )}
 
