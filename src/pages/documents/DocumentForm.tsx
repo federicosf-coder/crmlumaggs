@@ -1280,86 +1280,96 @@ export default function DocumentForm() {
       {/* Products */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Productos</CardTitle>
-            <Button size="sm" onClick={addItem}><Plus className="mr-1 h-4 w-4" /> Agregar</Button>
-          </div>
+          <CardTitle>Productos</CardTitle>
         </CardHeader>
         <CardContent>
           {items.length === 0 ? (
             <p className="text-center py-6 text-muted-foreground">Sin productos. Haz clic en "Agregar" para añadir.</p>
           ) : (
-            <div className="space-y-4">
-              {items.map((item, idx) => {
-                const prod = productos.find((p: any) => p.id === item.producto_id);
-                return (
-                  <div key={idx} className="border rounded-lg p-3 space-y-3">
-                    <div className="flex gap-1 items-start">
-                      <SearchableSelect
-                        value={item.producto_id}
-                        onValueChange={v => updateItem(idx, "producto_id", v)}
-                        placeholder="Seleccionar producto"
-                        options={filteredProductos.map((p: any) => {
-                          const pres = (p.presentaciones as any)?.nombre || '';
-                          const label = `${p.codigo} - ${p.nombre_producto}`;
-                          const searchStr = `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''} ${pres}`;
-                          return { value: p.id, label, detail: pres || undefined, searchText: searchStr };
-                        })}
-                        popoverClassName="min-w-[420px] sm:min-w-[520px]"
-                        className="flex-1"
-                      />
-                      <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeItem(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                    </div>
-
-                    {prod && (
-                      <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 text-[10px] text-muted-foreground bg-muted/50 rounded p-2">
-                        <div className="text-center"><span className="font-semibold block">UF1</span>{Number(prod.precio_base_uf1).toFixed(2)}</div>
-                        <div className="text-center"><span className="font-semibold block">UF2</span>{Number(prod.precio_uf2).toFixed(2)}</div>
-                        <div className="text-center"><span className="font-semibold block">UF3</span>{Number(prod.precio_uf3).toFixed(2)}</div>
-                        <div className="text-center"><span className="font-semibold block">UF4</span>{Number(prod.precio_uf4).toFixed(2)}</div>
-                        <div className="text-center"><span className="font-semibold block">R1</span>{Number(prod.precio_r1).toFixed(2)}</div>
-                        <div className="text-center"><span className="font-semibold block">R2</span>{Number(prod.precio_r2).toFixed(2)}</div>
-                        <div className="text-center"><span className="font-semibold block">R3</span>{Number(prod.precio_r3).toFixed(2)}</div>
-                        <div className="text-center"><span className="font-semibold block">R4</span>{Number(prod.precio_r4).toFixed(2)}</div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
-                      <div>
-                        <Label className="text-xs">Cant.</Label>
-                        <Input type="number" className="h-9" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Precio Unit.</Label>
-                        <Input
-                          type="number"
-                          className="h-9"
-                          value={isEntregaCorp ? 0 : item.precio_unitario}
-                          disabled={isEntregaCorp}
-                          readOnly={isEntregaCorp}
-                          title={isEntregaCorp ? "Precio fijo en 0 para Entrega Corporativa" : undefined}
-                          onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Desc. %</Label>
-                        <Input type="number" className="h-9" value={item.descuento_porcentaje} onChange={e => updateItem(idx, "descuento_porcentaje", Number(e.target.value))} />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Subtotal</Label>
-                        <div className="h-9 flex items-center font-medium text-sm">${item.subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</div>
-                      </div>
-                      <div>
-                        <Label className="text-xs">UE</Label>
-                        <div className="h-9 flex items-center text-sm">{item.unidades_equivalentes}</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 z-20 bg-background min-w-[220px] border-r">Producto</TableHead>
+                    <TableHead className="text-right min-w-[70px]">UF1</TableHead>
+                    <TableHead className="text-right min-w-[70px]">UF2</TableHead>
+                    <TableHead className="text-right min-w-[70px]">UF3</TableHead>
+                    <TableHead className="text-right min-w-[70px]">UF4</TableHead>
+                    <TableHead className="text-right min-w-[70px]">R1</TableHead>
+                    <TableHead className="text-right min-w-[70px]">R2</TableHead>
+                    <TableHead className="text-right min-w-[70px]">R3</TableHead>
+                    <TableHead className="text-right min-w-[70px]">R4</TableHead>
+                    <TableHead className="text-right min-w-[80px]">Cant.</TableHead>
+                    <TableHead className="text-right min-w-[110px]">Precio Unit.</TableHead>
+                    <TableHead className="text-right min-w-[90px]">Desc. %</TableHead>
+                    <TableHead className="text-right min-w-[110px]">Subtotal</TableHead>
+                    <TableHead className="text-right min-w-[100px]">Unidades Equiv.</TableHead>
+                    <TableHead className="text-center w-14"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item, idx) => {
+                    const prod = productos.find((p: any) => p.id === item.producto_id);
+                    return (
+                      <TableRow key={idx}>
+                        <TableCell className="sticky left-0 z-10 bg-background min-w-[220px] border-r">
+                          <div className="flex gap-1 items-start">
+                            <SearchableSelect
+                              value={item.producto_id}
+                              onValueChange={v => updateItem(idx, "producto_id", v)}
+                              placeholder="Seleccionar producto"
+                              options={filteredProductos.map((p: any) => {
+                                const pres = (p.presentaciones as any)?.nombre || '';
+                                const label = `${p.codigo} - ${p.nombre_producto}`;
+                                const searchStr = `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''} ${pres}`;
+                                return { value: p.id, label, detail: pres || undefined, searchText: searchStr };
+                              })}
+                              popoverClassName="min-w-[280px] sm:min-w-[360px]"
+                              className="flex-1"
+                            />
+                            <Button variant="outline" size="icon" className="shrink-0 h-8 w-8" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_base_uf1).toFixed(2) : "—"}</TableCell>
+                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_uf2).toFixed(2) : "—"}</TableCell>
+                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_uf3).toFixed(2) : "—"}</TableCell>
+                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_uf4).toFixed(2) : "—"}</TableCell>
+                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_r1).toFixed(2) : "—"}</TableCell>
+                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_r2).toFixed(2) : "—"}</TableCell>
+                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_r3).toFixed(2) : "—"}</TableCell>
+                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_r4).toFixed(2) : "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <Input type="number" className="h-8 w-20 ml-auto text-right text-sm" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input
+                            type="number"
+                            className="h-8 w-24 ml-auto text-right text-sm"
+                            value={isEntregaCorp ? 0 : item.precio_unitario}
+                            disabled={isEntregaCorp}
+                            readOnly={isEntregaCorp}
+                            title={isEntregaCorp ? "Precio fijo en 0 para Entrega Corporativa" : undefined}
+                            onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input type="number" className="h-8 w-20 ml-auto text-right text-sm" value={item.descuento_porcentaje} onChange={e => updateItem(idx, "descuento_porcentaje", Number(e.target.value))} />
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-sm">${item.subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right text-sm">{item.unidades_equivalentes}</TableCell>
+                        <TableCell className="text-center">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
+          <div className="flex justify-start mt-4">
+            <Button size="sm" onClick={addItem}><Plus className="mr-1 h-4 w-4" /> Agregar producto</Button>
+          </div>
           <Separator className="my-4" />
           <div className="flex flex-col items-end gap-1 text-sm">
             <div>Subtotal: <span className="font-medium">${subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span></div>
