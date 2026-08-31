@@ -10,7 +10,7 @@ export type AppModule =
   | "proyectos" | "capacitacion" | "reportes"
   | "modificar_pdf_cotizacion" | "eliminar_pdf_cotizacion"
   | "tareas" | "actividades" | "whatsapp" | "biblioteca" | "credito"
-  | "seguimiento_ventas" | "cobranza" | "pedidos";
+  | "seguimiento_ventas" | "cobranza" | "pedidos" | "reporte_ventas_sistema";
 
 interface ModuleAccess {
   accessLevel: AccessLevel;

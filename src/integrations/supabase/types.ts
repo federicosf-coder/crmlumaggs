@@ -10250,6 +10250,7 @@ export type Database = {
         | "inventario.traspasos"
         | "inventario.dashboard_red"
         | "inventario.costos"
+        | "reporte_ventas_sistema"
       app_role:
         | "admin"
         | "manager"
@@ -10606,6 +10607,7 @@ export const Constants = {
         "inventario.traspasos",
         "inventario.dashboard_red",
         "inventario.costos",
+        "reporte_ventas_sistema",
       ],
       app_role: [
         "admin",

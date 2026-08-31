@@ -52,7 +52,7 @@ const mainItems: NavItem[] = [
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
-  { title: "Reporte de Ventas Sistema", url: "/reporte-ventas-sistema", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
+  { title: "Reporte de Ventas Sistema", url: "/reporte-ventas-sistema", icon: BarChart3, roles: "all" },
   { title: "Automatizaciones", url: "/automations", icon: Zap, roles: ["admin", "manager"] },
   { title: "Automatización de Tareas", url: "/automatizacion-tareas", icon: Workflow, roles: "all" },
 ];
@@ -92,6 +92,7 @@ export function AppSidebar() {
   const [unreadWhatsApp, setUnreadWhatsApp] = useState(0);
   const whatsappAccess = useModuleAccess("whatsapp");
   const inventarioAccess = useModuleAccess("inventario");
+  const rvsAccess = useModuleAccess("reporte_ventas_sistema");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
   const [documentosOpen, setDocumentosOpen] = useState(
     location.pathname.startsWith("/documents") || location.pathname.startsWith("/autorizacion-precios") || location.pathname.startsWith("/entregas-corporativas")
@@ -150,7 +151,9 @@ export function AppSidebar() {
     return hasAnyRole(item.roles);
   };
 
-  const visibleMain = mainItems.filter(canAccess);
+  const visibleMain = mainItems
+    .filter(canAccess)
+    .filter((item) => (item.url === "/reporte-ventas-sistema" ? rvsAccess.canView : true));
   const visibleAdmin = adminItems.filter(canAccess);
   const visibleWhatsApp = whatsappItems.filter(canAccess).filter(() => whatsappAccess.canView);
 
