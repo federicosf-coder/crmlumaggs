@@ -330,11 +330,7 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
           detalle="Ir a la pestaña Personal"
           icono={<Users className="h-4 w-4 text-amber-600" />}
           clase="bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100"
-          onClick={() =>
-            document
-              .querySelector<HTMLElement>('[role="tab"][value="personal"]')
-              ?.click()
-          }
+          onClick={onIrAPersonal}
         />
       </div>
 
