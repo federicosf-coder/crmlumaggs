@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ventasPlazaConRespaldo } from "./rvsAgregados";
 import { ComparativoView } from "./ComparativoView";
 import { ResumenSucursalView } from "./ResumenSucursalView";
 
@@ -59,7 +60,7 @@ export function ReportesMesTab() {
       const [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas] = await Promise.all([
         supabase
           .from("rvs_ventas_mes")
-          .select("persona_id, marca, venta, unidades, utilidad, plaza_id")
+          .select("persona_id, marca, venta, unidades, costo, utilidad, plaza_id")
           .eq("anio_mes", mes),
         supabase
           .from("rvs_ventas_mes_plaza")
@@ -179,7 +180,8 @@ export function ReportesMesTab() {
   const porPlaza = useMemo(() => {
     if (!data) return { filas: [] as any[], zonasFilas: [] as any[] };
     const acc = new Map<string, any>();
-    for (const v of data.ventasPlaza) {
+    const filasPlazaSrc = ventasPlazaConRespaldo(data.ventasPlaza, data.ventas, data.personas);
+    for (const v of filasPlazaSrc) {
       const key = v.plaza_id || `sr:${v.sucursal_reporte || "Sin plaza"}`;
       if (!acc.has(key)) {
         const f: any = nuevaFila(

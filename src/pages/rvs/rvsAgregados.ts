@@ -84,6 +84,43 @@ export function agregarPorPersona(
   }));
 }
 
+/**
+ * Deriva filas con forma de rvs_ventas_mes_plaza a partir de las ventas por persona,
+ * usando la plaza asignada en la pestaña Personal. Se usa como respaldo cuando
+ * rvs_ventas_mes_plaza no tiene datos (p. ej. captura manual por persona).
+ */
+export function derivarVentasPlaza(ventas: any[], personas: any[]): any[] {
+  const personaMap = new Map<string, any>();
+  personas.forEach((p) => personaMap.set(p.id, p));
+  const acc = new Map<string, any>();
+  for (const v of ventas) {
+    const p = personaMap.get(v.persona_id);
+    const plazaId = v.plaza_id || p?.plaza_id || null;
+    const key = `${plazaId || "sin"}|${v.marca}`;
+    if (!acc.has(key))
+      acc.set(key, {
+        plaza_id: plazaId,
+        sucursal_reporte: plazaId ? null : "Sin plaza",
+        marca: v.marca,
+        unidades: 0,
+        venta: 0,
+        costo: 0,
+        utilidad: 0,
+      });
+    const row = acc.get(key);
+    row.unidades += Number(v.unidades || 0);
+    row.venta += Number(v.venta || 0);
+    row.costo += Number(v.costo || 0);
+    row.utilidad += Number(v.utilidad || 0);
+  }
+  return Array.from(acc.values());
+}
+
+/** Devuelve las filas por plaza reales, o las derivadas del personal si no hay */
+export function ventasPlazaConRespaldo(ventasPlaza: any[], ventas: any[], personas: any[]): any[] {
+  return ventasPlaza && ventasPlaza.length > 0 ? ventasPlaza : derivarVentasPlaza(ventas, personas);
+}
+
 /** Agrega ventas de rvs_ventas_mes_plaza por plaza y calcula filas de zona */
 export function agregarPorPlaza(
   ventasPlaza: any[],

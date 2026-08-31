@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { esGalsa, esLumaggs, mesLabel } from "./rvsAgregados";
+import { esGalsa, esLumaggs, mesLabel, ventasPlazaConRespaldo } from "./rvsAgregados";
 
 const headClass =
   "bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30";
@@ -48,17 +48,26 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["rvs_resumen_sucursal", mes],
     queryFn: async () => {
-      const [ventasPlaza, plazas] = await Promise.all([
+      const [ventasPlaza, ventas, personas, plazas] = await Promise.all([
         supabase
           .from("rvs_ventas_mes_plaza")
           .select("plaza_id, sucursal_reporte, marca, unidades, venta, costo, utilidad")
           .eq("anio_mes", mes),
+        supabase
+          .from("rvs_ventas_mes")
+          .select("persona_id, marca, unidades, venta, costo, utilidad, plaza_id")
+          .eq("anio_mes", mes),
+        supabase.from("rvs_personas").select("id, plaza_id"),
         supabase.from("plazas").select("id, nombre"),
       ]);
-      const err = [ventasPlaza, plazas].find((r) => r.error);
+      const err = [ventasPlaza, ventas, personas, plazas].find((r) => r.error);
       if (err?.error) throw err.error;
       return {
-        ventasPlaza: (ventasPlaza.data || []) as any[],
+        ventasPlaza: ventasPlazaConRespaldo(
+          (ventasPlaza.data || []) as any[],
+          (ventas.data || []) as any[],
+          (personas.data || []) as any[]
+        ),
         plazas: (plazas.data || []) as any[],
       };
     },

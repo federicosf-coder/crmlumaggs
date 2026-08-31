@@ -30,12 +30,21 @@ const varMes = (arr: number[], i: number) => {
   return b > 0 ? ((arr[i] - b) / b) * 100 : null;
 };
 
-function VarPct({ v }: { v: number | null }) {
-  if (v === null) return <div className="text-[10px] text-muted-foreground">—</div>;
+/** Variación absoluta (unidades) contra el mes previo */
+const deltaMes = (arr: number[], i: number) => (i === 0 ? null : arr[i] - arr[i - 1]);
+
+function VarPct({ v, d }: { v: number | null; d?: number | null }) {
+  if (v === null && (d === null || d === undefined))
+    return <div className="text-[10px] text-muted-foreground">—</div>;
+  const ref = v ?? d ?? 0;
+  const signo = ref >= 0 ? "+" : "";
   return (
-    <div className={`text-[10px] ${v >= 0 ? "text-emerald-600" : "text-destructive"}`}>
-      {v >= 0 ? "+" : ""}
-      {v.toFixed(1)}%
+    <div className={`text-[10px] ${ref >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+      {d !== null && d !== undefined
+        ? `${signo}${d.toLocaleString("es-MX", { maximumFractionDigits: 2 })} uds`
+        : ""}
+      {d !== null && d !== undefined && v !== null ? " · " : ""}
+      {v !== null ? `${v >= 0 ? "+" : ""}${v.toFixed(1)}%` : ""}
     </div>
   );
 }
@@ -149,14 +158,15 @@ export function Historico12MesesTab() {
 
   const exportar = () => {
     const enc: any[] = ["Persona", "Plaza"];
-    meses.forEach((m) => enc.push(mesLabel(m), `Var. % ${mesLabel(m)}`));
+    meses.forEach((m) => enc.push(mesLabel(m), `Var. uds ${mesLabel(m)}`, `Var. % ${mesLabel(m)}`));
     enc.push("Total 12 meses");
     const aoa: any[][] = [enc];
     const niveles: { level?: number }[] = [{}];
     const celdas = (arr: number[]) =>
       arr.flatMap((n, i) => {
         const v = varMes(arr, i);
-        return [n, v === null ? "n/d" : Number(v.toFixed(1))];
+        const d = deltaMes(arr, i);
+        return [n, d === null ? "n/d" : Number(d.toFixed(2)), v === null ? "n/d" : Number(v.toFixed(1))];
       });
     const fila = (r: (typeof filas)[number]) => [r.nombre, r.plaza, ...celdas(r.porMes), r.total];
     if (grupos) {
@@ -193,7 +203,7 @@ export function Historico12MesesTab() {
       {r.porMes.map((n, k) => (
         <TableCell key={k} className="text-right leading-tight">
           <div>{fmtUds(n)}</div>
-          <VarPct v={varMes(r.porMes, k)} />
+          <VarPct v={varMes(r.porMes, k)} d={deltaMes(r.porMes, k)} />
         </TableCell>
       ))}
       <TableCell className="text-right font-semibold">{fmtUds(r.total)}</TableCell>
@@ -282,7 +292,7 @@ export function Historico12MesesTab() {
                     {totalesMes.map((n, i) => (
                       <TableCell key={i} className="text-right font-semibold leading-tight">
                         <div>{fmtUds(n)}</div>
-                        <VarPct v={varMes(totalesMes, i)} />
+                        <VarPct v={varMes(totalesMes, i)} d={deltaMes(totalesMes, i)} />
                       </TableCell>
                     ))}
                     <TableCell className="text-right font-semibold">
