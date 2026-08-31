@@ -97,6 +97,9 @@ export function PersonalTab() {
   const opt = (items: any[]) =>
     items.map((i) => ({ value: i.id, label: labelOf(i) }));
 
+  const requiereAcceso = (p: Persona) =>
+    !!(puestos.data || []).find((x) => x.id === p.puesto_id)?.requiere_acceso;
+
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return personas.filter(
