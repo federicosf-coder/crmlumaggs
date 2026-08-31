@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ventasPlazaConRespaldo } from "./rvsAgregados";
 import { ComparativoView } from "./ComparativoView";
 import { ResumenSucursalView } from "./ResumenSucursalView";
 
