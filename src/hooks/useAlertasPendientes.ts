@@ -29,6 +29,13 @@ export interface AlertaAutorizacion {
   } | null;
 }
 
+export interface AlertaRvsPersona {
+  id: string;
+  nombre_reporte: string;
+  sin_clasificar: boolean | null;
+  requiere_verificacion: boolean | null;
+}
+
 export function useAlertasPendientes() {
   const { profile, hasAnyRole } = useAuth();
   const verTodo = hasAnyRole(["admin", "manager"]);
