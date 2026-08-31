@@ -127,10 +127,11 @@ function KpiCard({ titulo, valor, detalle, icono, clase, onClick }: KpiCardProps
   );
 }
 
-export function DashboardTab() {
+export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } = {}) {
   const meses = useMemo(ultimos12, []);
   const [mes, setMes] = useState(meses[0]);
   const [descargando, setDescargando] = useState(false);
+
 
   const actualQuery = useQuery({
     queryKey: ["rvs_dashboard_mes", mes],
