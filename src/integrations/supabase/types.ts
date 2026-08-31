@@ -8024,6 +8024,170 @@ export type Database = {
         }
         Relationships: []
       }
+      rvs_reportes_intake: {
+        Row: {
+          anio_mes: string | null
+          asunto_email: string | null
+          created_at: string
+          error_message: string | null
+          estatus: string
+          fecha_recibido: string
+          id: string
+          marca: string | null
+          mime_type: string | null
+          payload_extraido: Json | null
+          remitente_email: string | null
+          resend_email_id: string | null
+          storage_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          anio_mes?: string | null
+          asunto_email?: string | null
+          created_at?: string
+          error_message?: string | null
+          estatus?: string
+          fecha_recibido?: string
+          id?: string
+          marca?: string | null
+          mime_type?: string | null
+          payload_extraido?: Json | null
+          remitente_email?: string | null
+          resend_email_id?: string | null
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anio_mes?: string | null
+          asunto_email?: string | null
+          created_at?: string
+          error_message?: string | null
+          estatus?: string
+          fecha_recibido?: string
+          id?: string
+          marca?: string | null
+          mime_type?: string | null
+          payload_extraido?: Json | null
+          remitente_email?: string | null
+          resend_email_id?: string | null
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rvs_ventas_mes: {
+        Row: {
+          anio_mes: string
+          costo: number
+          created_at: string
+          id: string
+          marca: string
+          margen: number | null
+          persona_id: string
+          plaza_id: string | null
+          unidades: number
+          updated_at: string
+          utilidad: number
+          venta: number
+        }
+        Insert: {
+          anio_mes: string
+          costo?: number
+          created_at?: string
+          id?: string
+          marca: string
+          margen?: number | null
+          persona_id: string
+          plaza_id?: string | null
+          unidades?: number
+          updated_at?: string
+          utilidad?: number
+          venta?: number
+        }
+        Update: {
+          anio_mes?: string
+          costo?: number
+          created_at?: string
+          id?: string
+          marca?: string
+          margen?: number | null
+          persona_id?: string
+          plaza_id?: string | null
+          unidades?: number
+          updated_at?: string
+          utilidad?: number
+          venta?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvs_ventas_mes_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "rvs_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvs_ventas_mes_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rvs_ventas_mes_plaza: {
+        Row: {
+          anio_mes: string
+          costo: number
+          created_at: string
+          id: string
+          marca: string
+          margen: number | null
+          plaza_id: string | null
+          sucursal_reporte: string | null
+          unidades: number
+          updated_at: string
+          utilidad: number
+          venta: number
+        }
+        Insert: {
+          anio_mes: string
+          costo?: number
+          created_at?: string
+          id?: string
+          marca: string
+          margen?: number | null
+          plaza_id?: string | null
+          sucursal_reporte?: string | null
+          unidades?: number
+          updated_at?: string
+          utilidad?: number
+          venta?: number
+        }
+        Update: {
+          anio_mes?: string
+          costo?: number
+          created_at?: string
+          id?: string
+          marca?: string
+          margen?: number | null
+          plaza_id?: string | null
+          sucursal_reporte?: string | null
+          unidades?: number
+          updated_at?: string
+          utilidad?: number
+          venta?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvs_ventas_mes_plaza_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seguimiento_estatus_catalogo: {
         Row: {
           activo: boolean
