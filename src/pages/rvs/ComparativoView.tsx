@@ -456,18 +456,51 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
     };
   }, [data, plazaNombre]);
 
+  // Opciones disponibles para las checklistas (se construyen de los datos reales)
+  const opcionesPlaza = useMemo(() => {
+    const set = new Set<string>();
+    personasComp.forEach((r) => set.add(r.plaza || "Sin plaza"));
+    plazasComp.filas.forEach((r) => set.add(r.nombre || "Sin plaza"));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [personasComp, plazasComp]);
+
+  const opcionesGrupo = useMemo(() => {
+    const set = new Set<string>();
+    personasComp.forEach((r) => set.add(r.empresaGrupo || "Sin empresa / grupo"));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [personasComp]);
+
+  // Aplicación de las checklistas
+  const personasFiltradas = useMemo(
+    () =>
+      personasComp.filter(
+        (r) =>
+          (plazasSel.length === 0 || plazasSel.includes(r.plaza || "Sin plaza")) &&
+          (gruposSel.length === 0 || gruposSel.includes(r.empresaGrupo || "Sin empresa / grupo"))
+      ),
+    [personasComp, plazasSel, gruposSel]
+  );
+
+  const plazasFiltradas = useMemo(
+    () =>
+      plazasComp.filas.filter(
+        (r) => plazasSel.length === 0 || plazasSel.includes(r.nombre || "Sin plaza")
+      ),
+    [plazasComp, plazasSel]
+  );
+
   const cols = colsDe(empresa);
   // plazas y zonas no tienen Empresa / Grupo: se muestran sin agrupar
   const agrupacionPlazas: Agrupacion = "ninguno";
 
 
   const lineasPersonas = useMemo(
-    () => construirLineas(personasComp, metrica, empresa, agrupacion),
-    [personasComp, metrica, empresa, agrupacion]
+    () => construirLineas(personasFiltradas, metrica, empresa, agrupacion),
+    [personasFiltradas, metrica, empresa, agrupacion]
   );
   const lineasPlazas = useMemo(
-    () => construirLineas(plazasComp.filas, metrica, empresa, agrupacionPlazas),
-    [plazasComp, metrica, empresa, agrupacionPlazas]
+    () => construirLineas(plazasFiltradas, metrica, empresa, agrupacionPlazas),
+    [plazasFiltradas, metrica, empresa, agrupacionPlazas]
   );
   const lineasZonas = useMemo(
     () => construirLineas(plazasComp.zonas, metrica, empresa, agrupacionPlazas),
