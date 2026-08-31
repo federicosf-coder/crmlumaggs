@@ -24,6 +24,7 @@ import {
   CREDITO_FIRMAS, CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_PERSONA_OPTIONS,
 } from "@/lib/credito";
 import { TEMPLATE_LABELS } from "@/lib/creditoTemplates";
+import { USO_CFDI_OPTS } from "@/components/CompanyFormDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -461,7 +462,7 @@ export default function CreditoPortal() {
         "razon_social","nombre_comercial","rfc","telefono","correo_contacto","client_nombre_contacto",
         "domicilio_fiscal","ciudad_fiscal","estado_fiscal","antiguedad",
         "domicilio_comercial","ciudad_comercial","estado_comercial","giro_comercial",
-        "monto_solicitado","dias_credito",
+        "monto_solicitado","dias_credito","monto_solicitado_lumaggs","monto_solicitado_galsa",
         "accionistas","escritura_constitutiva","datos_registro","ultima_asamblea","administrador_presidente",
         "datos_bancarios","referencias_comerciales",
         "aval_nombre","aval_direccion","aval_ciudad","aval_relacion","aval_regimen_conyugal","aval_es_distinto",
@@ -898,19 +899,6 @@ export default function CreditoPortal() {
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Tipo de persona — visible en todas las pestañas */}
-                <div className="mt-4 rounded-md border border-violet-200 bg-violet-50/40 p-3">
-                  <Field label="Tipo de persona">
-                    <Select value={form.tipo_persona ?? form.csf_tipo_persona ?? "moral"} onValueChange={(v) => set("tipo_persona", v)}>
-                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {CREDITO_TIPO_PERSONA_OPTIONS.map((o) => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </div>
 
                 {/* Autocompletar con documentos (opcional) */}
                 {(() => {
@@ -1112,10 +1100,6 @@ export default function CreditoPortal() {
                     <Field label="Razón social"><Input value={form.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} /></Field>
                     <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
                     <Field label="RFC"><Input value={form.rfc || ""} onChange={(e) => set("rfc", e.target.value.toUpperCase())} /></Field>
-                    <Field label="Teléfono"><Input value={form.telefono || ""} onChange={(e) => set("telefono", e.target.value)} /></Field>
-                    <Field label="Correo de contacto"><Input value={form.correo_contacto || ""} onChange={(e) => set("correo_contacto", e.target.value)} /></Field>
-                    <Field label="Nombre de quien realiza el trámite"><Input value={form.client_nombre_contacto || ""} onChange={(e) => set("client_nombre_contacto", e.target.value)} /></Field>
-                    <Field label="Giro comercial"><Input value={form.giro_comercial || ""} onChange={(e) => set("giro_comercial", e.target.value)} /></Field>
                     <Field label="Antigüedad"><Input value={form.antiguedad || ""} onChange={(e) => set("antiguedad", e.target.value)} /></Field>
                   </Section>
 
@@ -1201,10 +1185,6 @@ export default function CreditoPortal() {
 
                 {/* === FINANCIERO === */}
                 <TabsContent value="financiero" className="space-y-6 mt-5">
-                  <Section title="Crédito solicitado">
-                    <Field label="Monto solicitado"><Input type="number" value={form.monto_solicitado ?? ""} onChange={(e) => set("monto_solicitado", e.target.value ? Number(e.target.value) : null)} /></Field>
-                    <Field label="Días de crédito"><Input type="number" value={form.dias_credito ?? ""} onChange={(e) => set("dias_credito", e.target.value ? Number(e.target.value) : null)} /></Field>
-                  </Section>
                   {tp === "moral" && (
                     <Repeater
                       title="Accionistas"
