@@ -48,7 +48,7 @@ const fmtPct = (n: number | null) => (n === null ? "n/d" : `${n.toFixed(0)}%`);
 
 type Metrica = "ventas" | "unidades" | "utilidad";
 type Empresa = "todas" | "galsa" | "lumaggs";
-type Agrupacion = "ninguno" | "plaza" | "empresa" | "plaza_empresa";
+type Agrupacion = "ninguno" | "plaza" | "empresa" | "plaza_empresa" | "empresa_plaza";
 type Col = "galsa" | "lumaggs" | "total";
 
 const PREFS_KEY = "rvs_comparativo_prefs";
@@ -134,6 +134,7 @@ function clavesDe(agrupacion: Agrupacion): ((r: FilaComparativa) => string)[] {
   if (agrupacion === "plaza") return [plaza];
   if (agrupacion === "empresa") return [grupo];
   if (agrupacion === "plaza_empresa") return [plaza, grupo];
+  if (agrupacion === "empresa_plaza") return [grupo, plaza];
   return [];
 }
 
@@ -620,6 +621,7 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
               <SelectItem value="plaza">Plaza</SelectItem>
               <SelectItem value="empresa">Empresa / Grupo</SelectItem>
               <SelectItem value="plaza_empresa">Plaza → Empresa / Grupo</SelectItem>
+              <SelectItem value="empresa_plaza">Empresa / Grupo → Plaza</SelectItem>
 
             </SelectContent>
           </Select>
