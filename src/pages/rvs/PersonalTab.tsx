@@ -200,6 +200,10 @@ export function PersonalTab() {
                 <TableCell>
                   {p.user_id ? (
                     <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Vinculado</Badge>
+                  ) : requiereAcceso(p) ? (
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setPersonaUsuario(p)}>
+                      Crear usuario
+                    </Button>
                   ) : (
                     <Badge variant="secondary">Sin usuario</Badge>
                   )}
@@ -207,6 +211,19 @@ export function PersonalTab() {
                 <TableCell>
                   {p.sin_clasificar ? (
                     <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Sin clasificar</Badge>
+                  ) : p.requiere_verificacion ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Verificar</Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        title="Marcar como revisado"
+                        onClick={() => update(p.id, { requiere_verificacion: false })}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </span>
                   ) : (
                     <Badge variant="outline">Clasificado</Badge>
                   )}
@@ -216,6 +233,109 @@ export function PersonalTab() {
           </TableBody>
         </Table>
       </div>
+
+      <CrearUsuarioDialog
+        persona={personaUsuario}
+        onClose={() => setPersonaUsuario(null)}
+        onCreated={() => qc.invalidateQueries({ queryKey: ["rvs_personas"] })}
+      />
     </div>
+  );
+}
+
+function CrearUsuarioDialog({
+  persona,
+  onClose,
+  onCreated,
+}: {
+  persona: Persona | null;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (persona) {
+      setFullName((persona.nombre_reporte || "").replace(/\s*-\s*[A-Z0-9]{2,6}$/, "").trim());
+      setEmail("");
+    }
+  }, [persona]);
+
+  const crear = async () => {
+    if (!persona) return;
+    const correo = email.trim().toLowerCase();
+    if (!correo || !fullName.trim()) {
+      toast.error("Nombre y correo son requeridos");
+      return;
+    }
+    setSaving(true);
+    const tempPassword = crypto.randomUUID().slice(0, 10);
+    const { data, error } = await supabase.functions.invoke("admin-create-user", {
+      body: {
+        email: correo,
+        password: tempPassword,
+        full_name: fullName.trim(),
+        phone: null,
+        plaza_id: persona.plaza_id,
+        team_ids: [],
+        roles: ["sales"],
+      },
+    });
+    if (error || (data as any)?.error) {
+      setSaving(false);
+      toast.error((data as any)?.error || error?.message || "No se pudo crear el usuario");
+      return;
+    }
+    const newUserId = (data as any)?.user_id as string | undefined;
+    if (newUserId) {
+      const { error: upErr } = await supabase
+        .from("rvs_personas")
+        .update({ user_id: newUserId, requiere_verificacion: true })
+        .eq("id", persona.id);
+      if (upErr) toast.error(upErr.message);
+    }
+    setSaving(false);
+    toast.success(`Usuario creado. Contraseña temporal: ${tempPassword}`, { duration: 15000 });
+    onCreated();
+    onClose();
+  };
+
+  return (
+    <Dialog open={!!persona} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
+          <DialogTitle className="text-lg font-semibold tracking-tight">Crear usuario</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground font-light">
+            Se generará una contraseña temporal que deberás compartir manualmente.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 px-5 py-5">
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Nombre completo</Label>
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-9 font-light" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Correo</Label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="correo@empresa.com"
+              className="h-9 font-light"
+            />
+          </div>
+        </div>
+        <div className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={crear} disabled={saving}>
+            {saving ? "Creando…" : "Crear y vincular"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
