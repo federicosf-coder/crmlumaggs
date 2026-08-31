@@ -67,6 +67,7 @@ import DeloXLEReport from "@/pages/reports/DeloXLEReport";
 import Pareto8020Report from "@/pages/reports/Pareto8020Report";
 import CreditoCescemexReport from "@/pages/reports/CreditoCescemexReport";
 import CescemexROIReport from "@/pages/reports/CescemexROIReport";
+import ReporteVentasSistema from "@/pages/rvs/ReporteVentasSistema";
 import SellerPortal from "@/pages/seller/SellerPortal";
 import LeadsInbox from "@/pages/leads/LeadsInbox";
 import GuiasDeVenta from "@/pages/seller/GuiasDeVenta";
