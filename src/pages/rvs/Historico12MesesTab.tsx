@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, RotateCcw } from "lucide-react";
 import {
   Table,
@@ -21,7 +22,7 @@ const headClass =
 
 const fmtUds = (n: number) => (n ? n.toLocaleString("es-MX", { maximumFractionDigits: 2 }) : "—");
 
-const PREFS_KEY = "rvs_historico12_prefs";
+const PREFS_KEY = "rvs_historico_prefs";
 
 /** Variación % contra el mes previo del arreglo */
 const varMes = (arr: number[], i: number) => {
@@ -51,16 +52,36 @@ function VarPct({ v, d }: { v: number | null; d?: number | null }) {
 
 type Empresa = "todas" | "galsa" | "lumaggs";
 
-function ultimos12Meses(): string[] {
+const mesActual = () => {
   const now = new Date();
-  const actual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+};
+
+/** Catálogo de meses seleccionables: 48 meses hacia atrás desde el mes actual */
+function opcionesMeses(): string[] {
+  const actual = mesActual();
   const out: string[] = [];
-  for (let i = 11; i >= 0; i--) out.push(shiftMes(actual, -i));
+  for (let i = 0; i < 48; i++) out.push(shiftMes(actual, -i));
+  return out;
+}
+
+function rangoMeses(desde: string, hasta: string): string[] {
+  const out: string[] = [];
+  let cur = desde;
+  let guard = 0;
+  while (cur <= hasta && guard < 200) {
+    out.push(cur);
+    cur = shiftMes(cur, 1);
+    guard++;
+  }
   return out;
 }
 
 export function Historico12MesesTab() {
-  const meses = useMemo(ultimos12Meses, []);
+  const opciones = useMemo(opcionesMeses, []);
+  const defDesde = useMemo(() => shiftMes(mesActual(), -5), []);
+  const defHasta = useMemo(mesActual, []);
+
   const prefs = useMemo(() => {
     try {
       const raw = localStorage.getItem(PREFS_KEY);
@@ -71,29 +92,39 @@ export function Historico12MesesTab() {
   }, []);
   const [empresa, setEmpresa] = useState<Empresa>(prefs.empresa || "todas");
   const [agruparPlaza, setAgruparPlaza] = useState<boolean>(!!prefs.agruparPlaza);
+  const [desde, setDesde] = useState<string>(prefs.desde || defDesde);
+  const [hasta, setHasta] = useState<string>(prefs.hasta || defHasta);
+
+  const meses = useMemo(() => {
+    const d = desde <= hasta ? desde : hasta;
+    const h = desde <= hasta ? hasta : desde;
+    return rangoMeses(d, h);
+  }, [desde, hasta]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ empresa, agruparPlaza }));
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ empresa, agruparPlaza, desde, hasta }));
     } catch {
       /* almacenamiento no disponible */
     }
-  }, [empresa, agruparPlaza]);
+  }, [empresa, agruparPlaza, desde, hasta]);
 
   const restablecer = () => {
     setEmpresa("todas");
     setAgruparPlaza(false);
+    setDesde(defDesde);
+    setHasta(defHasta);
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["rvs_historico_12m", meses[0], meses[11]],
+    queryKey: ["rvs_historico", meses[0], meses[meses.length - 1]],
     queryFn: async () => {
       const [ventas, personas, plazas] = await Promise.all([
         supabase
           .from("rvs_ventas_mes")
           .select("persona_id, marca, unidades, plaza_id, anio_mes")
           .gte("anio_mes", meses[0])
-          .lte("anio_mes", meses[11]),
+          .lte("anio_mes", meses[meses.length - 1]),
         supabase.from("rvs_personas").select("id, nombre_reporte, nombre_mostrar, plaza_id"),
         supabase.from("plazas").select("id, nombre"),
       ]);
@@ -107,15 +138,17 @@ export function Historico12MesesTab() {
     },
   });
 
-  const filas = useMemo(() => {
-    if (!data) return [] as { key: string; nombre: string; plaza: string; porMes: number[]; total: number }[];
+  type Fila = { key: string; nombre: string; plaza: string; porMes: number[]; total: number; promedio: number };
+
+  const filas = useMemo<Fila[]>(() => {
+    if (!data) return [];
     const plazaNombre = new Map<string, string>();
     data.plazas.forEach((p: any) => plazaNombre.set(p.id, p.nombre));
     const personaMap = new Map<string, any>();
     data.personas.forEach((p: any) => personaMap.set(p.id, p));
     const idxMes = new Map(meses.map((m, i) => [m, i]));
 
-    const acc = new Map<string, { key: string; nombre: string; plaza: string; porMes: number[]; total: number }>();
+    const acc = new Map<string, Fila>();
     for (const v of data.ventas) {
       const p = personaMap.get(v.persona_id);
       if (!p) continue;
@@ -129,8 +162,9 @@ export function Historico12MesesTab() {
           key: v.persona_id,
           nombre: p.nombre_mostrar || p.nombre_reporte,
           plaza: (plazaId && plazaNombre.get(plazaId)) || "Sin plaza",
-          porMes: Array(12).fill(0),
+          porMes: Array(meses.length).fill(0),
           total: 0,
+          promedio: 0,
         });
       }
       const row = acc.get(v.persona_id)!;
@@ -138,12 +172,14 @@ export function Historico12MesesTab() {
       row.porMes[i] += uds;
       row.total += uds;
     }
-    return Array.from(acc.values()).sort((a, b) => b.total - a.total);
+    return Array.from(acc.values())
+      .map((r) => ({ ...r, promedio: meses.length ? r.total / meses.length : 0 }))
+      .sort((a, b) => b.total - a.total);
   }, [data, empresa, meses]);
 
   const grupos = useMemo(() => {
     if (!agruparPlaza) return null;
-    const m = new Map<string, typeof filas>();
+    const m = new Map<string, Fila[]>();
     filas.forEach((r) => {
       if (!m.has(r.plaza)) m.set(r.plaza, []);
       m.get(r.plaza)!.push(r);
@@ -152,14 +188,21 @@ export function Historico12MesesTab() {
   }, [agruparPlaza, filas]);
 
   const totalesMes = useMemo(
-    () => meses.map((_, i) => filas.reduce((s, r) => s + r.porMes[i], 0)),
+    () => meses.map((_, i) => filas.reduce((s, r) => s + (r.porMes[i] || 0), 0)),
     [filas, meses]
   );
+  const totalGeneral = totalesMes.reduce((s, n) => s + n, 0);
+  const promedioGeneral = meses.length ? totalGeneral / meses.length : 0;
+  const colSpanTotal = meses.length + 4;
+
+  const periodoLabel = meses.length
+    ? `${mesLabel(meses[0])} — ${mesLabel(meses[meses.length - 1])}`
+    : "";
 
   const exportar = () => {
-    const enc: any[] = ["Persona", "Plaza"];
+    const enc: any[] = ["Persona", "Plaza", "Promedio del periodo"];
     meses.forEach((m) => enc.push(mesLabel(m), `Var. uds ${mesLabel(m)}`, `Var. % ${mesLabel(m)}`));
-    enc.push("Total 12 meses");
+    enc.push(`Total ${meses.length} meses`);
     const aoa: any[][] = [enc];
     const niveles: { level?: number }[] = [{}];
     const celdas = (arr: number[]) =>
@@ -168,7 +211,13 @@ export function Historico12MesesTab() {
         const d = deltaMes(arr, i);
         return [n, d === null ? "n/d" : Number(d.toFixed(2)), v === null ? "n/d" : Number(v.toFixed(1))];
       });
-    const fila = (r: (typeof filas)[number]) => [r.nombre, r.plaza, ...celdas(r.porMes), r.total];
+    const fila = (r: Fila) => [
+      r.nombre,
+      r.plaza,
+      Number(r.promedio.toFixed(2)),
+      ...celdas(r.porMes),
+      r.total,
+    ];
     if (grupos) {
       grupos.forEach(([plaza, rows]) => {
         aoa.push([plaza.toUpperCase()]);
@@ -184,22 +233,31 @@ export function Historico12MesesTab() {
         niveles.push({});
       });
     }
-    aoa.push(["TOTAL", "", ...celdas(totalesMes), totalesMes.reduce((s, n) => s + n, 0)]);
+    aoa.push([
+      "TOTAL",
+      "",
+      Number(promedioGeneral.toFixed(2)),
+      ...celdas(totalesMes),
+      totalGeneral,
+    ]);
     niveles.push({});
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     (ws as any)["!rows"] = niveles;
-    XLSX.utils.book_append_sheet(wb, ws, "Unidades 12 meses");
+    XLSX.utils.book_append_sheet(wb, ws, "Historico unidades");
     XLSX.writeFile(
       wb,
-      `RVS_Unidades_12meses_${empresa === "todas" ? "Ambas" : empresa}_${meses[11]}.xlsx`
+      `RVS_Historico_${empresa === "todas" ? "Ambas" : empresa}_${meses[0]}_a_${meses[meses.length - 1]}.xlsx`
     );
   };
 
-  const renderFila = (r: (typeof filas)[number], i: number) => (
+  const renderFila = (r: Fila, i: number) => (
     <TableRow key={r.key} className={i % 2 ? "bg-muted/30" : undefined}>
       <TableCell className="font-medium whitespace-nowrap sticky left-0 bg-inherit">{r.nombre}</TableCell>
       <TableCell className="text-muted-foreground whitespace-nowrap">{r.plaza}</TableCell>
+      <TableCell className="text-right font-medium whitespace-nowrap border-r">
+        {fmtUds(Number(r.promedio.toFixed(2)))}
+      </TableCell>
       {r.porMes.map((n, k) => (
         <TableCell key={k} className="text-right leading-tight">
           <div>{fmtUds(n)}</div>
@@ -212,10 +270,38 @@ export function Historico12MesesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted-foreground font-light">
-          Unidades por persona · {mesLabel(meses[0])} — {mesLabel(meses[11])}
-        </p>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Periodo</span>
+          <Select value={desde} onValueChange={setDesde}>
+            <SelectTrigger className="h-8 w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              {opciones.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {mesLabel(m)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground">a</span>
+          <Select value={hasta} onValueChange={setHasta}>
+            <SelectTrigger className="h-8 w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              {opciones.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {mesLabel(m)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground font-light">
+            · {meses.length} {meses.length === 1 ? "mes" : "meses"}
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Tabs value={empresa} onValueChange={(v) => setEmpresa(v as Empresa)}>
             <TabsList>
@@ -243,7 +329,7 @@ export function Historico12MesesTab() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">
-            Unidades por persona — últimos 12 meses
+            Unidades por persona — {periodoLabel}
             {empresa !== "todas" ? ` · ${empresa === "galsa" ? "Galsa" : "Lumaggs"}` : ""}
           </CardTitle>
         </CardHeader>
@@ -256,6 +342,9 @@ export function Historico12MesesTab() {
                     Persona
                   </TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Plaza</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right border-r whitespace-nowrap">
+                    Promedio
+                  </TableHead>
                   {meses.map((m) => (
                     <TableHead key={m} className="text-[10px] uppercase tracking-wide text-right whitespace-nowrap">
                       {mesLabel(m)}
@@ -267,8 +356,8 @@ export function Historico12MesesTab() {
               <TableBody>
                 {filas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={15} className="py-6 text-sm text-muted-foreground">
-                      {isLoading ? "Cargando…" : "Sin datos en los últimos 12 meses."}
+                    <TableCell colSpan={colSpanTotal} className="py-6 text-sm text-muted-foreground">
+                      {isLoading ? "Cargando…" : "Sin datos en el periodo seleccionado."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -276,8 +365,15 @@ export function Historico12MesesTab() {
                 {grupos?.map(([plaza, rows]) => (
                   <>
                     <TableRow key={`g-${plaza}`} className="bg-blue-50/60 dark:bg-blue-950/20">
-                      <TableCell colSpan={15} className="text-xs uppercase tracking-wide font-semibold">
-                        {plaza} · {fmtUds(rows.reduce((s, r) => s + r.total, 0))} uds
+                      <TableCell colSpan={colSpanTotal} className="text-xs uppercase tracking-wide font-semibold">
+                        {plaza} · {fmtUds(rows.reduce((s, r) => s + r.total, 0))} uds · prom.{" "}
+                        {fmtUds(
+                          Number(
+                            (
+                              rows.reduce((s, r) => s + r.total, 0) / (meses.length || 1)
+                            ).toFixed(2)
+                          )
+                        )}
                       </TableCell>
                     </TableRow>
                     {rows.map(renderFila)}
@@ -289,17 +385,18 @@ export function Historico12MesesTab() {
                       Total
                     </TableCell>
                     <TableCell />
+                    <TableCell className="text-right font-semibold border-r">
+                      {fmtUds(Number(promedioGeneral.toFixed(2)))}
+                    </TableCell>
                     {totalesMes.map((n, i) => (
                       <TableCell key={i} className="text-right font-semibold leading-tight">
                         <div>{fmtUds(n)}</div>
                         <VarPct v={varMes(totalesMes, i)} d={deltaMes(totalesMes, i)} />
                       </TableCell>
                     ))}
-                    <TableCell className="text-right font-semibold">
-                      {fmtUds(totalesMes.reduce((s, n) => s + n, 0))}
-                    </TableCell>
+                    <TableCell className="text-right font-semibold">{fmtUds(totalGeneral)}</TableCell>
                   </TableRow>
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>
