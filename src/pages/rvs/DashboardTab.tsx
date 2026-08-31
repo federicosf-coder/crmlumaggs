@@ -198,7 +198,7 @@ function BloqueMarca({
                 ? "—"
                 : `${datos.variacion >= 0 ? "+" : ""}${datos.variacion.toFixed(0)}%`
             }
-            detalle={datos.ventaPrevia > 0 ? `Anterior: ${currency(datos.ventaPrevia)}` : "Sin mes anterior"}
+            detalle={datos.unidadesPrevia > 0 ? `Anterior: ${uds(datos.unidadesPrevia)} unidades` : "Sin mes anterior"}
             icono={
               datos.variacion !== null && datos.variacion < 0 ? (
                 <ArrowDownRight className="h-4 w-4 text-rose-600" />
