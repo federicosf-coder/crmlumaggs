@@ -31,6 +31,7 @@ import {
   shiftMes,
   type FilaComparativa,
 } from "./rvsAgregados";
+import { FiltroChipsMulti } from "./components/FiltroChipsMulti";
 
 const headClass =
   "bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30";
@@ -622,6 +623,21 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
             <Download className="h-4 w-4 mr-1" /> Exportar Excel
           </Button>
         </div>
+      </div>
+
+      <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+        <FiltroChipsMulti
+          titulo="Plaza (uno, varios o todos)"
+          opciones={opcionesPlaza}
+          seleccion={plazasSel}
+          onChange={setPlazasSel}
+        />
+        <FiltroChipsMulti
+          titulo="Empresa / Grupo (uno, varios o todos)"
+          opciones={opcionesGrupo}
+          seleccion={gruposSel}
+          onChange={setGruposSel}
+        />
       </div>
 
       <TablaComparativa
