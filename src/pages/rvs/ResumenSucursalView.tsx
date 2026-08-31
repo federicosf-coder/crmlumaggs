@@ -134,7 +134,7 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
 
   const total = useMemo(
     () =>
-      filas.reduce(
+      filasVisibles.reduce(
         (t, r) => ({
           unidades: t.unidades + r.unidades,
           venta: t.venta + r.venta,
