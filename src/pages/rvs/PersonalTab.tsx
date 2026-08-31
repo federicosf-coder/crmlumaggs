@@ -63,12 +63,14 @@ interface Persona {
   plaza_id: string | null;
   user_id: string | null;
   sin_clasificar: boolean;
+  requiere_verificacion: boolean | null;
 }
 
 export function PersonalTab() {
   const qc = useQueryClient();
   const [soloSinClasificar, setSoloSinClasificar] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  const [personaUsuario, setPersonaUsuario] = useState<Persona | null>(null);
   const { empresas, puestos, plazas, crearEmpresa, crearPuesto, crearPlaza } = useRvsCatalogos();
 
   const { data: personas = [], isLoading } = useQuery({
@@ -76,7 +78,7 @@ export function PersonalTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rvs_personas")
-        .select("id, nombre_reporte, nombre_mostrar, empresa_grupo_id, puesto_id, plaza_id, user_id, sin_clasificar")
+        .select("id, nombre_reporte, nombre_mostrar, empresa_grupo_id, puesto_id, plaza_id, user_id, sin_clasificar, requiere_verificacion")
         .order("nombre_reporte");
       if (error) throw error;
       return (data || []) as Persona[];
