@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Upload } from "lucide-react";
 import {
   Table,
@@ -209,9 +208,9 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
         <div className="mt-3 rounded-lg border bg-muted/20 p-3 space-y-2">
           <FiltroChipsMulti
             titulo="Empresa (una, varias o todas)"
-            opciones={["galsa", "lumaggs"]}
-            seleccion={marcasSel}
-            onChange={setMarcasSel}
+            opciones={["Galsa", "Lumaggs"]}
+            seleccion={marcasSel.map((m) => (m === "galsa" ? "Galsa" : "Lumaggs"))}
+            onChange={(sel) => setMarcasSel(sel.map((s) => s.toLowerCase()))}
           />
           <FiltroChipsMulti
             titulo="Sucursal (una, varias o todas)"
@@ -253,14 +252,14 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filas.length === 0 && (
+              {filasVisibles.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-6 text-sm text-muted-foreground">
                     {isLoading ? "Cargando…" : "Sin datos para este mes."}
                   </TableCell>
                 </TableRow>
               )}
-              {filas.map((r, i) => (
+              {filasVisibles.map((r, i) => (
                 <TableRow key={r.key} className={i % 2 ? "bg-muted/30" : undefined}>
                   <TableCell className="font-medium whitespace-nowrap">{r.sucursal}</TableCell>
                   <TableCell className="text-right">{uds(r.unidades)}</TableCell>
@@ -270,7 +269,7 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
                   <TableCell className="text-right">{pct(margenDe(r.utilidad, r.venta))}</TableCell>
                 </TableRow>
               ))}
-              {filas.length > 0 && (
+              {filasVisibles.length > 0 && (
                 <TableRow className="bg-violet-50/60 dark:bg-violet-950/20">
                   <TableCell className="font-semibold uppercase text-xs tracking-wide">Total</TableCell>
                   <TableCell className="text-right font-semibold">{uds(total.unidades)}</TableCell>
