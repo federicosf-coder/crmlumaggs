@@ -396,7 +396,7 @@ export function Historico12MesesTab() {
                     ))}
                     <TableCell className="text-right font-semibold">{fmtUds(totalGeneral)}</TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </div>
