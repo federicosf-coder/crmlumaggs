@@ -7939,6 +7939,7 @@ export type Database = {
           nombre_reporte: string
           plaza_id: string | null
           puesto_id: string | null
+          requiere_verificacion: boolean
           sin_clasificar: boolean
           updated_at: string
           user_id: string | null
@@ -7954,6 +7955,7 @@ export type Database = {
           nombre_reporte: string
           plaza_id?: string | null
           puesto_id?: string | null
+          requiere_verificacion?: boolean
           sin_clasificar?: boolean
           updated_at?: string
           user_id?: string | null
@@ -7969,6 +7971,7 @@ export type Database = {
           nombre_reporte?: string
           plaza_id?: string | null
           puesto_id?: string | null
+          requiere_verificacion?: boolean
           sin_clasificar?: boolean
           updated_at?: string
           user_id?: string | null
