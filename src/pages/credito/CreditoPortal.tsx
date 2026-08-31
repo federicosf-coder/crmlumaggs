@@ -24,6 +24,7 @@ import {
   CREDITO_FIRMAS, CREDITO_ESTADO_LABEL, CREDITO_ESTADO_COLOR, CREDITO_TIPO_PERSONA_OPTIONS,
 } from "@/lib/credito";
 import { TEMPLATE_LABELS } from "@/lib/creditoTemplates";
+import { USO_CFDI_OPTS } from "@/components/CompanyFormDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -407,6 +408,7 @@ export default function CreditoPortal() {
   const [autofilling, setAutofilling] = useState<string | null>(null);
   const [autofillCollapsed, setAutofillCollapsed] = useState(true);
   const [instructionsOpen, setInstructionsOpen] = useState(true);
+  const [company, setCompany] = useState<any>({});
 
   const load = async () => {
     if (!token) return;
@@ -416,6 +418,14 @@ export default function CreditoPortal() {
       const d = await callPortal("get", token);
       setData(d);
       setForm(d.request || {});
+      setCompany((d.request as any)?.companies || {});
+      // Días de crédito: 30 por omisión
+      if (d?.request && (d.request.dias_credito === null || d.request.dias_credito === undefined)) {
+        try {
+          await callPortal("update_form", token, { fields: { dias_credito: 30 } });
+          setForm((f: any) => ({ ...f, dias_credito: 30 }));
+        } catch { /* noop */ }
+      }
     } catch (e: any) {
       setError(e.message || "No se pudo cargar la solicitud.");
     } finally {
@@ -426,6 +436,27 @@ export default function CreditoPortal() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [token]);
 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+
+  /** Guarda uno o varios campos de la solicitud sin recargar toda la pantalla. */
+  const saveFields = async (fields: Record<string, any>) => {
+    if (!token) return;
+    try {
+      await callPortal("update_form", token, { fields });
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo guardar");
+    }
+  };
+
+  /** Guarda datos de la empresa (uso de CFDI / industrias). */
+  const saveCompany = async (fields: Record<string, any>) => {
+    if (!token) return;
+    setCompany((c: any) => ({ ...c, ...fields }));
+    try {
+      await callPortal("update_company", token, { fields });
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo guardar");
+    }
+  };
 
   const OPT_IN_DOC_COLS: Record<string, string> = {
     "Poder del Representante Legal": "poder_representante_requerido",
@@ -461,7 +492,7 @@ export default function CreditoPortal() {
         "razon_social","nombre_comercial","rfc","telefono","correo_contacto","client_nombre_contacto",
         "domicilio_fiscal","ciudad_fiscal","estado_fiscal","antiguedad",
         "domicilio_comercial","ciudad_comercial","estado_comercial","giro_comercial",
-        "monto_solicitado","dias_credito",
+        "monto_solicitado","dias_credito","monto_solicitado_lumaggs","monto_solicitado_galsa",
         "accionistas","escritura_constitutiva","datos_registro","ultima_asamblea","administrador_presidente",
         "datos_bancarios","referencias_comerciales",
         "aval_nombre","aval_direccion","aval_ciudad","aval_relacion","aval_regimen_conyugal","aval_es_distinto",
@@ -869,6 +900,171 @@ export default function CreditoPortal() {
           </Collapsible>
         </Card>
 
+        {/* Datos generales de la solicitud */}
+        <Card>
+          <CardHeader className="pb-2 bg-gradient-to-br from-violet-50 to-blue-50 border-b">
+            <CardTitle className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">
+              Datos generales de la solicitud
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* Tipo de persona */}
+              <div className="space-y-1">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de persona</Label>
+                <Select
+                  value={form.tipo_persona ?? form.csf_tipo_persona ?? "moral"}
+                  onValueChange={(v) => { set("tipo_persona", v); saveFields({ tipo_persona: v }); }}
+                >
+                  <SelectTrigger className="h-9 bg-white"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CREDITO_TIPO_PERSONA_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Crédito solicitado — solo empresas activas */}
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Crédito solicitado</Label>
+                {(() => {
+                  const empresas = ([
+                    { key: "lumaggs", label: "Lumaggs (Chevron)", flagCol: "solicita_lumaggs", montoCol: "monto_solicitado_lumaggs" },
+                    { key: "galsa", label: "Galsa (Phillips 66)", flagCol: "solicita_galsa", montoCol: "monto_solicitado_galsa" },
+                  ] as const).filter((e) => !!(form as any)[e.flagCol]);
+                  if (empresas.length === 0) {
+                    return (
+                      <div className="rounded-md border border-slate-200 bg-slate-50/60 p-2">
+                        <Input
+                          type="number"
+                          className="h-8 text-right bg-white"
+                          placeholder="Monto solicitado"
+                          value={form.monto_solicitado ?? ""}
+                          onChange={(ev) => set("monto_solicitado", ev.target.value ? Number(ev.target.value) : null)}
+                          onBlur={(ev) => saveFields({ monto_solicitado: ev.target.value ? Number(ev.target.value) : null })}
+                        />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {empresas.map((e) => (
+                        <div key={e.key} className="rounded-md border border-violet-300 bg-violet-50/60 p-2 space-y-1.5">
+                          <span className="text-xs font-medium">{e.label}</span>
+                          <Input
+                            type="number"
+                            className="h-8 text-right bg-white"
+                            placeholder="Monto solicitado"
+                            value={(form as any)[e.montoCol] ?? ""}
+                            onChange={(ev) => set(e.montoCol as any, ev.target.value ? Number(ev.target.value) : null)}
+                            onBlur={(ev) => saveFields({ [e.montoCol]: ev.target.value ? Number(ev.target.value) : null })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Días de crédito */}
+              <div className="space-y-1">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Días de crédito</Label>
+                <Input
+                  type="number"
+                  className="h-9"
+                  placeholder="30"
+                  value={form.dias_credito ?? 30}
+                  onChange={(e) => set("dias_credito", e.target.value ? Number(e.target.value) : null)}
+                  onBlur={(e) => saveFields({ dias_credito: e.target.value ? Number(e.target.value) : 30 })}
+                />
+              </div>
+
+              {/* Uso de CFDI */}
+              <div className="space-y-1">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Uso de CFDI</Label>
+                <Select value={company.uso_cfdi || ""} onValueChange={(v) => saveCompany({ uso_cfdi: v || null })}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecciona uso de CFDI" /></SelectTrigger>
+                  <SelectContent>
+                    {USO_CFDI_OPTS.map((o: any) => (
+                      <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Giro comercial (Industrias) */}
+              <div className="space-y-1">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Giro comercial (Industrias)</Label>
+                <div className="flex flex-wrap gap-1 min-h-[28px]">
+                  {(company.industrias || []).length === 0 && (
+                    <span className="text-xs text-muted-foreground">Sin industrias asignadas.</span>
+                  )}
+                  {(company.industrias || []).map((i: string) => (
+                    <Badge key={i} variant="secondary" className="text-xs gap-1">
+                      {(data.industrias || []).find((c: any) => c.clave === i)?.etiqueta || i}
+                      <button
+                        type="button"
+                        className="hover:text-destructive"
+                        onClick={() => saveCompany({ industrias: (company.industrias || []).filter((x: string) => x !== i) })}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <Select value="" onValueChange={(v) => saveCompany({ industrias: [...(company.industrias || []), v] })}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Agregar industria..." /></SelectTrigger>
+                  <SelectContent>
+                    {(data.industrias || [])
+                      .filter((o: any) => !(company.industrias || []).includes(o.clave))
+                      .map((o: any) => (
+                        <SelectItem key={o.clave} value={o.clave}>{o.etiqueta}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Contacto para seguimiento */}
+              <div className="space-y-1">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Contacto para seguimiento</Label>
+                <Input
+                  className="h-9"
+                  placeholder="Nombre de quien realiza el trámite"
+                  value={form.client_nombre_contacto || ""}
+                  onChange={(e) => set("client_nombre_contacto", e.target.value)}
+                  onBlur={(e) => saveFields({ client_nombre_contacto: e.target.value })}
+                />
+              </div>
+
+              {/* Correo electrónico de contacto */}
+              <div className="space-y-1">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Correo electrónico de contacto</Label>
+                <Input
+                  className="h-9"
+                  type="email"
+                  placeholder="correo@empresa.com"
+                  value={form.correo_contacto || ""}
+                  onChange={(e) => set("correo_contacto", e.target.value)}
+                  onBlur={(e) => saveFields({ correo_contacto: e.target.value })}
+                />
+              </div>
+
+              {/* Teléfono de contacto */}
+              <div className="space-y-1">
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Teléfono de contacto</Label>
+                <Input
+                  className="h-9"
+                  placeholder="(000) 000 0000"
+                  value={form.telefono || ""}
+                  onChange={(e) => set("telefono", e.target.value)}
+                  onBlur={(e) => saveFields({ telefono: e.target.value })}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
             <TabsTrigger value="docs" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[11px] sm:text-sm px-2 py-2 leading-tight whitespace-normal break-words min-w-0 h-auto">
@@ -898,19 +1094,6 @@ export default function CreditoPortal() {
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Tipo de persona — visible en todas las pestañas */}
-                <div className="mt-4 rounded-md border border-violet-200 bg-violet-50/40 p-3">
-                  <Field label="Tipo de persona">
-                    <Select value={form.tipo_persona ?? form.csf_tipo_persona ?? "moral"} onValueChange={(v) => set("tipo_persona", v)}>
-                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {CREDITO_TIPO_PERSONA_OPTIONS.map((o) => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </div>
 
                 {/* Autocompletar con documentos (opcional) */}
                 {(() => {
@@ -1112,10 +1295,6 @@ export default function CreditoPortal() {
                     <Field label="Razón social"><Input value={form.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} /></Field>
                     <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
                     <Field label="RFC"><Input value={form.rfc || ""} onChange={(e) => set("rfc", e.target.value.toUpperCase())} /></Field>
-                    <Field label="Teléfono"><Input value={form.telefono || ""} onChange={(e) => set("telefono", e.target.value)} /></Field>
-                    <Field label="Correo de contacto"><Input value={form.correo_contacto || ""} onChange={(e) => set("correo_contacto", e.target.value)} /></Field>
-                    <Field label="Nombre de quien realiza el trámite"><Input value={form.client_nombre_contacto || ""} onChange={(e) => set("client_nombre_contacto", e.target.value)} /></Field>
-                    <Field label="Giro comercial"><Input value={form.giro_comercial || ""} onChange={(e) => set("giro_comercial", e.target.value)} /></Field>
                     <Field label="Antigüedad"><Input value={form.antiguedad || ""} onChange={(e) => set("antiguedad", e.target.value)} /></Field>
                   </Section>
 
@@ -1201,10 +1380,6 @@ export default function CreditoPortal() {
 
                 {/* === FINANCIERO === */}
                 <TabsContent value="financiero" className="space-y-6 mt-5">
-                  <Section title="Crédito solicitado">
-                    <Field label="Monto solicitado"><Input type="number" value={form.monto_solicitado ?? ""} onChange={(e) => set("monto_solicitado", e.target.value ? Number(e.target.value) : null)} /></Field>
-                    <Field label="Días de crédito"><Input type="number" value={form.dias_credito ?? ""} onChange={(e) => set("dias_credito", e.target.value ? Number(e.target.value) : null)} /></Field>
-                  </Section>
                   {tp === "moral" && (
                     <Repeater
                       title="Accionistas"

@@ -38,10 +38,10 @@ async function resolveToken(token: string): Promise<{ requestId: string; partyId
 
 const FORM_FIELDS = [
   'tipo_persona',
-  'razon_social','nombre_comercial','rfc','telefono','correo_contacto',
+  'razon_social','nombre_comercial','rfc','telefono','correo_contacto','client_nombre_contacto',
   'domicilio_fiscal','ciudad_fiscal','estado_fiscal','antiguedad',
   'domicilio_comercial','ciudad_comercial','estado_comercial','giro_comercial',
-  'monto_solicitado','dias_credito',
+  'monto_solicitado','dias_credito','monto_solicitado_lumaggs','monto_solicitado_galsa',
   'accionistas','escritura_constitutiva','datos_registro','ultima_asamblea','administrador_presidente',
   'datos_bancarios','referencias_comerciales',
   'aval_nombre','aval_direccion','aval_ciudad','aval_relacion','aval_regimen_conyugal','aval_es_distinto',
@@ -178,13 +178,15 @@ Deno.serve(async (req) => {
   try {
     if (action === 'get') {
       const [{ data: request }, { data: parties }, { data: docTypes }, { data: docs }] = await Promise.all([
-        supabase.from('credit_requests').select('*, companies(name)').eq('id', ctx.requestId).maybeSingle(),
+        supabase.from('credit_requests').select('*, companies(id, name, uso_cfdi, industrias)').eq('id', ctx.requestId).maybeSingle(),
         supabase.from('credit_request_parties').select('*').eq('credit_request_id', ctx.requestId),
         supabase.from('credit_doc_types').select('*').eq('is_active', true).order('sort_order'),
         supabase.from('credit_request_docs').select('*').eq('credit_request_id', ctx.requestId).eq('visibilidad', 'publica'),
       ])
       const { data: completeness } = await supabase.rpc('credit_request_completeness', { req_id: ctx.requestId })
-      return json({ request, parties: parties || [], docTypes: docTypes || [], docs: docs || [], completeness, ctx })
+      const { data: industrias } = await supabase
+        .from('industrias_catalog').select('clave, etiqueta').eq('is_active', true).order('ordering').order('etiqueta')
+      return json({ request, parties: parties || [], docTypes: docTypes || [], docs: docs || [], completeness, industrias: industrias || [], ctx })
     }
 
     if (action === 'update_form') {
@@ -198,6 +200,19 @@ Deno.serve(async (req) => {
         .update({ estado: 'llenando_formulario' })
         .eq('id', ctx.requestId)
         .in('estado', ['borrador', 'portal_enviado'])
+      return json({ ok: true })
+    }
+
+    if (action === 'update_company') {
+      const { data: req } = await supabase
+        .from('credit_requests').select('company_id').eq('id', ctx.requestId).maybeSingle()
+      if (!req?.company_id) return json({ error: 'no_company' }, 400)
+      const updates: Record<string, any> = {}
+      if ('uso_cfdi' in (body.fields || {})) updates.uso_cfdi = body.fields.uso_cfdi || null
+      if ('industrias' in (body.fields || {})) updates.industrias = body.fields.industrias || []
+      if (Object.keys(updates).length === 0) return json({ ok: true })
+      const { error } = await supabase.from('companies').update(updates).eq('id', req.company_id)
+      if (error) return json({ error: error.message }, 500)
       return json({ ok: true })
     }
 
