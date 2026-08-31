@@ -48,7 +48,7 @@ function CatalogoSimple({
   };
 
   const patch = async (id: string, values: Record<string, any>) => {
-    const { error } = await supabase.from(table).update(values).eq("id", id);
+    const { error } = await (supabase.from as any)(table).update(values).eq("id", id);
     if (error) return toast.error(error.message);
     invalidate([queryKey]);
   };
