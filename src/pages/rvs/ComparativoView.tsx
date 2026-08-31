@@ -44,7 +44,13 @@ type Agrupacion = "ninguno" | "plaza" | "empresa" | "plaza_empresa";
 type Col = "galsa" | "lumaggs" | "total";
 
 const PREFS_KEY = "rvs_comparativo_prefs";
-const PREFS_DEFAULT = { metrica: "ventas" as Metrica, empresa: "todas" as Empresa, agrupacion: "ninguno" as Agrupacion };
+const PREFS_DEFAULT = {
+  metrica: "ventas" as Metrica,
+  empresa: "todas" as Empresa,
+  agrupacion: "ninguno" as Agrupacion,
+  plazasSel: [] as string[],
+  gruposSel: [] as string[],
+};
 
 function Variacion({ v }: { v: number | null }) {
   if (v === null)
@@ -368,19 +374,26 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
   const [metrica, setMetrica] = useState<Metrica>(prefsIniciales.metrica);
   const [empresa, setEmpresa] = useState<Empresa>(prefsIniciales.empresa);
   const [agrupacion, setAgrupacion] = useState<Agrupacion>(prefsIniciales.agrupacion);
+  const [plazasSel, setPlazasSel] = useState<string[]>(prefsIniciales.plazasSel);
+  const [gruposSel, setGruposSel] = useState<string[]>(prefsIniciales.gruposSel);
 
   useEffect(() => {
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ metrica, empresa, agrupacion }));
+      localStorage.setItem(
+        PREFS_KEY,
+        JSON.stringify({ metrica, empresa, agrupacion, plazasSel, gruposSel })
+      );
     } catch {
       /* almacenamiento no disponible */
     }
-  }, [metrica, empresa, agrupacion]);
+  }, [metrica, empresa, agrupacion, plazasSel, gruposSel]);
 
   const restablecer = () => {
     setMetrica(PREFS_DEFAULT.metrica);
     setEmpresa(PREFS_DEFAULT.empresa);
     setAgrupacion(PREFS_DEFAULT.agrupacion);
+    setPlazasSel(PREFS_DEFAULT.plazasSel);
+    setGruposSel(PREFS_DEFAULT.gruposSel);
   };
 
   const { data, isLoading } = useQuery({
