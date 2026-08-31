@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download } from "lucide-react";
+import { Download, Upload } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -14,7 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { esGalsa, esLumaggs, mesLabel, ventasPlazaConRespaldo } from "./rvsAgregados";
+import { esGalsa, esLumaggs, mesLabel, derivarVentasPlaza } from "./rvsAgregados";
+import { CapturaSucursalDialog } from "./components/CapturaSucursalDialog";
+
 
 const headClass =
   "bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30";
