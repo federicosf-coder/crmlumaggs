@@ -427,32 +427,41 @@ export function ReportesMesTab() {
               <TableHeader>
                 <TableRow className={headClass}>
                   <TableHead className="text-[11px] uppercase tracking-wide">Plaza / Zona</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Galsa</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Galsa</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Lumaggs</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Lumaggs</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Total</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {porPlaza.filas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="py-6 text-sm text-muted-foreground">
+                    <TableCell colSpan={7} className="py-6 text-sm text-muted-foreground">
                       {isLoading ? "Cargando…" : "Sin datos para este mes."}
                     </TableCell>
                   </TableRow>
                 )}
-                {porPlaza.filas.map((r, i) => (
+                {porPlaza.filas.map((r: any, i: number) => (
                   <TableRow key={r.plaza + i} className={i % 2 ? "bg-muted/30" : undefined}>
                     <TableCell className="font-medium">{r.plaza}</TableCell>
+                    <TableCell className="text-right">{uds(r.udsGalsa)}</TableCell>
                     <TableCell className="text-right">{currency(r.galsa)}</TableCell>
+                    <TableCell className="text-right">{uds(r.udsLumaggs)}</TableCell>
                     <TableCell className="text-right">{currency(r.lumaggs)}</TableCell>
+                    <TableCell className="text-right font-semibold">{uds(r.udsTotal)}</TableCell>
                     <TableCell className="text-right font-semibold">{currency(r.total)}</TableCell>
                   </TableRow>
                 ))}
-                {porPlaza.zonasFilas.map((r) => (
+                {porPlaza.zonasFilas.map((r: any) => (
                   <TableRow key={`z-${r.plaza}`} className="bg-violet-50/60 dark:bg-violet-950/20">
                     <TableCell className="font-semibold uppercase text-xs tracking-wide">{r.plaza}</TableCell>
+                    <TableCell className="text-right">{uds(r.udsGalsa)}</TableCell>
                     <TableCell className="text-right">{currency(r.galsa)}</TableCell>
+                    <TableCell className="text-right">{uds(r.udsLumaggs)}</TableCell>
                     <TableCell className="text-right">{currency(r.lumaggs)}</TableCell>
+                    <TableCell className="text-right font-semibold">{uds(r.udsTotal)}</TableCell>
                     <TableCell className="text-right font-semibold">{currency(r.total)}</TableCell>
                   </TableRow>
                 ))}
