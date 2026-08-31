@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Receipt, Truck, BadgeDollarSign, RefreshCw } from "lucide-react";
+import { Receipt, Truck, BadgeDollarSign, RefreshCw, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +11,16 @@ function Vacio() {
 }
 
 export default function Alertas() {
-  const { comprobantes, entregas, autorizaciones, totalCount, isLoading, verTodo, refetchAll } =
-    useAlertasPendientes();
+  const {
+    comprobantes,
+    entregas,
+    autorizaciones,
+    rvsPersonas,
+    totalCount,
+    isLoading,
+    verTodo,
+    refetchAll,
+  } = useAlertasPendientes();
 
   return (
     <div className="space-y-6">
@@ -113,6 +121,41 @@ export default function Alertas() {
                   <span className="text-muted-foreground w-24 shrink-0">{formatDate(a.created_at)}</span>
                   <span className="font-medium shrink-0">{a.documentos?.numero_pedido || "—"}</span>
                   <span className="flex-1 truncate">{a.documentos?.companies?.name || "—"}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Users className="h-4 w-4" /> Reporte de Ventas — personas por clasificar/verificar
+            <Badge variant="secondary">{rvsPersonas.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {rvsPersonas.length === 0 ? (
+            <Vacio />
+          ) : (
+            <div className="divide-y">
+              {rvsPersonas.map((p) => (
+                <Link
+                  key={p.id}
+                  to="/reporte-ventas-sistema"
+                  className="flex items-center gap-3 py-2 text-sm hover:bg-blue-50/40 px-2 -mx-2 rounded"
+                >
+                  <span className="flex-1 truncate">{p.nombre_reporte}</span>
+                  {p.sin_clasificar ? (
+                    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 shrink-0">
+                      Sin clasificar
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100 shrink-0">
+                      Verificar
+                    </Badge>
+                  )}
                 </Link>
               ))}
             </div>

@@ -29,6 +29,13 @@ export interface AlertaAutorizacion {
   } | null;
 }
 
+export interface AlertaRvsPersona {
+  id: string;
+  nombre_reporte: string;
+  sin_clasificar: boolean | null;
+  requiere_verificacion: boolean | null;
+}
+
 export function useAlertasPendientes() {
   const { profile, hasAnyRole } = useAuth();
   const verTodo = hasAnyRole(["admin", "manager"]);
@@ -95,15 +102,31 @@ export function useAlertasPendientes() {
     },
   });
 
+  const rvsPersonasQuery = useQuery({
+    queryKey: ["alertas-rvs-personas"],
+    enabled,
+    queryFn: async (): Promise<AlertaRvsPersona[]> => {
+      const { data, error } = await (supabase as any)
+        .from("rvs_personas")
+        .select("id, nombre_reporte, sin_clasificar, requiere_verificacion")
+        .or("sin_clasificar.eq.true,requiere_verificacion.eq.true")
+        .order("nombre_reporte", { ascending: true });
+      if (error) throw error;
+      return (data || []) as AlertaRvsPersona[];
+    },
+  });
+
   const comprobantes = comprobantesQuery.data || [];
   const entregas = entregasQuery.data || [];
   const autorizaciones = autorizacionesQuery.data || [];
+  const rvsPersonas = rvsPersonasQuery.data || [];
 
   const refetchAll = async () => {
     await Promise.all([
       comprobantesQuery.refetch(),
       entregasQuery.refetch(),
       autorizacionesQuery.refetch(),
+      rvsPersonasQuery.refetch(),
     ]);
   };
 
@@ -111,9 +134,14 @@ export function useAlertasPendientes() {
     comprobantes,
     entregas,
     autorizaciones,
-    totalCount: comprobantes.length + entregas.length + autorizaciones.length,
+    rvsPersonas,
+    totalCount:
+      comprobantes.length + entregas.length + autorizaciones.length + rvsPersonas.length,
     isLoading:
-      comprobantesQuery.isLoading || entregasQuery.isLoading || autorizacionesQuery.isLoading,
+      comprobantesQuery.isLoading ||
+      entregasQuery.isLoading ||
+      autorizacionesQuery.isLoading ||
+      rvsPersonasQuery.isLoading,
     verTodo,
     refetchAll,
   };
