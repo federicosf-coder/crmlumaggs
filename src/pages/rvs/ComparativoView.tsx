@@ -36,8 +36,8 @@ import { FiltroChipsMulti } from "./components/FiltroChipsMulti";
 const headClass =
   "bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30";
 
-const fmtUds = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
-const fmtPct = (n: number | null) => (n === null ? "n/d" : `${n.toFixed(1)}%`);
+const fmtUds = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 0 });
+const fmtPct = (n: number | null) => (n === null ? "n/d" : `${n.toFixed(0)}%`);
 
 type Metrica = "ventas" | "unidades" | "utilidad";
 type Empresa = "todas" | "galsa" | "lumaggs";
@@ -68,7 +68,7 @@ function Variacion({ v }: { v: number | null }) {
       }`}
     >
       {positivo ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-      {v.toFixed(1)}%
+      {v.toFixed(0)}%
     </span>
   );
 }
@@ -214,7 +214,7 @@ function TablaComparativa({
         <div>{fmt(val)}</div>
         {metrica === "utilidad" && (
           <div className="text-[10px] text-muted-foreground">
-            {venta > 0 ? `${((val / venta) * 100).toFixed(1)}%` : "—"}
+            {venta > 0 ? `${((val / venta) * 100).toFixed(0)}%` : "—"}
           </div>
         )}
       </div>
@@ -540,18 +540,18 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
         const fila: any[] = [`${"    ".repeat(l.nivel)}${l.label}`];
         l.base.forEach((v) => fila.push(v));
         l.actual.forEach((v) => fila.push(v));
-        fila.push(Number((l.actual[iPrincipal] - l.base[iPrincipal]).toFixed(2)));
+        fila.push(Number((l.actual[iPrincipal] - l.base[iPrincipal]).toFixed(0)));
         const v = variacion(l.base[iPrincipal], l.actual[iPrincipal]);
-        fila.push(v === null ? "n/d" : Number(v.toFixed(1)));
+        fila.push(v === null ? "n/d" : Number(v.toFixed(0)));
         if (metrica === "utilidad") {
           const mb = l.baseVenta[iPrincipal] > 0 ? (l.base[iPrincipal] / l.baseVenta[iPrincipal]) * 100 : null;
           const ma = l.actualVenta[iPrincipal] > 0 ? (l.actual[iPrincipal] / l.actualVenta[iPrincipal]) * 100 : null;
-          fila.push(mb === null || ma === null ? "n/d" : Number((ma - mb).toFixed(1)));
+          fila.push(mb === null || ma === null ? "n/d" : Number((ma - mb).toFixed(0)));
           l.base.forEach((val, i) =>
-            fila.push(l.baseVenta[i] > 0 ? Number(((val / l.baseVenta[i]) * 100).toFixed(1)) : "n/d")
+            fila.push(l.baseVenta[i] > 0 ? Number(((val / l.baseVenta[i]) * 100).toFixed(0)) : "n/d")
           );
           l.actual.forEach((val, i) =>
-            fila.push(l.actualVenta[i] > 0 ? Number(((val / l.actualVenta[i]) * 100).toFixed(1)) : "n/d")
+            fila.push(l.actualVenta[i] > 0 ? Number(((val / l.actualVenta[i]) * 100).toFixed(0)) : "n/d")
           );
         }
         aoa.push(fila);

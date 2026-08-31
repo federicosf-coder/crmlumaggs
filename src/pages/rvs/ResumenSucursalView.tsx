@@ -26,11 +26,10 @@ const money = (n: number) =>
   n.toLocaleString("es-MX", {
     style: "currency",
     currency: "MXN",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 0,
   });
-const uds = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
-const pct = (n: number) => `${n.toFixed(2)}%`;
+const uds = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 0 });
+const pct = (n: number) => `${n.toFixed(0)}%`;
 
 type Empresa = "galsa" | "lumaggs";
 
@@ -155,19 +154,19 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
       enc,
       ...filasVisibles.map((r) => [
         r.sucursal,
-        r.unidades,
-        r.venta,
-        r.costo,
-        r.utilidad,
-        Number(margenDe(r.utilidad, r.venta).toFixed(2)),
+        Math.round(r.unidades),
+        Math.round(r.venta),
+        Math.round(r.costo),
+        Math.round(r.utilidad),
+        Number(margenDe(r.utilidad, r.venta).toFixed(0)),
       ]),
       [
         "Total",
-        total.unidades,
-        total.venta,
-        total.costo,
-        total.utilidad,
-        Number(margenDe(total.utilidad, total.venta).toFixed(2)),
+        Math.round(total.unidades),
+        Math.round(total.venta),
+        Math.round(total.costo),
+        Math.round(total.utilidad),
+        Number(margenDe(total.utilidad, total.venta).toFixed(0)),
       ],
     ];
     const wb = XLSX.utils.book_new();
