@@ -185,6 +185,8 @@ export interface FilaComparativa {
   key: string;
   nombre: string;
   plaza: string;
+  empresaGrupo: string;
+
   baseGalsa: number;
   baseLumaggs: number;
   baseTotal: number;
