@@ -21,6 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ComparativoView } from "./ComparativoView";
 
 const MESES_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 const mesLabel = (ym: string) => {
@@ -43,9 +45,12 @@ function ultimos12(): string[] {
 const esGalsa = (marca: string) => marca.toLowerCase().includes("galsa");
 const esLumaggs = (marca: string) => marca.toLowerCase().includes("lumaggs");
 
+type Vista = "mensual" | "vs_mes" | "vs_anio";
+
 export function ReportesMesTab() {
   const meses = useMemo(ultimos12, []);
   const [mes, setMes] = useState(meses[0]);
+  const [vista, setVista] = useState<Vista>("mensual");
 
   const { data, isLoading } = useQuery({
     queryKey: ["rvs_reportes_mes", mes],
@@ -209,19 +214,33 @@ export function ReportesMesTab() {
           </SelectContent>
         </Select>
         <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant={agruparPlaza ? "default" : "outline"}
-            onClick={() => setAgruparPlaza((v) => !v)}
-          >
-            Agrupar por plaza
-          </Button>
-          <Button size="sm" onClick={exportar} disabled={isLoading}>
-            <Download className="h-4 w-4 mr-1" /> Exportar Excel
-          </Button>
+          {vista === "mensual" && (
+            <>
+              <Button
+                size="sm"
+                variant={agruparPlaza ? "default" : "outline"}
+                onClick={() => setAgruparPlaza((v) => !v)}
+              >
+                Agrupar por plaza
+              </Button>
+              <Button size="sm" onClick={exportar} disabled={isLoading}>
+                <Download className="h-4 w-4 mr-1" /> Exportar Excel
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
+      <Tabs value={vista} onValueChange={(v) => setVista(v as Vista)}>
+        <TabsList>
+          <TabsTrigger value="mensual">Mes seleccionado</TabsTrigger>
+          <TabsTrigger value="vs_mes">vs Mes anterior</TabsTrigger>
+          <TabsTrigger value="vs_anio">vs Año anterior</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {vista === "mensual" && (
+      <>
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Ventas por persona — {mesLabel(mes)}</CardTitle>
@@ -307,6 +326,14 @@ export function ReportesMesTab() {
           </div>
         </CardContent>
       </Card>
+      </>
+      )}
+
+      {vista !== "mensual" && (
+        <ComparativoView mes={mes} modo={vista === "vs_mes" ? "mes_anterior" : "anio_anterior"} />
+      )}
+
+
 
       <Card>
         <CardHeader className="pb-2">
