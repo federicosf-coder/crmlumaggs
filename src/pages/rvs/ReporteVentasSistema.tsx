@@ -4,6 +4,7 @@ import { PersonalTab } from "./PersonalTab";
 import { ReportesMesTab } from "./ReportesMesTab";
 import { ConfiguracionTab } from "./ConfiguracionTab";
 import { CapturaManualTab } from "./CapturaManualTab";
+import { Historico12MesesTab } from "./Historico12MesesTab";
 
 export default function ReporteVentasSistema() {
   return (
