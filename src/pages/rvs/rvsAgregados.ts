@@ -173,6 +173,8 @@ export function combinar(base: FilaVentas[], actual: FilaVentas[]): FilaComparat
       const a = actualMap.get(key);
       const baseTotal = b?.total || 0;
       const actualTotal = a?.total || 0;
+      const baseUdsTotal = b?.udsTotal || 0;
+      const actualUdsTotal = a?.udsTotal || 0;
       return {
         key,
         nombre: meta.nombre,
@@ -183,7 +185,14 @@ export function combinar(base: FilaVentas[], actual: FilaVentas[]): FilaComparat
         actualGalsa: a?.galsa || 0,
         actualLumaggs: a?.lumaggs || 0,
         actualTotal,
+        baseUdsGalsa: b?.udsGalsa || 0,
+        baseUdsLumaggs: b?.udsLumaggs || 0,
+        baseUdsTotal,
+        actualUdsGalsa: a?.udsGalsa || 0,
+        actualUdsLumaggs: a?.udsLumaggs || 0,
+        actualUdsTotal,
         variacion: baseTotal > 0 ? ((actualTotal - baseTotal) / baseTotal) * 100 : null,
+        variacionUds: baseUdsTotal > 0 ? ((actualUdsTotal - baseUdsTotal) / baseUdsTotal) * 100 : null,
       };
     })
     .sort((x, y) => y.actualTotal - x.actualTotal);
