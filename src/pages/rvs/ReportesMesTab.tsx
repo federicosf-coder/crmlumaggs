@@ -383,15 +383,18 @@ export function ReportesMesTab() {
                 <TableRow className={headClass}>
                   <TableHead className="text-[11px] uppercase tracking-wide">Persona</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Plaza</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Galsa</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Galsa</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Lumaggs</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Lumaggs</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Total</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {porPersona.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-6 text-sm text-muted-foreground">
+                    <TableCell colSpan={8} className="py-6 text-sm text-muted-foreground">
                       {isLoading ? "Cargando…" : "Sin datos para este mes."}
                     </TableCell>
                   </TableRow>
@@ -400,8 +403,9 @@ export function ReportesMesTab() {
                 {grupos?.map(([plaza, filas]) => (
                   <>
                     <TableRow key={`g-${plaza}`} className="bg-blue-50/60 dark:bg-blue-950/20">
-                      <TableCell colSpan={5} className="text-xs uppercase tracking-wide font-semibold">
-                        {plaza} · {currency(filas.reduce((s, f) => s + f.total, 0))}
+                      <TableCell colSpan={8} className="text-xs uppercase tracking-wide font-semibold">
+                        {plaza} · {uds(filas.reduce((s, f) => s + f.udsTotal, 0))} uds ·{" "}
+                        {currency(filas.reduce((s, f) => s + f.total, 0))}
                       </TableCell>
                     </TableRow>
                     {filas.map(filaPersona)}
