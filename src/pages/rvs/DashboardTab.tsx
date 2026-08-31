@@ -134,6 +134,7 @@ interface DatosMarca {
   utilidadTotal: number;
   margen: number;
   ventaPrevia: number;
+  unidadesPrevia: number;
   variacion: number | null;
   chartData: { nombre: string; venta: number; color: string }[];
 }
