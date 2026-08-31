@@ -8035,6 +8035,7 @@ export type Database = {
           error_message: string | null
           estatus: string
           fecha_recibido: string
+          fecha_reporte_original: string | null
           id: string
           marca: string | null
           mime_type: string | null
@@ -8051,6 +8052,7 @@ export type Database = {
           error_message?: string | null
           estatus?: string
           fecha_recibido?: string
+          fecha_reporte_original?: string | null
           id?: string
           marca?: string | null
           mime_type?: string | null
@@ -8067,6 +8069,7 @@ export type Database = {
           error_message?: string | null
           estatus?: string
           fecha_recibido?: string
+          fecha_reporte_original?: string | null
           id?: string
           marca?: string | null
           mime_type?: string | null
@@ -8083,6 +8086,7 @@ export type Database = {
           anio_mes: string
           costo: number
           created_at: string
+          fecha_reporte_original: string | null
           id: string
           marca: string
           margen: number | null
@@ -8097,6 +8101,7 @@ export type Database = {
           anio_mes: string
           costo?: number
           created_at?: string
+          fecha_reporte_original?: string | null
           id?: string
           marca: string
           margen?: number | null
@@ -8111,6 +8116,7 @@ export type Database = {
           anio_mes?: string
           costo?: number
           created_at?: string
+          fecha_reporte_original?: string | null
           id?: string
           marca?: string
           margen?: number | null
@@ -8143,6 +8149,7 @@ export type Database = {
           anio_mes: string
           costo: number
           created_at: string
+          fecha_reporte_original: string | null
           id: string
           marca: string
           margen: number | null
@@ -8157,6 +8164,7 @@ export type Database = {
           anio_mes: string
           costo?: number
           created_at?: string
+          fecha_reporte_original?: string | null
           id?: string
           marca: string
           margen?: number | null
@@ -8171,6 +8179,7 @@ export type Database = {
           anio_mes?: string
           costo?: number
           created_at?: string
+          fecha_reporte_original?: string | null
           id?: string
           marca?: string
           margen?: number | null
