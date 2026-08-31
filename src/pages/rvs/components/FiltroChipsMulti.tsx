@@ -22,8 +22,8 @@ export function FiltroChipsMulti({
 
   const toggle = (op: string) => {
     if (todos) {
-      // Al tocar uno estando en "todos", quedan seleccionados todos menos ese
-      onChange(opciones.filter((o) => o !== op));
+      // Al tocar uno estando en "todos", ahora selecciona solo ese
+      onChange([op]);
       return;
     }
     const next = seleccion.includes(op)
