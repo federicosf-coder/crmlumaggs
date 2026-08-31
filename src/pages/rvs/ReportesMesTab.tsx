@@ -43,9 +43,12 @@ function ultimos12(): string[] {
 const esGalsa = (marca: string) => marca.toLowerCase().includes("galsa");
 const esLumaggs = (marca: string) => marca.toLowerCase().includes("lumaggs");
 
+type Vista = "mensual" | "vs_mes" | "vs_anio";
+
 export function ReportesMesTab() {
   const meses = useMemo(ultimos12, []);
   const [mes, setMes] = useState(meses[0]);
+  const [vista, setVista] = useState<Vista>("mensual");
 
   const { data, isLoading } = useQuery({
     queryKey: ["rvs_reportes_mes", mes],
