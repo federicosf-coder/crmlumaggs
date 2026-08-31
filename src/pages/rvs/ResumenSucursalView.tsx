@@ -162,7 +162,23 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-base">Ventas por sucursal — {mesLabel(mes)}</CardTitle>
+          <div className="space-y-1">
+            <CardTitle className="text-base">Ventas por sucursal — {mesLabel(mes)}</CardTitle>
+            {!isLoading && (
+              <Badge
+                variant="outline"
+                className={
+                  esDerivado
+                    ? "text-amber-600 border-amber-300"
+                    : "text-emerald-700 border-emerald-300"
+                }
+              >
+                {esDerivado
+                  ? "Derivado de la plaza del vendedor (aproximado)"
+                  : "Datos oficiales capturados por sucursal"}
+              </Badge>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Tabs value={empresa} onValueChange={(v) => setEmpresa(v as Empresa)}>
               <TabsList>
@@ -170,12 +186,33 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
                 <TabsTrigger value="lumaggs">Lumaggs</TabsTrigger>
               </TabsList>
             </Tabs>
+            <Button size="sm" variant="outline" onClick={() => setCapturaAbierta(true)}>
+              <Upload className="h-4 w-4 mr-1" /> Capturar por sucursal
+            </Button>
             <Button size="sm" onClick={exportar} disabled={isLoading || filas.length === 0}>
               <Download className="h-4 w-4 mr-1" /> Exportar Excel
             </Button>
           </div>
         </div>
+        {esDerivado && !isLoading && (
+          <p className="pt-1 text-xs text-muted-foreground">
+            Estas cifras se calculan con la plaza asignada al vendedor, por lo que una venta hecha
+            en otra sucursal se acredita a la plaza del vendedor. Captura la tabla oficial por
+            sucursal del correo para corregirlo.
+          </p>
+        )}
       </CardHeader>
+      <CapturaSucursalDialog
+        open={capturaAbierta}
+        onOpenChange={setCapturaAbierta}
+        mes={mes}
+        marca={empresa}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["rvs_resumen_sucursal"] });
+          qc.invalidateQueries({ queryKey: ["rvs_reportes_mes"] });
+        }}
+      />
+
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <Table>
