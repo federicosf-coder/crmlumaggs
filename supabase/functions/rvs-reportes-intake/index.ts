@@ -12,13 +12,14 @@ const PROMPT = `Este PDF es un "Reporte de Ventas por Sucursal y Agente" del sis
 3) Una tabla "Detalle por Agente" con columnas: Agente (formato "APELLIDOS NOMBRE - CLAVE"), Unidades, Venta, Costo, Utilidad, Margen.
 
 Extrae SOLO este JSON, sin markdown ni texto adicional:
-{"periodo_desde":"YYYY-MM-DD o null","periodo_hasta":"YYYY-MM-DD o null","anio_mes":"YYYY-MM o null","sucursales":[{"sucursal":"string","unidades":0,"venta":0,"costo":0,"utilidad":0,"margen":0}],"agentes":[{"nombre_agente":"string","unidades":0,"venta":0,"costo":0,"utilidad":0,"margen":0}]}
+{"periodo_desde":"YYYY-MM-DD o null","periodo_hasta":"YYYY-MM-DD o null","anio_mes":"YYYY-MM o null","fecha_correo_original":"YYYY-MM-DDTHH:MM:SS o null","sucursales":[{"sucursal":"string","unidades":0,"venta":0,"costo":0,"utilidad":0,"margen":0}],"agentes":[{"nombre_agente":"string","unidades":0,"venta":0,"costo":0,"utilidad":0,"margen":0}]}
 
 Reglas:
 - "anio_mes" se deriva del período (año y mes de "Desde").
 - Copia el nombre del agente TAL CUAL aparece en el PDF, incluyendo la clave (ej. "PEREZ LOPEZ JUAN - 123"). Incluye también filas especiales como "(Ninguno)" o las que empiezan con "CASA".
 - Los importes son numéricos sin símbolos ni comas. El margen es porcentaje numérico (ej. 18.5).
 - NO incluyas filas de totales generales ("TOTAL", "GRAN TOTAL") en ninguna de las dos listas.
+- Si el PDF incluye una línea de encabezado de correo con el patrón 'Fecha: DD/MM/YYYY, HH:MM a.m./p.m.' o similar (fecha y hora de envío del correo original), extráela en "fecha_correo_original" en formato ISO 8601 completo (YYYY-MM-DDTHH:MM:SS). Si no aparece, usa null.
 - Si una tabla no existe, devuelve su arreglo vacío. No inventes datos.`;
 
 function extraerEmail(from: string): string {
