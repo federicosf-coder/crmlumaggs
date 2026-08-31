@@ -377,8 +377,10 @@ Deno.serve(async (req) => {
         }
 
         // 5) Upsert resumen por sucursal
+        // Guarda temporal: un reporte más viejo nunca sobrescribe uno más reciente
         const sucursales: any[] = Array.isArray(extraido?.sucursales) ? extraido.sucursales : [];
         let sucursalesOk = 0;
+        let sucursalesOmitidasPorFechaVieja = 0;
         for (const s of sucursales) {
           const nombre = asText(s?.sucursal);
           if (!nombre) continue;
@@ -394,10 +396,23 @@ Deno.serve(async (req) => {
             costo: asNum(s?.costo),
             utilidad: asNum(s?.utilidad),
             margen: s?.margen == null ? null : asNum(s?.margen),
+            fecha_reporte_original: fechaReporteOriginal.toISOString(),
             updated_at: new Date().toISOString(),
           };
           let errMsg: string | null = null;
           if (plazaId) {
+            const { data: existente } = await admin
+              .from('rvs_ventas_mes_plaza')
+              .select('fecha_reporte_original')
+              .eq('plaza_id', plazaId)
+              .eq('anio_mes', anioMes)
+              .eq('marca', marca)
+              .limit(1);
+            const fechaExistente = parseFecha(existente?.[0]?.fecha_reporte_original);
+            if (fechaExistente && fechaExistente.getTime() > fechaReporteOriginal.getTime()) {
+              sucursalesOmitidasPorFechaVieja++;
+              continue;
+            }
             const { error } = await admin
               .from('rvs_ventas_mes_plaza')
               .upsert(fila, { onConflict: 'plaza_id,anio_mes,marca' });
@@ -406,12 +421,17 @@ Deno.serve(async (req) => {
             // Sin plaza asociada: no aplica el índice único, se reemplaza manualmente
             const { data: existente } = await admin
               .from('rvs_ventas_mes_plaza')
-              .select('id')
+              .select('id, fecha_reporte_original')
               .is('plaza_id', null)
               .eq('sucursal_reporte', nombre)
               .eq('anio_mes', anioMes)
               .eq('marca', marca)
               .limit(1);
+            const fechaExistente = parseFecha(existente?.[0]?.fecha_reporte_original);
+            if (fechaExistente && fechaExistente.getTime() > fechaReporteOriginal.getTime()) {
+              sucursalesOmitidasPorFechaVieja++;
+              continue;
+            }
             if (existente && existente.length > 0) {
               const { error } = await admin.from('rvs_ventas_mes_plaza').update(fila).eq('id', existente[0].id);
               errMsg = error?.message ?? null;
