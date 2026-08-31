@@ -231,6 +231,8 @@ export function combinar(base: FilaVentas[], actual: FilaVentas[]): FilaComparat
         key,
         nombre: meta.nombre,
         plaza: meta.plaza,
+        empresaGrupo: meta.empresaGrupo,
+
         baseGalsa: b?.galsa || 0,
         baseLumaggs: b?.lumaggs || 0,
         baseTotal,
