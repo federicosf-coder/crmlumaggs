@@ -27,6 +27,9 @@ export interface FilaVentas {
   udsGalsa: number;
   udsLumaggs: number;
   udsTotal: number;
+  utilGalsa: number;
+  utilLumaggs: number;
+  utilTotal: number;
 }
 
 /** Agrega ventas de rvs_ventas_mes por persona */
@@ -37,7 +40,7 @@ export function agregarPorPersona(
 ): FilaVentas[] {
   const personaMap = new Map<string, any>();
   personas.forEach((p) => personaMap.set(p.id, p));
-  const acc = new Map<string, Omit<FilaVentas, "total" | "udsTotal">>();
+  const acc = new Map<string, Omit<FilaVentas, "total" | "udsTotal" | "utilTotal">>();
   for (const v of ventas) {
     const p = personaMap.get(v.persona_id);
     if (!p) continue;
@@ -51,22 +54,28 @@ export function agregarPorPersona(
         lumaggs: 0,
         udsGalsa: 0,
         udsLumaggs: 0,
+        utilGalsa: 0,
+        utilLumaggs: 0,
       });
     const row = acc.get(v.persona_id)!;
     const monto = Number(v.venta || 0);
     const uds = Number(v.unidades || 0);
+    const util = Number(v.utilidad || 0);
     if (esGalsa(v.marca)) {
       row.galsa += monto;
       row.udsGalsa += uds;
+      row.utilGalsa += util;
     } else if (esLumaggs(v.marca)) {
       row.lumaggs += monto;
       row.udsLumaggs += uds;
+      row.utilLumaggs += util;
     }
   }
   return Array.from(acc.values()).map((r) => ({
     ...r,
     total: r.galsa + r.lumaggs,
     udsTotal: r.udsGalsa + r.udsLumaggs,
+    utilTotal: r.utilGalsa + r.utilLumaggs,
   }));
 }
 
@@ -79,7 +88,17 @@ export function agregarPorPlaza(
 ): { filas: (FilaVentas & { plazaId: string | null })[]; zonasFilas: FilaVentas[] } {
   const acc = new Map<
     string,
-    { key: string; plazaId: string | null; nombre: string; galsa: number; lumaggs: number; udsGalsa: number; udsLumaggs: number }
+    {
+      key: string;
+      plazaId: string | null;
+      nombre: string;
+      galsa: number;
+      lumaggs: number;
+      udsGalsa: number;
+      udsLumaggs: number;
+      utilGalsa: number;
+      utilLumaggs: number;
+    }
   >();
   for (const v of ventasPlaza) {
     const key = v.plaza_id || `sr:${v.sucursal_reporte || "Sin plaza"}`;
@@ -92,16 +111,21 @@ export function agregarPorPlaza(
         lumaggs: 0,
         udsGalsa: 0,
         udsLumaggs: 0,
+        utilGalsa: 0,
+        utilLumaggs: 0,
       });
     const row = acc.get(key)!;
     const monto = Number(v.venta || 0);
     const uds = Number(v.unidades || 0);
+    const util = Number(v.utilidad || 0);
     if (esGalsa(v.marca)) {
       row.galsa += monto;
       row.udsGalsa += uds;
+      row.utilGalsa += util;
     } else if (esLumaggs(v.marca)) {
       row.lumaggs += monto;
       row.udsLumaggs += uds;
+      row.utilLumaggs += util;
     }
   }
   const filas = Array.from(acc.values()).map((r) => ({
@@ -115,6 +139,9 @@ export function agregarPorPlaza(
     udsGalsa: r.udsGalsa,
     udsLumaggs: r.udsLumaggs,
     udsTotal: r.udsGalsa + r.udsLumaggs,
+    utilGalsa: r.utilGalsa,
+    utilLumaggs: r.utilLumaggs,
+    utilTotal: r.utilGalsa + r.utilLumaggs,
   }));
 
   const zonasFilas: FilaVentas[] = zonas.map((z: any) => {
@@ -124,6 +151,8 @@ export function agregarPorPlaza(
     const lumaggs = incluidas.reduce((s, f) => s + f.lumaggs, 0);
     const udsGalsa = incluidas.reduce((s, f) => s + f.udsGalsa, 0);
     const udsLumaggs = incluidas.reduce((s, f) => s + f.udsLumaggs, 0);
+    const utilGalsa = incluidas.reduce((s, f) => s + f.utilGalsa, 0);
+    const utilLumaggs = incluidas.reduce((s, f) => s + f.utilLumaggs, 0);
     return {
       key: `zona:${z.id}`,
       nombre: z.nombre,
@@ -134,6 +163,9 @@ export function agregarPorPlaza(
       udsGalsa,
       udsLumaggs,
       udsTotal: udsGalsa + udsLumaggs,
+      utilGalsa,
+      utilLumaggs,
+      utilTotal: utilGalsa + utilLumaggs,
     };
   });
 
@@ -156,6 +188,12 @@ export interface FilaComparativa {
   actualUdsGalsa: number;
   actualUdsLumaggs: number;
   actualUdsTotal: number;
+  baseUtilGalsa: number;
+  baseUtilLumaggs: number;
+  baseUtilTotal: number;
+  actualUtilGalsa: number;
+  actualUtilLumaggs: number;
+  actualUtilTotal: number;
   variacion: number | null; // porcentaje (venta $)
   variacionUds: number | null; // porcentaje (unidades)
 }
@@ -191,6 +229,12 @@ export function combinar(base: FilaVentas[], actual: FilaVentas[]): FilaComparat
         actualUdsGalsa: a?.udsGalsa || 0,
         actualUdsLumaggs: a?.udsLumaggs || 0,
         actualUdsTotal,
+        baseUtilGalsa: b?.utilGalsa || 0,
+        baseUtilLumaggs: b?.utilLumaggs || 0,
+        baseUtilTotal: b?.utilTotal || 0,
+        actualUtilGalsa: a?.utilGalsa || 0,
+        actualUtilLumaggs: a?.utilLumaggs || 0,
+        actualUtilTotal: a?.utilTotal || 0,
         variacion: baseTotal > 0 ? ((actualTotal - baseTotal) / baseTotal) * 100 : null,
         variacionUds: baseUdsTotal > 0 ? ((actualUdsTotal - baseUdsTotal) / baseUdsTotal) * 100 : null,
       };
