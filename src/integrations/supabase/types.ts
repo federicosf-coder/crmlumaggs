@@ -7900,6 +7900,294 @@ export type Database = {
           },
         ]
       }
+      rvs_empresas_grupo: {
+        Row: {
+          clave: string
+          created_at: string
+          etiqueta: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          clave: string
+          created_at?: string
+          etiqueta: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          clave?: string
+          created_at?: string
+          etiqueta?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rvs_personas: {
+        Row: {
+          aliases: string[]
+          created_at: string
+          empresa_grupo_id: string | null
+          id: string
+          is_active: boolean
+          nombre_normalizado: string
+          nombre_reporte: string
+          plaza_id: string | null
+          puesto_id: string | null
+          sin_clasificar: boolean
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          aliases?: string[]
+          created_at?: string
+          empresa_grupo_id?: string | null
+          id?: string
+          is_active?: boolean
+          nombre_normalizado: string
+          nombre_reporte: string
+          plaza_id?: string | null
+          puesto_id?: string | null
+          sin_clasificar?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          aliases?: string[]
+          created_at?: string
+          empresa_grupo_id?: string | null
+          id?: string
+          is_active?: boolean
+          nombre_normalizado?: string
+          nombre_reporte?: string
+          plaza_id?: string | null
+          puesto_id?: string | null
+          sin_clasificar?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvs_personas_empresa_grupo_id_fkey"
+            columns: ["empresa_grupo_id"]
+            isOneToOne: false
+            referencedRelation: "rvs_empresas_grupo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvs_personas_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvs_personas_puesto_id_fkey"
+            columns: ["puesto_id"]
+            isOneToOne: false
+            referencedRelation: "rvs_puestos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rvs_puestos: {
+        Row: {
+          clave: string
+          created_at: string
+          etiqueta: string
+          id: string
+          is_active: boolean
+          requiere_acceso: boolean
+          updated_at: string
+        }
+        Insert: {
+          clave: string
+          created_at?: string
+          etiqueta: string
+          id?: string
+          is_active?: boolean
+          requiere_acceso?: boolean
+          updated_at?: string
+        }
+        Update: {
+          clave?: string
+          created_at?: string
+          etiqueta?: string
+          id?: string
+          is_active?: boolean
+          requiere_acceso?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rvs_reportes_intake: {
+        Row: {
+          anio_mes: string | null
+          asunto_email: string | null
+          created_at: string
+          error_message: string | null
+          estatus: string
+          fecha_recibido: string
+          id: string
+          marca: string | null
+          mime_type: string | null
+          payload_extraido: Json | null
+          remitente_email: string | null
+          resend_email_id: string | null
+          storage_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          anio_mes?: string | null
+          asunto_email?: string | null
+          created_at?: string
+          error_message?: string | null
+          estatus?: string
+          fecha_recibido?: string
+          id?: string
+          marca?: string | null
+          mime_type?: string | null
+          payload_extraido?: Json | null
+          remitente_email?: string | null
+          resend_email_id?: string | null
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anio_mes?: string | null
+          asunto_email?: string | null
+          created_at?: string
+          error_message?: string | null
+          estatus?: string
+          fecha_recibido?: string
+          id?: string
+          marca?: string | null
+          mime_type?: string | null
+          payload_extraido?: Json | null
+          remitente_email?: string | null
+          resend_email_id?: string | null
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rvs_ventas_mes: {
+        Row: {
+          anio_mes: string
+          costo: number
+          created_at: string
+          id: string
+          marca: string
+          margen: number | null
+          persona_id: string
+          plaza_id: string | null
+          unidades: number
+          updated_at: string
+          utilidad: number
+          venta: number
+        }
+        Insert: {
+          anio_mes: string
+          costo?: number
+          created_at?: string
+          id?: string
+          marca: string
+          margen?: number | null
+          persona_id: string
+          plaza_id?: string | null
+          unidades?: number
+          updated_at?: string
+          utilidad?: number
+          venta?: number
+        }
+        Update: {
+          anio_mes?: string
+          costo?: number
+          created_at?: string
+          id?: string
+          marca?: string
+          margen?: number | null
+          persona_id?: string
+          plaza_id?: string | null
+          unidades?: number
+          updated_at?: string
+          utilidad?: number
+          venta?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvs_ventas_mes_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "rvs_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvs_ventas_mes_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rvs_ventas_mes_plaza: {
+        Row: {
+          anio_mes: string
+          costo: number
+          created_at: string
+          id: string
+          marca: string
+          margen: number | null
+          plaza_id: string | null
+          sucursal_reporte: string | null
+          unidades: number
+          updated_at: string
+          utilidad: number
+          venta: number
+        }
+        Insert: {
+          anio_mes: string
+          costo?: number
+          created_at?: string
+          id?: string
+          marca: string
+          margen?: number | null
+          plaza_id?: string | null
+          sucursal_reporte?: string | null
+          unidades?: number
+          updated_at?: string
+          utilidad?: number
+          venta?: number
+        }
+        Update: {
+          anio_mes?: string
+          costo?: number
+          created_at?: string
+          id?: string
+          marca?: string
+          margen?: number | null
+          plaza_id?: string | null
+          sucursal_reporte?: string | null
+          unidades?: number
+          updated_at?: string
+          utilidad?: number
+          venta?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvs_ventas_mes_plaza_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seguimiento_estatus_catalogo: {
         Row: {
           activo: boolean
@@ -9582,6 +9870,66 @@ export type Database = {
         }
         Relationships: []
       }
+      zona_plazas: {
+        Row: {
+          created_at: string
+          id: string
+          plaza_id: string
+          zona_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plaza_id: string
+          zona_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plaza_id?: string
+          zona_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zona_plazas_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zona_plazas_zona_id_fkey"
+            columns: ["zona_id"]
+            isOneToOne: false
+            referencedRelation: "zonas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zonas: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -9849,6 +10197,9 @@ export type Database = {
         }
         Returns: Json
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      unaccent: { Args: { "": string }; Returns: string }
       user_can_access_crm_item: {
         Args: { _item_id: string; _user_id: string }
         Returns: boolean
