@@ -91,21 +91,24 @@ interface Linea {
   actualVenta: number[];
 }
 
-function colsDe(empresa: Empresa, agrupacion: Agrupacion): Col[] {
-  if (agrupacion === "empresa" || agrupacion === "plaza_empresa") return ["total"];
+function colsDe(empresa: Empresa): Col[] {
   return empresa === "todas" ? ["galsa", "lumaggs", "total"] : [empresa];
-}
-
-function empresasDe(empresa: Empresa): Col[] {
-  if (empresa === "galsa") return ["galsa"];
-  if (empresa === "lumaggs") return ["lumaggs"];
-  return ["galsa", "lumaggs"];
 }
 
 function sumar(lineas: Linea[], campo: keyof Pick<Linea, "base" | "actual" | "baseVenta" | "actualVenta">, n: number) {
   const out = Array(n).fill(0);
   lineas.forEach((l) => l[campo].forEach((v, i) => (out[i] += v)));
   return out;
+}
+
+/** Claves de agrupación: "empresa" = Empresa / Grupo del personal (pestaña Personal) */
+function clavesDe(agrupacion: Agrupacion): ((r: FilaComparativa) => string)[] {
+  const plaza = (r: FilaComparativa) => r.plaza || "Sin plaza";
+  const grupo = (r: FilaComparativa) => r.empresaGrupo || "Sin empresa / grupo";
+  if (agrupacion === "plaza") return [plaza];
+  if (agrupacion === "empresa") return [grupo];
+  if (agrupacion === "plaza_empresa") return [plaza, grupo];
+  return [];
 }
 
 /** Convierte las filas comparativas en líneas planas según la agrupación elegida */
@@ -115,75 +118,50 @@ function construirLineas(
   empresa: Empresa,
   agrupacion: Agrupacion
 ): Linea[] {
-  const cols = colsDe(empresa, agrupacion);
-  const conEmpresa = agrupacion === "empresa" || agrupacion === "plaza_empresa";
-  const conPlaza = agrupacion === "plaza" || agrupacion === "plaza_empresa";
+  const cols = colsDe(empresa);
+  const claves = clavesDe(agrupacion);
 
-  const lineaDato = (r: FilaComparativa, nivel: number, colsUsar: Col[], keySuffix = ""): Linea => ({
-    key: r.key + keySuffix,
+  const lineaDato = (r: FilaComparativa, nivel: number): Linea => ({
+    key: r.key,
     label: r.nombre,
     nivel,
     grupo: false,
-    base: colsUsar.map((c) => valorFila(r, "base", c, metrica)),
-    actual: colsUsar.map((c) => valorFila(r, "actual", c, metrica)),
-    baseVenta: colsUsar.map((c) => ventaFila(r, "base", c)),
-    actualVenta: colsUsar.map((c) => ventaFila(r, "actual", c)),
+    base: cols.map((c) => valorFila(r, "base", c, metrica)),
+    actual: cols.map((c) => valorFila(r, "actual", c, metrica)),
+    baseVenta: cols.map((c) => ventaFila(r, "base", c)),
+    actualVenta: cols.map((c) => ventaFila(r, "actual", c)),
   });
 
-  const expandirEmpresa = (r: FilaComparativa, nivel: number): Linea[] =>
-    empresasDe(empresa).map((c) => ({
-      key: `${r.key}:${c}`,
-      label: c === "galsa" ? "GALSA" : "LUMAGGS",
-      nivel,
-      grupo: false,
-      base: [valorFila(r, "base", c, metrica)],
-      actual: [valorFila(r, "actual", c, metrica)],
-      baseVenta: [ventaFila(r, "base", c)],
-      actualVenta: [ventaFila(r, "actual", c)],
-    }));
-
-  const bloqueFila = (r: FilaComparativa, nivel: number): Linea[] => {
-    if (!conEmpresa) return [lineaDato(r, nivel, cols)];
-    const hijos = expandirEmpresa(r, nivel + 1);
-    const padre: Linea = {
-      key: `p:${r.key}`,
-      label: r.nombre,
-      nivel,
-      grupo: true,
-      base: sumar(hijos, "base", 1),
-      actual: sumar(hijos, "actual", 1),
-      baseVenta: sumar(hijos, "baseVenta", 1),
-      actualVenta: sumar(hijos, "actualVenta", 1),
-    };
-    return [padre, ...hijos];
+  const construir = (rows: FilaComparativa[], nivel: number, idx: number, prefijo: string): Linea[] => {
+    if (idx >= claves.length) return rows.map((r) => lineaDato(r, nivel));
+    const mapa = new Map<string, FilaComparativa[]>();
+    rows.forEach((r) => {
+      const k = claves[idx](r);
+      if (!mapa.has(k)) mapa.set(k, []);
+      mapa.get(k)!.push(r);
+    });
+    return Array.from(mapa.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], "es"))
+      .flatMap(([label, subRows]) => {
+        const hijos = construir(subRows, nivel + 1, idx + 1, `${prefijo}${label}/`);
+        const directos = hijos.filter((l) => l.nivel === nivel + 1);
+        const encabezado: Linea = {
+          key: `g:${prefijo}${label}`,
+          label,
+          nivel,
+          grupo: true,
+          base: sumar(directos, "base", cols.length),
+          actual: sumar(directos, "actual", cols.length),
+          baseVenta: sumar(directos, "baseVenta", cols.length),
+          actualVenta: sumar(directos, "actualVenta", cols.length),
+        };
+        return [encabezado, ...hijos];
+      });
   };
 
-  if (!conPlaza) return filas.flatMap((r) => bloqueFila(r, 0));
-
-  const mapa = new Map<string, FilaComparativa[]>();
-  filas.forEach((r) => {
-    const k = r.plaza || "Sin plaza";
-    if (!mapa.has(k)) mapa.set(k, []);
-    mapa.get(k)!.push(r);
-  });
-  return Array.from(mapa.entries())
-    .sort((a, b) => a[0].localeCompare(b[0], "es"))
-    .flatMap(([plaza, rows]) => {
-      const hijos = rows.flatMap((r) => bloqueFila(r, 1));
-      const directos = hijos.filter((l) => l.nivel === 1);
-      const encabezado: Linea = {
-        key: `plaza:${plaza}`,
-        label: plaza,
-        nivel: 0,
-        grupo: true,
-        base: sumar(directos, "base", cols.length),
-        actual: sumar(directos, "actual", cols.length),
-        baseVenta: sumar(directos, "baseVenta", cols.length),
-        actualVenta: sumar(directos, "actualVenta", cols.length),
-      };
-      return [encabezado, ...hijos];
-    });
+  return construir(filas, 0, 0, "");
 }
+
 
 function TablaComparativa({
   titulo,
