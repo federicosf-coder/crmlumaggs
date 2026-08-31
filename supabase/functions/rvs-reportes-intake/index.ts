@@ -547,9 +547,10 @@ Deno.serve(async (req) => {
       } catch (e) {
         const msg = (e as Error).message || 'error_desconocido';
         console.error('rvs procesamiento fallo:', msg);
-        await marcarError(msg);
+        if (msg !== 'sin_datos_extraibles') await marcarError(msg);
         return { agentes: 0, sucursales: 0, agentesOmitidosPorFechaVieja: 0, sucursalesOmitidasPorFechaVieja: 0, error: msg };
       }
+
     };
 
     if (pdfs.length === 0) {
