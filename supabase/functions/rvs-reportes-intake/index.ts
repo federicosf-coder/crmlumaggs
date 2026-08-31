@@ -307,9 +307,28 @@ Deno.serve(async (req) => {
         }
         if (!anioMes || !/^\d{4}-\d{2}$/.test(anioMes)) throw new Error('anio_mes_no_detectado');
 
+        // 3b) Fecha de referencia del reporte original (orden temporal)
+        const parseFecha = (v: unknown): Date | null => {
+          const s = asText(v);
+          if (!s) return null;
+          const d = new Date(s);
+          return Number.isNaN(d.getTime()) ? null : d;
+        };
+        let notaFechaFallback: string | null = null;
+        let fechaReporteOriginal: Date | null =
+          parseFecha(extraido?.fecha_correo_original) ?? parseFecha(data?.created_at);
+        if (!fechaReporteOriginal) {
+          fechaReporteOriginal = new Date();
+          notaFechaFallback = '(sin fecha original detectada, se usó hora de proceso)';
+        }
+
         await admin
           .from('rvs_reportes_intake')
-          .update({ anio_mes: anioMes, payload_extraido: extraido })
+          .update({
+            anio_mes: anioMes,
+            payload_extraido: extraido,
+            fecha_reporte_original: fechaReporteOriginal.toISOString(),
+          })
           .eq('id', intakeRow.id);
 
         // 4) Upsert agentes (snapshot: reemplaza, nunca suma)
