@@ -57,7 +57,7 @@ export interface FilaParseada {
   margen: number | null;
 }
 
-const NUM = "(?:\\d{1,3}(?:,\\d{3})*|\\d+)(?:\\.\\d+)?";
+const NUM = "\\d{1,3}(?:,\\d{3})*\\.\\d{2}";
 
 /** Parsea el pegado del reporte (con o sin tabuladores/saltos de línea) */
 export function parsearReporte(texto: string): FilaParseada[] {
