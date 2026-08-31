@@ -119,12 +119,14 @@ export function useAlertasPendientes() {
   const comprobantes = comprobantesQuery.data || [];
   const entregas = entregasQuery.data || [];
   const autorizaciones = autorizacionesQuery.data || [];
+  const rvsPersonas = rvsPersonasQuery.data || [];
 
   const refetchAll = async () => {
     await Promise.all([
       comprobantesQuery.refetch(),
       entregasQuery.refetch(),
       autorizacionesQuery.refetch(),
+      rvsPersonasQuery.refetch(),
     ]);
   };
 
@@ -132,9 +134,14 @@ export function useAlertasPendientes() {
     comprobantes,
     entregas,
     autorizaciones,
-    totalCount: comprobantes.length + entregas.length + autorizaciones.length,
+    rvsPersonas,
+    totalCount:
+      comprobantes.length + entregas.length + autorizaciones.length + rvsPersonas.length,
     isLoading:
-      comprobantesQuery.isLoading || entregasQuery.isLoading || autorizacionesQuery.isLoading,
+      comprobantesQuery.isLoading ||
+      entregasQuery.isLoading ||
+      autorizacionesQuery.isLoading ||
+      rvsPersonasQuery.isLoading,
     verTodo,
     refetchAll,
   };
