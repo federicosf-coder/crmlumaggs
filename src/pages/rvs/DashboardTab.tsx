@@ -31,6 +31,7 @@ import {
   ArrowDownRight,
   Users,
   Loader2,
+  Package,
 } from "lucide-react";
 import {
   agregarPorPlaza,
@@ -155,25 +156,42 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
   });
 
   const filas = actualQuery.data || [];
-  const chartData = useMemo(
-    () =>
-      filas
-        .filter((f) => f.total !== 0)
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
-        .map((f, i) => ({
-          nombre: f.nombre,
-          venta: Math.round(f.total),
-          color: PALETA[i % PALETA.length],
-        })),
-    [filas]
-  );
+  const filasPrevias = previoQuery.data || [];
 
-  const ventaTotal = filas.reduce((s, f) => s + f.total, 0);
-  const utilidadTotal = filas.reduce((s, f) => s + f.utilTotal, 0);
-  const margen = ventaTotal > 0 ? (utilidadTotal / ventaTotal) * 100 : 0;
-  const ventaPrevia = (previoQuery.data || []).reduce((s, f) => s + f.total, 0);
-  const variacion = ventaPrevia > 0 ? ((ventaTotal - ventaPrevia) / ventaPrevia) * 100 : null;
-  const unidadesTotal = filas.reduce((s, f) => s + f.udsTotal, 0);
+  const datosMarca = (marca: "galsa" | "lumaggs") => {
+    const ventaTotal = filas.reduce((s, f) => s + f[marca], 0);
+    const unidadesTotal = filas.reduce(
+      (s, f) => s + (marca === "galsa" ? f.udsGalsa : f.udsLumaggs),
+      0
+    );
+    const utilidadTotal = filas.reduce(
+      (s, f) => s + (marca === "galsa" ? f.utilGalsa : f.utilLumaggs),
+      0
+    );
+    const margen = ventaTotal > 0 ? (utilidadTotal / ventaTotal) * 100 : 0;
+    const ventaPrevia = filasPrevias.reduce((s, f) => s + f[marca], 0);
+    const variacion = ventaPrevia > 0 ? ((ventaTotal - ventaPrevia) / ventaPrevia) * 100 : null;
+    const chartData = filas
+      .filter((f) => f[marca] !== 0)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
+      .map((f, i) => ({
+        nombre: f.nombre,
+        venta: Math.round(f[marca]),
+        color: PALETA[i % PALETA.length],
+      }));
+    return { ventaTotal, unidadesTotal, utilidadTotal, margen, ventaPrevia, variacion, chartData };
+  };
+
+  const galsaData = useMemo(
+    () => datosMarca("galsa"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filas, filasPrevias]
+  );
+  const lumaggsData = useMemo(
+    () => datosMarca("lumaggs"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filas, filasPrevias]
+  );
 
   const descargarHistorico = async () => {
     setDescargando(true);
