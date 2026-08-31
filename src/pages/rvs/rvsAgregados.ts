@@ -24,6 +24,9 @@ export interface FilaVentas {
   galsa: number;
   lumaggs: number;
   total: number;
+  udsGalsa: number;
+  udsLumaggs: number;
+  udsTotal: number;
 }
 
 /** Agrega ventas de rvs_ventas_mes por persona */
@@ -34,7 +37,7 @@ export function agregarPorPersona(
 ): FilaVentas[] {
   const personaMap = new Map<string, any>();
   personas.forEach((p) => personaMap.set(p.id, p));
-  const acc = new Map<string, Omit<FilaVentas, "total">>();
+  const acc = new Map<string, Omit<FilaVentas, "total" | "udsTotal">>();
   for (const v of ventas) {
     const p = personaMap.get(v.persona_id);
     if (!p) continue;
@@ -46,13 +49,25 @@ export function agregarPorPersona(
         plaza: (plazaId && plazaNombre.get(plazaId)) || "Sin plaza",
         galsa: 0,
         lumaggs: 0,
+        udsGalsa: 0,
+        udsLumaggs: 0,
       });
     const row = acc.get(v.persona_id)!;
     const monto = Number(v.venta || 0);
-    if (esGalsa(v.marca)) row.galsa += monto;
-    else if (esLumaggs(v.marca)) row.lumaggs += monto;
+    const uds = Number(v.unidades || 0);
+    if (esGalsa(v.marca)) {
+      row.galsa += monto;
+      row.udsGalsa += uds;
+    } else if (esLumaggs(v.marca)) {
+      row.lumaggs += monto;
+      row.udsLumaggs += uds;
+    }
   }
-  return Array.from(acc.values()).map((r) => ({ ...r, total: r.galsa + r.lumaggs }));
+  return Array.from(acc.values()).map((r) => ({
+    ...r,
+    total: r.galsa + r.lumaggs,
+    udsTotal: r.udsGalsa + r.udsLumaggs,
+  }));
 }
 
 /** Agrega ventas de rvs_ventas_mes_plaza por plaza y calcula filas de zona */
