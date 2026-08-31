@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,9 +17,38 @@ import {
 import { CreatableCatalogSelect } from "./components/CreatableCatalogSelect";
 import { useRvsCatalogos, labelOf } from "./useRvsCatalogos";
 
+/** Quita el sufijo de clave del reporte, ej. "PEREZ JUAN - DDA" -> "PEREZ JUAN" */
+export const limpiarNombre = (n: string) => (n || "").replace(/\s*-\s*[A-Za-z0-9]{1,6}\s*$/, "").trim();
+
+function NombreMostrarInput({
+  value,
+  fallback,
+  onSave,
+}: {
+  value: string;
+  fallback: string;
+  onSave: (v: string) => void;
+}) {
+  const [local, setLocal] = useState(value);
+  useEffect(() => setLocal(value), [value]);
+  return (
+    <Input
+      value={local}
+      placeholder={fallback}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={() => {
+        const v = local.trim();
+        if (v !== (value || "")) onSave(v);
+      }}
+      className="h-8 text-sm font-medium"
+    />
+  );
+}
+
 interface Persona {
   id: string;
   nombre_reporte: string;
+  nombre_mostrar: string | null;
   empresa_grupo_id: string | null;
   puesto_id: string | null;
   plaza_id: string | null;
@@ -38,7 +67,7 @@ export function PersonalTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rvs_personas")
-        .select("id, nombre_reporte, empresa_grupo_id, puesto_id, plaza_id, user_id, sin_clasificar")
+        .select("id, nombre_reporte, nombre_mostrar, empresa_grupo_id, puesto_id, plaza_id, user_id, sin_clasificar")
         .order("nombre_reporte");
       if (error) throw error;
       return (data || []) as Persona[];
@@ -62,7 +91,9 @@ export function PersonalTab() {
     return personas.filter(
       (p) =>
         (!soloSinClasificar || p.sin_clasificar) &&
-        (!q || p.nombre_reporte.toLowerCase().includes(q))
+        (!q ||
+          p.nombre_reporte.toLowerCase().includes(q) ||
+          (p.nombre_mostrar || "").toLowerCase().includes(q))
     );
   }, [personas, soloSinClasificar, busqueda]);
 
@@ -92,6 +123,7 @@ export function PersonalTab() {
           <TableHeader>
             <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">
               <TableHead className="text-[11px] uppercase tracking-wide">Nombre en reporte</TableHead>
+              <TableHead className="text-[11px] uppercase tracking-wide">Nombre a mostrar</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Empresa / Grupo</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Puesto</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Plaza</TableHead>
@@ -102,21 +134,28 @@ export function PersonalTab() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-sm text-muted-foreground py-6">
+                <TableCell colSpan={7} className="text-sm text-muted-foreground py-6">
                   Cargando…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && visibles.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-sm text-muted-foreground py-6">
+                <TableCell colSpan={7} className="text-sm text-muted-foreground py-6">
                   Sin registros.
                 </TableCell>
               </TableRow>
             )}
             {visibles.map((p, idx) => (
               <TableRow key={p.id} className={idx % 2 ? "bg-muted/30" : undefined}>
-                <TableCell className="font-medium whitespace-nowrap">{p.nombre_reporte}</TableCell>
+                <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{p.nombre_reporte}</TableCell>
+                <TableCell className="min-w-[220px]">
+                  <NombreMostrarInput
+                    value={p.nombre_mostrar ?? ""}
+                    fallback={limpiarNombre(p.nombre_reporte)}
+                    onSave={(v) => update(p.id, { nombre_mostrar: v || limpiarNombre(p.nombre_reporte) })}
+                  />
+                </TableCell>
                 <TableCell className="min-w-[220px]">
                   <CreatableCatalogSelect
                     value={p.empresa_grupo_id || ""}

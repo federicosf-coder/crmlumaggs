@@ -7934,6 +7934,7 @@ export type Database = {
           empresa_grupo_id: string | null
           id: string
           is_active: boolean
+          nombre_mostrar: string | null
           nombre_normalizado: string
           nombre_reporte: string
           plaza_id: string | null
@@ -7948,6 +7949,7 @@ export type Database = {
           empresa_grupo_id?: string | null
           id?: string
           is_active?: boolean
+          nombre_mostrar?: string | null
           nombre_normalizado: string
           nombre_reporte: string
           plaza_id?: string | null
@@ -7962,6 +7964,7 @@ export type Database = {
           empresa_grupo_id?: string | null
           id?: string
           is_active?: boolean
+          nombre_mostrar?: string | null
           nombre_normalizado?: string
           nombre_reporte?: string
           plaza_id?: string | null

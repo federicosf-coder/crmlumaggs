@@ -58,7 +58,7 @@ export function ReportesMesTab() {
       const [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas] = await Promise.all([
         supabase.from("rvs_ventas_mes").select("persona_id, marca, venta, plaza_id").eq("anio_mes", mes),
         supabase.from("rvs_ventas_mes_plaza").select("plaza_id, sucursal_reporte, marca, venta").eq("anio_mes", mes),
-        supabase.from("rvs_personas").select("id, nombre_reporte, plaza_id"),
+        supabase.from("rvs_personas").select("id, nombre_reporte, nombre_mostrar, plaza_id"),
         supabase.from("plazas").select("id, nombre"),
         supabase.from("zonas").select("id, nombre, is_active").eq("is_active", true),
         supabase.from("zona_plazas").select("zona_id, plaza_id"),
@@ -107,7 +107,7 @@ export function ReportesMesTab() {
       const plazaId = v.plaza_id || p.plaza_id;
       if (!acc.has(key))
         acc.set(key, {
-          nombre: p.nombre_reporte,
+          nombre: p.nombre_mostrar || p.nombre_reporte,
           plaza: (plazaId && plazaNombre.get(plazaId)) || "Sin plaza",
           galsa: 0,
           lumaggs: 0,

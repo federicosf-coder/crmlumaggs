@@ -166,7 +166,7 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
       const [base, actual, personas, plazas, zonas, zonaPlazas] = await Promise.all([
         cargarPeriodo(mesBase),
         cargarPeriodo(mes),
-        supabase.from("rvs_personas").select("id, nombre_reporte, plaza_id"),
+        supabase.from("rvs_personas").select("id, nombre_reporte, nombre_mostrar, plaza_id"),
         supabase.from("plazas").select("id, nombre"),
         supabase.from("zonas").select("id, nombre, is_active").eq("is_active", true),
         supabase.from("zona_plazas").select("zona_id, plaza_id"),
