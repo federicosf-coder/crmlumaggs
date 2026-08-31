@@ -313,7 +313,7 @@ export function ReportesMesTab() {
     return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], "es"));
   }, [agruparPlaza, porPersona]);
 
-  const headClass = "bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30";
+  const headClass = "bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40";
 
   const filaPersona = (r: Fila, i: number) => (
     <TableRow key={r.nombre + i} className={i % 2 ? "bg-muted/30" : undefined}>

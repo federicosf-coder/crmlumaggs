@@ -20,7 +20,7 @@ import { FiltroChipsMulti } from "./components/FiltroChipsMulti";
 
 
 const headClass =
-  "bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30";
+  "bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40";
 
 const money = (n: number) =>
   n.toLocaleString("es-MX", {
