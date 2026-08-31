@@ -164,6 +164,8 @@ export function agregarPorPlaza(
       key: `zona:${z.id}`,
       nombre: z.nombre,
       plaza: z.nombre,
+      empresaGrupo: "",
+
       galsa,
       lumaggs,
       total: galsa + lumaggs,
