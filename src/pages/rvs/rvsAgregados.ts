@@ -21,6 +21,7 @@ export interface FilaVentas {
   key: string;
   nombre: string;
   plaza: string;
+  empresaGrupo: string;
   galsa: number;
   lumaggs: number;
   total: number;
@@ -36,7 +37,8 @@ export interface FilaVentas {
 export function agregarPorPersona(
   ventas: any[],
   personas: any[],
-  plazaNombre: Map<string, string>
+  plazaNombre: Map<string, string>,
+  grupoNombre?: Map<string, string>
 ): FilaVentas[] {
   const personaMap = new Map<string, any>();
   personas.forEach((p) => personaMap.set(p.id, p));
@@ -50,6 +52,8 @@ export function agregarPorPersona(
         key: v.persona_id,
         nombre: p.nombre_mostrar || p.nombre_reporte,
         plaza: (plazaId && plazaNombre.get(plazaId)) || "Sin plaza",
+        empresaGrupo:
+          (p.empresa_grupo_id && grupoNombre?.get(p.empresa_grupo_id)) || "Sin empresa / grupo",
         galsa: 0,
         lumaggs: 0,
         udsGalsa: 0,
@@ -57,6 +61,7 @@ export function agregarPorPersona(
         utilGalsa: 0,
         utilLumaggs: 0,
       });
+
     const row = acc.get(v.persona_id)!;
     const monto = Number(v.venta || 0);
     const uds = Number(v.unidades || 0);
