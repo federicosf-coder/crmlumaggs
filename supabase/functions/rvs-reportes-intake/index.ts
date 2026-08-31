@@ -545,21 +545,31 @@ Deno.serve(async (req) => {
     };
 
     if (pdfs.length === 0) {
+      // Sin PDF: intentar extraer del HTML del cuerpo del correo
+      const htmlCuerpo = asText(data.html) ?? asText(data.text);
+      if (htmlCuerpo) {
+        try {
+          const resultado = await procesarReporte(null);
+          return jsonRes({ ok: true, marca, resultados: [resultado] });
+        } catch (e) {
+          console.error('procesamiento por HTML fallo:', (e as Error).message);
+        }
+      }
       await admin.from('rvs_reportes_intake').insert({
         marca,
         remitente_email: from || null,
         asunto_email: subject,
         resend_email_id: emailId,
         estatus: 'error',
-        error_message: 'correo_sin_pdf_adjunto',
+        error_message: 'sin_datos_extraibles',
       });
-      return jsonRes({ ok: true, procesados: 0, motivo: 'sin_pdf' });
+      return jsonRes({ ok: true, procesados: 0, motivo: 'sin_datos_extraibles' });
     }
 
     const resultados = [];
     for (const att of pdfs) {
       try {
-        resultados.push(await procesarPdf(att));
+        resultados.push(await procesarReporte(att));
       } catch (e) {
         console.error(`adjunto ${att?.id} fallo:`, (e as Error).message);
       }
