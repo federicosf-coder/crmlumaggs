@@ -143,15 +143,18 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
         }),
         { unidades: 0, venta: 0, costo: 0, utilidad: 0 }
       ),
-    [filas]
+    [filasVisibles]
   );
+
+  const marcaLabel =
+    marcasSel.length === 1 ? (marcasSel[0] === "galsa" ? "Galsa" : "Lumaggs") : "Galsa + Lumaggs";
 
   const exportar = () => {
     const enc = ["Sucursal", "Unidades", "Venta", "Costo", "Utilidad", "Margen %"];
     const aoa: any[][] = [
-      [`${mesLabel(mes)} — ${empresa === "galsa" ? "Galsa" : "Lumaggs"}`],
+      [`${mesLabel(mes)} — ${marcaLabel}`],
       enc,
-      ...filas.map((r) => [
+      ...filasVisibles.map((r) => [
         r.sucursal,
         r.unidades,
         r.venta,
@@ -170,7 +173,7 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "Por sucursal");
-    XLSX.writeFile(wb, `RVS_Sucursal_${empresa === "galsa" ? "Galsa" : "Lumaggs"}_${mes}.xlsx`);
+    XLSX.writeFile(wb, `RVS_Sucursal_${marcaLabel.replace(/\s+\+\s+/, "_")}_${mes}.xlsx`);
   };
 
   return (
@@ -195,19 +198,27 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Tabs value={empresa} onValueChange={(v) => setEmpresa(v as Empresa)}>
-              <TabsList>
-                <TabsTrigger value="galsa">Galsa</TabsTrigger>
-                <TabsTrigger value="lumaggs">Lumaggs</TabsTrigger>
-              </TabsList>
-            </Tabs>
             <Button size="sm" variant="outline" onClick={() => setCapturaAbierta(true)}>
               <Upload className="h-4 w-4 mr-1" /> Capturar por sucursal
             </Button>
-            <Button size="sm" onClick={exportar} disabled={isLoading || filas.length === 0}>
+            <Button size="sm" onClick={exportar} disabled={isLoading || filasVisibles.length === 0}>
               <Download className="h-4 w-4 mr-1" /> Exportar Excel
             </Button>
           </div>
+        </div>
+        <div className="mt-3 rounded-lg border bg-muted/20 p-3 space-y-2">
+          <FiltroChipsMulti
+            titulo="Empresa (una, varias o todas)"
+            opciones={["galsa", "lumaggs"]}
+            seleccion={marcasSel}
+            onChange={setMarcasSel}
+          />
+          <FiltroChipsMulti
+            titulo="Sucursal (una, varias o todas)"
+            opciones={opcionesSucursal}
+            seleccion={sucursalesSel}
+            onChange={setSucursalesSel}
+          />
         </div>
         {esDerivado && !isLoading && (
           <p className="pt-1 text-xs text-muted-foreground">
@@ -221,7 +232,7 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
         open={capturaAbierta}
         onOpenChange={setCapturaAbierta}
         mes={mes}
-        marca={empresa}
+        marca={marcasSel.length === 1 ? (marcasSel[0] as Empresa) : "galsa"}
         onSaved={() => {
           qc.invalidateQueries({ queryKey: ["rvs_resumen_sucursal"] });
           qc.invalidateQueries({ queryKey: ["rvs_reportes_mes"] });
