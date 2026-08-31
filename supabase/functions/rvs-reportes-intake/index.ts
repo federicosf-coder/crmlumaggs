@@ -194,6 +194,7 @@ Deno.serve(async (req) => {
         .insert({
           nombre_reporte: nombreAgente,
           nombre_normalizado: norm,
+          nombre_mostrar: nombreAgente.replace(/\s*-\s*[A-Za-z0-9]{1,6}\s*$/, '').trim() || nombreAgente,
           sin_clasificar: true,
           empresa_grupo_id: null,
           puesto_id: null,
