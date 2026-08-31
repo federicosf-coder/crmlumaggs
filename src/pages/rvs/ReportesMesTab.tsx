@@ -209,19 +209,33 @@ export function ReportesMesTab() {
           </SelectContent>
         </Select>
         <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant={agruparPlaza ? "default" : "outline"}
-            onClick={() => setAgruparPlaza((v) => !v)}
-          >
-            Agrupar por plaza
-          </Button>
-          <Button size="sm" onClick={exportar} disabled={isLoading}>
-            <Download className="h-4 w-4 mr-1" /> Exportar Excel
-          </Button>
+          {vista === "mensual" && (
+            <>
+              <Button
+                size="sm"
+                variant={agruparPlaza ? "default" : "outline"}
+                onClick={() => setAgruparPlaza((v) => !v)}
+              >
+                Agrupar por plaza
+              </Button>
+              <Button size="sm" onClick={exportar} disabled={isLoading}>
+                <Download className="h-4 w-4 mr-1" /> Exportar Excel
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
+      <Tabs value={vista} onValueChange={(v) => setVista(v as Vista)}>
+        <TabsList>
+          <TabsTrigger value="mensual">Mes seleccionado</TabsTrigger>
+          <TabsTrigger value="vs_mes">vs Mes anterior</TabsTrigger>
+          <TabsTrigger value="vs_anio">vs Año anterior</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {vista === "mensual" && (
+      <>
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Ventas por persona — {mesLabel(mes)}</CardTitle>
