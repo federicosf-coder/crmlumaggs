@@ -31,6 +31,7 @@ import {
   shiftMes,
   type FilaComparativa,
 } from "./rvsAgregados";
+import { FiltroChipsMulti } from "./components/FiltroChipsMulti";
 
 const headClass =
   "bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30";
@@ -44,7 +45,13 @@ type Agrupacion = "ninguno" | "plaza" | "empresa" | "plaza_empresa";
 type Col = "galsa" | "lumaggs" | "total";
 
 const PREFS_KEY = "rvs_comparativo_prefs";
-const PREFS_DEFAULT = { metrica: "ventas" as Metrica, empresa: "todas" as Empresa, agrupacion: "ninguno" as Agrupacion };
+const PREFS_DEFAULT = {
+  metrica: "ventas" as Metrica,
+  empresa: "todas" as Empresa,
+  agrupacion: "ninguno" as Agrupacion,
+  plazasSel: [] as string[],
+  gruposSel: [] as string[],
+};
 
 function Variacion({ v }: { v: number | null }) {
   if (v === null)
@@ -368,19 +375,26 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
   const [metrica, setMetrica] = useState<Metrica>(prefsIniciales.metrica);
   const [empresa, setEmpresa] = useState<Empresa>(prefsIniciales.empresa);
   const [agrupacion, setAgrupacion] = useState<Agrupacion>(prefsIniciales.agrupacion);
+  const [plazasSel, setPlazasSel] = useState<string[]>(prefsIniciales.plazasSel);
+  const [gruposSel, setGruposSel] = useState<string[]>(prefsIniciales.gruposSel);
 
   useEffect(() => {
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ metrica, empresa, agrupacion }));
+      localStorage.setItem(
+        PREFS_KEY,
+        JSON.stringify({ metrica, empresa, agrupacion, plazasSel, gruposSel })
+      );
     } catch {
       /* almacenamiento no disponible */
     }
-  }, [metrica, empresa, agrupacion]);
+  }, [metrica, empresa, agrupacion, plazasSel, gruposSel]);
 
   const restablecer = () => {
     setMetrica(PREFS_DEFAULT.metrica);
     setEmpresa(PREFS_DEFAULT.empresa);
     setAgrupacion(PREFS_DEFAULT.agrupacion);
+    setPlazasSel(PREFS_DEFAULT.plazasSel);
+    setGruposSel(PREFS_DEFAULT.gruposSel);
   };
 
   const { data, isLoading } = useQuery({
@@ -443,18 +457,51 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
     };
   }, [data, plazaNombre]);
 
+  // Opciones disponibles para las checklistas (se construyen de los datos reales)
+  const opcionesPlaza = useMemo(() => {
+    const set = new Set<string>();
+    personasComp.forEach((r) => set.add(r.plaza || "Sin plaza"));
+    plazasComp.filas.forEach((r) => set.add(r.nombre || "Sin plaza"));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [personasComp, plazasComp]);
+
+  const opcionesGrupo = useMemo(() => {
+    const set = new Set<string>();
+    personasComp.forEach((r) => set.add(r.empresaGrupo || "Sin empresa / grupo"));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [personasComp]);
+
+  // Aplicación de las checklistas
+  const personasFiltradas = useMemo(
+    () =>
+      personasComp.filter(
+        (r) =>
+          (plazasSel.length === 0 || plazasSel.includes(r.plaza || "Sin plaza")) &&
+          (gruposSel.length === 0 || gruposSel.includes(r.empresaGrupo || "Sin empresa / grupo"))
+      ),
+    [personasComp, plazasSel, gruposSel]
+  );
+
+  const plazasFiltradas = useMemo(
+    () =>
+      plazasComp.filas.filter(
+        (r) => plazasSel.length === 0 || plazasSel.includes(r.nombre || "Sin plaza")
+      ),
+    [plazasComp, plazasSel]
+  );
+
   const cols = colsDe(empresa);
   // plazas y zonas no tienen Empresa / Grupo: se muestran sin agrupar
   const agrupacionPlazas: Agrupacion = "ninguno";
 
 
   const lineasPersonas = useMemo(
-    () => construirLineas(personasComp, metrica, empresa, agrupacion),
-    [personasComp, metrica, empresa, agrupacion]
+    () => construirLineas(personasFiltradas, metrica, empresa, agrupacion),
+    [personasFiltradas, metrica, empresa, agrupacion]
   );
   const lineasPlazas = useMemo(
-    () => construirLineas(plazasComp.filas, metrica, empresa, agrupacionPlazas),
-    [plazasComp, metrica, empresa, agrupacionPlazas]
+    () => construirLineas(plazasFiltradas, metrica, empresa, agrupacionPlazas),
+    [plazasFiltradas, metrica, empresa, agrupacionPlazas]
   );
   const lineasZonas = useMemo(
     () => construirLineas(plazasComp.zonas, metrica, empresa, agrupacionPlazas),
@@ -576,6 +623,21 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
             <Download className="h-4 w-4 mr-1" /> Exportar Excel
           </Button>
         </div>
+      </div>
+
+      <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+        <FiltroChipsMulti
+          titulo="Plaza (uno, varios o todos)"
+          opciones={opcionesPlaza}
+          seleccion={plazasSel}
+          onChange={setPlazasSel}
+        />
+        <FiltroChipsMulti
+          titulo="Empresa / Grupo (uno, varios o todos)"
+          opciones={opcionesGrupo}
+          seleccion={gruposSel}
+          onChange={setGruposSel}
+        />
       </div>
 
       <TablaComparativa

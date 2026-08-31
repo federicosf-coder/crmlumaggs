@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Upload } from "lucide-react";
 import {
   Table,
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { esGalsa, esLumaggs, mesLabel, derivarVentasPlaza } from "./rvsAgregados";
 import { CapturaSucursalDialog } from "./components/CapturaSucursalDialog";
+import { FiltroChipsMulti } from "./components/FiltroChipsMulti";
 
 
 const headClass =
@@ -46,7 +46,8 @@ interface FilaSucursal {
 const margenDe = (utilidad: number, venta: number) => (venta > 0 ? (utilidad / venta) * 100 : 0);
 
 export function ResumenSucursalView({ mes }: { mes: string }) {
-  const [empresa, setEmpresa] = useState<Empresa>("galsa");
+  const [marcasSel, setMarcasSel] = useState<string[]>([]); // [] = ambas
+  const [sucursalesSel, setSucursalesSel] = useState<string[]>([]); // [] = todas
   const [capturaAbierta, setCapturaAbierta] = useState(false);
   const qc = useQueryClient();
 
@@ -79,15 +80,18 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
   });
 
   const filtrarMarca = (rows: any[]) =>
-    rows.filter((v) =>
-      empresa === "galsa" ? esGalsa(v.marca || "") : esLumaggs(v.marca || "")
-    );
+    rows.filter((v) => {
+      const m = v.marca || "";
+      if (esGalsa(m)) return marcasSel.length === 0 || marcasSel.includes("galsa");
+      if (esLumaggs(m)) return marcasSel.length === 0 || marcasSel.includes("lumaggs");
+      return true;
+    });
 
-  const reales = useMemo(() => filtrarMarca(data?.reales || []), [data, empresa]);
+  const reales = useMemo(() => filtrarMarca(data?.reales || []), [data, marcasSel]);
   const esDerivado = reales.length === 0;
   const fuente = useMemo(
     () => (esDerivado ? filtrarMarca(data?.derivadas || []) : reales),
-    [data, empresa, esDerivado, reales]
+    [data, marcasSel, esDerivado, reales]
   );
 
   const filas = useMemo(() => {
@@ -115,11 +119,21 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
     return Array.from(acc.values()).sort((a, b) => b.venta - a.venta);
   }, [data, fuente]);
 
+  const opcionesSucursal = useMemo(() => filas.map((f) => f.sucursal), [filas]);
+
+  const filasVisibles = useMemo(
+    () =>
+      sucursalesSel.length === 0
+        ? filas
+        : filas.filter((f) => sucursalesSel.includes(f.sucursal)),
+    [filas, sucursalesSel]
+  );
+
 
 
   const total = useMemo(
     () =>
-      filas.reduce(
+      filasVisibles.reduce(
         (t, r) => ({
           unidades: t.unidades + r.unidades,
           venta: t.venta + r.venta,
@@ -128,15 +142,18 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
         }),
         { unidades: 0, venta: 0, costo: 0, utilidad: 0 }
       ),
-    [filas]
+    [filasVisibles]
   );
+
+  const marcaLabel =
+    marcasSel.length === 1 ? (marcasSel[0] === "galsa" ? "Galsa" : "Lumaggs") : "Galsa + Lumaggs";
 
   const exportar = () => {
     const enc = ["Sucursal", "Unidades", "Venta", "Costo", "Utilidad", "Margen %"];
     const aoa: any[][] = [
-      [`${mesLabel(mes)} — ${empresa === "galsa" ? "Galsa" : "Lumaggs"}`],
+      [`${mesLabel(mes)} — ${marcaLabel}`],
       enc,
-      ...filas.map((r) => [
+      ...filasVisibles.map((r) => [
         r.sucursal,
         r.unidades,
         r.venta,
@@ -155,7 +172,7 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "Por sucursal");
-    XLSX.writeFile(wb, `RVS_Sucursal_${empresa === "galsa" ? "Galsa" : "Lumaggs"}_${mes}.xlsx`);
+    XLSX.writeFile(wb, `RVS_Sucursal_${marcaLabel.replace(/\s+\+\s+/, "_")}_${mes}.xlsx`);
   };
 
   return (
@@ -180,19 +197,27 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Tabs value={empresa} onValueChange={(v) => setEmpresa(v as Empresa)}>
-              <TabsList>
-                <TabsTrigger value="galsa">Galsa</TabsTrigger>
-                <TabsTrigger value="lumaggs">Lumaggs</TabsTrigger>
-              </TabsList>
-            </Tabs>
             <Button size="sm" variant="outline" onClick={() => setCapturaAbierta(true)}>
               <Upload className="h-4 w-4 mr-1" /> Capturar por sucursal
             </Button>
-            <Button size="sm" onClick={exportar} disabled={isLoading || filas.length === 0}>
+            <Button size="sm" onClick={exportar} disabled={isLoading || filasVisibles.length === 0}>
               <Download className="h-4 w-4 mr-1" /> Exportar Excel
             </Button>
           </div>
+        </div>
+        <div className="mt-3 rounded-lg border bg-muted/20 p-3 space-y-2">
+          <FiltroChipsMulti
+            titulo="Empresa (una, varias o todas)"
+            opciones={["Galsa", "Lumaggs"]}
+            seleccion={marcasSel.map((m) => (m === "galsa" ? "Galsa" : "Lumaggs"))}
+            onChange={(sel) => setMarcasSel(sel.map((s) => s.toLowerCase()))}
+          />
+          <FiltroChipsMulti
+            titulo="Sucursal (una, varias o todas)"
+            opciones={opcionesSucursal}
+            seleccion={sucursalesSel}
+            onChange={setSucursalesSel}
+          />
         </div>
         {esDerivado && !isLoading && (
           <p className="pt-1 text-xs text-muted-foreground">
@@ -206,7 +231,7 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
         open={capturaAbierta}
         onOpenChange={setCapturaAbierta}
         mes={mes}
-        marca={empresa}
+        marca={marcasSel.length === 1 ? (marcasSel[0] as Empresa) : "galsa"}
         onSaved={() => {
           qc.invalidateQueries({ queryKey: ["rvs_resumen_sucursal"] });
           qc.invalidateQueries({ queryKey: ["rvs_reportes_mes"] });
@@ -227,14 +252,14 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filas.length === 0 && (
+              {filasVisibles.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-6 text-sm text-muted-foreground">
                     {isLoading ? "Cargando…" : "Sin datos para este mes."}
                   </TableCell>
                 </TableRow>
               )}
-              {filas.map((r, i) => (
+              {filasVisibles.map((r, i) => (
                 <TableRow key={r.key} className={i % 2 ? "bg-muted/30" : undefined}>
                   <TableCell className="font-medium whitespace-nowrap">{r.sucursal}</TableCell>
                   <TableCell className="text-right">{uds(r.unidades)}</TableCell>
@@ -244,7 +269,7 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
                   <TableCell className="text-right">{pct(margenDe(r.utilidad, r.venta))}</TableCell>
                 </TableRow>
               ))}
-              {filas.length > 0 && (
+              {filasVisibles.length > 0 && (
                 <TableRow className="bg-violet-50/60 dark:bg-violet-950/20">
                   <TableCell className="font-semibold uppercase text-xs tracking-wide">Total</TableCell>
                   <TableCell className="text-right font-semibold">{uds(total.unidades)}</TableCell>
