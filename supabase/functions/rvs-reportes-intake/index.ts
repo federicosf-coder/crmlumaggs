@@ -12,13 +12,14 @@ const PROMPT = `Este PDF es un "Reporte de Ventas por Sucursal y Agente" del sis
 3) Una tabla "Detalle por Agente" con columnas: Agente (formato "APELLIDOS NOMBRE - CLAVE"), Unidades, Venta, Costo, Utilidad, Margen.
 
 Extrae SOLO este JSON, sin markdown ni texto adicional:
-{"periodo_desde":"YYYY-MM-DD o null","periodo_hasta":"YYYY-MM-DD o null","anio_mes":"YYYY-MM o null","sucursales":[{"sucursal":"string","unidades":0,"venta":0,"costo":0,"utilidad":0,"margen":0}],"agentes":[{"nombre_agente":"string","unidades":0,"venta":0,"costo":0,"utilidad":0,"margen":0}]}
+{"periodo_desde":"YYYY-MM-DD o null","periodo_hasta":"YYYY-MM-DD o null","anio_mes":"YYYY-MM o null","fecha_correo_original":"YYYY-MM-DDTHH:MM:SS o null","sucursales":[{"sucursal":"string","unidades":0,"venta":0,"costo":0,"utilidad":0,"margen":0}],"agentes":[{"nombre_agente":"string","unidades":0,"venta":0,"costo":0,"utilidad":0,"margen":0}]}
 
 Reglas:
 - "anio_mes" se deriva del período (año y mes de "Desde").
 - Copia el nombre del agente TAL CUAL aparece en el PDF, incluyendo la clave (ej. "PEREZ LOPEZ JUAN - 123"). Incluye también filas especiales como "(Ninguno)" o las que empiezan con "CASA".
 - Los importes son numéricos sin símbolos ni comas. El margen es porcentaje numérico (ej. 18.5).
 - NO incluyas filas de totales generales ("TOTAL", "GRAN TOTAL") en ninguna de las dos listas.
+- Si el PDF incluye una línea de encabezado de correo con el patrón 'Fecha: DD/MM/YYYY, HH:MM a.m./p.m.' o similar (fecha y hora de envío del correo original), extráela en "fecha_correo_original" en formato ISO 8601 completo (YYYY-MM-DDTHH:MM:SS). Si no aparece, usa null.
 - Si una tabla no existe, devuelve su arreglo vacío. No inventes datos.`;
 
 function extraerEmail(from: string): string {
@@ -306,20 +307,55 @@ Deno.serve(async (req) => {
         }
         if (!anioMes || !/^\d{4}-\d{2}$/.test(anioMes)) throw new Error('anio_mes_no_detectado');
 
+        // 3b) Fecha de referencia del reporte original (orden temporal)
+        const parseFecha = (v: unknown): Date | null => {
+          const s = asText(v);
+          if (!s) return null;
+          const d = new Date(s);
+          return Number.isNaN(d.getTime()) ? null : d;
+        };
+        let notaFechaFallback: string | null = null;
+        let fechaReporteOriginal: Date | null =
+          parseFecha(extraido?.fecha_correo_original) ?? parseFecha(data?.created_at);
+        if (!fechaReporteOriginal) {
+          fechaReporteOriginal = new Date();
+          notaFechaFallback = '(sin fecha original detectada, se usó hora de proceso)';
+        }
+
         await admin
           .from('rvs_reportes_intake')
-          .update({ anio_mes: anioMes, payload_extraido: extraido })
+          .update({
+            anio_mes: anioMes,
+            payload_extraido: extraido,
+            fecha_reporte_original: fechaReporteOriginal.toISOString(),
+          })
           .eq('id', intakeRow.id);
 
         // 4) Upsert agentes (snapshot: reemplaza, nunca suma)
+        // Guarda temporal: un reporte más viejo nunca sobrescribe uno más reciente
         const agentes: any[] = Array.isArray(extraido?.agentes) ? extraido.agentes : [];
         let agentesOk = 0;
+        let agentesOmitidosPorFechaVieja = 0;
         for (const a of agentes) {
           const nombre = asText(a?.nombre_agente);
           if (!nombre) continue;
           if (/^(gran\s+)?total/i.test(nombre)) continue;
           const persona = await buscarPersona(nombre);
           if (!persona) continue;
+
+          const { data: existente } = await admin
+            .from('rvs_ventas_mes')
+            .select('fecha_reporte_original')
+            .eq('persona_id', persona.id)
+            .eq('anio_mes', anioMes)
+            .eq('marca', marca)
+            .limit(1);
+          const fechaExistente = parseFecha(existente?.[0]?.fecha_reporte_original);
+          if (fechaExistente && fechaExistente.getTime() > fechaReporteOriginal.getTime()) {
+            agentesOmitidosPorFechaVieja++;
+            continue;
+          }
+
           const { error: upsertErr } = await admin.from('rvs_ventas_mes').upsert(
             {
               persona_id: persona.id,
@@ -331,6 +367,7 @@ Deno.serve(async (req) => {
               utilidad: asNum(a?.utilidad),
               margen: a?.margen == null ? null : asNum(a?.margen),
               plaza_id: persona.plaza_id,
+              fecha_reporte_original: fechaReporteOriginal.toISOString(),
               updated_at: new Date().toISOString(),
             },
             { onConflict: 'persona_id,anio_mes,marca' },
@@ -340,8 +377,10 @@ Deno.serve(async (req) => {
         }
 
         // 5) Upsert resumen por sucursal
+        // Guarda temporal: un reporte más viejo nunca sobrescribe uno más reciente
         const sucursales: any[] = Array.isArray(extraido?.sucursales) ? extraido.sucursales : [];
         let sucursalesOk = 0;
+        let sucursalesOmitidasPorFechaVieja = 0;
         for (const s of sucursales) {
           const nombre = asText(s?.sucursal);
           if (!nombre) continue;
@@ -357,10 +396,23 @@ Deno.serve(async (req) => {
             costo: asNum(s?.costo),
             utilidad: asNum(s?.utilidad),
             margen: s?.margen == null ? null : asNum(s?.margen),
+            fecha_reporte_original: fechaReporteOriginal.toISOString(),
             updated_at: new Date().toISOString(),
           };
           let errMsg: string | null = null;
           if (plazaId) {
+            const { data: existente } = await admin
+              .from('rvs_ventas_mes_plaza')
+              .select('fecha_reporte_original')
+              .eq('plaza_id', plazaId)
+              .eq('anio_mes', anioMes)
+              .eq('marca', marca)
+              .limit(1);
+            const fechaExistente = parseFecha(existente?.[0]?.fecha_reporte_original);
+            if (fechaExistente && fechaExistente.getTime() > fechaReporteOriginal.getTime()) {
+              sucursalesOmitidasPorFechaVieja++;
+              continue;
+            }
             const { error } = await admin
               .from('rvs_ventas_mes_plaza')
               .upsert(fila, { onConflict: 'plaza_id,anio_mes,marca' });
@@ -369,12 +421,17 @@ Deno.serve(async (req) => {
             // Sin plaza asociada: no aplica el índice único, se reemplaza manualmente
             const { data: existente } = await admin
               .from('rvs_ventas_mes_plaza')
-              .select('id')
+              .select('id, fecha_reporte_original')
               .is('plaza_id', null)
               .eq('sucursal_reporte', nombre)
               .eq('anio_mes', anioMes)
               .eq('marca', marca)
               .limit(1);
+            const fechaExistente = parseFecha(existente?.[0]?.fecha_reporte_original);
+            if (fechaExistente && fechaExistente.getTime() > fechaReporteOriginal.getTime()) {
+              sucursalesOmitidasPorFechaVieja++;
+              continue;
+            }
             if (existente && existente.length > 0) {
               const { error } = await admin.from('rvs_ventas_mes_plaza').update(fila).eq('id', existente[0].id);
               errMsg = error?.message ?? null;
@@ -389,15 +446,24 @@ Deno.serve(async (req) => {
 
         await admin
           .from('rvs_reportes_intake')
-          .update({ estatus: 'procesado', error_message: null })
+          .update({
+            estatus: 'procesado',
+            error_message: notaFechaFallback,
+            fecha_reporte_original: fechaReporteOriginal.toISOString(),
+          })
           .eq('id', intakeRow.id);
 
-        return { agentes: agentesOk, sucursales: sucursalesOk };
+        return {
+          agentes: agentesOk,
+          sucursales: sucursalesOk,
+          agentesOmitidosPorFechaVieja,
+          sucursalesOmitidasPorFechaVieja,
+        };
       } catch (e) {
         const msg = (e as Error).message || 'error_desconocido';
         console.error('rvs procesamiento fallo:', msg);
         await marcarError(msg);
-        return { agentes: 0, sucursales: 0, error: msg };
+        return { agentes: 0, sucursales: 0, agentesOmitidosPorFechaVieja: 0, sucursalesOmitidasPorFechaVieja: 0, error: msg };
       }
     };
 
