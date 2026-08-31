@@ -128,6 +128,129 @@ function KpiCard({ titulo, valor, detalle, icono, clase, onClick }: KpiCardProps
   );
 }
 
+interface DatosMarca {
+  ventaTotal: number;
+  unidadesTotal: number;
+  utilidadTotal: number;
+  margen: number;
+  ventaPrevia: number;
+  variacion: number | null;
+  chartData: { nombre: string; venta: number; color: string }[];
+}
+
+interface BloqueMarcaProps {
+  titulo: string;
+  datos: DatosMarca;
+  headerClase: string;
+  kpiClases: { venta: string; unidades: string; utilidad: string; margen: string };
+  iconoClase: string;
+  mesLabelTexto: string;
+  isLoading: boolean;
+}
+
+function BloqueMarca({
+  titulo,
+  datos,
+  headerClase,
+  kpiClases,
+  iconoClase,
+  mesLabelTexto,
+  isLoading,
+}: BloqueMarcaProps) {
+  return (
+    <Card className="overflow-hidden border-border/60 shadow-sm">
+      <CardHeader className={`${headerClase} border-b border-border/40 py-3`}>
+        <CardTitle className="text-sm font-light tracking-tight">
+          {titulo} — {mesLabelTexto}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <KpiCard
+            titulo="Venta total"
+            valor={currency(datos.ventaTotal)}
+            icono={<DollarSign className={`h-4 w-4 ${iconoClase}`} />}
+            clase={kpiClases.venta}
+          />
+          <KpiCard
+            titulo="Unidades totales"
+            valor={uds(datos.unidadesTotal)}
+            icono={<Package className={`h-4 w-4 ${iconoClase}`} />}
+            clase={kpiClases.unidades}
+          />
+          <KpiCard
+            titulo="Utilidad total"
+            valor={currency(datos.utilidadTotal)}
+            icono={<TrendingUp className={`h-4 w-4 ${iconoClase}`} />}
+            clase={kpiClases.utilidad}
+          />
+          <KpiCard
+            titulo="Margen promedio"
+            valor={`${datos.margen.toFixed(0)}%`}
+            icono={<Percent className={`h-4 w-4 ${iconoClase}`} />}
+            clase={kpiClases.margen}
+          />
+          <KpiCard
+            titulo="Variación vs. mes anterior"
+            valor={
+              datos.variacion === null
+                ? "—"
+                : `${datos.variacion >= 0 ? "+" : ""}${datos.variacion.toFixed(0)}%`
+            }
+            detalle={datos.ventaPrevia > 0 ? `Anterior: ${currency(datos.ventaPrevia)}` : "Sin mes anterior"}
+            icono={
+              datos.variacion !== null && datos.variacion < 0 ? (
+                <ArrowDownRight className="h-4 w-4 text-rose-600" />
+              ) : (
+                <ArrowUpRight className="h-4 w-4 text-emerald-600" />
+              )
+            }
+            clase="bg-slate-50 dark:bg-slate-900/40 text-slate-900 dark:text-slate-100"
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
+          </div>
+        ) : datos.chartData.length === 0 ? (
+          <p className="py-16 text-center text-sm text-muted-foreground">
+            Sin datos para este mes.
+          </p>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={datos.chartData} margin={{ top: 8, right: 8, left: 8, bottom: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+              <XAxis
+                dataKey="nombre"
+                angle={-35}
+                textAnchor="end"
+                interval={0}
+                height={60}
+                tick={{ fontSize: 11 }}
+              />
+              <YAxis
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v: number) => currency(Number(v))}
+                width={90}
+              />
+              <Tooltip
+                formatter={(v: any) => [currency(Number(v)), "Venta"]}
+                contentStyle={{ fontSize: 12, borderRadius: 8 }}
+              />
+              <Bar dataKey="venta" radius={[6, 6, 0, 0]}>
+                {datos.chartData.map((d) => (
+                  <Cell key={d.nombre} fill={d.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } = {}) {
   const meses = useMemo(ultimos12, []);
   const [mes, setMes] = useState(meses[0]);
