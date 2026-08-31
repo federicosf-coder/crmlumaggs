@@ -458,7 +458,22 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
       </div>
 
       <BloqueMarca
-        titulo="Galsa (Phillips 66)"
+        titulo="Chevron"
+        datos={lumaggsData}
+        headerClase="bg-gradient-to-r from-blue-100 to-sky-100 dark:from-blue-950/40 dark:to-sky-950/40"
+        iconoClase="text-blue-600"
+        kpiClases={{
+          venta: "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
+          unidades: "bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-100",
+          utilidad: "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
+          margen: "bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-100",
+        }}
+        mesLabelTexto={mesLabel(mes)}
+        isLoading={actualQuery.isLoading}
+      />
+
+      <BloqueMarca
+        titulo="Galsa"
         datos={galsaData}
         headerClase="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-950/40 dark:to-orange-950/40"
         iconoClase="text-amber-600"
@@ -473,14 +488,14 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
       />
 
       <BloqueMarca
-        titulo="Lumaggs (Chevron)"
-        datos={lumaggsData}
-        headerClase="bg-gradient-to-r from-blue-100 to-sky-100 dark:from-blue-950/40 dark:to-sky-950/40"
-        iconoClase="text-blue-600"
+        titulo="División Lubricantes"
+        datos={totalData}
+        headerClase="bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40"
+        iconoClase="text-indigo-600"
         kpiClases={{
-          venta: "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
+          venta: "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-100",
           unidades: "bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-100",
-          utilidad: "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
+          utilidad: "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-100",
           margen: "bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-100",
         }}
         mesLabelTexto={mesLabel(mes)}
