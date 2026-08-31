@@ -522,8 +522,9 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
             <SelectContent>
               <SelectItem value="ninguno">Sin agrupar</SelectItem>
               <SelectItem value="plaza">Plaza</SelectItem>
-              <SelectItem value="empresa">Empresa</SelectItem>
-              <SelectItem value="plaza_empresa">Plaza → Empresa</SelectItem>
+              <SelectItem value="empresa">Empresa / Grupo</SelectItem>
+              <SelectItem value="plaza_empresa">Plaza → Empresa / Grupo</SelectItem>
+
             </SelectContent>
           </Select>
           <Button size="sm" variant="outline" onClick={restablecer} title="Restablecer vista">
