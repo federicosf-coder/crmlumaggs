@@ -325,7 +325,7 @@ function TablaComparativa({
                                 (l.actual[iPrincipal] / l.actualVenta[iPrincipal] -
                                   l.base[iPrincipal] / l.baseVenta[iPrincipal]) *
                                 100
-                              ).toFixed(1)} pp`
+                              ).toFixed(0)} pp`
                             : "—"}
                         </div>
                       )}
