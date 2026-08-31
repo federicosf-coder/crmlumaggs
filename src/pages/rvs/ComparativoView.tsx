@@ -352,15 +352,18 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
   const { data, isLoading } = useQuery({
     queryKey: ["rvs_comparativo", mes, mesBase],
     queryFn: async () => {
-      const [base, actual, personas, plazas, zonas, zonaPlazas] = await Promise.all([
+      const [base, actual, personas, plazas, zonas, zonaPlazas, grupos] = await Promise.all([
         cargarPeriodo(mesBase),
         cargarPeriodo(mes),
-        supabase.from("rvs_personas").select("id, nombre_reporte, nombre_mostrar, plaza_id"),
+        supabase
+          .from("rvs_personas")
+          .select("id, nombre_reporte, nombre_mostrar, plaza_id, empresa_grupo_id"),
         supabase.from("plazas").select("id, nombre"),
         supabase.from("zonas").select("id, nombre, is_active").eq("is_active", true),
         supabase.from("zona_plazas").select("zona_id, plaza_id"),
+        supabase.from("rvs_empresas_grupo").select("id, etiqueta"),
       ]);
-      const err = [personas, plazas, zonas, zonaPlazas].find((r) => r.error);
+      const err = [personas, plazas, zonas, zonaPlazas, grupos].find((r) => r.error);
       if (err?.error) throw err.error;
       return {
         base,
@@ -369,6 +372,7 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
         plazas: plazas.data || [],
         zonas: zonas.data || [],
         zonaPlazas: zonaPlazas.data || [],
+        grupos: grupos.data || [],
       };
     },
   });
@@ -379,13 +383,19 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
     return m;
   }, [data]);
 
+  const grupoNombre = useMemo(() => {
+    const m = new Map<string, string>();
+    (data?.grupos || []).forEach((g: any) => m.set(g.id, g.etiqueta));
+    return m;
+  }, [data]);
+
   const personasComp = useMemo(() => {
     if (!data) return [];
     return combinar(
-      agregarPorPersona(data.base.ventas, data.personas, plazaNombre),
-      agregarPorPersona(data.actual.ventas, data.personas, plazaNombre)
+      agregarPorPersona(data.base.ventas, data.personas, plazaNombre, grupoNombre),
+      agregarPorPersona(data.actual.ventas, data.personas, plazaNombre, grupoNombre)
     );
-  }, [data, plazaNombre]);
+  }, [data, plazaNombre, grupoNombre]);
 
   const plazasComp = useMemo(() => {
     if (!data) return { filas: [] as FilaComparativa[], zonas: [] as FilaComparativa[] };
@@ -397,10 +407,10 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
     };
   }, [data, plazaNombre]);
 
-  const cols = colsDe(empresa, agrupacion);
-  // las plazas ya son un nivel: nunca agrupamos plazas por plaza
-  const agrupacionPlazas: Agrupacion =
-    agrupacion === "plaza" ? "ninguno" : agrupacion === "plaza_empresa" ? "empresa" : agrupacion;
+  const cols = colsDe(empresa);
+  // plazas y zonas no tienen Empresa / Grupo: se muestran sin agrupar
+  const agrupacionPlazas: Agrupacion = "ninguno";
+
 
   const lineasPersonas = useMemo(
     () => construirLineas(personasComp, metrica, empresa, agrupacion),
