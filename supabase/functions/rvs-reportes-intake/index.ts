@@ -289,19 +289,19 @@ Deno.serve(async (req) => {
       return parcial ? parcial.id : null;
     };
 
-    const procesarPdf = async (att: any) => {
+    const procesarReporte = async (att: any | null) => {
       // 1) Registrar el intake
-      const meta = listado.find((l: any) => String(l?.id) === String(att.id)) ?? null;
-      const nombreOriginal = att.filename || 'reporte.pdf';
+      const meta = att ? (listado.find((l: any) => String(l?.id) === String(att.id)) ?? null) : null;
+      const nombreOriginal = att?.filename || 'reporte.pdf';
       const sanitizado = String(nombreOriginal).replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120);
-      const storagePath = `email-intake/${emailId}/${att.id}-${sanitizado}`;
+      const storagePath = att ? `email-intake/${emailId}/${att.id}-${sanitizado}` : null;
 
       const { data: intakeRow, error: intakeErr } = await admin
         .from('rvs_reportes_intake')
         .insert({
           marca,
           storage_path: storagePath,
-          mime_type: 'application/pdf',
+          mime_type: att ? 'application/pdf' : null,
           remitente_email: from || null,
           asunto_email: subject,
           resend_email_id: emailId,
@@ -320,50 +320,61 @@ Deno.serve(async (req) => {
 
       try {
         if (!marca) throw new Error(`marca_no_detectada: ${subject ?? ''}`);
-        const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
-        if (!downloadUrl) throw new Error(`sin_download_url para adjunto ${att.id}`);
 
-        const dl = await fetch(downloadUrl);
-        if (!dl.ok) throw new Error(`descarga_fallida_${dl.status}`);
-        const bytes = new Uint8Array(await dl.arrayBuffer());
+        // 2) Extracción: método principal = HTML del cuerpo del correo (sin IA).
+        //    Respaldo: PDF adjunto + Gateway de IA (solo si el HTML no produjo datos).
+        let extraido: any = null;
+        const htmlCuerpo = asText(data.html) ?? asText(data.text);
+        if (htmlCuerpo) {
+          const deHtml = extraerDeHTML(htmlCuerpo);
+          if (deHtml.sucursales.length > 0 || deHtml.agentes.length > 0) extraido = deHtml;
+        }
+        if (!extraido) {
+          if (!att) throw new Error('sin_datos_extraibles');
+          const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
+          if (!downloadUrl) throw new Error(`sin_download_url para adjunto ${att.id}`);
 
-        const { error: upErr } = await admin.storage
-          .from(BUCKET)
-          .upload(storagePath, bytes, { contentType: 'application/pdf', upsert: true });
-        if (upErr) throw new Error(`upload_failed: ${upErr.message}`);
+          const dl = await fetch(downloadUrl);
+          if (!dl.ok) throw new Error(`descarga_fallida_${dl.status}`);
+          const bytes = new Uint8Array(await dl.arrayBuffer());
 
-        // 2) Extracción con IA
-        if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY no configurada');
-        let bin = '';
-        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-        const dataUrl = `data:application/pdf;base64,${btoa(bin)}`;
+          const { error: upErr } = await admin.storage
+            .from(BUCKET)
+            .upload(storagePath!, bytes, { contentType: 'application/pdf', upsert: true });
+          if (upErr) throw new Error(`upload_failed: ${upErr.message}`);
 
-        const res = await fetch(GATEWAY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
-          body: JSON.stringify({
-            model: MODEL,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: PROMPT },
-                  { type: 'file', file: { filename: sanitizado || 'reporte.pdf', file_data: dataUrl } },
-                ],
-              },
-            ],
-            max_tokens: 8000,
-          }),
-        });
-        if (res.status === 429) throw new Error('rate_limit');
-        if (res.status === 402) throw new Error('credits_exhausted');
-        if (!res.ok) throw new Error(`gateway_${res.status}: ${(await res.text()).slice(0, 300)}`);
+          if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY no configurada');
+          let bin = '';
+          for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+          const dataUrl = `data:application/pdf;base64,${btoa(bin)}`;
 
-        const json = await res.json();
-        const text = json?.choices?.[0]?.message?.content || '';
-        const m = text.match(/\{[\s\S]*\}/);
-        if (!m) throw new Error('json_not_found');
-        const extraido = JSON.parse(m[0]);
+          const res = await fetch(GATEWAY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
+            body: JSON.stringify({
+              model: MODEL,
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: PROMPT },
+                    { type: 'file', file: { filename: sanitizado || 'reporte.pdf', file_data: dataUrl } },
+                  ],
+                },
+              ],
+              max_tokens: 8000,
+            }),
+          });
+          if (res.status === 429) throw new Error('rate_limit');
+          if (res.status === 402) throw new Error('credits_exhausted');
+          if (!res.ok) throw new Error(`gateway_${res.status}: ${(await res.text()).slice(0, 300)}`);
+
+          const json = await res.json();
+          const text = json?.choices?.[0]?.message?.content || '';
+          const m = text.match(/\{[\s\S]*\}/);
+          if (!m) throw new Error('json_not_found');
+          extraido = JSON.parse(m[0]);
+        }
 
         // 3) Derivar año-mes
         let anioMes = asText(extraido?.anio_mes);
