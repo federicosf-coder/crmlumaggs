@@ -113,13 +113,14 @@ export function PersonalTab() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
         <Input
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar persona…"
-          className="sm:max-w-xs"
+          className="sm:max-w-xs bg-background/80"
         />
+
         <div className="flex items-center gap-2">
           <Switch
             id="sin-clasificar"
