@@ -74,7 +74,8 @@ export default function AutorizacionPrecioCard({
   embedded?: boolean;
   onDeleted?: () => void;
 }) {
-  const { user } = useAuth();
+  const { user, hasAnyRole } = useAuth();
+  const canActualizarEstatus = hasAnyRole(["admin", "manager", "customer_service"]);
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(defaultOpen);
   const [flash, setFlash] = useState(false);
