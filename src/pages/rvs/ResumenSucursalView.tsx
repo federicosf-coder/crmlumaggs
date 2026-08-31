@@ -81,15 +81,18 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
   });
 
   const filtrarMarca = (rows: any[]) =>
-    rows.filter((v) =>
-      empresa === "galsa" ? esGalsa(v.marca || "") : esLumaggs(v.marca || "")
-    );
+    rows.filter((v) => {
+      const m = v.marca || "";
+      if (esGalsa(m)) return marcasSel.length === 0 || marcasSel.includes("galsa");
+      if (esLumaggs(m)) return marcasSel.length === 0 || marcasSel.includes("lumaggs");
+      return true;
+    });
 
-  const reales = useMemo(() => filtrarMarca(data?.reales || []), [data, empresa]);
+  const reales = useMemo(() => filtrarMarca(data?.reales || []), [data, marcasSel]);
   const esDerivado = reales.length === 0;
   const fuente = useMemo(
     () => (esDerivado ? filtrarMarca(data?.derivadas || []) : reales),
-    [data, empresa, esDerivado, reales]
+    [data, marcasSel, esDerivado, reales]
   );
 
   const filas = useMemo(() => {
@@ -116,6 +119,16 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
     }
     return Array.from(acc.values()).sort((a, b) => b.venta - a.venta);
   }, [data, fuente]);
+
+  const opcionesSucursal = useMemo(() => filas.map((f) => f.sucursal), [filas]);
+
+  const filasVisibles = useMemo(
+    () =>
+      sucursalesSel.length === 0
+        ? filas
+        : filas.filter((f) => sucursalesSel.includes(f.sucursal)),
+    [filas, sucursalesSel]
+  );
 
 
 
