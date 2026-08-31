@@ -186,19 +186,19 @@ export function CapturaSucursalDialog({ open, onOpenChange, mes, marca, onSaved 
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {f.unidades.toLocaleString("es-MX")}
+                          {f.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })}
                         </TableCell>
                         <TableCell className="text-right">{currency(f.venta)}</TableCell>
                         <TableCell className="text-right">{currency(f.costo)}</TableCell>
                         <TableCell className="text-right">{currency(f.utilidad)}</TableCell>
-                        <TableCell className="text-right">{f.margen?.toFixed(2)}%</TableCell>
+                        <TableCell className="text-right">{f.margen?.toFixed(0)}%</TableCell>
                       </TableRow>
                     );
                   })}
                   <TableRow className="font-semibold bg-muted/50">
                     <TableCell colSpan={2}>Total</TableCell>
                     <TableCell className="text-right">
-                      {totales.unidades.toLocaleString("es-MX")}
+                      {totales.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })}
                     </TableCell>
                     <TableCell className="text-right">{currency(totales.venta)}</TableCell>
                     <TableCell />
