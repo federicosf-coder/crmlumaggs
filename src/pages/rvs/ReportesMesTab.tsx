@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ComparativoView } from "./ComparativoView";
+import { ResumenSucursalView } from "./ResumenSucursalView";
 
 const MESES_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 const mesLabel = (ym: string) => {
@@ -45,7 +46,7 @@ function ultimos12(): string[] {
 const esGalsa = (marca: string) => marca.toLowerCase().includes("galsa");
 const esLumaggs = (marca: string) => marca.toLowerCase().includes("lumaggs");
 
-type Vista = "mensual" | "vs_mes" | "vs_anio";
+type Vista = "mensual" | "vs_mes" | "vs_anio" | "sucursal";
 
 export function ReportesMesTab() {
   const meses = useMemo(ultimos12, []);
@@ -365,6 +366,7 @@ export function ReportesMesTab() {
       <Tabs value={vista} onValueChange={(v) => setVista(v as Vista)}>
         <TabsList>
           <TabsTrigger value="mensual">Mes seleccionado</TabsTrigger>
+          <TabsTrigger value="sucursal">Por sucursal</TabsTrigger>
           <TabsTrigger value="vs_mes">vs Mes anterior</TabsTrigger>
           <TabsTrigger value="vs_anio">vs Año anterior</TabsTrigger>
         </TabsList>
@@ -473,7 +475,9 @@ export function ReportesMesTab() {
       </>
       )}
 
-      {vista !== "mensual" && (
+      {vista === "sucursal" && <ResumenSucursalView mes={mes} />}
+
+      {(vista === "vs_mes" || vista === "vs_anio") && (
         <ComparativoView mes={mes} modo={vista === "vs_mes" ? "mes_anterior" : "anio_anterior"} />
       )}
 
