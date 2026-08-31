@@ -28,6 +28,9 @@ export default function ReporteVentasSistema() {
           <TabsContent value="mes">
             <ReportesMesTab />
           </TabsContent>
+          <TabsContent value="hist12">
+            <Historico12MesesTab />
+          </TabsContent>
           <TabsContent value="captura">
             <CapturaManualTab />
           </TabsContent>
