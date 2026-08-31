@@ -26,6 +26,7 @@ import {
   agregarPorPlaza,
   combinar,
   currency,
+  ventasPlazaConRespaldo,
   mesLabel,
   shiftMes,
   type FilaComparativa,
@@ -307,7 +308,7 @@ async function cargarPeriodo(mes: string) {
   const [ventas, ventasPlaza] = await Promise.all([
     supabase
       .from("rvs_ventas_mes")
-      .select("persona_id, marca, venta, unidades, utilidad, plaza_id")
+      .select("persona_id, marca, venta, unidades, costo, utilidad, plaza_id")
       .eq("anio_mes", mes),
     supabase
       .from("rvs_ventas_mes_plaza")
@@ -399,8 +400,10 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
 
   const plazasComp = useMemo(() => {
     if (!data) return { filas: [] as FilaComparativa[], zonas: [] as FilaComparativa[] };
-    const b = agregarPorPlaza(data.base.ventasPlaza, plazaNombre, data.zonas, data.zonaPlazas);
-    const a = agregarPorPlaza(data.actual.ventasPlaza, plazaNombre, data.zonas, data.zonaPlazas);
+    const basePlaza = ventasPlazaConRespaldo(data.base.ventasPlaza, data.base.ventas, data.personas);
+    const actualPlaza = ventasPlazaConRespaldo(data.actual.ventasPlaza, data.actual.ventas, data.personas);
+    const b = agregarPorPlaza(basePlaza, plazaNombre, data.zonas, data.zonaPlazas);
+    const a = agregarPorPlaza(actualPlaza, plazaNombre, data.zonas, data.zonaPlazas);
     return {
       filas: combinar(b.filas, a.filas),
       zonas: combinar(b.zonasFilas, a.zonasFilas),
