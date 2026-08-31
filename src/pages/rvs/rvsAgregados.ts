@@ -24,6 +24,9 @@ export interface FilaVentas {
   galsa: number;
   lumaggs: number;
   total: number;
+  udsGalsa: number;
+  udsLumaggs: number;
+  udsTotal: number;
 }
 
 /** Agrega ventas de rvs_ventas_mes por persona */
@@ -34,7 +37,7 @@ export function agregarPorPersona(
 ): FilaVentas[] {
   const personaMap = new Map<string, any>();
   personas.forEach((p) => personaMap.set(p.id, p));
-  const acc = new Map<string, Omit<FilaVentas, "total">>();
+  const acc = new Map<string, Omit<FilaVentas, "total" | "udsTotal">>();
   for (const v of ventas) {
     const p = personaMap.get(v.persona_id);
     if (!p) continue;
@@ -46,13 +49,25 @@ export function agregarPorPersona(
         plaza: (plazaId && plazaNombre.get(plazaId)) || "Sin plaza",
         galsa: 0,
         lumaggs: 0,
+        udsGalsa: 0,
+        udsLumaggs: 0,
       });
     const row = acc.get(v.persona_id)!;
     const monto = Number(v.venta || 0);
-    if (esGalsa(v.marca)) row.galsa += monto;
-    else if (esLumaggs(v.marca)) row.lumaggs += monto;
+    const uds = Number(v.unidades || 0);
+    if (esGalsa(v.marca)) {
+      row.galsa += monto;
+      row.udsGalsa += uds;
+    } else if (esLumaggs(v.marca)) {
+      row.lumaggs += monto;
+      row.udsLumaggs += uds;
+    }
   }
-  return Array.from(acc.values()).map((r) => ({ ...r, total: r.galsa + r.lumaggs }));
+  return Array.from(acc.values()).map((r) => ({
+    ...r,
+    total: r.galsa + r.lumaggs,
+    udsTotal: r.udsGalsa + r.udsLumaggs,
+  }));
 }
 
 /** Agrega ventas de rvs_ventas_mes_plaza por plaza y calcula filas de zona */
@@ -62,7 +77,10 @@ export function agregarPorPlaza(
   zonas: any[],
   zonaPlazas: any[]
 ): { filas: (FilaVentas & { plazaId: string | null })[]; zonasFilas: FilaVentas[] } {
-  const acc = new Map<string, { key: string; plazaId: string | null; nombre: string; galsa: number; lumaggs: number }>();
+  const acc = new Map<
+    string,
+    { key: string; plazaId: string | null; nombre: string; galsa: number; lumaggs: number; udsGalsa: number; udsLumaggs: number }
+  >();
   for (const v of ventasPlaza) {
     const key = v.plaza_id || `sr:${v.sucursal_reporte || "Sin plaza"}`;
     if (!acc.has(key))
@@ -72,11 +90,19 @@ export function agregarPorPlaza(
         nombre: (v.plaza_id && plazaNombre.get(v.plaza_id)) || v.sucursal_reporte || "Sin plaza",
         galsa: 0,
         lumaggs: 0,
+        udsGalsa: 0,
+        udsLumaggs: 0,
       });
     const row = acc.get(key)!;
     const monto = Number(v.venta || 0);
-    if (esGalsa(v.marca)) row.galsa += monto;
-    else if (esLumaggs(v.marca)) row.lumaggs += monto;
+    const uds = Number(v.unidades || 0);
+    if (esGalsa(v.marca)) {
+      row.galsa += monto;
+      row.udsGalsa += uds;
+    } else if (esLumaggs(v.marca)) {
+      row.lumaggs += monto;
+      row.udsLumaggs += uds;
+    }
   }
   const filas = Array.from(acc.values()).map((r) => ({
     key: r.key,
@@ -86,6 +112,9 @@ export function agregarPorPlaza(
     galsa: r.galsa,
     lumaggs: r.lumaggs,
     total: r.galsa + r.lumaggs,
+    udsGalsa: r.udsGalsa,
+    udsLumaggs: r.udsLumaggs,
+    udsTotal: r.udsGalsa + r.udsLumaggs,
   }));
 
   const zonasFilas: FilaVentas[] = zonas.map((z: any) => {
@@ -93,7 +122,19 @@ export function agregarPorPlaza(
     const incluidas = filas.filter((f) => f.plazaId && plazaIds.includes(f.plazaId));
     const galsa = incluidas.reduce((s, f) => s + f.galsa, 0);
     const lumaggs = incluidas.reduce((s, f) => s + f.lumaggs, 0);
-    return { key: `zona:${z.id}`, nombre: z.nombre, plaza: z.nombre, galsa, lumaggs, total: galsa + lumaggs };
+    const udsGalsa = incluidas.reduce((s, f) => s + f.udsGalsa, 0);
+    const udsLumaggs = incluidas.reduce((s, f) => s + f.udsLumaggs, 0);
+    return {
+      key: `zona:${z.id}`,
+      nombre: z.nombre,
+      plaza: z.nombre,
+      galsa,
+      lumaggs,
+      total: galsa + lumaggs,
+      udsGalsa,
+      udsLumaggs,
+      udsTotal: udsGalsa + udsLumaggs,
+    };
   });
 
   return { filas, zonasFilas };
@@ -109,7 +150,14 @@ export interface FilaComparativa {
   actualGalsa: number;
   actualLumaggs: number;
   actualTotal: number;
-  variacion: number | null; // porcentaje
+  baseUdsGalsa: number;
+  baseUdsLumaggs: number;
+  baseUdsTotal: number;
+  actualUdsGalsa: number;
+  actualUdsLumaggs: number;
+  actualUdsTotal: number;
+  variacion: number | null; // porcentaje (venta $)
+  variacionUds: number | null; // porcentaje (unidades)
 }
 
 /** Une dos periodos por key y calcula variación */
@@ -125,6 +173,8 @@ export function combinar(base: FilaVentas[], actual: FilaVentas[]): FilaComparat
       const a = actualMap.get(key);
       const baseTotal = b?.total || 0;
       const actualTotal = a?.total || 0;
+      const baseUdsTotal = b?.udsTotal || 0;
+      const actualUdsTotal = a?.udsTotal || 0;
       return {
         key,
         nombre: meta.nombre,
@@ -135,7 +185,14 @@ export function combinar(base: FilaVentas[], actual: FilaVentas[]): FilaComparat
         actualGalsa: a?.galsa || 0,
         actualLumaggs: a?.lumaggs || 0,
         actualTotal,
+        baseUdsGalsa: b?.udsGalsa || 0,
+        baseUdsLumaggs: b?.udsLumaggs || 0,
+        baseUdsTotal,
+        actualUdsGalsa: a?.udsGalsa || 0,
+        actualUdsLumaggs: a?.udsLumaggs || 0,
+        actualUdsTotal,
         variacion: baseTotal > 0 ? ((actualTotal - baseTotal) / baseTotal) * 100 : null,
+        variacionUds: baseUdsTotal > 0 ? ((actualUdsTotal - baseUdsTotal) / baseUdsTotal) * 100 : null,
       };
     })
     .sort((x, y) => y.actualTotal - x.actualTotal);
