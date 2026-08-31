@@ -351,8 +351,11 @@ export function ReportesMesTab() {
               >
                 Agrupar por plaza
               </Button>
+              <Button size="sm" variant="outline" onClick={exportarUnidades} disabled={isLoading}>
+                <Download className="h-4 w-4 mr-1" /> Excel unidades
+              </Button>
               <Button size="sm" onClick={exportar} disabled={isLoading}>
-                <Download className="h-4 w-4 mr-1" /> Exportar Excel
+                <Download className="h-4 w-4 mr-1" /> Excel unidades + utilidad
               </Button>
             </>
           )}
