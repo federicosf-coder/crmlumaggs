@@ -211,8 +211,11 @@ export interface FilaComparativa {
 
 /** Une dos periodos por key y calcula variación */
 export function combinar(base: FilaVentas[], actual: FilaVentas[]): FilaComparativa[] {
-  const keys = new Map<string, { nombre: string; plaza: string }>();
-  [...base, ...actual].forEach((r) => keys.set(r.key, { nombre: r.nombre, plaza: r.plaza }));
+  const keys = new Map<string, { nombre: string; plaza: string; empresaGrupo: string }>();
+  [...base, ...actual].forEach((r) =>
+    keys.set(r.key, { nombre: r.nombre, plaza: r.plaza, empresaGrupo: r.empresaGrupo || "" })
+  );
+
   const baseMap = new Map(base.map((r) => [r.key, r]));
   const actualMap = new Map(actual.map((r) => [r.key, r]));
 
