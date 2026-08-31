@@ -20,7 +20,7 @@ import { esGalsa, esLumaggs, mesLabel, shiftMes } from "./rvsAgregados";
 const headClass =
   "bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30";
 
-const fmtUds = (n: number) => (n ? n.toLocaleString("es-MX", { maximumFractionDigits: 2 }) : "—");
+const fmtUds = (n: number) => (n ? n.toLocaleString("es-MX", { maximumFractionDigits: 0 }) : "—");
 
 const PREFS_KEY = "rvs_historico_prefs";
 
@@ -42,7 +42,7 @@ function VarPct({ v, d }: { v: number | null; d?: number | null }) {
   return (
     <div className={`text-[10px] ${ref >= 0 ? "text-emerald-600" : "text-destructive"}`}>
       {d !== null && d !== undefined
-        ? `${signo}${d.toLocaleString("es-MX", { maximumFractionDigits: 2 })} uds`
+        ? `${signo}${d.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds`
         : ""}
       {d !== null && d !== undefined && v !== null ? " · " : ""}
       {v !== null ? `${v >= 0 ? "+" : ""}${v.toFixed(1)}%` : ""}
@@ -209,12 +209,12 @@ export function Historico12MesesTab() {
       arr.flatMap((n, i) => {
         const v = varMes(arr, i);
         const d = deltaMes(arr, i);
-        return [n, d === null ? "n/d" : Number(d.toFixed(2)), v === null ? "n/d" : Number(v.toFixed(1))];
+        return [n, d === null ? "n/d" : Number(d.toFixed(0)), v === null ? "n/d" : Number(v.toFixed(1))];
       });
     const fila = (r: Fila) => [
       r.nombre,
       r.plaza,
-      Number(r.promedio.toFixed(2)),
+      Number(r.promedio.toFixed(0)),
       ...celdas(r.porMes),
       r.total,
     ];
@@ -236,7 +236,7 @@ export function Historico12MesesTab() {
     aoa.push([
       "TOTAL",
       "",
-      Number(promedioGeneral.toFixed(2)),
+      Number(promedioGeneral.toFixed(0)),
       ...celdas(totalesMes),
       totalGeneral,
     ]);
@@ -256,7 +256,7 @@ export function Historico12MesesTab() {
       <TableCell className="font-medium whitespace-nowrap sticky left-0 bg-inherit">{r.nombre}</TableCell>
       <TableCell className="text-muted-foreground whitespace-nowrap">{r.plaza}</TableCell>
       <TableCell className="text-right font-medium whitespace-nowrap border-r">
-        {fmtUds(Number(r.promedio.toFixed(2)))}
+        {fmtUds(Number(r.promedio.toFixed(0)))}
       </TableCell>
       {r.porMes.map((n, k) => (
         <TableCell key={k} className="text-right leading-tight">
@@ -371,7 +371,7 @@ export function Historico12MesesTab() {
                           Number(
                             (
                               rows.reduce((s, r) => s + r.total, 0) / (meses.length || 1)
-                            ).toFixed(2)
+                            ).toFixed(0)
                           )
                         )}
                       </TableCell>
@@ -386,7 +386,7 @@ export function Historico12MesesTab() {
                     </TableCell>
                     <TableCell />
                     <TableCell className="text-right font-semibold border-r">
-                      {fmtUds(Number(promedioGeneral.toFixed(2)))}
+                      {fmtUds(Number(promedioGeneral.toFixed(0)))}
                     </TableCell>
                     {totalesMes.map((n, i) => (
                       <TableCell key={i} className="text-right font-semibold leading-tight">
