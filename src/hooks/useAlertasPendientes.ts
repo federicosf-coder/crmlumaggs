@@ -95,6 +95,20 @@ export function useAlertasPendientes() {
     },
   });
 
+  const rvsPersonasQuery = useQuery({
+    queryKey: ["alertas-rvs-personas"],
+    enabled,
+    queryFn: async (): Promise<AlertaRvsPersona[]> => {
+      const { data, error } = await (supabase as any)
+        .from("rvs_personas")
+        .select("id, nombre_reporte, sin_clasificar, requiere_verificacion")
+        .or("sin_clasificar.eq.true,requiere_verificacion.eq.true")
+        .order("nombre_reporte", { ascending: true });
+      if (error) throw error;
+      return (data || []) as AlertaRvsPersona[];
+    },
+  });
+
   const comprobantes = comprobantesQuery.data || [];
   const entregas = entregasQuery.data || [];
   const autorizaciones = autorizacionesQuery.data || [];
