@@ -31,6 +31,7 @@ import {
   ArrowDownRight,
   Users,
   Loader2,
+  Package,
 } from "lucide-react";
 import {
   agregarPorPlaza,
@@ -127,6 +128,129 @@ function KpiCard({ titulo, valor, detalle, icono, clase, onClick }: KpiCardProps
   );
 }
 
+interface DatosMarca {
+  ventaTotal: number;
+  unidadesTotal: number;
+  utilidadTotal: number;
+  margen: number;
+  ventaPrevia: number;
+  variacion: number | null;
+  chartData: { nombre: string; venta: number; color: string }[];
+}
+
+interface BloqueMarcaProps {
+  titulo: string;
+  datos: DatosMarca;
+  headerClase: string;
+  kpiClases: { venta: string; unidades: string; utilidad: string; margen: string };
+  iconoClase: string;
+  mesLabelTexto: string;
+  isLoading: boolean;
+}
+
+function BloqueMarca({
+  titulo,
+  datos,
+  headerClase,
+  kpiClases,
+  iconoClase,
+  mesLabelTexto,
+  isLoading,
+}: BloqueMarcaProps) {
+  return (
+    <Card className="overflow-hidden border-border/60 shadow-sm">
+      <CardHeader className={`${headerClase} border-b border-border/40 py-3`}>
+        <CardTitle className="text-sm font-light tracking-tight">
+          {titulo} — {mesLabelTexto}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <KpiCard
+            titulo="Venta total"
+            valor={currency(datos.ventaTotal)}
+            icono={<DollarSign className={`h-4 w-4 ${iconoClase}`} />}
+            clase={kpiClases.venta}
+          />
+          <KpiCard
+            titulo="Unidades totales"
+            valor={uds(datos.unidadesTotal)}
+            icono={<Package className={`h-4 w-4 ${iconoClase}`} />}
+            clase={kpiClases.unidades}
+          />
+          <KpiCard
+            titulo="Utilidad total"
+            valor={currency(datos.utilidadTotal)}
+            icono={<TrendingUp className={`h-4 w-4 ${iconoClase}`} />}
+            clase={kpiClases.utilidad}
+          />
+          <KpiCard
+            titulo="Margen promedio"
+            valor={`${datos.margen.toFixed(0)}%`}
+            icono={<Percent className={`h-4 w-4 ${iconoClase}`} />}
+            clase={kpiClases.margen}
+          />
+          <KpiCard
+            titulo="Variación vs. mes anterior"
+            valor={
+              datos.variacion === null
+                ? "—"
+                : `${datos.variacion >= 0 ? "+" : ""}${datos.variacion.toFixed(0)}%`
+            }
+            detalle={datos.ventaPrevia > 0 ? `Anterior: ${currency(datos.ventaPrevia)}` : "Sin mes anterior"}
+            icono={
+              datos.variacion !== null && datos.variacion < 0 ? (
+                <ArrowDownRight className="h-4 w-4 text-rose-600" />
+              ) : (
+                <ArrowUpRight className="h-4 w-4 text-emerald-600" />
+              )
+            }
+            clase="bg-slate-50 dark:bg-slate-900/40 text-slate-900 dark:text-slate-100"
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
+          </div>
+        ) : datos.chartData.length === 0 ? (
+          <p className="py-16 text-center text-sm text-muted-foreground">
+            Sin datos para este mes.
+          </p>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={datos.chartData} margin={{ top: 8, right: 8, left: 8, bottom: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+              <XAxis
+                dataKey="nombre"
+                angle={-35}
+                textAnchor="end"
+                interval={0}
+                height={60}
+                tick={{ fontSize: 11 }}
+              />
+              <YAxis
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v: number) => currency(Number(v))}
+                width={90}
+              />
+              <Tooltip
+                formatter={(v: any) => [currency(Number(v)), "Venta"]}
+                contentStyle={{ fontSize: 12, borderRadius: 8 }}
+              />
+              <Bar dataKey="venta" radius={[6, 6, 0, 0]}>
+                {datos.chartData.map((d) => (
+                  <Cell key={d.nombre} fill={d.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } = {}) {
   const meses = useMemo(ultimos12, []);
   const [mes, setMes] = useState(meses[0]);
@@ -155,25 +279,42 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
   });
 
   const filas = actualQuery.data || [];
-  const chartData = useMemo(
-    () =>
-      filas
-        .filter((f) => f.total !== 0)
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
-        .map((f, i) => ({
-          nombre: f.nombre,
-          venta: Math.round(f.total),
-          color: PALETA[i % PALETA.length],
-        })),
-    [filas]
-  );
+  const filasPrevias = previoQuery.data || [];
 
-  const ventaTotal = filas.reduce((s, f) => s + f.total, 0);
-  const utilidadTotal = filas.reduce((s, f) => s + f.utilTotal, 0);
-  const margen = ventaTotal > 0 ? (utilidadTotal / ventaTotal) * 100 : 0;
-  const ventaPrevia = (previoQuery.data || []).reduce((s, f) => s + f.total, 0);
-  const variacion = ventaPrevia > 0 ? ((ventaTotal - ventaPrevia) / ventaPrevia) * 100 : null;
-  const unidadesTotal = filas.reduce((s, f) => s + f.udsTotal, 0);
+  const datosMarca = (marca: "galsa" | "lumaggs") => {
+    const ventaTotal = filas.reduce((s, f) => s + f[marca], 0);
+    const unidadesTotal = filas.reduce(
+      (s, f) => s + (marca === "galsa" ? f.udsGalsa : f.udsLumaggs),
+      0
+    );
+    const utilidadTotal = filas.reduce(
+      (s, f) => s + (marca === "galsa" ? f.utilGalsa : f.utilLumaggs),
+      0
+    );
+    const margen = ventaTotal > 0 ? (utilidadTotal / ventaTotal) * 100 : 0;
+    const ventaPrevia = filasPrevias.reduce((s, f) => s + f[marca], 0);
+    const variacion = ventaPrevia > 0 ? ((ventaTotal - ventaPrevia) / ventaPrevia) * 100 : null;
+    const chartData = filas
+      .filter((f) => f[marca] !== 0)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
+      .map((f, i) => ({
+        nombre: f.nombre,
+        venta: Math.round(f[marca]),
+        color: PALETA[i % PALETA.length],
+      }));
+    return { ventaTotal, unidadesTotal, utilidadTotal, margen, ventaPrevia, variacion, chartData };
+  };
+
+  const galsaData = useMemo(
+    () => datosMarca("galsa"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filas, filasPrevias]
+  );
+  const lumaggsData = useMemo(
+    () => datosMarca("lumaggs"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filas, filasPrevias]
+  );
 
   const descargarHistorico = async () => {
     setDescargando(true);
@@ -293,38 +434,6 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard
-          titulo="Venta total del mes"
-          valor={currency(ventaTotal)}
-          detalle={`${uds(unidadesTotal)} unidades`}
-          icono={<DollarSign className="h-4 w-4 text-blue-600" />}
-          clase="bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100"
-        />
-        <KpiCard
-          titulo="Utilidad total"
-          valor={currency(utilidadTotal)}
-          icono={<TrendingUp className="h-4 w-4 text-emerald-600" />}
-          clase="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100"
-        />
-        <KpiCard
-          titulo="Margen promedio"
-          valor={`${margen.toFixed(0)}%`}
-          icono={<Percent className="h-4 w-4 text-violet-600" />}
-          clase="bg-violet-50 dark:bg-violet-950/30 text-violet-900 dark:text-violet-100"
-        />
-        <KpiCard
-          titulo="Variación vs. mes anterior"
-          valor={variacion === null ? "—" : `${variacion >= 0 ? "+" : ""}${variacion.toFixed(0)}%`}
-          detalle={ventaPrevia > 0 ? `Anterior: ${currency(ventaPrevia)}` : "Sin mes anterior"}
-          icono={
-            variacion !== null && variacion < 0 ? (
-              <ArrowDownRight className="h-4 w-4 text-rose-600" />
-            ) : (
-              <ArrowUpRight className="h-4 w-4 text-emerald-600" />
-            )
-          }
-          clase="bg-pink-50 dark:bg-pink-950/30 text-pink-900 dark:text-pink-100"
-        />
-        <KpiCard
           titulo="Personas por clasificar"
           valor={uds(pendientesQuery.data || 0)}
           detalle="Ir a la pestaña Personal"
@@ -334,52 +443,35 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
         />
       </div>
 
-      <Card className="overflow-hidden border-border/60 shadow-sm">
-        <CardHeader className="bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40 border-b border-border/40 py-3">
-          <CardTitle className="text-sm font-light tracking-tight">
-            Venta por plaza — {mesLabel(mes)}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          {actualQuery.isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground text-sm">
-              <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
-            </div>
-          ) : chartData.length === 0 ? (
-            <p className="py-16 text-center text-sm text-muted-foreground">
-              Sin datos para este mes.
-            </p>
-          ) : (
-            <ResponsiveContainer width="100%" height={340}>
-              <BarChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                <XAxis
-                  dataKey="nombre"
-                  angle={-35}
-                  textAnchor="end"
-                  interval={0}
-                  height={60}
-                  tick={{ fontSize: 11 }}
-                />
-                <YAxis
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(v: number) => currency(Number(v))}
-                  width={90}
-                />
-                <Tooltip
-                  formatter={(v: any) => [currency(Number(v)), "Venta"]}
-                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                />
-                <Bar dataKey="venta" radius={[6, 6, 0, 0]}>
-                  {chartData.map((d) => (
-                    <Cell key={d.nombre} fill={d.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+      <BloqueMarca
+        titulo="Galsa (Phillips 66)"
+        datos={galsaData}
+        headerClase="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-950/40 dark:to-orange-950/40"
+        iconoClase="text-amber-600"
+        kpiClases={{
+          venta: "bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100",
+          unidades: "bg-orange-50 dark:bg-orange-950/30 text-orange-900 dark:text-orange-100",
+          utilidad: "bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100",
+          margen: "bg-orange-50 dark:bg-orange-950/30 text-orange-900 dark:text-orange-100",
+        }}
+        mesLabelTexto={mesLabel(mes)}
+        isLoading={actualQuery.isLoading}
+      />
+
+      <BloqueMarca
+        titulo="Lumaggs (Chevron)"
+        datos={lumaggsData}
+        headerClase="bg-gradient-to-r from-blue-100 to-sky-100 dark:from-blue-950/40 dark:to-sky-950/40"
+        iconoClase="text-blue-600"
+        kpiClases={{
+          venta: "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
+          unidades: "bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-100",
+          utilidad: "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
+          margen: "bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-100",
+        }}
+        mesLabelTexto={mesLabel(mes)}
+        isLoading={actualQuery.isLoading}
+      />
     </div>
   );
 }

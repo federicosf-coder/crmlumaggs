@@ -36,6 +36,13 @@ import { FiltroChipsMulti } from "./components/FiltroChipsMulti";
 const headClass =
   "bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40";
 
+const colTextClass = (c: Col) =>
+  c === "galsa"
+    ? "text-amber-700 dark:text-amber-400"
+    : c === "lumaggs"
+      ? "text-blue-700 dark:text-blue-400"
+      : "";
+
 const fmtUds = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 0 });
 const fmtPct = (n: number | null) => (n === null ? "n/d" : `${n.toFixed(0)}%`);
 
@@ -222,8 +229,8 @@ function TablaComparativa({
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2 bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40 border-b border-border/40">
         <CardTitle className="text-base">{titulo}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -263,7 +270,7 @@ function TablaComparativa({
                 {cols.map((c, i) => (
                   <TableHead
                     key={`hb-${c}`}
-                    className={`text-[10px] uppercase tracking-wide text-right ${i === 0 ? "border-l" : ""}`}
+                    className={`text-[10px] uppercase tracking-wide text-right ${i === 0 ? "border-l" : ""} ${colTextClass(c)}`}
                   >
                     {c === "total" && cols.length === 1 ? "Valor" : c}
                   </TableHead>
@@ -271,7 +278,7 @@ function TablaComparativa({
                 {cols.map((c, i) => (
                   <TableHead
                     key={`ha-${c}`}
-                    className={`text-[10px] uppercase tracking-wide text-right ${i === 0 ? "border-l" : ""}`}
+                    className={`text-[10px] uppercase tracking-wide text-right ${i === 0 ? "border-l" : ""} ${colTextClass(c)}`}
                   >
                     {c === "total" && cols.length === 1 ? "Valor" : c}
                   </TableHead>
