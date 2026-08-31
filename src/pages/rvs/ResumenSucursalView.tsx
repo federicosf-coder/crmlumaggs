@@ -47,6 +47,8 @@ const margenDe = (utilidad: number, venta: number) => (venta > 0 ? (utilidad / v
 
 export function ResumenSucursalView({ mes }: { mes: string }) {
   const [empresa, setEmpresa] = useState<Empresa>("galsa");
+  const [capturaAbierta, setCapturaAbierta] = useState(false);
+  const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["rvs_resumen_sucursal", mes],
@@ -66,8 +68,8 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
       const err = [ventasPlaza, ventas, personas, plazas].find((r) => r.error);
       if (err?.error) throw err.error;
       return {
-        ventasPlaza: ventasPlazaConRespaldo(
-          (ventasPlaza.data || []) as any[],
+        reales: (ventasPlaza.data || []) as any[],
+        derivadas: derivarVentasPlaza(
           (ventas.data || []) as any[],
           (personas.data || []) as any[]
         ),
@@ -76,14 +78,24 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
     },
   });
 
+  const filtrarMarca = (rows: any[]) =>
+    rows.filter((v) =>
+      empresa === "galsa" ? esGalsa(v.marca || "") : esLumaggs(v.marca || "")
+    );
+
+  const reales = useMemo(() => filtrarMarca(data?.reales || []), [data, empresa]);
+  const esDerivado = reales.length === 0;
+  const fuente = useMemo(
+    () => (esDerivado ? filtrarMarca(data?.derivadas || []) : reales),
+    [data, empresa, esDerivado, reales]
+  );
+
   const filas = useMemo(() => {
     if (!data) return [] as FilaSucursal[];
     const plazaNombre = new Map<string, string>();
     data.plazas.forEach((p: any) => plazaNombre.set(p.id, p.nombre));
     const acc = new Map<string, FilaSucursal>();
-    for (const v of data.ventasPlaza) {
-      if (empresa === "galsa" && !esGalsa(v.marca || "")) continue;
-      if (empresa === "lumaggs" && !esLumaggs(v.marca || "")) continue;
+    for (const v of fuente) {
       const key = v.plaza_id || `sr:${v.sucursal_reporte || "Sin sucursal"}`;
       if (!acc.has(key))
         acc.set(key, {
@@ -101,7 +113,9 @@ export function ResumenSucursalView({ mes }: { mes: string }) {
       row.utilidad += Number(v.utilidad || 0);
     }
     return Array.from(acc.values()).sort((a, b) => b.venta - a.venta);
-  }, [data, empresa]);
+  }, [data, fuente]);
+
+
 
   const total = useMemo(
     () =>
