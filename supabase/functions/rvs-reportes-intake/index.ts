@@ -330,7 +330,15 @@ Deno.serve(async (req) => {
           if (deHtml.sucursales.length > 0 || deHtml.agentes.length > 0) extraido = deHtml;
         }
         if (!extraido) {
-          if (!att) throw new Error('sin_datos_extraibles');
+          if (!att) {
+            const diag = `diag: keys=${Object.keys(data).join(',')} | html_type=${typeof data.html} | html_len=${(data.html || '').length} | text_type=${typeof data.text} | text_len=${(data.text || '').length}`.slice(0, 1000);
+            await admin
+              .from('rvs_reportes_intake')
+              .update({ estatus: 'error', error_message: diag })
+              .eq('id', intakeRow.id);
+            throw new Error('sin_datos_extraibles');
+          }
+
           const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
           if (!downloadUrl) throw new Error(`sin_download_url para adjunto ${att.id}`);
 
@@ -539,9 +547,10 @@ Deno.serve(async (req) => {
       } catch (e) {
         const msg = (e as Error).message || 'error_desconocido';
         console.error('rvs procesamiento fallo:', msg);
-        await marcarError(msg);
+        if (msg !== 'sin_datos_extraibles') await marcarError(msg);
         return { agentes: 0, sucursales: 0, agentesOmitidosPorFechaVieja: 0, sucursalesOmitidasPorFechaVieja: 0, error: msg };
       }
+
     };
 
     if (pdfs.length === 0) {
