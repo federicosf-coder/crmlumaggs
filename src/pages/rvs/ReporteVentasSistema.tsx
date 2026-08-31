@@ -4,6 +4,7 @@ import { PersonalTab } from "./PersonalTab";
 import { ReportesMesTab } from "./ReportesMesTab";
 import { ConfiguracionTab } from "./ConfiguracionTab";
 import { CapturaManualTab } from "./CapturaManualTab";
+import { Historico12MesesTab } from "./Historico12MesesTab";
 
 export default function ReporteVentasSistema() {
   return (
@@ -17,6 +18,7 @@ export default function ReporteVentasSistema() {
           <TabsList>
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="mes">Reportes del Mes</TabsTrigger>
+            <TabsTrigger value="hist12">Últimos 12 meses</TabsTrigger>
             <TabsTrigger value="captura">Captura Manual</TabsTrigger>
             <TabsTrigger value="config">Configuración</TabsTrigger>
           </TabsList>
@@ -25,6 +27,9 @@ export default function ReporteVentasSistema() {
           </TabsContent>
           <TabsContent value="mes">
             <ReportesMesTab />
+          </TabsContent>
+          <TabsContent value="hist12">
+            <Historico12MesesTab />
           </TabsContent>
           <TabsContent value="captura">
             <CapturaManualTab />
