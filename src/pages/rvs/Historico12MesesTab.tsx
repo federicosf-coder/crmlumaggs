@@ -45,7 +45,7 @@ function VarPct({ v, d }: { v: number | null; d?: number | null }) {
         ? `${signo}${d.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds`
         : ""}
       {d !== null && d !== undefined && v !== null ? " · " : ""}
-      {v !== null ? `${v >= 0 ? "+" : ""}${v.toFixed(1)}%` : ""}
+      {v !== null ? `${v >= 0 ? "+" : ""}${v.toFixed(0)}%` : ""}
     </div>
   );
 }
@@ -209,7 +209,7 @@ export function Historico12MesesTab() {
       arr.flatMap((n, i) => {
         const v = varMes(arr, i);
         const d = deltaMes(arr, i);
-        return [n, d === null ? "n/d" : Number(d.toFixed(0)), v === null ? "n/d" : Number(v.toFixed(1))];
+        return [n, d === null ? "n/d" : Number(d.toFixed(0)), v === null ? "n/d" : Number(v.toFixed(0))];
       });
     const fila = (r: Fila) => [
       r.nombre,
