@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
       ])
       const { data: completeness } = await supabase.rpc('credit_request_completeness', { req_id: ctx.requestId })
       const { data: industrias } = await supabase
-        .from('industrias_catalog').select('clave, etiqueta').eq('activo', true).order('etiqueta')
+        .from('industrias_catalog').select('clave, etiqueta').eq('is_active', true).order('ordering').order('etiqueta')
       return json({ request, parties: parties || [], docTypes: docTypes || [], docs: docs || [], completeness, industrias: industrias || [], ctx })
     }
 
