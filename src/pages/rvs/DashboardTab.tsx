@@ -282,37 +282,50 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
   const filas = actualQuery.data || [];
   const filasPrevias = previoQuery.data || [];
 
-  const datosMarca = (marca: "galsa" | "lumaggs") => {
-    const ventaTotal = filas.reduce((s, f) => s + f[marca], 0);
+  const datosMarca = (marca: "galsa" | "lumaggs" | "total") => {
+    const esTotal = marca === "total";
+    const ventaTotal = filas.reduce((s, f) => s + (esTotal ? f.total : f[marca]), 0);
     const unidadesTotal = filas.reduce(
-      (s, f) => s + (marca === "galsa" ? f.udsGalsa : f.udsLumaggs),
+      (s, f) => s + (esTotal ? f.udsTotal : marca === "galsa" ? f.udsGalsa : f.udsLumaggs),
       0
     );
     const utilidadTotal = filas.reduce(
-      (s, f) => s + (marca === "galsa" ? f.utilGalsa : f.utilLumaggs),
+      (s, f) => s + (esTotal ? f.utilTotal : marca === "galsa" ? f.utilGalsa : f.utilLumaggs),
       0
     );
     const margen = ventaTotal > 0 ? (utilidadTotal / ventaTotal) * 100 : 0;
-    const ventaPrevia = filasPrevias.reduce((s, f) => s + f[marca], 0);
-    const variacion = ventaPrevia > 0 ? ((ventaTotal - ventaPrevia) / ventaPrevia) * 100 : null;
+    const ventaPrevia = filasPrevias.reduce(
+      (s, f) => s + (esTotal ? f.total : f[marca]),
+      0
+    );
+    const unidadesPrevia = filasPrevias.reduce(
+      (s, f) => s + (esTotal ? f.udsTotal : marca === "galsa" ? f.udsGalsa : f.udsLumaggs),
+      0
+    );
+    const variacion = unidadesPrevia > 0 ? ((unidadesTotal - unidadesPrevia) / unidadesPrevia) * 100 : null;
     const chartData = filas
-      .filter((f) => f[marca] !== 0)
+      .filter((f) => (esTotal ? f.total : f[marca]) !== 0)
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
       .map((f, i) => ({
         nombre: f.nombre,
-        venta: Math.round(f[marca]),
+        venta: Math.round(esTotal ? f.total : f[marca]),
         color: PALETA[i % PALETA.length],
       }));
-    return { ventaTotal, unidadesTotal, utilidadTotal, margen, ventaPrevia, variacion, chartData };
+    return { ventaTotal, unidadesTotal, utilidadTotal, margen, ventaPrevia, unidadesPrevia, variacion, chartData };
   };
 
+  const lumaggsData = useMemo(
+    () => datosMarca("lumaggs"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filas, filasPrevias]
+  );
   const galsaData = useMemo(
     () => datosMarca("galsa"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filas, filasPrevias]
   );
-  const lumaggsData = useMemo(
-    () => datosMarca("lumaggs"),
+  const totalData = useMemo(
+    () => datosMarca("total"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filas, filasPrevias]
   );
