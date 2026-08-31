@@ -568,55 +568,105 @@ export default function AutorizacionPrecioCard({
               <Badge variant="outline">Ronda {row.ronda}</Badge>
               {row.estatus === "pendiente_revision" ? (
                 <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Por revisar</Badge>
+              ) : row.estatus === "rechazado" ? (
+                <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Rechazado</Badge>
+              ) : row.estatus === "indeterminado" ? (
+                <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Indeterminado</Badge>
               ) : (
                 <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Enviado</Badge>
               )}
               {row.pospuesto && (
                 <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pospuesto</Badge>
               )}
-              {row.estatus === "enviado" && (
+              {canActualizarEstatus &&
+                ["enviado", "rechazado", "indeterminado"].includes(row.estatus) && (
                 <>
-                  <Button
-                    size="sm"
-                    className="h-7 bg-emerald-600 text-white hover:bg-emerald-700"
-                    disabled={savingResultado}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      guardarResultado({
-                        resultado: "si",
-                        autorizadoPor: nombrePerfilActual || user?.email || "Usuario",
-                        motivo: null,
-                      });
-                    }}
-                  >
-                    {savingResultado ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                    )}
-                    Marcar autorizado
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="h-7"
-                    disabled={savingResultado}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      guardarResultado({
-                        resultado: "no",
-                        autorizadoPor: nombrePerfilActual || user?.email || "Usuario",
-                        motivo: null,
-                      });
-                    }}
-                  >
-                    {savingResultado ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                    )}
-                    Marcar rechazado
-                  </Button>
+                  {row.estatus !== "autorizado" && (
+                    <Button
+                      size="sm"
+                      className="h-7 bg-emerald-600 text-white hover:bg-emerald-700"
+                      disabled={savingResultado}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        guardarResultado({
+                          resultado: "si",
+                          autorizadoPor: nombrePerfilActual || user?.email || "Usuario",
+                          motivo: null,
+                        });
+                      }}
+                    >
+                      {savingResultado ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Marcar autorizado
+                    </Button>
+                  )}
+                  {row.estatus !== "rechazado" && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-7"
+                      disabled={savingResultado}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        guardarResultado({
+                          resultado: "no",
+                          autorizadoPor: nombrePerfilActual || user?.email || "Usuario",
+                          motivo: null,
+                        });
+                      }}
+                    >
+                      {savingResultado ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Marcar rechazado
+                    </Button>
+                  )}
+                  {(row.estatus === "rechazado" || row.estatus === "indeterminado") && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7"
+                      disabled={savingResultado}
+                      title="Regresar a pendiente de revisión"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setSavingResultado(true);
+                        try {
+                          const { error } = await (supabase as any)
+                            .from("documento_autorizaciones_precio")
+                            .update({
+                              estatus: "pendiente_revision",
+                              autorizado: null,
+                              autorizado_por_texto: null,
+                              motivo: null,
+                              autorizacion_respondido_at: null,
+                            })
+                            .eq("id", row.id);
+                          if (error) throw error;
+                          toast.success("Solicitud regresada a pendiente de revisión");
+                          queryClient.invalidateQueries({ queryKey: ["autorizaciones-precio"] });
+                          onRefetch();
+                        } catch (err: any) {
+                          console.error(err);
+                          toast.error(err.message || "No se pudo actualizar el estatus");
+                        } finally {
+                          setSavingResultado(false);
+                        }
+                      }}
+                    >
+                      {savingResultado ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Clock className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Reabrir
+                    </Button>
+                  )}
                 </>
               )}
 
