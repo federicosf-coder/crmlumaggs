@@ -138,6 +138,8 @@ export function agregarPorPlaza(
     plazaId: r.plazaId,
     nombre: r.nombre,
     plaza: r.nombre,
+    empresaGrupo: "",
+
     galsa: r.galsa,
     lumaggs: r.lumaggs,
     total: r.galsa + r.lumaggs,
