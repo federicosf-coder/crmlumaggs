@@ -48,6 +48,72 @@ function normalizar(s: string): string {
     .trim();
 }
 
+// ---- Extracción directa desde el HTML del cuerpo del correo (sin IA) ----
+function textoDeCelda(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extraerFilasTablaHTML(html: string, tituloSeccion: string) {
+  const idx = html.search(new RegExp(tituloSeccion, 'i'));
+  if (idx === -1) return [] as Array<{ nombre: string; unidades: number; venta: number; costo: number; utilidad: number; margen: number }>;
+  const resto = html.slice(idx);
+  const tablaMatch = resto.match(/<table[\s\S]*?<\/table>/i);
+  if (!tablaMatch) return [];
+  const filas = [...tablaMatch[0].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
+  const out: Array<{ nombre: string; unidades: number; venta: number; costo: number; utilidad: number; margen: number }> = [];
+  for (const f of filas) {
+    if (/<th/i.test(f[1])) continue;
+    const celdas = [...f[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => textoDeCelda(m[1]));
+    if (celdas.length < 6) continue;
+    const nombre = celdas[0];
+    if (!nombre || /^(gran\s+)?total/i.test(nombre)) continue;
+    out.push({
+      nombre,
+      unidades: asNum(celdas[1]),
+      venta: asNum(celdas[2]),
+      costo: asNum(celdas[3]),
+      utilidad: asNum(celdas[4]),
+      margen: asNum(celdas[5]),
+    });
+  }
+  return out;
+}
+
+function extraerAnioMesHTML(html: string): string | null {
+  const m = html.match(/Per[ií]odo:\s*Desde\s*<b>(\d{2})-(\d{2})-(\d{4})<\/b>/i);
+  if (m) return `${m[3]}-${m[2]}`;
+  const m2 = html.match(/Reporte Generado el\s*<b>(\d{2})-(\d{2})-(\d{4})<\/b>/i);
+  if (m2) return `${m2[3]}-${m2[2]}`;
+  return null;
+}
+
+function extraerFechaCorreoHTML(html: string): Date | null {
+  const m = html.match(/Fecha:\s*<\/th>\s*<td>([^<]+)<\/td>/i);
+  if (!m) return null;
+  const d = new Date(m[1].trim());
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function extraerDeHTML(html: string) {
+  const sucursales = extraerFilasTablaHTML(html, 'Resumen por Sucursal').map((f) => ({
+    sucursal: f.nombre, unidades: f.unidades, venta: f.venta, costo: f.costo, utilidad: f.utilidad, margen: f.margen,
+  }));
+  const agentes = extraerFilasTablaHTML(html, 'Detalle por Agente').map((f) => ({
+    nombre_agente: f.nombre, unidades: f.unidades, venta: f.venta, costo: f.costo, utilidad: f.utilidad, margen: f.margen,
+  }));
+  return {
+    anio_mes: extraerAnioMesHTML(html),
+    fecha_correo_original: extraerFechaCorreoHTML(html)?.toISOString() ?? null,
+    sucursales,
+    agentes,
+  };
+}
+
 /** Detecta la marca por el asunto del correo (tolera prefijos tipo [EXTERNO]) */
 function detectarMarca(subject: string | null): 'galsa' | 'lumaggs' | null {
   const s = normalizar(subject || '').replace(/^\[[^\]]*\]\s*/g, '');
@@ -223,19 +289,19 @@ Deno.serve(async (req) => {
       return parcial ? parcial.id : null;
     };
 
-    const procesarPdf = async (att: any) => {
+    const procesarReporte = async (att: any | null) => {
       // 1) Registrar el intake
-      const meta = listado.find((l: any) => String(l?.id) === String(att.id)) ?? null;
-      const nombreOriginal = att.filename || 'reporte.pdf';
+      const meta = att ? (listado.find((l: any) => String(l?.id) === String(att.id)) ?? null) : null;
+      const nombreOriginal = att?.filename || 'reporte.pdf';
       const sanitizado = String(nombreOriginal).replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120);
-      const storagePath = `email-intake/${emailId}/${att.id}-${sanitizado}`;
+      const storagePath = att ? `email-intake/${emailId}/${att.id}-${sanitizado}` : null;
 
       const { data: intakeRow, error: intakeErr } = await admin
         .from('rvs_reportes_intake')
         .insert({
           marca,
           storage_path: storagePath,
-          mime_type: 'application/pdf',
+          mime_type: att ? 'application/pdf' : null,
           remitente_email: from || null,
           asunto_email: subject,
           resend_email_id: emailId,
@@ -254,50 +320,61 @@ Deno.serve(async (req) => {
 
       try {
         if (!marca) throw new Error(`marca_no_detectada: ${subject ?? ''}`);
-        const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
-        if (!downloadUrl) throw new Error(`sin_download_url para adjunto ${att.id}`);
 
-        const dl = await fetch(downloadUrl);
-        if (!dl.ok) throw new Error(`descarga_fallida_${dl.status}`);
-        const bytes = new Uint8Array(await dl.arrayBuffer());
+        // 2) Extracción: método principal = HTML del cuerpo del correo (sin IA).
+        //    Respaldo: PDF adjunto + Gateway de IA (solo si el HTML no produjo datos).
+        let extraido: any = null;
+        const htmlCuerpo = asText(data.html) ?? asText(data.text);
+        if (htmlCuerpo) {
+          const deHtml = extraerDeHTML(htmlCuerpo);
+          if (deHtml.sucursales.length > 0 || deHtml.agentes.length > 0) extraido = deHtml;
+        }
+        if (!extraido) {
+          if (!att) throw new Error('sin_datos_extraibles');
+          const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
+          if (!downloadUrl) throw new Error(`sin_download_url para adjunto ${att.id}`);
 
-        const { error: upErr } = await admin.storage
-          .from(BUCKET)
-          .upload(storagePath, bytes, { contentType: 'application/pdf', upsert: true });
-        if (upErr) throw new Error(`upload_failed: ${upErr.message}`);
+          const dl = await fetch(downloadUrl);
+          if (!dl.ok) throw new Error(`descarga_fallida_${dl.status}`);
+          const bytes = new Uint8Array(await dl.arrayBuffer());
 
-        // 2) Extracción con IA
-        if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY no configurada');
-        let bin = '';
-        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-        const dataUrl = `data:application/pdf;base64,${btoa(bin)}`;
+          const { error: upErr } = await admin.storage
+            .from(BUCKET)
+            .upload(storagePath!, bytes, { contentType: 'application/pdf', upsert: true });
+          if (upErr) throw new Error(`upload_failed: ${upErr.message}`);
 
-        const res = await fetch(GATEWAY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
-          body: JSON.stringify({
-            model: MODEL,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: PROMPT },
-                  { type: 'file', file: { filename: sanitizado || 'reporte.pdf', file_data: dataUrl } },
-                ],
-              },
-            ],
-            max_tokens: 8000,
-          }),
-        });
-        if (res.status === 429) throw new Error('rate_limit');
-        if (res.status === 402) throw new Error('credits_exhausted');
-        if (!res.ok) throw new Error(`gateway_${res.status}: ${(await res.text()).slice(0, 300)}`);
+          if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY no configurada');
+          let bin = '';
+          for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+          const dataUrl = `data:application/pdf;base64,${btoa(bin)}`;
 
-        const json = await res.json();
-        const text = json?.choices?.[0]?.message?.content || '';
-        const m = text.match(/\{[\s\S]*\}/);
-        if (!m) throw new Error('json_not_found');
-        const extraido = JSON.parse(m[0]);
+          const res = await fetch(GATEWAY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
+            body: JSON.stringify({
+              model: MODEL,
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: PROMPT },
+                    { type: 'file', file: { filename: sanitizado || 'reporte.pdf', file_data: dataUrl } },
+                  ],
+                },
+              ],
+              max_tokens: 8000,
+            }),
+          });
+          if (res.status === 429) throw new Error('rate_limit');
+          if (res.status === 402) throw new Error('credits_exhausted');
+          if (!res.ok) throw new Error(`gateway_${res.status}: ${(await res.text()).slice(0, 300)}`);
+
+          const json = await res.json();
+          const text = json?.choices?.[0]?.message?.content || '';
+          const m = text.match(/\{[\s\S]*\}/);
+          if (!m) throw new Error('json_not_found');
+          extraido = JSON.parse(m[0]);
+        }
 
         // 3) Derivar año-mes
         let anioMes = asText(extraido?.anio_mes);
@@ -468,21 +545,31 @@ Deno.serve(async (req) => {
     };
 
     if (pdfs.length === 0) {
+      // Sin PDF: intentar extraer del HTML del cuerpo del correo
+      const htmlCuerpo = asText(data.html) ?? asText(data.text);
+      if (htmlCuerpo) {
+        try {
+          const resultado = await procesarReporte(null);
+          return jsonRes({ ok: true, marca, resultados: [resultado] });
+        } catch (e) {
+          console.error('procesamiento por HTML fallo:', (e as Error).message);
+        }
+      }
       await admin.from('rvs_reportes_intake').insert({
         marca,
         remitente_email: from || null,
         asunto_email: subject,
         resend_email_id: emailId,
         estatus: 'error',
-        error_message: 'correo_sin_pdf_adjunto',
+        error_message: 'sin_datos_extraibles',
       });
-      return jsonRes({ ok: true, procesados: 0, motivo: 'sin_pdf' });
+      return jsonRes({ ok: true, procesados: 0, motivo: 'sin_datos_extraibles' });
     }
 
     const resultados = [];
     for (const att of pdfs) {
       try {
-        resultados.push(await procesarPdf(att));
+        resultados.push(await procesarReporte(att));
       } catch (e) {
         console.error(`adjunto ${att?.id} fallo:`, (e as Error).message);
       }
