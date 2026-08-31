@@ -3,6 +3,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { PersonalTab } from "./PersonalTab";
 import { ReportesMesTab } from "./ReportesMesTab";
 import { ConfiguracionTab } from "./ConfiguracionTab";
+import { CapturaManualTab } from "./CapturaManualTab";
 
 export default function ReporteVentasSistema() {
   return (
@@ -16,6 +17,7 @@ export default function ReporteVentasSistema() {
           <TabsList>
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="mes">Reportes del Mes</TabsTrigger>
+            <TabsTrigger value="captura">Captura Manual</TabsTrigger>
             <TabsTrigger value="config">Configuración</TabsTrigger>
           </TabsList>
           <TabsContent value="personal">
@@ -23,6 +25,9 @@ export default function ReporteVentasSistema() {
           </TabsContent>
           <TabsContent value="mes">
             <ReportesMesTab />
+          </TabsContent>
+          <TabsContent value="captura">
+            <CapturaManualTab />
           </TabsContent>
           <TabsContent value="config">
             <ConfiguracionTab />
