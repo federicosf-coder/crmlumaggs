@@ -128,6 +128,41 @@ export default function Alertas() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Users className="h-4 w-4" /> Reporte de Ventas — personas por clasificar/verificar
+            <Badge variant="secondary">{rvsPersonas.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {rvsPersonas.length === 0 ? (
+            <Vacio />
+          ) : (
+            <div className="divide-y">
+              {rvsPersonas.map((p) => (
+                <Link
+                  key={p.id}
+                  to="/reporte-ventas-sistema"
+                  className="flex items-center gap-3 py-2 text-sm hover:bg-blue-50/40 px-2 -mx-2 rounded"
+                >
+                  <span className="flex-1 truncate">{p.nombre_reporte}</span>
+                  {p.sin_clasificar ? (
+                    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 shrink-0">
+                      Sin clasificar
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100 shrink-0">
+                      Verificar
+                    </Badge>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {totalCount === 0 && !isLoading && (
         <p className="text-sm text-muted-foreground">No tienes pendientes por revisar.</p>
       )}
