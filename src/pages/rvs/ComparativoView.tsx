@@ -1,11 +1,18 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Download, TrendingDown, TrendingUp, Minus, RotateCcw } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -28,9 +35,15 @@ const headClass =
   "bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30";
 
 const fmtUds = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
+const fmtPct = (n: number | null) => (n === null ? "n/d" : `${n.toFixed(1)}%`);
 
-type Metrica = "ventas" | "unidades";
+type Metrica = "ventas" | "unidades" | "utilidad";
 type Empresa = "todas" | "galsa" | "lumaggs";
+type Agrupacion = "ninguno" | "plaza" | "empresa" | "plaza_empresa";
+type Col = "galsa" | "lumaggs" | "total";
+
+const PREFS_KEY = "rvs_comparativo_prefs";
+const PREFS_DEFAULT = { metrica: "ventas" as Metrica, empresa: "todas" as Empresa, agrupacion: "ninguno" as Agrupacion };
 
 function Variacion({ v }: { v: number | null }) {
   if (v === null)
@@ -53,96 +66,163 @@ function Variacion({ v }: { v: number | null }) {
 }
 
 /** Valor de una fila según periodo, empresa y métrica */
-function valorFila(
-  r: FilaComparativa,
-  periodo: "base" | "actual",
-  empresa: "galsa" | "lumaggs" | "total",
-  esUds: boolean
-) {
-  const m = empresa === "galsa" ? "Galsa" : empresa === "lumaggs" ? "Lumaggs" : "Total";
-  const key = esUds ? `${periodo}Uds${m}` : `${periodo}${m}`;
-  return (r as any)[key] as number;
+function valorFila(r: FilaComparativa, periodo: "base" | "actual", col: Col, metrica: Metrica) {
+  const m = col === "galsa" ? "Galsa" : col === "lumaggs" ? "Lumaggs" : "Total";
+  const prefijo = metrica === "unidades" ? `${periodo}Uds` : metrica === "utilidad" ? `${periodo}Util` : periodo;
+  return Number((r as any)[`${prefijo}${m}`] || 0);
 }
 
-function variacionFila(r: FilaComparativa, empresa: Empresa, esUds: boolean) {
-  const col = empresa === "todas" ? "total" : empresa;
-  const b = valorFila(r, "base", col, esUds);
-  const a = valorFila(r, "actual", col, esUds);
-  return b > 0 ? ((a - b) / b) * 100 : null;
+/** Venta $ (denominador para margen) */
+function ventaFila(r: FilaComparativa, periodo: "base" | "actual", col: Col) {
+  const m = col === "galsa" ? "Galsa" : col === "lumaggs" ? "Lumaggs" : "Total";
+  return Number((r as any)[`${periodo}${m}`] || 0);
+}
+
+const variacion = (b: number, a: number) => (b > 0 ? ((a - b) / b) * 100 : null);
+
+interface Linea {
+  key: string;
+  label: string;
+  nivel: number;
+  grupo: boolean;
+  base: number[];
+  actual: number[];
+  baseVenta: number[];
+  actualVenta: number[];
+}
+
+function colsDe(empresa: Empresa, agrupacion: Agrupacion): Col[] {
+  if (agrupacion === "empresa" || agrupacion === "plaza_empresa") return ["total"];
+  return empresa === "todas" ? ["galsa", "lumaggs", "total"] : [empresa];
+}
+
+function empresasDe(empresa: Empresa): Col[] {
+  if (empresa === "galsa") return ["galsa"];
+  if (empresa === "lumaggs") return ["lumaggs"];
+  return ["galsa", "lumaggs"];
+}
+
+function sumar(lineas: Linea[], campo: keyof Pick<Linea, "base" | "actual" | "baseVenta" | "actualVenta">, n: number) {
+  const out = Array(n).fill(0);
+  lineas.forEach((l) => l[campo].forEach((v, i) => (out[i] += v)));
+  return out;
+}
+
+/** Convierte las filas comparativas en líneas planas según la agrupación elegida */
+function construirLineas(
+  filas: FilaComparativa[],
+  metrica: Metrica,
+  empresa: Empresa,
+  agrupacion: Agrupacion
+): Linea[] {
+  const cols = colsDe(empresa, agrupacion);
+  const conEmpresa = agrupacion === "empresa" || agrupacion === "plaza_empresa";
+  const conPlaza = agrupacion === "plaza" || agrupacion === "plaza_empresa";
+
+  const lineaDato = (r: FilaComparativa, nivel: number, colsUsar: Col[], keySuffix = ""): Linea => ({
+    key: r.key + keySuffix,
+    label: r.nombre,
+    nivel,
+    grupo: false,
+    base: colsUsar.map((c) => valorFila(r, "base", c, metrica)),
+    actual: colsUsar.map((c) => valorFila(r, "actual", c, metrica)),
+    baseVenta: colsUsar.map((c) => ventaFila(r, "base", c)),
+    actualVenta: colsUsar.map((c) => ventaFila(r, "actual", c)),
+  });
+
+  const expandirEmpresa = (r: FilaComparativa, nivel: number): Linea[] =>
+    empresasDe(empresa).map((c) => ({
+      key: `${r.key}:${c}`,
+      label: c === "galsa" ? "GALSA" : "LUMAGGS",
+      nivel,
+      grupo: false,
+      base: [valorFila(r, "base", c, metrica)],
+      actual: [valorFila(r, "actual", c, metrica)],
+      baseVenta: [ventaFila(r, "base", c)],
+      actualVenta: [ventaFila(r, "actual", c)],
+    }));
+
+  const bloqueFila = (r: FilaComparativa, nivel: number): Linea[] => {
+    if (!conEmpresa) return [lineaDato(r, nivel, cols)];
+    const hijos = expandirEmpresa(r, nivel + 1);
+    const padre: Linea = {
+      key: `p:${r.key}`,
+      label: r.nombre,
+      nivel,
+      grupo: true,
+      base: sumar(hijos, "base", 1),
+      actual: sumar(hijos, "actual", 1),
+      baseVenta: sumar(hijos, "baseVenta", 1),
+      actualVenta: sumar(hijos, "actualVenta", 1),
+    };
+    return [padre, ...hijos];
+  };
+
+  if (!conPlaza) return filas.flatMap((r) => bloqueFila(r, 0));
+
+  const mapa = new Map<string, FilaComparativa[]>();
+  filas.forEach((r) => {
+    const k = r.plaza || "Sin plaza";
+    if (!mapa.has(k)) mapa.set(k, []);
+    mapa.get(k)!.push(r);
+  });
+  return Array.from(mapa.entries())
+    .sort((a, b) => a[0].localeCompare(b[0], "es"))
+    .flatMap(([plaza, rows]) => {
+      const hijos = rows.flatMap((r) => bloqueFila(r, 1));
+      const directos = hijos.filter((l) => l.nivel === 1);
+      const encabezado: Linea = {
+        key: `plaza:${plaza}`,
+        label: plaza,
+        nivel: 0,
+        grupo: true,
+        base: sumar(directos, "base", cols.length),
+        actual: sumar(directos, "actual", cols.length),
+        baseVenta: sumar(directos, "baseVenta", cols.length),
+        actualVenta: sumar(directos, "actualVenta", cols.length),
+      };
+      return [encabezado, ...hijos];
+    });
 }
 
 function TablaComparativa({
   titulo,
   primeraColumna,
-  filas,
+  lineas,
+  cols,
   baseLabel,
   actualLabel,
   isLoading,
-  extraFilas,
-  extraTitulo,
   metrica,
-  empresa,
-  agruparPor,
 }: {
   titulo: string;
   primeraColumna: string;
-  filas: FilaComparativa[];
+  lineas: Linea[];
+  cols: Col[];
   baseLabel: string;
   actualLabel: string;
   isLoading: boolean;
-  extraFilas?: FilaComparativa[];
-  extraTitulo?: string;
   metrica: Metrica;
-  empresa: Empresa;
-  /** si es true, agrupa las filas por su plaza con encabezado y subtotal */
-  agruparPor?: boolean;
 }) {
   const esUds = metrica === "unidades";
   const fmt = esUds ? fmtUds : currency;
-  const cols: ("galsa" | "lumaggs" | "total")[] =
-    empresa === "todas" ? ["galsa", "lumaggs", "total"] : [empresa];
   const colSpanTotal = 1 + cols.length * 2 + 1;
+  const iPrincipal = cols.length - 1;
 
-  const renderFila = (r: FilaComparativa, i: number, destacado?: boolean) => (
-    <TableRow
-      key={r.key}
-      className={destacado ? "bg-violet-50/60 dark:bg-violet-950/20" : i % 2 ? "bg-muted/30" : undefined}
-    >
-      <TableCell className={destacado ? "font-semibold uppercase text-xs tracking-wide" : "font-medium"}>
-        {r.nombre}
-      </TableCell>
-      {cols.map((c) => (
-        <TableCell key={`b-${c}`} className="text-right text-muted-foreground">
-          {fmt(valorFila(r, "base", c, esUds))}
-        </TableCell>
-      ))}
-      {cols.map((c) => (
-        <TableCell key={`a-${c}`} className={`text-right ${c === "total" ? "font-semibold" : ""}`}>
-          {fmt(valorFila(r, "actual", c, esUds))}
-        </TableCell>
-      ))}
-      <TableCell className="text-right">
-        <Variacion v={variacionFila(r, empresa, esUds)} />
-      </TableCell>
-    </TableRow>
-  );
-
-  const grupos = useMemo(() => {
-    if (!agruparPor) return null;
-    const m = new Map<string, FilaComparativa[]>();
-    filas.forEach((r) => {
-      const k = r.plaza || "Sin plaza";
-      if (!m.has(k)) m.set(k, []);
-      m.get(k)!.push(r);
-    });
-    return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], "es"));
-  }, [agruparPor, filas]);
-
-  const subtotal = (rows: FilaComparativa[], periodo: "base" | "actual") =>
-    rows.reduce(
-      (s, r) => s + valorFila(r, periodo, empresa === "todas" ? "total" : empresa, esUds),
-      0
+  const celda = (l: Linea, periodo: "base" | "actual", i: number) => {
+    const val = periodo === "base" ? l.base[i] : l.actual[i];
+    const venta = periodo === "base" ? l.baseVenta[i] : l.actualVenta[i];
+    return (
+      <div className="leading-tight">
+        <div>{fmt(val)}</div>
+        {metrica === "utilidad" && (
+          <div className="text-[10px] text-muted-foreground">
+            {venta > 0 ? `${((val / venta) * 100).toFixed(1)}%` : "—"}
+          </div>
+        )}
+      </div>
     );
+  };
 
   return (
     <Card>
@@ -182,7 +262,7 @@ function TablaComparativa({
                     key={`hb-${c}`}
                     className={`text-[10px] uppercase tracking-wide text-right ${i === 0 ? "border-l" : ""}`}
                   >
-                    {c}
+                    {c === "total" && cols.length === 1 ? "Valor" : c}
                   </TableHead>
                 ))}
                 {cols.map((c, i) => (
@@ -190,43 +270,53 @@ function TablaComparativa({
                     key={`ha-${c}`}
                     className={`text-[10px] uppercase tracking-wide text-right ${i === 0 ? "border-l" : ""}`}
                   >
-                    {c}
+                    {c === "total" && cols.length === 1 ? "Valor" : c}
                   </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filas.length === 0 && (!extraFilas || extraFilas.length === 0) && (
+              {lineas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={colSpanTotal} className="py-6 text-sm text-muted-foreground">
                     {isLoading ? "Cargando…" : "Sin datos para los periodos comparados."}
                   </TableCell>
                 </TableRow>
               )}
-              {!grupos && filas.map((r, i) => renderFila(r, i))}
-              {grupos?.map(([plaza, rows]) => (
-                <>
-                  <TableRow key={`g-${plaza}`} className="bg-blue-50/60 dark:bg-blue-950/20">
-                    <TableCell
-                      colSpan={colSpanTotal}
-                      className="text-xs uppercase tracking-wide font-semibold"
-                    >
-                      {plaza} · {fmt(subtotal(rows, "base"))} → {fmt(subtotal(rows, "actual"))}
+              {lineas.map((l, i) => (
+                <TableRow
+                  key={l.key}
+                  className={
+                    l.grupo && l.nivel === 0
+                      ? "bg-blue-50/60 dark:bg-blue-950/20"
+                      : l.grupo
+                        ? "bg-violet-50/50 dark:bg-violet-950/20"
+                        : i % 2
+                          ? "bg-muted/30"
+                          : undefined
+                  }
+                >
+                  <TableCell
+                    className={l.grupo ? "font-semibold uppercase text-xs tracking-wide" : "font-medium"}
+                    style={{ paddingLeft: 12 + l.nivel * 18 }}
+                  >
+                    {l.label}
+                  </TableCell>
+                  {cols.map((c, k) => (
+                    <TableCell key={`b-${c}`} className="text-right text-muted-foreground">
+                      {celda(l, "base", k)}
                     </TableCell>
-                  </TableRow>
-                  {rows.map((r, i) => renderFila(r, i))}
-                </>
+                  ))}
+                  {cols.map((c, k) => (
+                    <TableCell key={`a-${c}`} className={`text-right ${c === "total" ? "font-semibold" : ""}`}>
+                      {celda(l, "actual", k)}
+                    </TableCell>
+                  ))}
+                  <TableCell className="text-right">
+                    <Variacion v={variacion(l.base[iPrincipal], l.actual[iPrincipal])} />
+                  </TableCell>
+                </TableRow>
               ))}
-              {extraFilas && extraFilas.length > 0 && (
-                <>
-                  <TableRow className="bg-blue-50/60 dark:bg-blue-950/20">
-                    <TableCell colSpan={colSpanTotal} className="text-xs uppercase tracking-wide font-semibold">
-                      {extraTitulo}
-                    </TableCell>
-                  </TableRow>
-                  {extraFilas.map((r, i) => renderFila(r, i, true))}
-                </>
-              )}
             </TableBody>
           </Table>
         </div>
@@ -235,60 +325,15 @@ function TablaComparativa({
   );
 }
 
-/** Sub-filas por empresa (Galsa/Lumaggs) dentro de cada plaza */
-interface FilaPlazaEmpresa {
-  key: string;
-  plaza: string;
-  empresa: "GALSA" | "LUMAGGS";
-  base: number;
-  actual: number;
-  baseUds: number;
-  actualUds: number;
-  variacion: number | null;
-  variacionUds: number | null;
-}
-
-function construirPlazaEmpresa(filas: FilaComparativa[], empresa: Empresa): FilaPlazaEmpresa[] {
-  const out: FilaPlazaEmpresa[] = [];
-  for (const f of filas) {
-    if (empresa !== "lumaggs")
-      out.push({
-        key: `${f.key}:galsa`,
-        plaza: f.nombre,
-        empresa: "GALSA",
-        base: f.baseGalsa,
-        actual: f.actualGalsa,
-        baseUds: f.baseUdsGalsa,
-        actualUds: f.actualUdsGalsa,
-        variacion: f.baseGalsa > 0 ? ((f.actualGalsa - f.baseGalsa) / f.baseGalsa) * 100 : null,
-        variacionUds: f.baseUdsGalsa > 0 ? ((f.actualUdsGalsa - f.baseUdsGalsa) / f.baseUdsGalsa) * 100 : null,
-      });
-    if (empresa !== "galsa")
-      out.push({
-        key: `${f.key}:lumaggs`,
-        plaza: f.nombre,
-        empresa: "LUMAGGS",
-        base: f.baseLumaggs,
-        actual: f.actualLumaggs,
-        baseUds: f.baseUdsLumaggs,
-        actualUds: f.actualUdsLumaggs,
-        variacion: f.baseLumaggs > 0 ? ((f.actualLumaggs - f.baseLumaggs) / f.baseLumaggs) * 100 : null,
-        variacionUds:
-          f.baseUdsLumaggs > 0 ? ((f.actualUdsLumaggs - f.baseUdsLumaggs) / f.baseUdsLumaggs) * 100 : null,
-      });
-  }
-  return out;
-}
-
 async function cargarPeriodo(mes: string) {
   const [ventas, ventasPlaza] = await Promise.all([
     supabase
       .from("rvs_ventas_mes")
-      .select("persona_id, marca, venta, unidades, plaza_id")
+      .select("persona_id, marca, venta, unidades, utilidad, plaza_id")
       .eq("anio_mes", mes),
     supabase
       .from("rvs_ventas_mes_plaza")
-      .select("plaza_id, sucursal_reporte, marca, venta, unidades")
+      .select("plaza_id, sucursal_reporte, marca, venta, unidades, utilidad")
       .eq("anio_mes", mes),
   ]);
   if (ventas.error) throw ventas.error;
@@ -298,9 +343,33 @@ async function cargarPeriodo(mes: string) {
 
 export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterior" | "anio_anterior" }) {
   const mesBase = useMemo(() => shiftMes(mes, modo === "mes_anterior" ? -1 : -12), [mes, modo]);
-  const [metrica, setMetrica] = useState<Metrica>("ventas");
-  const [empresa, setEmpresa] = useState<Empresa>("todas");
-  const [agruparPlaza, setAgruparPlaza] = useState(false);
+
+  const prefsIniciales = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(PREFS_KEY);
+      return raw ? { ...PREFS_DEFAULT, ...JSON.parse(raw) } : PREFS_DEFAULT;
+    } catch {
+      return PREFS_DEFAULT;
+    }
+  }, []);
+
+  const [metrica, setMetrica] = useState<Metrica>(prefsIniciales.metrica);
+  const [empresa, setEmpresa] = useState<Empresa>(prefsIniciales.empresa);
+  const [agrupacion, setAgrupacion] = useState<Agrupacion>(prefsIniciales.agrupacion);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ metrica, empresa, agrupacion }));
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, [metrica, empresa, agrupacion]);
+
+  const restablecer = () => {
+    setMetrica(PREFS_DEFAULT.metrica);
+    setEmpresa(PREFS_DEFAULT.empresa);
+    setAgrupacion(PREFS_DEFAULT.agrupacion);
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["rvs_comparativo", mes, mesBase],
@@ -350,138 +419,90 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
     };
   }, [data, plazaNombre]);
 
-  const plazaEmpresaFilas = useMemo(
-    () => construirPlazaEmpresa(plazasComp.filas, empresa),
-    [plazasComp, empresa]
+  const cols = colsDe(empresa, agrupacion);
+  // las plazas ya son un nivel: nunca agrupamos plazas por plaza
+  const agrupacionPlazas: Agrupacion =
+    agrupacion === "plaza" ? "ninguno" : agrupacion === "plaza_empresa" ? "empresa" : agrupacion;
+
+  const lineasPersonas = useMemo(
+    () => construirLineas(personasComp, metrica, empresa, agrupacion),
+    [personasComp, metrica, empresa, agrupacion]
+  );
+  const lineasPlazas = useMemo(
+    () => construirLineas(plazasComp.filas, metrica, empresa, agrupacionPlazas),
+    [plazasComp, metrica, empresa, agrupacionPlazas]
+  );
+  const lineasZonas = useMemo(
+    () => construirLineas(plazasComp.zonas, metrica, empresa, agrupacionPlazas),
+    [plazasComp, metrica, empresa, agrupacionPlazas]
   );
 
   const baseLabel = mesLabel(mesBase);
   const actualLabel = mesLabel(mes);
-  const esUds = metrica === "unidades";
+  const metricaLabel =
+    metrica === "unidades" ? "unidades" : metrica === "utilidad" ? "utilidad $" : "venta $";
   const empresaLabel = empresa === "todas" ? "" : ` · ${empresa === "galsa" ? "Galsa" : "Lumaggs"}`;
 
-  const exportar = () => {
-    const encabezado = [
-      "",
-      `${baseLabel} Galsa`,
-      `${baseLabel} Lumaggs`,
-      `${baseLabel} Total`,
-      `${actualLabel} Galsa`,
-      `${actualLabel} Lumaggs`,
-      `${actualLabel} Total`,
-      "Var. %",
-    ];
-    const fila = (r: FilaComparativa) => [
-      r.nombre,
-      r.baseGalsa,
-      r.baseLumaggs,
-      r.baseTotal,
-      r.actualGalsa,
-      r.actualLumaggs,
-      r.actualTotal,
-      r.variacion === null ? "n/d" : Number(r.variacion.toFixed(1)),
-    ];
+  /** Convierte líneas en filas de Excel respetando la agrupación (con niveles de esquema) */
+  const hojaDe = (primeraColumna: string, bloques: { titulo?: string; lineas: Linea[] }[]) => {
+    const colLabel = (c: Col) => (c === "total" && cols.length === 1 ? "Valor" : c.toUpperCase());
+    const enc: any[] = [primeraColumna];
+    cols.forEach((c) => enc.push(`${baseLabel} ${colLabel(c)}`));
+    cols.forEach((c) => enc.push(`${actualLabel} ${colLabel(c)}`));
+    enc.push("Var. %");
+    if (metrica === "utilidad") {
+      cols.forEach((c) => enc.push(`Margen % ${baseLabel} ${colLabel(c)}`));
+      cols.forEach((c) => enc.push(`Margen % ${actualLabel} ${colLabel(c)}`));
+    }
+    const aoa: any[][] = [enc];
+    const niveles: { level?: number }[] = [{}];
+    const iPrincipal = cols.length - 1;
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.aoa_to_sheet([["Persona", ...encabezado.slice(1)], ...personasComp.map(fila)]),
-      "Comp. por persona"
-    );
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.aoa_to_sheet([
-        ["Plaza / Zona", ...encabezado.slice(1)],
-        ...plazasComp.filas.map(fila),
-        [],
-        ["ZONAS"],
-        ...plazasComp.zonas.map(fila),
-      ]),
-      "Comp. por plaza"
-    );
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.aoa_to_sheet([
-        ["Plaza", "Empresa", `${baseLabel} $`, `${actualLabel} $`, "Var. % $", `${baseLabel} Uds`, `${actualLabel} Uds`, "Var. % Uds"],
-        ...plazaEmpresaFilas.map((r) => [
-          r.plaza,
-          r.empresa,
-          r.base,
-          r.actual,
-          r.variacion === null ? "n/d" : Number(r.variacion.toFixed(1)),
-          r.baseUds,
-          r.actualUds,
-          r.variacionUds === null ? "n/d" : Number(r.variacionUds.toFixed(1)),
-        ]),
-      ]),
-      "Plaza x empresa"
-    );
-    XLSX.writeFile(
-      wb,
-      `Comparativo_${modo === "mes_anterior" ? "MesAnterior" : "AnioAnterior"}_${mes}.xlsx`
-    );
+    bloques.forEach((b) => {
+      if (b.titulo) {
+        aoa.push([b.titulo.toUpperCase()]);
+        niveles.push({});
+      }
+      b.lineas.forEach((l) => {
+        const fila: any[] = [`${"    ".repeat(l.nivel)}${l.label}`];
+        l.base.forEach((v) => fila.push(v));
+        l.actual.forEach((v) => fila.push(v));
+        const v = variacion(l.base[iPrincipal], l.actual[iPrincipal]);
+        fila.push(v === null ? "n/d" : Number(v.toFixed(1)));
+        if (metrica === "utilidad") {
+          l.base.forEach((val, i) =>
+            fila.push(l.baseVenta[i] > 0 ? Number(((val / l.baseVenta[i]) * 100).toFixed(1)) : "n/d")
+          );
+          l.actual.forEach((val, i) =>
+            fila.push(l.actualVenta[i] > 0 ? Number(((val / l.actualVenta[i]) * 100).toFixed(1)) : "n/d")
+          );
+        }
+        aoa.push(fila);
+        niveles.push(l.nivel ? { level: l.nivel } : {});
+      });
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    (ws as any)["!rows"] = niveles;
+    return ws;
   };
 
-  /** Exporta un comparativo filtrado a una sola marca (Galsa o Lumaggs), con ventas y unidades */
-  const exportarMarca = (marca: "galsa" | "lumaggs") => {
-    const g = marca === "galsa";
-    const etiqueta = g ? "GALSA" : "LUMAGGS";
-    const fila = (r: FilaComparativa) => [
-      r.nombre,
-      g ? r.baseUdsGalsa : r.baseUdsLumaggs,
-      g ? r.actualUdsGalsa : r.actualUdsLumaggs,
-      g ? r.baseGalsa : r.baseLumaggs,
-      g ? r.actualGalsa : r.actualLumaggs,
-      (() => {
-        const bv = g ? r.baseGalsa : r.baseLumaggs;
-        const av = g ? r.actualGalsa : r.actualLumaggs;
-        const v = bv > 0 ? ((av - bv) / bv) * 100 : null;
-        return v === null ? "n/d" : Number(v.toFixed(1));
-      })(),
-    ];
-    const enc = [
-      "Nombre",
-      `Uds ${baseLabel}`,
-      `Uds ${actualLabel}`,
-      `$ ${baseLabel}`,
-      `$ ${actualLabel}`,
-      "Var. % $",
-    ];
+  const exportar = () => {
     const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, hojaDe("Persona", [{ lineas: lineasPersonas }]), "Por persona");
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.aoa_to_sheet([enc, ...personasComp.map(fila)]),
-      `${etiqueta} por persona`
-    );
-    // Personas agrupadas por plaza
-    const grupos = new Map<string, FilaComparativa[]>();
-    personasComp.forEach((r) => {
-      const k = r.plaza || "Sin plaza";
-      if (!grupos.has(k)) grupos.set(k, []);
-      grupos.get(k)!.push(r);
-    });
-    const aoaGrupos: any[][] = [enc];
-    Array.from(grupos.entries())
-      .sort((a, b) => a[0].localeCompare(b[0], "es"))
-      .forEach(([plaza, rows]) => {
-        aoaGrupos.push([plaza.toUpperCase()]);
-        rows.forEach((r) => aoaGrupos.push(fila(r)));
-      });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaGrupos), `${etiqueta} persona x plaza`);
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.aoa_to_sheet([
-        enc,
-        ...plazasComp.filas.map(fila),
-        [],
-        ["ZONAS"],
-        ...plazasComp.zonas.map(fila),
+      hojaDe("Plaza / Zona", [
+        { lineas: lineasPlazas },
+        { titulo: "Zonas", lineas: lineasZonas },
       ]),
-      `${etiqueta} por plaza`
+      "Por plaza"
     );
     XLSX.writeFile(
       wb,
-      `Comparativo_${etiqueta}_${modo === "mes_anterior" ? "MesAnterior" : "AnioAnterior"}_${mes}.xlsx`
+      `Comparativo_${metrica}_${empresa}_${agrupacion}_${
+        modo === "mes_anterior" ? "MesAnterior" : "AnioAnterior"
+      }_${mes}.xlsx`
     );
   };
 
@@ -496,6 +517,7 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
             <TabsList>
               <TabsTrigger value="ventas">Ventas $</TabsTrigger>
               <TabsTrigger value="unidades">Unidades</TabsTrigger>
+              <TabsTrigger value="utilidad">Utilidad</TabsTrigger>
             </TabsList>
           </Tabs>
           <Tabs value={empresa} onValueChange={(v) => setEmpresa(v as Empresa)}>
@@ -505,18 +527,19 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
               <TabsTrigger value="lumaggs">Lumaggs</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button
-            size="sm"
-            variant={agruparPlaza ? "default" : "outline"}
-            onClick={() => setAgruparPlaza((v) => !v)}
-          >
-            Agrupar por plaza
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => exportarMarca("galsa")} disabled={isLoading}>
-            <Download className="h-4 w-4 mr-1" /> Excel Galsa
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => exportarMarca("lumaggs")} disabled={isLoading}>
-            <Download className="h-4 w-4 mr-1" /> Excel Lumaggs
+          <Select value={agrupacion} onValueChange={(v) => setAgrupacion(v as Agrupacion)}>
+            <SelectTrigger className="h-9 w-[200px] text-xs">
+              <SelectValue placeholder="Agrupación" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ninguno">Sin agrupar</SelectItem>
+              <SelectItem value="plaza">Plaza</SelectItem>
+              <SelectItem value="empresa">Empresa</SelectItem>
+              <SelectItem value="plaza_empresa">Plaza → Empresa</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button size="sm" variant="outline" onClick={restablecer} title="Restablecer vista">
+            <RotateCcw className="h-4 w-4 mr-1" /> Restablecer
           </Button>
           <Button size="sm" onClick={exportar} disabled={isLoading}>
             <Download className="h-4 w-4 mr-1" /> Exportar Excel
@@ -525,95 +548,37 @@ export function ComparativoView({ mes, modo }: { mes: string; modo: "mes_anterio
       </div>
 
       <TablaComparativa
-        titulo={`Comparativo de ventas por persona — ${esUds ? "unidades" : "venta $"}${empresaLabel}`}
+        titulo={`Comparativo por persona — ${metricaLabel}${empresaLabel}`}
         primeraColumna="Persona"
-        filas={personasComp}
+        lineas={lineasPersonas}
+        cols={cols}
         baseLabel={baseLabel}
         actualLabel={actualLabel}
         isLoading={isLoading}
         metrica={metrica}
-        empresa={empresa}
-        agruparPor={agruparPlaza}
       />
 
       <TablaComparativa
-        titulo={`Comparativo de ventas por plaza y zona — ${esUds ? "unidades" : "venta $"}${empresaLabel}`}
-        primeraColumna="Plaza / Zona"
-        filas={plazasComp.filas}
-        extraFilas={plazasComp.zonas}
-        extraTitulo="Zonas"
+        titulo={`Comparativo por plaza — ${metricaLabel}${empresaLabel}`}
+        primeraColumna="Plaza"
+        lineas={lineasPlazas}
+        cols={cols}
         baseLabel={baseLabel}
         actualLabel={actualLabel}
         isLoading={isLoading}
         metrica={metrica}
-        empresa={empresa}
       />
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">
-            Comparativo por plaza agrupado por empresa — {esUds ? "unidades" : "venta $"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className={headClass}>
-                  <TableHead className="text-[11px] uppercase tracking-wide">Empresa</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-right">{baseLabel}</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-right">{actualLabel}</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Var. %</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {plazaEmpresaFilas.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="py-6 text-sm text-muted-foreground">
-                      {isLoading ? "Cargando…" : "Sin datos para los periodos comparados."}
-                    </TableCell>
-                  </TableRow>
-                )}
-                {(() => {
-                  const grupos = new Map<string, FilaPlazaEmpresa[]>();
-                  plazaEmpresaFilas.forEach((r) => {
-                    if (!grupos.has(r.plaza)) grupos.set(r.plaza, []);
-                    grupos.get(r.plaza)!.push(r);
-                  });
-                  return Array.from(grupos.entries()).map(([plaza, filas]) => {
-                    const totBase = filas.reduce((s, f) => s + (esUds ? f.baseUds : f.base), 0);
-                    const totActual = filas.reduce((s, f) => s + (esUds ? f.actualUds : f.actual), 0);
-                    const fmt = esUds ? fmtUds : currency;
-                    return (
-                      <>
-                        <TableRow key={`g-${plaza}`} className="bg-blue-50/60 dark:bg-blue-950/20">
-                          <TableCell colSpan={4} className="text-xs uppercase tracking-wide font-semibold">
-                            {plaza} · {fmt(totBase)} → {fmt(totActual)}
-                          </TableCell>
-                        </TableRow>
-                        {filas.map((r) => (
-                          <TableRow key={r.key}>
-                            <TableCell className="pl-6 font-medium">{r.empresa}</TableCell>
-                            <TableCell className="text-right text-muted-foreground">
-                              {fmt(esUds ? r.baseUds : r.base)}
-                            </TableCell>
-                            <TableCell className="text-right font-semibold">
-                              {fmt(esUds ? r.actualUds : r.actual)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Variacion v={esUds ? r.variacionUds : r.variacion} />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </>
-                    );
-                  });
-                })()}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <TablaComparativa
+        titulo={`Comparativo por zona — ${metricaLabel}${empresaLabel}`}
+        primeraColumna="Zona"
+        lineas={lineasZonas}
+        cols={cols}
+        baseLabel={baseLabel}
+        actualLabel={actualLabel}
+        isLoading={isLoading}
+        metrica={metrica}
+      />
     </div>
   );
 }
