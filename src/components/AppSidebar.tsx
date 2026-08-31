@@ -52,6 +52,7 @@ const mainItems: NavItem[] = [
   { title: "Transferencias", url: "/transfers", icon: ArrowLeftRight, roles: ["admin", "manager", "warehouse"] },
   { title: "Capacitación", url: "/training", icon: GraduationCap, roles: "all" },
   { title: "Reportes", url: "/reports", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
+  { title: "Reporte de Ventas Sistema", url: "/reporte-ventas-sistema", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
   { title: "Automatizaciones", url: "/automations", icon: Zap, roles: ["admin", "manager"] },
   { title: "Automatización de Tareas", url: "/automatizacion-tareas", icon: Workflow, roles: "all" },
 ];
