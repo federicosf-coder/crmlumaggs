@@ -11,8 +11,16 @@ function Vacio() {
 }
 
 export default function Alertas() {
-  const { comprobantes, entregas, autorizaciones, totalCount, isLoading, verTodo, refetchAll } =
-    useAlertasPendientes();
+  const {
+    comprobantes,
+    entregas,
+    autorizaciones,
+    rvsPersonas,
+    totalCount,
+    isLoading,
+    verTodo,
+    refetchAll,
+  } = useAlertasPendientes();
 
   return (
     <div className="space-y-6">
