@@ -56,8 +56,14 @@ export function ReportesMesTab() {
     queryKey: ["rvs_reportes_mes", mes],
     queryFn: async () => {
       const [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas] = await Promise.all([
-        supabase.from("rvs_ventas_mes").select("persona_id, marca, venta, plaza_id").eq("anio_mes", mes),
-        supabase.from("rvs_ventas_mes_plaza").select("plaza_id, sucursal_reporte, marca, venta").eq("anio_mes", mes),
+        supabase
+          .from("rvs_ventas_mes")
+          .select("persona_id, marca, venta, unidades, utilidad, plaza_id")
+          .eq("anio_mes", mes),
+        supabase
+          .from("rvs_ventas_mes_plaza")
+          .select("plaza_id, sucursal_reporte, marca, venta, unidades, utilidad")
+          .eq("anio_mes", mes),
         supabase.from("rvs_personas").select("id, nombre_reporte, nombre_mostrar, plaza_id"),
         supabase.from("plazas").select("id, nombre"),
         supabase.from("zonas").select("id, nombre, is_active").eq("is_active", true),
@@ -95,30 +101,75 @@ export function ReportesMesTab() {
     return m;
   }, [data]);
 
+  type Fila = {
+    nombre: string;
+    plaza: string;
+    galsa: number;
+    lumaggs: number;
+    total: number;
+    udsGalsa: number;
+    udsLumaggs: number;
+    udsTotal: number;
+    utilGalsa: number;
+    utilLumaggs: number;
+    utilTotal: number;
+  };
+
+  const acumular = (row: any, v: any) => {
+    const monto = Number(v.venta || 0);
+    const uds = Number(v.unidades || 0);
+    const util = Number(v.utilidad || 0);
+    if (esGalsa(v.marca)) {
+      row.galsa += monto;
+      row.udsGalsa += uds;
+      row.utilGalsa += util;
+    } else if (esLumaggs(v.marca)) {
+      row.lumaggs += monto;
+      row.udsLumaggs += uds;
+      row.utilLumaggs += util;
+    }
+  };
+
+  const cerrar = (r: any): Fila => ({
+    ...r,
+    total: r.galsa + r.lumaggs,
+    udsTotal: r.udsGalsa + r.udsLumaggs,
+    utilTotal: r.utilGalsa + r.utilLumaggs,
+  });
+
+  const nuevaFila = (nombre: string, plaza: string) => ({
+    nombre,
+    plaza,
+    galsa: 0,
+    lumaggs: 0,
+    udsGalsa: 0,
+    udsLumaggs: 0,
+    utilGalsa: 0,
+    utilLumaggs: 0,
+  });
+
   const porPersona = useMemo(() => {
-    if (!data) return [] as { nombre: string; plaza: string; galsa: number; lumaggs: number; total: number }[];
+    if (!data) return [] as Fila[];
     const personaMap = new Map<string, any>();
     data.personas.forEach((p: any) => personaMap.set(p.id, p));
-    const acc = new Map<string, { nombre: string; plaza: string; galsa: number; lumaggs: number }>();
+    const acc = new Map<string, any>();
     for (const v of data.ventas) {
       const p = personaMap.get(v.persona_id);
       if (!p) continue;
       const key = v.persona_id;
       const plazaId = v.plaza_id || p.plaza_id;
       if (!acc.has(key))
-        acc.set(key, {
-          nombre: p.nombre_mostrar || p.nombre_reporte,
-          plaza: (plazaId && plazaNombre.get(plazaId)) || "Sin plaza",
-          galsa: 0,
-          lumaggs: 0,
-        });
-      const row = acc.get(key)!;
-      const monto = Number(v.venta || 0);
-      if (esGalsa(v.marca)) row.galsa += monto;
-      else if (esLumaggs(v.marca)) row.lumaggs += monto;
+        acc.set(
+          key,
+          nuevaFila(
+            p.nombre_mostrar || p.nombre_reporte,
+            (plazaId && plazaNombre.get(plazaId)) || "Sin plaza",
+          ),
+        );
+      acumular(acc.get(key)!, v);
     }
     return Array.from(acc.values())
-      .map((r) => ({ ...r, total: r.galsa + r.lumaggs }))
+      .map(cerrar)
       .sort((a, b) => b.total - a.total);
   }, [data, plazaNombre]);
 
@@ -126,54 +177,127 @@ export function ReportesMesTab() {
 
   const porPlaza = useMemo(() => {
     if (!data) return { filas: [] as any[], zonasFilas: [] as any[] };
-    const acc = new Map<string, { plazaId: string | null; plaza: string; galsa: number; lumaggs: number }>();
+    const acc = new Map<string, any>();
     for (const v of data.ventasPlaza) {
       const key = v.plaza_id || `sr:${v.sucursal_reporte || "Sin plaza"}`;
-      if (!acc.has(key))
-        acc.set(key, {
-          plazaId: v.plaza_id || null,
-          plaza: (v.plaza_id && plazaNombre.get(v.plaza_id)) || v.sucursal_reporte || "Sin plaza",
-          galsa: 0,
-          lumaggs: 0,
-        });
-      const row = acc.get(key)!;
-      const monto = Number(v.venta || 0);
-      if (esGalsa(v.marca)) row.galsa += monto;
-      else if (esLumaggs(v.marca)) row.lumaggs += monto;
+      if (!acc.has(key)) {
+        const f: any = nuevaFila(
+          (v.plaza_id && plazaNombre.get(v.plaza_id)) || v.sucursal_reporte || "Sin plaza",
+          "",
+        );
+        f.plazaId = v.plaza_id || null;
+        f.plaza = f.nombre;
+        acc.set(key, f);
+      }
+      acumular(acc.get(key)!, v);
     }
     const filas = Array.from(acc.values())
-      .map((r) => ({ ...r, total: r.galsa + r.lumaggs }))
+      .map(cerrar)
       .sort((a, b) => b.total - a.total);
 
     const zonasFilas = data.zonas.map((z: any) => {
       const plazaIds = data.zonaPlazas.filter((zp: any) => zp.zona_id === z.id).map((zp: any) => zp.plaza_id);
-      const incluidas = filas.filter((f) => f.plazaId && plazaIds.includes(f.plazaId));
+      const incluidas = filas.filter((f: any) => f.plazaId && plazaIds.includes(f.plazaId));
+      const sum = (k: keyof Fila) => incluidas.reduce((s: number, f: any) => s + (f[k] || 0), 0);
       return {
         plaza: z.nombre,
-        galsa: incluidas.reduce((s, f) => s + f.galsa, 0),
-        lumaggs: incluidas.reduce((s, f) => s + f.lumaggs, 0),
-        total: incluidas.reduce((s, f) => s + f.total, 0),
+        galsa: sum("galsa"),
+        lumaggs: sum("lumaggs"),
+        total: sum("total"),
+        udsGalsa: sum("udsGalsa"),
+        udsLumaggs: sum("udsLumaggs"),
+        udsTotal: sum("udsTotal"),
+        utilGalsa: sum("utilGalsa"),
+        utilLumaggs: sum("utilLumaggs"),
+        utilTotal: sum("utilTotal"),
       };
     });
     return { filas, zonasFilas };
   }, [data, plazaNombre]);
 
+  const uds = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
+
+  const exportarUnidades = () => {
+    const wb = XLSX.utils.book_new();
+    const aoaPersona = [
+      ["Persona", "Plaza", "Uds Galsa", "Uds Lumaggs", "Uds Total"],
+      ...porPersona.map((r) => [r.nombre, r.plaza, r.udsGalsa, r.udsLumaggs, r.udsTotal]),
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaPersona), "Unidades por persona");
+    const aoaPlaza = [
+      ["Plaza / Zona", "Uds Galsa", "Uds Lumaggs", "Uds Total"],
+      ...porPlaza.filas.map((r: any) => [r.plaza, r.udsGalsa, r.udsLumaggs, r.udsTotal]),
+      [],
+      ["ZONAS"],
+      ...porPlaza.zonasFilas.map((r: any) => [r.plaza, r.udsGalsa, r.udsLumaggs, r.udsTotal]),
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaPlaza), "Unidades por plaza");
+    XLSX.writeFile(wb, `RVS_Unidades_${mes}.xlsx`);
+  };
+
   const exportar = () => {
     const wb = XLSX.utils.book_new();
     const aoaPersona = [
-      ["Persona", "Plaza", "Galsa", "Lumaggs", "Total"],
-      ...porPersona.map((r) => [r.nombre, r.plaza, r.galsa, r.lumaggs, r.total]),
+      [
+        "Persona",
+        "Plaza",
+        "Uds Galsa",
+        "Uds Lumaggs",
+        "Uds Total",
+        "Venta Galsa",
+        "Venta Lumaggs",
+        "Venta Total",
+        "Utilidad Galsa",
+        "Utilidad Lumaggs",
+        "Utilidad Total",
+      ],
+      ...porPersona.map((r) => [
+        r.nombre,
+        r.plaza,
+        r.udsGalsa,
+        r.udsLumaggs,
+        r.udsTotal,
+        r.galsa,
+        r.lumaggs,
+        r.total,
+        r.utilGalsa,
+        r.utilLumaggs,
+        r.utilTotal,
+      ]),
     ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaPersona), "Por persona");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaPersona), "Unidades y utilidad");
+    const filaPlaza = (r: any) => [
+      r.plaza,
+      r.udsGalsa,
+      r.udsLumaggs,
+      r.udsTotal,
+      r.galsa,
+      r.lumaggs,
+      r.total,
+      r.utilGalsa,
+      r.utilLumaggs,
+      r.utilTotal,
+    ];
     const aoaPlaza = [
-      ["Plaza / Zona", "Galsa", "Lumaggs", "Total"],
-      ...porPlaza.filas.map((r) => [r.plaza, r.galsa, r.lumaggs, r.total]),
+      [
+        "Plaza / Zona",
+        "Uds Galsa",
+        "Uds Lumaggs",
+        "Uds Total",
+        "Venta Galsa",
+        "Venta Lumaggs",
+        "Venta Total",
+        "Utilidad Galsa",
+        "Utilidad Lumaggs",
+        "Utilidad Total",
+      ],
+      ...porPlaza.filas.map(filaPlaza),
       [],
       ["ZONAS"],
-      ...porPlaza.zonasFilas.map((r) => [r.plaza, r.galsa, r.lumaggs, r.total]),
+      ...porPlaza.zonasFilas.map(filaPlaza),
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaPlaza), "Por plaza");
-    XLSX.writeFile(wb, `Reporte_Ventas_Sistema_${mes}.xlsx`);
+    XLSX.writeFile(wb, `RVS_Unidades_Utilidad_${mes}.xlsx`);
   };
 
   const grupos = useMemo(() => {
@@ -188,15 +312,19 @@ export function ReportesMesTab() {
 
   const headClass = "bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30";
 
-  const filaPersona = (r: (typeof porPersona)[number], i: number) => (
+  const filaPersona = (r: Fila, i: number) => (
     <TableRow key={r.nombre + i} className={i % 2 ? "bg-muted/30" : undefined}>
       <TableCell className="font-medium">{r.nombre}</TableCell>
       <TableCell className="text-muted-foreground">{r.plaza}</TableCell>
+      <TableCell className="text-right">{uds(r.udsGalsa)}</TableCell>
       <TableCell className="text-right">{currency(r.galsa)}</TableCell>
+      <TableCell className="text-right">{uds(r.udsLumaggs)}</TableCell>
       <TableCell className="text-right">{currency(r.lumaggs)}</TableCell>
+      <TableCell className="text-right font-semibold">{uds(r.udsTotal)}</TableCell>
       <TableCell className="text-right font-semibold">{currency(r.total)}</TableCell>
     </TableRow>
   );
+
 
   return (
     <div className="space-y-4">
