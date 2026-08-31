@@ -18,6 +18,8 @@ export default function ReporteVentasSistema() {
           <TabsList>
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="mes">Reportes del Mes</TabsTrigger>
+            <TabsTrigger value="mes">Reportes del Mes</TabsTrigger>
+            <TabsTrigger value="hist12">Últimos 12 meses</TabsTrigger>
             <TabsTrigger value="captura">Captura Manual</TabsTrigger>
             <TabsTrigger value="config">Configuración</TabsTrigger>
           </TabsList>
