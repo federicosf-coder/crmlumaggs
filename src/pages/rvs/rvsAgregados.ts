@@ -42,7 +42,7 @@ export function agregarPorPersona(
     if (!acc.has(v.persona_id))
       acc.set(v.persona_id, {
         key: v.persona_id,
-        nombre: p.nombre_reporte,
+        nombre: p.nombre_mostrar || p.nombre_reporte,
         plaza: (plazaId && plazaNombre.get(plazaId)) || "Sin plaza",
         galsa: 0,
         lumaggs: 0,
