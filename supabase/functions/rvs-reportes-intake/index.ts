@@ -332,14 +332,30 @@ Deno.serve(async (req) => {
           .eq('id', intakeRow.id);
 
         // 4) Upsert agentes (snapshot: reemplaza, nunca suma)
+        // Guarda temporal: un reporte más viejo nunca sobrescribe uno más reciente
         const agentes: any[] = Array.isArray(extraido?.agentes) ? extraido.agentes : [];
         let agentesOk = 0;
+        let agentesOmitidosPorFechaVieja = 0;
         for (const a of agentes) {
           const nombre = asText(a?.nombre_agente);
           if (!nombre) continue;
           if (/^(gran\s+)?total/i.test(nombre)) continue;
           const persona = await buscarPersona(nombre);
           if (!persona) continue;
+
+          const { data: existente } = await admin
+            .from('rvs_ventas_mes')
+            .select('fecha_reporte_original')
+            .eq('persona_id', persona.id)
+            .eq('anio_mes', anioMes)
+            .eq('marca', marca)
+            .limit(1);
+          const fechaExistente = parseFecha(existente?.[0]?.fecha_reporte_original);
+          if (fechaExistente && fechaExistente.getTime() > fechaReporteOriginal.getTime()) {
+            agentesOmitidosPorFechaVieja++;
+            continue;
+          }
+
           const { error: upsertErr } = await admin.from('rvs_ventas_mes').upsert(
             {
               persona_id: persona.id,
@@ -351,6 +367,7 @@ Deno.serve(async (req) => {
               utilidad: asNum(a?.utilidad),
               margen: a?.margen == null ? null : asNum(a?.margen),
               plaza_id: persona.plaza_id,
+              fecha_reporte_original: fechaReporteOriginal.toISOString(),
               updated_at: new Date().toISOString(),
             },
             { onConflict: 'persona_id,anio_mes,marca' },
