@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download } from "lucide-react";
+import { Download, RotateCcw } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -21,6 +21,25 @@ const headClass =
 
 const fmtUds = (n: number) => (n ? n.toLocaleString("es-MX", { maximumFractionDigits: 2 }) : "—");
 
+const PREFS_KEY = "rvs_historico12_prefs";
+
+/** Variación % contra el mes previo del arreglo */
+const varMes = (arr: number[], i: number) => {
+  if (i === 0) return null;
+  const b = arr[i - 1];
+  return b > 0 ? ((arr[i] - b) / b) * 100 : null;
+};
+
+function VarPct({ v }: { v: number | null }) {
+  if (v === null) return <div className="text-[10px] text-muted-foreground">—</div>;
+  return (
+    <div className={`text-[10px] ${v >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+      {v >= 0 ? "+" : ""}
+      {v.toFixed(1)}%
+    </div>
+  );
+}
+
 type Empresa = "todas" | "galsa" | "lumaggs";
 
 function ultimos12Meses(): string[] {
@@ -33,8 +52,29 @@ function ultimos12Meses(): string[] {
 
 export function Historico12MesesTab() {
   const meses = useMemo(ultimos12Meses, []);
-  const [empresa, setEmpresa] = useState<Empresa>("todas");
-  const [agruparPlaza, setAgruparPlaza] = useState(false);
+  const prefs = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(PREFS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }, []);
+  const [empresa, setEmpresa] = useState<Empresa>(prefs.empresa || "todas");
+  const [agruparPlaza, setAgruparPlaza] = useState<boolean>(!!prefs.agruparPlaza);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ empresa, agruparPlaza }));
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, [empresa, agruparPlaza]);
+
+  const restablecer = () => {
+    setEmpresa("todas");
+    setAgruparPlaza(false);
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["rvs_historico_12m", meses[0], meses[11]],
@@ -108,20 +148,38 @@ export function Historico12MesesTab() {
   );
 
   const exportar = () => {
-    const enc = ["Persona", "Plaza", ...meses.map(mesLabel), "Total 12 meses"];
+    const enc: any[] = ["Persona", "Plaza"];
+    meses.forEach((m) => enc.push(mesLabel(m), `Var. % ${mesLabel(m)}`));
+    enc.push("Total 12 meses");
     const aoa: any[][] = [enc];
-    const fila = (r: (typeof filas)[number]) => [r.nombre, r.plaza, ...r.porMes, r.total];
+    const niveles: { level?: number }[] = [{}];
+    const celdas = (arr: number[]) =>
+      arr.flatMap((n, i) => {
+        const v = varMes(arr, i);
+        return [n, v === null ? "n/d" : Number(v.toFixed(1))];
+      });
+    const fila = (r: (typeof filas)[number]) => [r.nombre, r.plaza, ...celdas(r.porMes), r.total];
     if (grupos) {
       grupos.forEach(([plaza, rows]) => {
         aoa.push([plaza.toUpperCase()]);
-        rows.forEach((r) => aoa.push(fila(r)));
+        niveles.push({});
+        rows.forEach((r) => {
+          aoa.push(fila(r));
+          niveles.push({ level: 1 });
+        });
       });
     } else {
-      filas.forEach((r) => aoa.push(fila(r)));
+      filas.forEach((r) => {
+        aoa.push(fila(r));
+        niveles.push({});
+      });
     }
-    aoa.push(["TOTAL", "", ...totalesMes, totalesMes.reduce((s, n) => s + n, 0)]);
+    aoa.push(["TOTAL", "", ...celdas(totalesMes), totalesMes.reduce((s, n) => s + n, 0)]);
+    niveles.push({});
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "Unidades 12 meses");
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    (ws as any)["!rows"] = niveles;
+    XLSX.utils.book_append_sheet(wb, ws, "Unidades 12 meses");
     XLSX.writeFile(
       wb,
       `RVS_Unidades_12meses_${empresa === "todas" ? "Ambas" : empresa}_${meses[11]}.xlsx`
@@ -133,8 +191,9 @@ export function Historico12MesesTab() {
       <TableCell className="font-medium whitespace-nowrap sticky left-0 bg-inherit">{r.nombre}</TableCell>
       <TableCell className="text-muted-foreground whitespace-nowrap">{r.plaza}</TableCell>
       {r.porMes.map((n, k) => (
-        <TableCell key={k} className="text-right">
-          {fmtUds(n)}
+        <TableCell key={k} className="text-right leading-tight">
+          <div>{fmtUds(n)}</div>
+          <VarPct v={varMes(r.porMes, k)} />
         </TableCell>
       ))}
       <TableCell className="text-right font-semibold">{fmtUds(r.total)}</TableCell>
@@ -161,6 +220,9 @@ export function Historico12MesesTab() {
             onClick={() => setAgruparPlaza((v) => !v)}
           >
             Agrupar por plaza
+          </Button>
+          <Button size="sm" variant="outline" onClick={restablecer} title="Restablecer vista">
+            <RotateCcw className="h-4 w-4 mr-1" /> Restablecer
           </Button>
           <Button size="sm" onClick={exportar} disabled={isLoading}>
             <Download className="h-4 w-4 mr-1" /> Exportar Excel
@@ -218,8 +280,9 @@ export function Historico12MesesTab() {
                     </TableCell>
                     <TableCell />
                     {totalesMes.map((n, i) => (
-                      <TableCell key={i} className="text-right font-semibold">
-                        {fmtUds(n)}
+                      <TableCell key={i} className="text-right font-semibold leading-tight">
+                        <div>{fmtUds(n)}</div>
+                        <VarPct v={varMes(totalesMes, i)} />
                       </TableCell>
                     ))}
                     <TableCell className="text-right font-semibold">
