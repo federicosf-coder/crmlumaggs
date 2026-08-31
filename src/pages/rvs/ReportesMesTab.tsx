@@ -307,6 +307,14 @@ export function ReportesMesTab() {
           </div>
         </CardContent>
       </Card>
+      </>
+      )}
+
+      {vista !== "mensual" && (
+        <ComparativoView mes={mes} modo={vista === "vs_mes" ? "mes_anterior" : "anio_anterior"} />
+      )}
+
+
 
       <Card>
         <CardHeader className="pb-2">
