@@ -212,6 +212,30 @@ Deno.serve(async (req) => {
     const attachments: Array<any> = Array.isArray(data.attachments) ? data.attachments : [];
     if (!emailId) return jsonRes({ error: 'email_id_faltante' }, 400);
 
+    // Obtener el cuerpo completo del correo vía API de Resend (el webhook no trae html/text)
+    let htmlCompleto: string | null = null;
+    let textCompleto: string | null = null;
+    if (LOVABLE_API_KEY && RESEND_API_KEY) {
+      try {
+        const emailRes = await fetch(
+          `https://connector-gateway.lovable.dev/resend/emails/receiving/${emailId}`,
+          { headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': RESEND_API_KEY } },
+        );
+        if (!emailRes.ok) {
+          console.error('error obteniendo email completo:', emailRes.status, await emailRes.text());
+        } else {
+          const emailJson = await emailRes.json();
+          const cuerpo = emailJson?.data ?? emailJson ?? {};
+          htmlCompleto = asText(cuerpo.html) ?? asText(cuerpo.html_body) ?? asText(cuerpo.body_html);
+          textCompleto = asText(cuerpo.text) ?? asText(cuerpo.text_body) ?? asText(cuerpo.body_text) ?? asText(cuerpo.plain_text);
+        }
+      } catch (e) {
+        console.error('error obteniendo email completo:', (e as Error).message);
+      }
+    }
+    const diag = `diag: keys=${Object.keys(data).join(',')} | html_type=${typeof data.html} | html_len=${(data.html || '').length} | text_type=${typeof data.text} | text_len=${(data.text || '').length} | htmlCompleto_len=${(htmlCompleto || '').length} | textCompleto_len=${(textCompleto || '').length}`.slice(0, 1000);
+
+
     const marca = detectarMarca(subject);
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -324,14 +348,13 @@ Deno.serve(async (req) => {
         // 2) Extracción: método principal = HTML del cuerpo del correo (sin IA).
         //    Respaldo: PDF adjunto + Gateway de IA (solo si el HTML no produjo datos).
         let extraido: any = null;
-        const htmlCuerpo = asText(data.html) ?? asText(data.text);
+        const htmlCuerpo = htmlCompleto ?? textCompleto ?? asText(data.html) ?? asText(data.text);
         if (htmlCuerpo) {
           const deHtml = extraerDeHTML(htmlCuerpo);
           if (deHtml.sucursales.length > 0 || deHtml.agentes.length > 0) extraido = deHtml;
         }
         if (!extraido) {
           if (!att) {
-            const diag = `diag: keys=${Object.keys(data).join(',')} | html_type=${typeof data.html} | html_len=${(data.html || '').length} | text_type=${typeof data.text} | text_len=${(data.text || '').length}`.slice(0, 1000);
             await admin
               .from('rvs_reportes_intake')
               .update({ estatus: 'error', error_message: diag })
@@ -555,7 +578,7 @@ Deno.serve(async (req) => {
 
     if (pdfs.length === 0) {
       // Sin PDF: intentar extraer del HTML del cuerpo del correo
-      const htmlCuerpo = asText(data.html) ?? asText(data.text);
+      const htmlCuerpo = htmlCompleto ?? textCompleto ?? asText(data.html) ?? asText(data.text);
       if (htmlCuerpo) {
         try {
           const resultado = await procesarReporte(null);
@@ -570,7 +593,7 @@ Deno.serve(async (req) => {
         asunto_email: subject,
         resend_email_id: emailId,
         estatus: 'error',
-        error_message: 'sin_datos_extraibles',
+        error_message: diag,
       });
       return jsonRes({ ok: true, procesados: 0, motivo: 'sin_datos_extraibles' });
     }
