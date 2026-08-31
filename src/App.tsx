@@ -197,6 +197,8 @@ const App = () => (
             <Route path="/reports/pareto-8020" element={<ProtectedRoute><Pareto8020Report /></ProtectedRoute>} />
             <Route path="/reports/credito-cescemex" element={<ProtectedRoute><CreditoCescemexReport /></ProtectedRoute>} />
             <Route path="/reports/cescemex-roi" element={<ProtectedRoute><CescemexROIReport /></ProtectedRoute>} />
+            <Route path="/reporte-ventas-sistema" element={<ProtectedRoute><ReporteVentasSistema /></ProtectedRoute>} />
+
             <Route path="/seller-portal" element={<ProtectedRoute><SellerPortal /></ProtectedRoute>} />
             <Route path="/seller-portal/guias-de-venta" element={<ProtectedRoute><GuiasDeVenta /></ProtectedRoute>} />
             <Route path="/automations" element={<ProtectedRoute><AutomationsPage /></ProtectedRoute>} />
