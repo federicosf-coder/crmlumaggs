@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { esGalsa, esLumaggs, mesLabel, derivarVentasPlaza } from "./rvsAgregados";
 import { CapturaSucursalDialog } from "./components/CapturaSucursalDialog";
+import { FiltroChipsMulti } from "./components/FiltroChipsMulti";
 
 
 const headClass =
@@ -46,7 +47,8 @@ interface FilaSucursal {
 const margenDe = (utilidad: number, venta: number) => (venta > 0 ? (utilidad / venta) * 100 : 0);
 
 export function ResumenSucursalView({ mes }: { mes: string }) {
-  const [empresa, setEmpresa] = useState<Empresa>("galsa");
+  const [marcasSel, setMarcasSel] = useState<string[]>([]); // [] = ambas
+  const [sucursalesSel, setSucursalesSel] = useState<string[]>([]); // [] = todas
   const [capturaAbierta, setCapturaAbierta] = useState(false);
   const qc = useQueryClient();
 
