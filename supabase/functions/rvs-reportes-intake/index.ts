@@ -48,6 +48,72 @@ function normalizar(s: string): string {
     .trim();
 }
 
+// ---- Extracción directa desde el HTML del cuerpo del correo (sin IA) ----
+function textoDeCelda(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extraerFilasTablaHTML(html: string, tituloSeccion: string) {
+  const idx = html.search(new RegExp(tituloSeccion, 'i'));
+  if (idx === -1) return [] as Array<{ nombre: string; unidades: number; venta: number; costo: number; utilidad: number; margen: number }>;
+  const resto = html.slice(idx);
+  const tablaMatch = resto.match(/<table[\s\S]*?<\/table>/i);
+  if (!tablaMatch) return [];
+  const filas = [...tablaMatch[0].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
+  const out: Array<{ nombre: string; unidades: number; venta: number; costo: number; utilidad: number; margen: number }> = [];
+  for (const f of filas) {
+    if (/<th/i.test(f[1])) continue;
+    const celdas = [...f[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => textoDeCelda(m[1]));
+    if (celdas.length < 6) continue;
+    const nombre = celdas[0];
+    if (!nombre || /^(gran\s+)?total/i.test(nombre)) continue;
+    out.push({
+      nombre,
+      unidades: asNum(celdas[1]),
+      venta: asNum(celdas[2]),
+      costo: asNum(celdas[3]),
+      utilidad: asNum(celdas[4]),
+      margen: asNum(celdas[5]),
+    });
+  }
+  return out;
+}
+
+function extraerAnioMesHTML(html: string): string | null {
+  const m = html.match(/Per[ií]odo:\s*Desde\s*<b>(\d{2})-(\d{2})-(\d{4})<\/b>/i);
+  if (m) return `${m[3]}-${m[2]}`;
+  const m2 = html.match(/Reporte Generado el\s*<b>(\d{2})-(\d{2})-(\d{4})<\/b>/i);
+  if (m2) return `${m2[3]}-${m2[2]}`;
+  return null;
+}
+
+function extraerFechaCorreoHTML(html: string): Date | null {
+  const m = html.match(/Fecha:\s*<\/th>\s*<td>([^<]+)<\/td>/i);
+  if (!m) return null;
+  const d = new Date(m[1].trim());
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function extraerDeHTML(html: string) {
+  const sucursales = extraerFilasTablaHTML(html, 'Resumen por Sucursal').map((f) => ({
+    sucursal: f.nombre, unidades: f.unidades, venta: f.venta, costo: f.costo, utilidad: f.utilidad, margen: f.margen,
+  }));
+  const agentes = extraerFilasTablaHTML(html, 'Detalle por Agente').map((f) => ({
+    nombre_agente: f.nombre, unidades: f.unidades, venta: f.venta, costo: f.costo, utilidad: f.utilidad, margen: f.margen,
+  }));
+  return {
+    anio_mes: extraerAnioMesHTML(html),
+    fecha_correo_original: extraerFechaCorreoHTML(html)?.toISOString() ?? null,
+    sucursales,
+    agentes,
+  };
+}
+
 /** Detecta la marca por el asunto del correo (tolera prefijos tipo [EXTERNO]) */
 function detectarMarca(subject: string | null): 'galsa' | 'lumaggs' | null {
   const s = normalizar(subject || '').replace(/^\[[^\]]*\]\s*/g, '');
