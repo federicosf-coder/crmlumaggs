@@ -446,15 +446,24 @@ Deno.serve(async (req) => {
 
         await admin
           .from('rvs_reportes_intake')
-          .update({ estatus: 'procesado', error_message: null })
+          .update({
+            estatus: 'procesado',
+            error_message: notaFechaFallback,
+            fecha_reporte_original: fechaReporteOriginal.toISOString(),
+          })
           .eq('id', intakeRow.id);
 
-        return { agentes: agentesOk, sucursales: sucursalesOk };
+        return {
+          agentes: agentesOk,
+          sucursales: sucursalesOk,
+          agentesOmitidosPorFechaVieja,
+          sucursalesOmitidasPorFechaVieja,
+        };
       } catch (e) {
         const msg = (e as Error).message || 'error_desconocido';
         console.error('rvs procesamiento fallo:', msg);
         await marcarError(msg);
-        return { agentes: 0, sucursales: 0, error: msg };
+        return { agentes: 0, sucursales: 0, agentesOmitidosPorFechaVieja: 0, sucursalesOmitidasPorFechaVieja: 0, error: msg };
       }
     };
 
