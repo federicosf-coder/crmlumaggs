@@ -134,6 +134,7 @@ interface DatosMarca {
   utilidadTotal: number;
   margen: number;
   ventaPrevia: number;
+  unidadesPrevia: number;
   variacion: number | null;
   chartData: { nombre: string; venta: number; color: string }[];
 }
@@ -197,7 +198,7 @@ function BloqueMarca({
                 ? "—"
                 : `${datos.variacion >= 0 ? "+" : ""}${datos.variacion.toFixed(0)}%`
             }
-            detalle={datos.ventaPrevia > 0 ? `Anterior: ${currency(datos.ventaPrevia)}` : "Sin mes anterior"}
+            detalle={datos.unidadesPrevia > 0 ? `Anterior: ${uds(datos.unidadesPrevia)} unidades` : "Sin mes anterior"}
             icono={
               datos.variacion !== null && datos.variacion < 0 ? (
                 <ArrowDownRight className="h-4 w-4 text-rose-600" />
@@ -281,37 +282,50 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
   const filas = actualQuery.data || [];
   const filasPrevias = previoQuery.data || [];
 
-  const datosMarca = (marca: "galsa" | "lumaggs") => {
-    const ventaTotal = filas.reduce((s, f) => s + f[marca], 0);
+  const datosMarca = (marca: "galsa" | "lumaggs" | "total") => {
+    const esTotal = marca === "total";
+    const ventaTotal = filas.reduce((s, f) => s + (esTotal ? f.total : f[marca]), 0);
     const unidadesTotal = filas.reduce(
-      (s, f) => s + (marca === "galsa" ? f.udsGalsa : f.udsLumaggs),
+      (s, f) => s + (esTotal ? f.udsTotal : marca === "galsa" ? f.udsGalsa : f.udsLumaggs),
       0
     );
     const utilidadTotal = filas.reduce(
-      (s, f) => s + (marca === "galsa" ? f.utilGalsa : f.utilLumaggs),
+      (s, f) => s + (esTotal ? f.utilTotal : marca === "galsa" ? f.utilGalsa : f.utilLumaggs),
       0
     );
     const margen = ventaTotal > 0 ? (utilidadTotal / ventaTotal) * 100 : 0;
-    const ventaPrevia = filasPrevias.reduce((s, f) => s + f[marca], 0);
-    const variacion = ventaPrevia > 0 ? ((ventaTotal - ventaPrevia) / ventaPrevia) * 100 : null;
+    const ventaPrevia = filasPrevias.reduce(
+      (s, f) => s + (esTotal ? f.total : f[marca]),
+      0
+    );
+    const unidadesPrevia = filasPrevias.reduce(
+      (s, f) => s + (esTotal ? f.udsTotal : marca === "galsa" ? f.udsGalsa : f.udsLumaggs),
+      0
+    );
+    const variacion = unidadesPrevia > 0 ? ((unidadesTotal - unidadesPrevia) / unidadesPrevia) * 100 : null;
     const chartData = filas
-      .filter((f) => f[marca] !== 0)
+      .filter((f) => (esTotal ? f.total : f[marca]) !== 0)
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
       .map((f, i) => ({
         nombre: f.nombre,
-        venta: Math.round(f[marca]),
+        venta: Math.round(esTotal ? f.total : f[marca]),
         color: PALETA[i % PALETA.length],
       }));
-    return { ventaTotal, unidadesTotal, utilidadTotal, margen, ventaPrevia, variacion, chartData };
+    return { ventaTotal, unidadesTotal, utilidadTotal, margen, ventaPrevia, unidadesPrevia, variacion, chartData };
   };
 
+  const lumaggsData = useMemo(
+    () => datosMarca("lumaggs"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filas, filasPrevias]
+  );
   const galsaData = useMemo(
     () => datosMarca("galsa"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filas, filasPrevias]
   );
-  const lumaggsData = useMemo(
-    () => datosMarca("lumaggs"),
+  const totalData = useMemo(
+    () => datosMarca("total"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filas, filasPrevias]
   );
@@ -444,7 +458,22 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
       </div>
 
       <BloqueMarca
-        titulo="Galsa (Phillips 66)"
+        titulo="Chevron"
+        datos={lumaggsData}
+        headerClase="bg-gradient-to-r from-blue-100 to-sky-100 dark:from-blue-950/40 dark:to-sky-950/40"
+        iconoClase="text-blue-600"
+        kpiClases={{
+          venta: "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
+          unidades: "bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-100",
+          utilidad: "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
+          margen: "bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-100",
+        }}
+        mesLabelTexto={mesLabel(mes)}
+        isLoading={actualQuery.isLoading}
+      />
+
+      <BloqueMarca
+        titulo="Galsa"
         datos={galsaData}
         headerClase="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-950/40 dark:to-orange-950/40"
         iconoClase="text-amber-600"
@@ -459,14 +488,14 @@ export function DashboardTab({ onIrAPersonal }: { onIrAPersonal?: () => void } =
       />
 
       <BloqueMarca
-        titulo="Lumaggs (Chevron)"
-        datos={lumaggsData}
-        headerClase="bg-gradient-to-r from-blue-100 to-sky-100 dark:from-blue-950/40 dark:to-sky-950/40"
-        iconoClase="text-blue-600"
+        titulo="División Lubricantes"
+        datos={totalData}
+        headerClase="bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40"
+        iconoClase="text-indigo-600"
         kpiClases={{
-          venta: "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
+          venta: "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-100",
           unidades: "bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-100",
-          utilidad: "bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100",
+          utilidad: "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-900 dark:text-indigo-100",
           margen: "bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-100",
         }}
         mesLabelTexto={mesLabel(mes)}
