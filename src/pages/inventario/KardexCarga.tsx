@@ -104,7 +104,7 @@ interface ParsedInventario {
   warehousesEncontrados: string[];
 }
 
-function parseInventario(rows: any[][]): ParsedInventario {
+function parseInventario(rows: any[][], empresa: string): ParsedInventario {
   const { fechaInicio, fechaFin } = buscarRangoFechas(rows);
 
   const lineas: ParsedLinea[] = [];
