@@ -15,7 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, X, Users, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, X, Users, ArrowUp, ArrowDown, Filter, Merge } from "lucide-react";
+import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
 import { ProductoBaseCombobox } from "@/components/inventory/ProductoBaseCombobox";
@@ -374,6 +375,7 @@ function ProductosTab() {
   const [huerfanoContext, setHuerfanoContext] = useState<{ codigo: string; proveedor: string } | null>(null);
   const [importing, setImporting] = useState(false);
   const [porLlegarCodigo, setPorLlegarCodigo] = useState<{ codigo: string; nombre: string } | null>(null);
+  const [mergeOpen, setMergeOpen] = useState(false);
 
   // ─── Mercancía por llegar (pedidos abiertos) ─────────
   const { data: porLlegarLineas = [] } = useQuery({
@@ -918,6 +920,7 @@ function ProductosTab() {
             </>
           )}
           <Button size="sm" onClick={openCreate}><Plus className="mr-1 h-4 w-4" /> Nuevo Producto</Button>
+          <Button size="sm" variant="outline" onClick={() => setMergeOpen(true)}><Merge className="mr-1 h-4 w-4" /> Fusionar duplicados</Button>
           <SortMenu
             value={productSort}
             onChange={setProductSort}
@@ -1271,6 +1274,9 @@ function ProductosTab() {
           </DialogHeader>
           {viewProduct && (
             <div className="space-y-4">
+              {viewProduct.creado_automaticamente && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">Este producto fue creado automáticamente por el sistema al importar una factura XML.</div>
+              )}
               <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                 <div><p className="text-xs text-muted-foreground">Código</p><p className="font-mono font-medium">{viewProduct.codigo}</p></div>
                 <div><p className="text-xs text-muted-foreground">Activo</p><Badge variant={viewProduct.is_active ? "default" : "secondary"}>{viewProduct.is_active ? "Sí" : "No"}</Badge></div>
@@ -1367,6 +1373,8 @@ function ProductosTab() {
           )}
         </DialogContent>
       </Dialog>
+
+      <MergeDuplicatesDialog open={mergeOpen} onOpenChange={setMergeOpen} entity="productos" onMerged={() => qc.invalidateQueries({ queryKey: ["productos"] })} />
 
       <ProductClientsDialog
         product={clientsProduct}
