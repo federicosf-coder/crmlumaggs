@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DictationButton } from "@/components/ui/dictation-button";
 import {
   Loader2, Phone, Copy, Mail, UserPlus, Save, Send as SendIcon, Paperclip,
-  FileText, X, MessageCircle, MapPin, Crosshair, Send, Plus,
+  FileText, X, MessageCircle, MapPin, Crosshair, Send, Plus, Image as ImageIcon,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { format, parseISO } from "date-fns";
@@ -51,6 +51,8 @@ export function TaskActionFields({
   const isVisit = taskType === "field_visit";
   const isEmail = taskType === "email";
   const isCall = taskType === "call";
+  const isMeeting = taskType === "meeting";
+  const isNote = taskType === "note";
 
   // ===== Email state =====
   const [emailTo, setEmailTo] = useState("");
@@ -298,7 +300,7 @@ export function TaskActionFields({
     onSent?.(`WhatsApp enviado a +${waNormalized}`);
   };
 
-  if (!isEmail && !isCall && !isWhatsApp && !isVisit) return null;
+  if (!isEmail && !isCall && !isWhatsApp && !isVisit && !isMeeting && !isNote) return null;
 
   return (
     <section className="space-y-3">
@@ -606,6 +608,26 @@ export function TaskActionFields({
           </div>
           </div>
 
+        </div>
+      )}
+
+      {(isMeeting || isNote) && (
+        <div className="rounded-lg border overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-4 py-2.5 border-b flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            <span className="text-xs uppercase tracking-wide font-semibold text-violet-900 dark:text-violet-100">
+              Evidencia fotográfica
+            </span>
+          </div>
+          <div className="p-4 bg-background space-y-2">
+            {taskId ? (
+              <VisitaEvidencias taskId={taskId} />
+            ) : (
+              <p className="text-[11px] text-muted-foreground font-light">
+                Guarda {isMeeting ? "la reunión" : "la nota"} para poder subir imágenes de evidencia.
+              </p>
+            )}
+          </div>
         </div>
       )}
     </section>
