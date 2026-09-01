@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { TaskTypeKey } from "@/lib/taskTypes";
 import { normalizePhoneForWhatsApp, openWhatsApp, logWhatsAppActivity } from "@/lib/whatsapp";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
+import { VisitaEvidencias } from "@/components/crm/VisitaEvidencias";
+
 
 interface TaskActionFieldsProps {
   taskType: TaskTypeKey | null;
