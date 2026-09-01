@@ -226,8 +226,12 @@ export function PersonalTab() {
               </TableRow>
             )}
             {visibles.map((p, idx) => (
-              <TableRow key={p.id} className={idx % 2 ? "bg-muted/30" : undefined}>
+              <TableRow key={p.id} className={`${idx % 2 ? "bg-muted/30" : ""} ${p.is_active === false ? "opacity-60" : ""}`}>
+                <TableCell>
+                  <Checkbox checked={seleccion.includes(p.id)} onCheckedChange={() => toggleSel(p.id)} />
+                </TableCell>
                 <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{p.nombre_reporte}</TableCell>
+
                 <TableCell className="min-w-[220px]">
                   <NombreMostrarInput
                     value={p.nombre_mostrar ?? ""}
