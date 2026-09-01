@@ -64,7 +64,9 @@ interface Persona {
   user_id: string | null;
   sin_clasificar: boolean;
   requiere_verificacion: boolean | null;
+  is_active: boolean;
 }
+
 
 export function PersonalTab() {
   const qc = useQueryClient();
