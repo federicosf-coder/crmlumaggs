@@ -300,11 +300,28 @@ export function PersonalTab() {
                     <Badge variant="outline">Clasificado</Badge>
                   )}
                 </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={p.is_active !== false}
+                    onCheckedChange={(v) => update(p.id, { is_active: v })}
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
+      <UnirPersonasDialog
+        open={unirAbierto}
+        onOpenChange={setUnirAbierto}
+        personas={seleccionadas}
+        onDone={() => {
+          setSeleccion([]);
+          qc.invalidateQueries({ queryKey: ["rvs_personas"] });
+          qc.invalidateQueries({ queryKey: ["rvs_ventas_mes"] });
+        }}
+      />
 
       <CrearUsuarioDialog
         persona={personaUsuario}
@@ -312,6 +329,7 @@ export function PersonalTab() {
         onCreated={() => qc.invalidateQueries({ queryKey: ["rvs_personas"] })}
       />
     </div>
+
   );
 }
 
