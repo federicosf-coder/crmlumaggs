@@ -13,6 +13,8 @@ import { TIPO_PAGO_OPTS } from "@/components/CompanyFormDialog";
 import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
 import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
+import { fetchAllRows } from "@/lib/supabasePagination";
+
 
 const BUCKET = "facturas-xml";
 
