@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DictationButton } from "@/components/ui/dictation-button";
 import {
   Loader2, Phone, Copy, Mail, UserPlus, Save, Send as SendIcon, Paperclip,
-  FileText, X, MessageCircle, MapPin, Crosshair, Send, Plus,
+  FileText, X, MessageCircle, MapPin, Crosshair, Send, Plus, Image as ImageIcon,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { format, parseISO } from "date-fns";
