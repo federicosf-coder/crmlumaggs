@@ -1033,6 +1033,17 @@ export default function ImportarFacturasXML() {
               <Trash2 className="h-3.5 w-3.5 mr-1" />
               {modo === "existente" ? "Descartar de la bandeja" : "Descartar"}
             </Button>
+            {modo === "revision" && elegibleAutomatico(row) && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={registrandoId === row.id || registrandoLote}
+                onClick={() => handleRegistrarAutomatico(row)}
+              >
+                {registrandoId === row.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+                Registrar automáticamente
+              </Button>
+            )}
             {modo !== "existente" && (
               <Button size="sm" disabled={!puedeImportar || importandoId === row.id} onClick={() => handleImportar(row)}>
                 {importandoId === row.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
