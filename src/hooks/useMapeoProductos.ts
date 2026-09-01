@@ -143,15 +143,25 @@ function useStockPorProductoImpl() {
       const { data: mapeos } = await (supabase as any)
         .from("inv_producto_proveedor")
         .select("producto_id, codigo_contpaqi, piezas_por_tarima");
+      const { data: productosBrand } = await supabase
+        .from("productos")
+        .select("id, marca:product_option_values!productos_marca_id_fkey(value)");
       const { data: niveles } = await (supabase as any)
         .from("inv_niveles_inventario")
-        .select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, estatus_inventario");
-      const nivelMap = new Map<string, any>((niveles || []).map((n: any) => [n.codigo_producto, n]));
+        .select("codigo_producto, empresa_vendedora, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, estatus_inventario");
+      const productoEmpresaMap = new Map<string, string>();
+      for (const p of (productosBrand || []) as any[]) {
+        const marcaValue = String(p.marca?.value || "").toLowerCase();
+        const empresa = marcaValue.includes("phillips") ? "galsa" : "lumaggs";
+        productoEmpresaMap.set(p.id, empresa);
+      }
+      const nivelMap = new Map<string, any>((niveles || []).map((n: any) => [`${n.codigo_producto}::${n.empresa_vendedora}`, n]));
       const result = new Map<string, any>();
       for (const m of (mapeos || [])) {
         if (m.producto_id) {
+          const empresa = productoEmpresaMap.get(m.producto_id) || "lumaggs";
           result.set(m.producto_id, {
-            ...(nivelMap.get(m.codigo_contpaqi) || {}),
+            ...(nivelMap.get(`${m.codigo_contpaqi}::${empresa}`) || {}),
             piezas_por_tarima: m.piezas_por_tarima,
           });
         }
