@@ -1482,13 +1482,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "companies_documento_origen_id_fkey"
-            columns: ["documento_origen_id"]
-            isOneToOne: false
-            referencedRelation: "documentos"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "companies_estatus_cliente_id_fkey"
             columns: ["estatus_cliente_id"]
             isOneToOne: false
@@ -7628,13 +7621,6 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "product_option_values"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "productos_documento_origen_id_fkey"
-            columns: ["documento_origen_id"]
-            isOneToOne: false
-            referencedRelation: "documentos"
             referencedColumns: ["id"]
           },
           {
