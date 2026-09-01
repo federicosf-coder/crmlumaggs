@@ -51,6 +51,8 @@ export function TaskActionFields({
   const isVisit = taskType === "field_visit";
   const isEmail = taskType === "email";
   const isCall = taskType === "call";
+  const isMeeting = taskType === "meeting";
+  const isNote = taskType === "note";
 
   // ===== Email state =====
   const [emailTo, setEmailTo] = useState("");
