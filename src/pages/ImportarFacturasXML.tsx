@@ -14,6 +14,7 @@ import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle, Rotate
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
 import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
 import { fetchAllRows } from "@/lib/supabasePagination";
+import { FiltroChipsMulti } from "./rvs/components/FiltroChipsMulti";
 
 
 const BUCKET = "facturas-xml";
@@ -62,6 +63,7 @@ export default function ImportarFacturasXML() {
   const [fechaVencManual, setFechaVencManual] = useState<Record<string, string>>({});
   const [estatusManual, setEstatusManual] = useState<Record<string, string>>({});
   const [mostrarBusquedaAmplia, setMostrarBusquedaAmplia] = useState<Record<string, boolean>>({});
+  const [plazasFiltroRevision, setPlazasFiltroRevision] = useState<string[]>([]);
 
 
 
@@ -439,6 +441,29 @@ export default function ImportarFacturasXML() {
   const listas = pendientes.filter((r) => !necesitaRevision(r));
   const revision = pendientes.filter((r) => necesitaRevision(r));
   const yaRegistradas = (filas as IntakeRow[]).filter((r) => r.estatus === "ya_existia");
+
+  const plazasOpcionesRevision = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const row of revision) {
+      const id = plazaResuelta(row);
+      if (!id) continue;
+      const nombre = (plazas as any[]).find((p) => p.id === id)?.nombre || id;
+      mapa.set(id, nombre);
+    }
+    return Array.from(mapa.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([, nombre]) => nombre);
+  }, [revision, plazas]);
+
+  const revisionFiltradas = useMemo(() => {
+    if (plazasFiltroRevision.length === 0) return revision;
+    return revision.filter((row) => {
+      const id = plazaResuelta(row);
+      if (!id) return false;
+      const nombre = (plazas as any[]).find((p) => p.id === id)?.nombre;
+      return nombre && plazasFiltroRevision.includes(nombre);
+    });
+  }, [revision, plazasFiltroRevision, plazas]);
 
   useEffect(() => {
     for (const row of pendientes) {
@@ -1021,13 +1046,26 @@ export default function ImportarFacturasXML() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" /> Necesitan revisión ({revision.length})
-            </h2>
-            {revision.length === 0 ? (
-              <p className="text-xs text-muted-foreground font-light">Sin pendientes de revisión.</p>
+            <div className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600" /> Necesitan revisión ({revisionFiltradas.length}{" "}
+                {revision.length !== revisionFiltradas.length && `de ${revision.length}`})
+              </h2>
+              {plazasOpcionesRevision.length > 0 && (
+                <FiltroChipsMulti
+                  titulo="Filtrar por plaza"
+                  opciones={plazasOpcionesRevision}
+                  seleccion={plazasFiltroRevision}
+                  onChange={setPlazasFiltroRevision}
+                />
+              )}
+            </div>
+            {revisionFiltradas.length === 0 ? (
+              <p className="text-xs text-muted-foreground font-light">
+                {revision.length === 0 ? "Sin pendientes de revisión." : "Ninguna coincide con el filtro de plaza."}
+              </p>
             ) : (
-              revision.map((r) => renderTarjeta(r, "revision"))
+              revisionFiltradas.map((r) => renderTarjeta(r, "revision"))
             )}
           </section>
 
