@@ -191,6 +191,14 @@ export function PersonalTab() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">
+              <TableHead className="w-8">
+                <Checkbox
+                  checked={visibles.length > 0 && visibles.every((v) => seleccion.includes(v.id))}
+                  onCheckedChange={(c) =>
+                    setSeleccion(c ? Array.from(new Set([...seleccion, ...visibles.map((v) => v.id)])) : [])
+                  }
+                />
+              </TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Nombre en reporte</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Nombre a mostrar</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Empresa / Grupo</TableHead>
@@ -198,7 +206,9 @@ export function PersonalTab() {
               <TableHead className="text-[11px] uppercase tracking-wide">Plaza</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Usuario</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Estado</TableHead>
+              <TableHead className="text-[11px] uppercase tracking-wide">Activa</TableHead>
             </TableRow>
+
           </TableHeader>
           <TableBody>
             {isLoading && (
