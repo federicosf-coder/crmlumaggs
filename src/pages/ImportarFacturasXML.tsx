@@ -601,6 +601,15 @@ export default function ImportarFacturasXML() {
     }
 
     if (eraNueva) {
+      await (supabase as any).from("companies").update({ documento_origen_id: doc.id }).eq("id", empresaId);
+    }
+    if (productosCreadosIds.length > 0) {
+      await (supabase as any).from("productos").update({ documento_origen_id: doc.id }).in("id", productosCreadosIds);
+    }
+
+
+
+    if (eraNueva) {
       if (contactoSel) {
         await (supabase as any).from("companies").update({ primary_contact_id: contactoSel }).eq("id", empresaId);
       }
