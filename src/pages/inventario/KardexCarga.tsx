@@ -646,7 +646,7 @@ async function procesarInventario(
   userId: string | null,
   setProgress: (n: number) => void,
 ) {
-  const parsed = parseInventario(rows);
+  const parsed = parseInventario(rows, empresa);
 
   const { data: carga, error: cErr } = await (supabase as any)
     .from("inv_kardex_cargas")
