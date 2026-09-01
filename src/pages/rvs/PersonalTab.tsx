@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -330,6 +331,84 @@ export function PersonalTab() {
       />
     </div>
 
+  );
+}
+
+function UnirPersonasDialog({
+  open,
+  onOpenChange,
+  personas,
+  onDone,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  personas: Persona[];
+  onDone: () => void;
+}) {
+  const [masterId, setMasterId] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && personas.length) setMasterId(personas[0].id);
+  }, [open, personas]);
+
+  const unir = async () => {
+    if (!masterId) return;
+    setSaving(true);
+    const dupes = personas.map((p) => p.id).filter((id) => id !== masterId);
+    const { error } = await supabase.rpc("rvs_merge_personas", { _master: masterId, _dupes: dupes });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Se unieron ${dupes.length} registro(s) duplicado(s)`);
+    onOpenChange(false);
+    onDone();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
+          <DialogTitle className="text-lg font-semibold tracking-tight">Unir personas duplicadas</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground font-light">
+            Elige el registro principal. Las ventas de los demás se trasladarán (sumando cuando coincida mes y
+            marca) y los nombres duplicados quedarán como alias para futuras importaciones.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="px-5 py-5 space-y-2 max-h-[50vh] overflow-y-auto">
+          <Label className="text-xs uppercase tracking-wide text-muted-foreground">Registro principal</Label>
+          {personas.map((p) => (
+            <label
+              key={p.id}
+              className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 text-sm ${
+                masterId === p.id ? "border-primary bg-primary/5" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                className="mt-1"
+                checked={masterId === p.id}
+                onChange={() => setMasterId(p.id)}
+              />
+              <span>
+                <span className="font-medium">{p.nombre_mostrar || limpiarNombre(p.nombre_reporte)}</span>
+                <span className="block text-xs text-muted-foreground">{p.nombre_reporte}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <div className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={unir} disabled={saving || personas.length < 2}>
+            {saving ? "Uniendo…" : "Unir"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
