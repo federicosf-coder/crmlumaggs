@@ -138,7 +138,7 @@ export function PersonalTab() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col h-full gap-3">
       <div className="flex flex-col gap-3 rounded-xl border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
         <Input
           value={busqueda}
@@ -187,11 +187,10 @@ export function PersonalTab() {
         </div>
       )}
 
-
-      <div className="rounded-xl border overflow-x-auto">
+      <div className="flex-1 min-h-0 overflow-auto rounded-xl border border-border/60 [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
         <Table>
-          <TableHeader>
-            <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">
+          <TableHeader className="sticky top-0 z-10 bg-background/95">
+            <TableRow>
               <TableHead className="w-8">
                 <Checkbox
                   checked={visibles.length > 0 && visibles.every((v) => seleccion.includes(v.id))}
@@ -200,38 +199,37 @@ export function PersonalTab() {
                   }
                 />
               </TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wide">Nombre en reporte</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wide">Nombre a mostrar</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wide">Empresa / Grupo</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wide">Puesto</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wide">Plaza</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wide">Usuario</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wide">Estado</TableHead>
-              <TableHead className="text-[11px] uppercase tracking-wide">Activa</TableHead>
+              <TableHead>Nombre en reporte</TableHead>
+              <TableHead>Nombre a mostrar</TableHead>
+              <TableHead>Empresa / Grupo</TableHead>
+              <TableHead>Puesto</TableHead>
+              <TableHead>Plaza</TableHead>
+              <TableHead>Usuario</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Activa</TableHead>
             </TableRow>
-
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={7} className="text-sm text-muted-foreground py-6">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   Cargando…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && visibles.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-sm text-muted-foreground py-6">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   Sin registros.
                 </TableCell>
               </TableRow>
             )}
-            {visibles.map((p, idx) => (
-              <TableRow key={p.id} className={`${idx % 2 ? "bg-muted/30" : ""} ${p.is_active === false ? "opacity-60" : ""}`}>
+            {visibles.map((p) => (
+              <TableRow key={p.id} className={p.is_active === false ? "opacity-60" : ""}>
                 <TableCell>
                   <Checkbox checked={seleccion.includes(p.id)} onCheckedChange={() => toggleSel(p.id)} />
                 </TableCell>
-                <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{p.nombre_reporte}</TableCell>
+                <TableCell className="whitespace-nowrap">{p.nombre_reporte}</TableCell>
 
                 <TableCell className="min-w-[220px]">
                   <NombreMostrarInput
