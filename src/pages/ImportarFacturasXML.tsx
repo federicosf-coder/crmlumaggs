@@ -123,16 +123,17 @@ export default function ImportarFacturasXML() {
 
   const { data: companiesActivas = [] } = useQuery({
     queryKey: ["companies-xml-import"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("companies")
-        .select("id, name, razon_social")
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: async () =>
+      await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("companies")
+          .select("id, name, razon_social")
+          .eq("is_active", true)
+          .order("name")
+          .range(from, to)
+      ),
   });
+
 
   const { data: profilesActivos = [] } = useQuery({
     queryKey: ["profiles-xml-import"],
