@@ -226,6 +226,9 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
     else if (almacenTexto.includes("mexicali")) almacenCodigo = "1001";
     else if (almacenTexto.includes("morelos")) almacenCodigo = "1003";
     else if (almacenTexto.includes("ensenada")) almacenCodigo = "1004";
+    else if (almacenTexto.includes("san luis")) almacenCodigo = "1005";
+    else if (almacenTexto.includes("peñasco") || almacenTexto.includes("penasco")) almacenCodigo = "1006";
+    else if (almacenTexto.includes("san quintin") || almacenTexto.includes("san quintín")) almacenCodigo = "1007";
 
     // Entradas: col[6], Salidas: col[7]
     const entradas = Number(c6.replace(/[^0-9.-]/g, "")) || 0;
