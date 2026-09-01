@@ -51,6 +51,8 @@ export default function ImportarFacturasXML() {
   const [procesando, setProcesando] = useState(false);
   const [importandoId, setImportandoId] = useState<string | null>(null);
   const [importandoLote, setImportandoLote] = useState(false);
+  const [registrandoId, setRegistrandoId] = useState<string | null>(null);
+  const [registrandoLote, setRegistrandoLote] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Selecciones manuales por fila (plaza, cliente candidato, productos)
@@ -487,12 +489,47 @@ export default function ImportarFacturasXML() {
     refetch();
   };
 
-  const importarFila = async (row: IntakeRow, silencioso = false): Promise<boolean> => {
+  const elegibleAutomatico = (row: IntakeRow) =>
+    (row.cliente_match_estatus === "exacto_rfc" || row.cliente_match_estatus === "pendiente") &&
+    !!row.plaza_id_detectado &&
+    !!row.empresa_vendedora_detectada;
+
+  const importarFila = async (row: IntakeRow, silencioso = false, autoRegistrar = false): Promise<boolean> => {
     const lineas = lineasDe(row);
-    if (!todosProductosOk(row)) {
+    let lineasFinal: ProductoLinea[] = lineas.map((l) => ({ ...l }));
+    const productosCreadosIds: string[] = [];
+
+    if (autoRegistrar) {
+      for (let i = 0; i < lineasFinal.length; i++) {
+        const l = lineasFinal[i];
+        if (productoResuelto(row, i, l)) continue;
+        const codigo = l.codigo || `AUTO-${row.id.slice(0, 8)}-${i}`;
+        const { data: nuevoProd, error: errProdNuevo } = await (supabase as any)
+          .from("productos")
+          .insert({
+            codigo,
+            nombre_producto: l.descripcion || codigo,
+            descripcion: l.descripcion || null,
+            is_active: true,
+            creado_automaticamente: true,
+          })
+          .select("id")
+          .single();
+        if (errProdNuevo) {
+          if (!silencioso) toast.error(errProdNuevo.message);
+          return false;
+        }
+        lineasFinal[i] = { ...l, producto_id: nuevoProd.id };
+        productosCreadosIds.push(nuevoProd.id);
+      }
+    }
+
+    const todosOk = lineasFinal.every((l, i) => !!(productoManual[row.id]?.[i] || l.producto_id));
+    if (!todosOk) {
       if (!silencioso) toast.error("Faltan productos por emparejar");
       return false;
     }
+
     const { data: auth } = await supabase.auth.getUser();
     const userId = auth?.user?.id ?? null;
 
@@ -516,7 +553,10 @@ export default function ImportarFacturasXML() {
           razon_social: row.receptor_nombre || null,
           rfc: row.receptor_rfc || null,
           tipo_pago: tipoPagoSel || null,
+          plaza_id: plazaResuelta(row),
+          creado_automaticamente: true,
           is_active: true,
+
         })
         .select("id")
         .single();
@@ -561,6 +601,15 @@ export default function ImportarFacturasXML() {
       if (!silencioso) toast.error(errDoc.message);
       return false;
     }
+
+    if (eraNueva) {
+      await (supabase as any).from("companies").update({ documento_origen_id: doc.id }).eq("id", empresaId);
+    }
+    if (productosCreadosIds.length > 0) {
+      await (supabase as any).from("productos").update({ documento_origen_id: doc.id }).in("id", productosCreadosIds);
+    }
+
+
 
     if (eraNueva) {
       if (contactoSel) {
@@ -609,9 +658,10 @@ export default function ImportarFacturasXML() {
     }
 
 
-    const payload = lineas.map((l, i) => ({
+    const payload = lineasFinal.map((l, i) => ({
       documento_id: doc.id,
-      producto_id: productoResuelto(row, i, l),
+      producto_id: productoManual[row.id]?.[i] || l.producto_id,
+
       cantidad: l.cantidad,
       precio_unitario: l.valorUnitario,
       subtotal: l.importe,
@@ -688,6 +738,30 @@ export default function ImportarFacturasXML() {
     toast.success(`${ok} factura(s) importada(s)`);
     refetch();
   };
+
+  const handleRegistrarAutomatico = async (row: IntakeRow) => {
+    setRegistrandoId(row.id);
+    const ok = await importarFila(row, false, true);
+    setRegistrandoId(null);
+    if (ok) {
+      toast.success(`Factura ${row.serie || ""}${row.folio || ""} registrada automáticamente`);
+      refetch();
+    }
+  };
+
+  const handleRegistrarAutomaticoLote = async () => {
+    setRegistrandoLote(true);
+    let ok = 0;
+    for (const row of revisionFiltradas.filter(elegibleAutomatico)) {
+      const r = await importarFila(row, true, true);
+      if (r) ok++;
+    }
+    setRegistrandoLote(false);
+    toast.success(`${ok} factura(s) registrada(s) automáticamente`);
+    refetch();
+  };
+
+
 
   /* ---------------- Render ---------------- */
 
@@ -959,6 +1033,17 @@ export default function ImportarFacturasXML() {
               <Trash2 className="h-3.5 w-3.5 mr-1" />
               {modo === "existente" ? "Descartar de la bandeja" : "Descartar"}
             </Button>
+            {modo === "revision" && elegibleAutomatico(row) && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={registrandoId === row.id || registrandoLote}
+                onClick={() => handleRegistrarAutomatico(row)}
+              >
+                {registrandoId === row.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+                Registrar automáticamente
+              </Button>
+            )}
             {modo !== "existente" && (
               <Button size="sm" disabled={!puedeImportar || importandoId === row.id} onClick={() => handleImportar(row)}>
                 {importandoId === row.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
@@ -1059,7 +1144,16 @@ export default function ImportarFacturasXML() {
                   onChange={setPlazasFiltroRevision}
                 />
               )}
+              {revisionFiltradas.some(elegibleAutomatico) && (
+                <div>
+                  <Button size="sm" variant="secondary" disabled={registrandoLote} onClick={handleRegistrarAutomaticoLote}>
+                    {registrandoLote ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+                    Registrar automáticamente todas
+                  </Button>
+                </div>
+              )}
             </div>
+
             {revisionFiltradas.length === 0 ? (
               <p className="text-xs text-muted-foreground font-light">
                 {revision.length === 0 ? "Sin pendientes de revisión." : "Ninguna coincide con el filtro de plaza."}
