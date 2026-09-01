@@ -656,9 +656,10 @@ export default function ImportarFacturasXML() {
     }
 
 
-    const payload = lineas.map((l, i) => ({
+    const payload = lineasFinal.map((l, i) => ({
       documento_id: doc.id,
-      producto_id: productoResuelto(row, i, l),
+      producto_id: productoManual[row.id]?.[i] || l.producto_id,
+
       cantidad: l.cantidad,
       precio_unitario: l.valorUnitario,
       subtotal: l.importe,
