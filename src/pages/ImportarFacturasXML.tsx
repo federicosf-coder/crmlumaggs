@@ -487,12 +487,47 @@ export default function ImportarFacturasXML() {
     refetch();
   };
 
-  const importarFila = async (row: IntakeRow, silencioso = false): Promise<boolean> => {
+  const elegibleAutomatico = (row: IntakeRow) =>
+    (row.cliente_match_estatus === "exacto_rfc" || row.cliente_match_estatus === "pendiente") &&
+    !!row.plaza_id_detectado &&
+    !!row.empresa_vendedora_detectada;
+
+  const importarFila = async (row: IntakeRow, silencioso = false, autoRegistrar = false): Promise<boolean> => {
     const lineas = lineasDe(row);
-    if (!todosProductosOk(row)) {
+    let lineasFinal: ProductoLinea[] = lineas.map((l) => ({ ...l }));
+    const productosCreadosIds: string[] = [];
+
+    if (autoRegistrar) {
+      for (let i = 0; i < lineasFinal.length; i++) {
+        const l = lineasFinal[i];
+        if (productoResuelto(row, i, l)) continue;
+        const codigo = l.codigo || `AUTO-${row.id.slice(0, 8)}-${i}`;
+        const { data: nuevoProd, error: errProdNuevo } = await (supabase as any)
+          .from("productos")
+          .insert({
+            codigo,
+            nombre_producto: l.descripcion || codigo,
+            descripcion: l.descripcion || null,
+            is_active: true,
+            creado_automaticamente: true,
+          })
+          .select("id")
+          .single();
+        if (errProdNuevo) {
+          if (!silencioso) toast.error(errProdNuevo.message);
+          return false;
+        }
+        lineasFinal[i] = { ...l, producto_id: nuevoProd.id };
+        productosCreadosIds.push(nuevoProd.id);
+      }
+    }
+
+    const todosOk = lineasFinal.every((l, i) => !!(productoManual[row.id]?.[i] || l.producto_id));
+    if (!todosOk) {
       if (!silencioso) toast.error("Faltan productos por emparejar");
       return false;
     }
+
     const { data: auth } = await supabase.auth.getUser();
     const userId = auth?.user?.id ?? null;
 
