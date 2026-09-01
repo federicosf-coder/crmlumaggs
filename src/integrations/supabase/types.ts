@@ -1272,9 +1272,11 @@ export type Database = {
           barrera_entrada: string | null
           city: string | null
           clabe_bancaria: string | null
+          creado_automaticamente: boolean
           created_at: string
           created_by: string | null
           customer_score: number | null
+          documento_origen_id: string | null
           email: string | null
           equipo: string | null
           estatus_cliente_id: string | null
@@ -1341,9 +1343,11 @@ export type Database = {
           barrera_entrada?: string | null
           city?: string | null
           clabe_bancaria?: string | null
+          creado_automaticamente?: boolean
           created_at?: string
           created_by?: string | null
           customer_score?: number | null
+          documento_origen_id?: string | null
           email?: string | null
           equipo?: string | null
           estatus_cliente_id?: string | null
@@ -1410,9 +1414,11 @@ export type Database = {
           barrera_entrada?: string | null
           city?: string | null
           clabe_bancaria?: string | null
+          creado_automaticamente?: boolean
           created_at?: string
           created_by?: string | null
           customer_score?: number | null
+          documento_origen_id?: string | null
           email?: string | null
           equipo?: string | null
           estatus_cliente_id?: string | null
@@ -1475,6 +1481,13 @@ export type Database = {
           zip_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "companies_documento_origen_id_fkey"
+            columns: ["documento_origen_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "companies_estatus_cliente_id_fkey"
             columns: ["estatus_cliente_id"]
@@ -7496,9 +7509,11 @@ export type Database = {
           costo_mercado_pendiente_baja: boolean
           costo_mercado_pendiente_desde: string | null
           costo_mercado_vigente: number | null
+          creado_automaticamente: boolean
           created_at: string
           created_by: string | null
           descripcion: string | null
+          documento_origen_id: string | null
           es_para_cotizar: boolean
           formula_id: string | null
           id: string
@@ -7533,9 +7548,11 @@ export type Database = {
           costo_mercado_pendiente_baja?: boolean
           costo_mercado_pendiente_desde?: string | null
           costo_mercado_vigente?: number | null
+          creado_automaticamente?: boolean
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
+          documento_origen_id?: string | null
           es_para_cotizar?: boolean
           formula_id?: string | null
           id?: string
@@ -7570,9 +7587,11 @@ export type Database = {
           costo_mercado_pendiente_baja?: boolean
           costo_mercado_pendiente_desde?: string | null
           costo_mercado_vigente?: number | null
+          creado_automaticamente?: boolean
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
+          documento_origen_id?: string | null
           es_para_cotizar?: boolean
           formula_id?: string | null
           id?: string
@@ -7609,6 +7628,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_documento_origen_id_fkey"
+            columns: ["documento_origen_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
             referencedColumns: ["id"]
           },
           {
@@ -10175,6 +10201,10 @@ export type Database = {
         Returns: Json
       }
       merge_contacts: {
+        Args: { _duplicate_id: string; _primary_id: string }
+        Returns: Json
+      }
+      merge_productos: {
         Args: { _duplicate_id: string; _primary_id: string }
         Returns: Json
       }
