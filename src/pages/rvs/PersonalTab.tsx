@@ -71,8 +71,11 @@ interface Persona {
 export function PersonalTab() {
   const qc = useQueryClient();
   const [soloSinClasificar, setSoloSinClasificar] = useState(false);
+  const [mostrarInactivas, setMostrarInactivas] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [personaUsuario, setPersonaUsuario] = useState<Persona | null>(null);
+  const [seleccion, setSeleccion] = useState<string[]>([]);
+  const [unirAbierto, setUnirAbierto] = useState(false);
   const { empresas, puestos, plazas, crearEmpresa, crearPuesto, crearPlaza } = useRvsCatalogos();
 
   const { data: personas = [], isLoading } = useQuery({
@@ -80,7 +83,7 @@ export function PersonalTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rvs_personas")
-        .select("id, nombre_reporte, nombre_mostrar, empresa_grupo_id, puesto_id, plaza_id, user_id, sin_clasificar, requiere_verificacion")
+        .select("id, nombre_reporte, nombre_mostrar, empresa_grupo_id, puesto_id, plaza_id, user_id, sin_clasificar, requiere_verificacion, is_active")
         .order("nombre_reporte");
       if (error) throw error;
       return (data || []) as Persona[];
@@ -106,12 +109,32 @@ export function PersonalTab() {
     const q = busqueda.trim().toLowerCase();
     return personas.filter(
       (p) =>
+        (mostrarInactivas || p.is_active !== false) &&
         (!soloSinClasificar || p.sin_clasificar) &&
         (!q ||
           p.nombre_reporte.toLowerCase().includes(q) ||
           (p.nombre_mostrar || "").toLowerCase().includes(q))
     );
-  }, [personas, soloSinClasificar, busqueda]);
+  }, [personas, soloSinClasificar, mostrarInactivas, busqueda]);
+
+  const seleccionadas = useMemo(
+    () => personas.filter((p) => seleccion.includes(p.id)),
+    [personas, seleccion]
+  );
+
+  const toggleSel = (id: string) =>
+    setSeleccion((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const desactivarSeleccionadas = async (activo: boolean) => {
+    const { error } = await supabase
+      .from("rvs_personas")
+      .update({ is_active: activo })
+      .in("id", seleccion);
+    if (error) return toast.error(error.message);
+    toast.success(`${seleccion.length} persona(s) ${activo ? "activadas" : "desactivadas"}`);
+    setSeleccion([]);
+    qc.invalidateQueries({ queryKey: ["rvs_personas"] });
+  };
 
   return (
     <div className="space-y-3">
@@ -123,17 +146,46 @@ export function PersonalTab() {
           className="sm:max-w-xs bg-background/80"
         />
 
-        <div className="flex items-center gap-2">
-          <Switch
-            id="sin-clasificar"
-            checked={soloSinClasificar}
-            onCheckedChange={setSoloSinClasificar}
-          />
-          <Label htmlFor="sin-clasificar" className="text-xs uppercase tracking-wide">
-            Solo sin clasificar ({personas.filter((p) => p.sin_clasificar).length})
-          </Label>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="sin-clasificar"
+              checked={soloSinClasificar}
+              onCheckedChange={setSoloSinClasificar}
+            />
+            <Label htmlFor="sin-clasificar" className="text-xs uppercase tracking-wide">
+              Solo sin clasificar ({personas.filter((p) => p.sin_clasificar).length})
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch id="ver-inactivas" checked={mostrarInactivas} onCheckedChange={setMostrarInactivas} />
+            <Label htmlFor="ver-inactivas" className="text-xs uppercase tracking-wide">
+              Ver inactivas ({personas.filter((p) => p.is_active === false).length})
+            </Label>
+          </div>
         </div>
       </div>
+
+      {seleccion.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2">
+          <span className="text-xs uppercase tracking-wide text-muted-foreground">
+            {seleccion.length} seleccionada(s)
+          </span>
+          <Button size="sm" className="h-7 text-xs" disabled={seleccion.length < 2} onClick={() => setUnirAbierto(true)}>
+            Unir duplicadas
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => desactivarSeleccionadas(false)}>
+            Desactivar
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => desactivarSeleccionadas(true)}>
+            Activar
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSeleccion([])}>
+            Limpiar
+          </Button>
+        </div>
+      )}
+
 
       <div className="rounded-xl border overflow-x-auto">
         <Table>
