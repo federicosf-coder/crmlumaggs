@@ -442,6 +442,29 @@ export default function ImportarFacturasXML() {
   const revision = pendientes.filter((r) => necesitaRevision(r));
   const yaRegistradas = (filas as IntakeRow[]).filter((r) => r.estatus === "ya_existia");
 
+  const plazasOpcionesRevision = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const row of revision) {
+      const id = plazaResuelta(row);
+      if (!id) continue;
+      const nombre = (plazas as any[]).find((p) => p.id === id)?.nombre || id;
+      mapa.set(id, nombre);
+    }
+    return Array.from(mapa.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([, nombre]) => nombre);
+  }, [revision, plazas]);
+
+  const revisionFiltradas = useMemo(() => {
+    if (plazasFiltroRevision.length === 0) return revision;
+    return revision.filter((row) => {
+      const id = plazaResuelta(row);
+      if (!id) return false;
+      const nombre = (plazas as any[]).find((p) => p.id === id)?.nombre;
+      return nombre && plazasFiltroRevision.includes(nombre);
+    });
+  }, [revision, plazasFiltroRevision, plazas]);
+
   useEffect(() => {
     for (const row of pendientes) {
       const id = empresaResuelta(row);
