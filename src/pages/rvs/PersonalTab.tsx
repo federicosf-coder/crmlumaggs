@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -64,13 +65,18 @@ interface Persona {
   user_id: string | null;
   sin_clasificar: boolean;
   requiere_verificacion: boolean | null;
+  is_active: boolean;
 }
+
 
 export function PersonalTab() {
   const qc = useQueryClient();
   const [soloSinClasificar, setSoloSinClasificar] = useState(false);
+  const [mostrarInactivas, setMostrarInactivas] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [personaUsuario, setPersonaUsuario] = useState<Persona | null>(null);
+  const [seleccion, setSeleccion] = useState<string[]>([]);
+  const [unirAbierto, setUnirAbierto] = useState(false);
   const { empresas, puestos, plazas, crearEmpresa, crearPuesto, crearPlaza } = useRvsCatalogos();
 
   const { data: personas = [], isLoading } = useQuery({
@@ -78,7 +84,7 @@ export function PersonalTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rvs_personas")
-        .select("id, nombre_reporte, nombre_mostrar, empresa_grupo_id, puesto_id, plaza_id, user_id, sin_clasificar, requiere_verificacion")
+        .select("id, nombre_reporte, nombre_mostrar, empresa_grupo_id, puesto_id, plaza_id, user_id, sin_clasificar, requiere_verificacion, is_active")
         .order("nombre_reporte");
       if (error) throw error;
       return (data || []) as Persona[];
@@ -104,12 +110,32 @@ export function PersonalTab() {
     const q = busqueda.trim().toLowerCase();
     return personas.filter(
       (p) =>
+        (mostrarInactivas || p.is_active !== false) &&
         (!soloSinClasificar || p.sin_clasificar) &&
         (!q ||
           p.nombre_reporte.toLowerCase().includes(q) ||
           (p.nombre_mostrar || "").toLowerCase().includes(q))
     );
-  }, [personas, soloSinClasificar, busqueda]);
+  }, [personas, soloSinClasificar, mostrarInactivas, busqueda]);
+
+  const seleccionadas = useMemo(
+    () => personas.filter((p) => seleccion.includes(p.id)),
+    [personas, seleccion]
+  );
+
+  const toggleSel = (id: string) =>
+    setSeleccion((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const desactivarSeleccionadas = async (activo: boolean) => {
+    const { error } = await supabase
+      .from("rvs_personas")
+      .update({ is_active: activo })
+      .in("id", seleccion);
+    if (error) return toast.error(error.message);
+    toast.success(`${seleccion.length} persona(s) ${activo ? "activadas" : "desactivadas"}`);
+    setSeleccion([]);
+    qc.invalidateQueries({ queryKey: ["rvs_personas"] });
+  };
 
   return (
     <div className="space-y-3">
@@ -121,22 +147,59 @@ export function PersonalTab() {
           className="sm:max-w-xs bg-background/80"
         />
 
-        <div className="flex items-center gap-2">
-          <Switch
-            id="sin-clasificar"
-            checked={soloSinClasificar}
-            onCheckedChange={setSoloSinClasificar}
-          />
-          <Label htmlFor="sin-clasificar" className="text-xs uppercase tracking-wide">
-            Solo sin clasificar ({personas.filter((p) => p.sin_clasificar).length})
-          </Label>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="sin-clasificar"
+              checked={soloSinClasificar}
+              onCheckedChange={setSoloSinClasificar}
+            />
+            <Label htmlFor="sin-clasificar" className="text-xs uppercase tracking-wide">
+              Solo sin clasificar ({personas.filter((p) => p.sin_clasificar).length})
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch id="ver-inactivas" checked={mostrarInactivas} onCheckedChange={setMostrarInactivas} />
+            <Label htmlFor="ver-inactivas" className="text-xs uppercase tracking-wide">
+              Ver inactivas ({personas.filter((p) => p.is_active === false).length})
+            </Label>
+          </div>
         </div>
       </div>
+
+      {seleccion.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2">
+          <span className="text-xs uppercase tracking-wide text-muted-foreground">
+            {seleccion.length} seleccionada(s)
+          </span>
+          <Button size="sm" className="h-7 text-xs" disabled={seleccion.length < 2} onClick={() => setUnirAbierto(true)}>
+            Unir duplicadas
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => desactivarSeleccionadas(false)}>
+            Desactivar
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => desactivarSeleccionadas(true)}>
+            Activar
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSeleccion([])}>
+            Limpiar
+          </Button>
+        </div>
+      )}
+
 
       <div className="rounded-xl border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">
+              <TableHead className="w-8">
+                <Checkbox
+                  checked={visibles.length > 0 && visibles.every((v) => seleccion.includes(v.id))}
+                  onCheckedChange={(c) =>
+                    setSeleccion(c ? Array.from(new Set([...seleccion, ...visibles.map((v) => v.id)])) : [])
+                  }
+                />
+              </TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Nombre en reporte</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Nombre a mostrar</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Empresa / Grupo</TableHead>
@@ -144,7 +207,9 @@ export function PersonalTab() {
               <TableHead className="text-[11px] uppercase tracking-wide">Plaza</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Usuario</TableHead>
               <TableHead className="text-[11px] uppercase tracking-wide">Estado</TableHead>
+              <TableHead className="text-[11px] uppercase tracking-wide">Activa</TableHead>
             </TableRow>
+
           </TableHeader>
           <TableBody>
             {isLoading && (
@@ -162,8 +227,12 @@ export function PersonalTab() {
               </TableRow>
             )}
             {visibles.map((p, idx) => (
-              <TableRow key={p.id} className={idx % 2 ? "bg-muted/30" : undefined}>
+              <TableRow key={p.id} className={`${idx % 2 ? "bg-muted/30" : ""} ${p.is_active === false ? "opacity-60" : ""}`}>
+                <TableCell>
+                  <Checkbox checked={seleccion.includes(p.id)} onCheckedChange={() => toggleSel(p.id)} />
+                </TableCell>
                 <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{p.nombre_reporte}</TableCell>
+
                 <TableCell className="min-w-[220px]">
                   <NombreMostrarInput
                     value={p.nombre_mostrar ?? ""}
@@ -232,11 +301,28 @@ export function PersonalTab() {
                     <Badge variant="outline">Clasificado</Badge>
                   )}
                 </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={p.is_active !== false}
+                    onCheckedChange={(v) => update(p.id, { is_active: v })}
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
+      <UnirPersonasDialog
+        open={unirAbierto}
+        onOpenChange={setUnirAbierto}
+        personas={seleccionadas}
+        onDone={() => {
+          setSeleccion([]);
+          qc.invalidateQueries({ queryKey: ["rvs_personas"] });
+          qc.invalidateQueries({ queryKey: ["rvs_ventas_mes"] });
+        }}
+      />
 
       <CrearUsuarioDialog
         persona={personaUsuario}
@@ -244,6 +330,85 @@ export function PersonalTab() {
         onCreated={() => qc.invalidateQueries({ queryKey: ["rvs_personas"] })}
       />
     </div>
+
+  );
+}
+
+function UnirPersonasDialog({
+  open,
+  onOpenChange,
+  personas,
+  onDone,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  personas: Persona[];
+  onDone: () => void;
+}) {
+  const [masterId, setMasterId] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && personas.length) setMasterId(personas[0].id);
+  }, [open, personas]);
+
+  const unir = async () => {
+    if (!masterId) return;
+    setSaving(true);
+    const dupes = personas.map((p) => p.id).filter((id) => id !== masterId);
+    const { error } = await supabase.rpc("rvs_merge_personas", { _master: masterId, _dupes: dupes });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Se unieron ${dupes.length} registro(s) duplicado(s)`);
+    onOpenChange(false);
+    onDone();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
+          <DialogTitle className="text-lg font-semibold tracking-tight">Unir personas duplicadas</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground font-light">
+            Elige el registro principal. Las ventas de los demás se trasladarán (sumando cuando coincida mes y
+            marca) y los nombres duplicados quedarán como alias para futuras importaciones.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="px-5 py-5 space-y-2 max-h-[50vh] overflow-y-auto">
+          <Label className="text-xs uppercase tracking-wide text-muted-foreground">Registro principal</Label>
+          {personas.map((p) => (
+            <label
+              key={p.id}
+              className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 text-sm ${
+                masterId === p.id ? "border-primary bg-primary/5" : ""
+              }`}
+            >
+              <input
+                type="radio"
+                className="mt-1"
+                checked={masterId === p.id}
+                onChange={() => setMasterId(p.id)}
+              />
+              <span>
+                <span className="font-medium">{p.nombre_mostrar || limpiarNombre(p.nombre_reporte)}</span>
+                <span className="block text-xs text-muted-foreground">{p.nombre_reporte}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <div className="border-t bg-muted/30 px-5 py-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={unir} disabled={saving || personas.length < 2}>
+            {saving ? "Uniendo…" : "Unir"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
