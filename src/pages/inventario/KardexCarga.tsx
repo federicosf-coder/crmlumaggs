@@ -697,7 +697,10 @@ async function procesarInventario(
       row.stock_almacen_1002 = e.stocks["1002"] ?? 0;
       row.stock_almacen_1003 = e.stocks["1003"] ?? 0;
       row.stock_almacen_1004 = e.stocks["1004"] ?? 0;
-      row.stock_total = row.stock_almacen_1001 + row.stock_almacen_1002 + row.stock_almacen_1003 + row.stock_almacen_1004;
+      row.stock_almacen_1005 = e.stocks["1005"] ?? 0;
+      row.stock_almacen_1006 = e.stocks["1006"] ?? 0;
+      row.stock_almacen_1007 = e.stocks["1007"] ?? 0;
+      row.stock_total = row.stock_almacen_1001 + row.stock_almacen_1002 + row.stock_almacen_1003 + row.stock_almacen_1004 + row.stock_almacen_1005 + row.stock_almacen_1006 + row.stock_almacen_1007;
     } else {
       const valor = Object.values(e.valores).reduce((a, b) => a + b, 0);
       const total = ex?.stock_total ?? 0;
