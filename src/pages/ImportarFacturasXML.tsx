@@ -1046,13 +1046,26 @@ export default function ImportarFacturasXML() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" /> Necesitan revisión ({revision.length})
-            </h2>
-            {revision.length === 0 ? (
-              <p className="text-xs text-muted-foreground font-light">Sin pendientes de revisión.</p>
+            <div className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600" /> Necesitan revisión ({revisionFiltradas.length}{" "}
+                {revision.length !== revisionFiltradas.length && `de ${revision.length}`})
+              </h2>
+              {plazasOpcionesRevision.length > 0 && (
+                <FiltroChipsMulti
+                  titulo="Filtrar por plaza"
+                  opciones={plazasOpcionesRevision}
+                  seleccion={plazasFiltroRevision}
+                  onChange={setPlazasFiltroRevision}
+                />
+              )}
+            </div>
+            {revisionFiltradas.length === 0 ? (
+              <p className="text-xs text-muted-foreground font-light">
+                {revision.length === 0 ? "Sin pendientes de revisión." : "Ninguna coincide con el filtro de plaza."}
+              </p>
             ) : (
-              revision.map((r) => renderTarjeta(r, "revision"))
+              revisionFiltradas.map((r) => renderTarjeta(r, "revision"))
             )}
           </section>
 
