@@ -217,7 +217,7 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
 
     // Determinar si es venta por facturación
     // REGLA: col[4] debe empezar con "Facturacion" (puede tener o sin acento)
-    const esFacturacion = /^Facturaci[oó]n\s+\S/i.test(c4);
+    const esFacturacion = /^Facturaci[oó]n\s+\S/i.test(c4) || /^Factura\s+4\.0\b/i.test(c4);
 
     // Determinar almacén/plaza desde col[5]
     const almacenTexto = c5.toLowerCase();
