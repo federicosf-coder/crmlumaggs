@@ -376,7 +376,7 @@ export default function DocumentsList() {
       if (!access.canView) return [];
       let q = supabase
         .from("documentos")
-        .select("*, companies(name), contacts(first_name, last_name), plazas(nombre)")
+        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, numero_oc_cliente, fecha_documento, fecha_vencimiento, fecha_entrega_programada, total, tipo_pago, condiciones_pago, plaza_id, empresa_id, contacto_id, ejecutivo_venta_id, created_by, created_at, pdf_url, estatus_cotizacion, estatus_pedido, estatus_factura, estatus_entrega_corporativa, estado_cobranza, saldo_pendiente_cobranza, cotizacion_original_id, companies(name), contacts(first_name, last_name), plazas(nombre)")
         .eq("is_active", true)
         .eq("empresa_vendedora", empresaFilter as any)
         .order("created_at", { ascending: false });
