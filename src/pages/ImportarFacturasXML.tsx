@@ -13,6 +13,8 @@ import { TIPO_PAGO_OPTS } from "@/components/CompanyFormDialog";
 import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
 import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
+import { fetchAllRows } from "@/lib/supabasePagination";
+
 
 const BUCKET = "facturas-xml";
 
@@ -123,16 +125,17 @@ export default function ImportarFacturasXML() {
 
   const { data: companiesActivas = [] } = useQuery({
     queryKey: ["companies-xml-import"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("companies")
-        .select("id, name, razon_social")
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: async () =>
+      await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("companies")
+          .select("id, name, razon_social")
+          .eq("is_active", true)
+          .order("name")
+          .range(from, to)
+      ),
   });
+
 
   const { data: profilesActivos = [] } = useQuery({
     queryKey: ["profiles-xml-import"],
@@ -256,17 +259,18 @@ export default function ImportarFacturasXML() {
               const { data: cands } = await (supabase as any)
                 .from("companies")
                 .select("id, name, razon_social")
-                .ilike("razon_social", `%${w}%`)
-                .limit(5);
+                .or(`razon_social.ilike.%${w}%,name.ilike.%${w}%`)
+                .limit(10);
               for (const c of cands || []) encontrados[c.id] = c;
             }
             const objetivo = normalizarTexto(cfdi.receptorNombre || "");
             candidatos = Object.values(encontrados)
               .map((c: any) => {
-                const n = normalizarTexto(c.razon_social || "");
+                const n = normalizarTexto(c.razon_social || c.name || "");
                 const comunes = palabras.filter((w) => n.includes(w)).length;
                 return { id: c.id, name: c.name, razon_social: c.razon_social, score: comunes + (n === objetivo ? 10 : 0) };
               })
+
               .sort((a: any, b: any) => b.score - a.score)
               .slice(0, 5)
               .map((c: any) => ({ id: c.id, name: c.name, razon_social: c.razon_social }));
