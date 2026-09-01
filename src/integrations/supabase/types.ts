@@ -5937,6 +5937,9 @@ export type Database = {
           stock_almacen_1002: number | null
           stock_almacen_1003: number | null
           stock_almacen_1004: number | null
+          stock_almacen_1005: number | null
+          stock_almacen_1006: number | null
+          stock_almacen_1007: number | null
           stock_total: number | null
           unidad: string | null
           updated_at: string | null
@@ -5965,6 +5968,9 @@ export type Database = {
           stock_almacen_1002?: number | null
           stock_almacen_1003?: number | null
           stock_almacen_1004?: number | null
+          stock_almacen_1005?: number | null
+          stock_almacen_1006?: number | null
+          stock_almacen_1007?: number | null
           stock_total?: number | null
           unidad?: string | null
           updated_at?: string | null
@@ -5993,6 +5999,9 @@ export type Database = {
           stock_almacen_1002?: number | null
           stock_almacen_1003?: number | null
           stock_almacen_1004?: number | null
+          stock_almacen_1005?: number | null
+          stock_almacen_1006?: number | null
+          stock_almacen_1007?: number | null
           stock_total?: number | null
           unidad?: string | null
           updated_at?: string | null

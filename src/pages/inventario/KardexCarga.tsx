@@ -27,7 +27,20 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type TipoArchivo = "inventario_unidades" | "inventario_importe" | "kardex_unidades" | "kardex_importe";
 
-const ALMACENES_VALIDOS = new Set(["1001", "1002", "1003", "1004"]);
+const ALMACENES_VALIDOS = new Set(["1001", "1002", "1003", "1004", "1005", "1006", "1007"]);
+
+// Galsa usa su propio esquema de códigos de almacén en CONTPAQi (distinto a Chevron).
+// Mapeamos a los códigos canónicos de plaza. Tijuana 02 se fusiona con Tijuana.
+const GALSA_ALMACEN_MAP: Record<string, string> = {
+  "1": "1001",  // Mexicali
+  "9": "1002",  // Tijuana
+  "15": "1002", // Tijuana 02 -> Tijuana
+  "4": "1003",  // Morelos
+  "13": "1004", // Ensenada
+  "2": "1005",  // San Luis
+  "5": "1006",  // Puerto Peñasco
+  "6": "1007",  // San Quintín
+};
 
 const MESES_ES: Record<string, string> = {
   ENE: "01", FEB: "02", MAR: "03", ABR: "04", MAY: "05", JUN: "06",
@@ -91,7 +104,7 @@ interface ParsedInventario {
   warehousesEncontrados: string[];
 }
 
-function parseInventario(rows: any[][]): ParsedInventario {
+function parseInventario(rows: any[][], empresa: string): ParsedInventario {
   const { fechaInicio, fechaFin } = buscarRangoFechas(rows);
 
   const lineas: ParsedLinea[] = [];
@@ -108,9 +121,10 @@ function parseInventario(rows: any[][]): ParsedInventario {
       const mInline = c0.match(/:\s*(\d+)/);
       const codeRaw = mInline ? mInline[1] : row[1];
       const code = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
-      curAlmacen = code;
-      almacenValido = ALMACENES_VALIDOS.has(code);
-      if (almacenValido) warehouses.add(code);
+      const mappedCode = empresa === "galsa" ? (GALSA_ALMACEN_MAP[code] ?? null) : code;
+      curAlmacen = mappedCode;
+      almacenValido = !!mappedCode && ALMACENES_VALIDOS.has(mappedCode);
+      if (almacenValido && mappedCode) warehouses.add(mappedCode);
       continue;
     }
     if (/^Nombre:/i.test(c0)) continue;
@@ -203,7 +217,7 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
 
     // Determinar si es venta por facturación
     // REGLA: col[4] debe empezar con "Facturacion" (puede tener o sin acento)
-    const esFacturacion = /^Facturaci[oó]n\s+\S/i.test(c4);
+    const esFacturacion = /^Facturaci[oó]n\s+\S/i.test(c4) || /^Factura\s+4\.0\b/i.test(c4);
 
     // Determinar almacén/plaza desde col[5]
     const almacenTexto = c5.toLowerCase();
@@ -212,6 +226,9 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
     else if (almacenTexto.includes("mexicali")) almacenCodigo = "1001";
     else if (almacenTexto.includes("morelos")) almacenCodigo = "1003";
     else if (almacenTexto.includes("ensenada")) almacenCodigo = "1004";
+    else if (almacenTexto.includes("san luis")) almacenCodigo = "1005";
+    else if (almacenTexto.includes("peñasco") || almacenTexto.includes("penasco")) almacenCodigo = "1006";
+    else if (almacenTexto.includes("san quintin") || almacenTexto.includes("san quintín")) almacenCodigo = "1007";
 
     // Entradas: col[6], Salidas: col[7]
     const entradas = Number(c6.replace(/[^0-9.-]/g, "")) || 0;
@@ -632,7 +649,7 @@ async function procesarInventario(
   userId: string | null,
   setProgress: (n: number) => void,
 ) {
-  const parsed = parseInventario(rows);
+  const parsed = parseInventario(rows, empresa);
 
   const { data: carga, error: cErr } = await (supabase as any)
     .from("inv_kardex_cargas")
@@ -683,7 +700,10 @@ async function procesarInventario(
       row.stock_almacen_1002 = e.stocks["1002"] ?? 0;
       row.stock_almacen_1003 = e.stocks["1003"] ?? 0;
       row.stock_almacen_1004 = e.stocks["1004"] ?? 0;
-      row.stock_total = row.stock_almacen_1001 + row.stock_almacen_1002 + row.stock_almacen_1003 + row.stock_almacen_1004;
+      row.stock_almacen_1005 = e.stocks["1005"] ?? 0;
+      row.stock_almacen_1006 = e.stocks["1006"] ?? 0;
+      row.stock_almacen_1007 = e.stocks["1007"] ?? 0;
+      row.stock_total = row.stock_almacen_1001 + row.stock_almacen_1002 + row.stock_almacen_1003 + row.stock_almacen_1004 + row.stock_almacen_1005 + row.stock_almacen_1006 + row.stock_almacen_1007;
     } else {
       const valor = Object.values(e.valores).reduce((a, b) => a + b, 0);
       const total = ex?.stock_total ?? 0;
