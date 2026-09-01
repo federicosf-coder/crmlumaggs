@@ -10212,6 +10212,10 @@ export type Database = {
         }
         Returns: Json
       }
+      rvs_merge_personas: {
+        Args: { _dupes: string[]; _master: string }
+        Returns: Json
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }
