@@ -610,6 +610,26 @@ export function TaskActionFields({
 
         </div>
       )}
+
+      {(isMeeting || isNote) && (
+        <div className="rounded-lg border overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-4 py-2.5 border-b flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            <span className="text-xs uppercase tracking-wide font-semibold text-violet-900 dark:text-violet-100">
+              Evidencia fotográfica
+            </span>
+          </div>
+          <div className="p-4 bg-background space-y-2">
+            {taskId ? (
+              <VisitaEvidencias taskId={taskId} />
+            ) : (
+              <p className="text-[11px] text-muted-foreground font-light">
+                Guarda {isMeeting ? "la reunión" : "la nota"} para poder subir imágenes de evidencia.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
