@@ -165,7 +165,7 @@ export function PersonalTab() {
               onCheckedChange={setSoloSinClasificar}
             />
             <Label htmlFor="sin-clasificar" className="text-xs uppercase tracking-wide">
-              Solo sin clasificar ({personas.filter((p) => p.sin_clasificar).length})
+              Solo sin clasificar ({conteoSinClasificar})
             </Label>
           </div>
           <div className="flex items-center gap-2">
