@@ -106,17 +106,27 @@ export function PersonalTab() {
   const requiereAcceso = (p: Persona) =>
     !!(puestos.data || []).find((x) => x.id === p.puesto_id)?.requiere_acceso;
 
+  // Alcance actual (respeta el switch "Ver inactivas"): base para los contadores
+  const enAlcance = useMemo(
+    () => personas.filter((p) => mostrarInactivas || p.is_active !== false),
+    [personas, mostrarInactivas]
+  );
+
+  const conteoSinClasificar = useMemo(
+    () => enAlcance.filter((p) => p.sin_clasificar).length,
+    [enAlcance]
+  );
+
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    return personas.filter(
+    return enAlcance.filter(
       (p) =>
-        (mostrarInactivas || p.is_active !== false) &&
         (!soloSinClasificar || p.sin_clasificar) &&
         (!q ||
           p.nombre_reporte.toLowerCase().includes(q) ||
           (p.nombre_mostrar || "").toLowerCase().includes(q))
     );
-  }, [personas, soloSinClasificar, mostrarInactivas, busqueda]);
+  }, [enAlcance, soloSinClasificar, busqueda]);
 
   const seleccionadas = useMemo(
     () => personas.filter((p) => seleccion.includes(p.id)),
