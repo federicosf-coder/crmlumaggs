@@ -1144,7 +1144,16 @@ export default function ImportarFacturasXML() {
                   onChange={setPlazasFiltroRevision}
                 />
               )}
+              {revisionFiltradas.some(elegibleAutomatico) && (
+                <div>
+                  <Button size="sm" variant="secondary" disabled={registrandoLote} onClick={handleRegistrarAutomaticoLote}>
+                    {registrandoLote ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+                    Registrar automáticamente todas
+                  </Button>
+                </div>
+              )}
             </div>
+
             {revisionFiltradas.length === 0 ? (
               <p className="text-xs text-muted-foreground font-light">
                 {revision.length === 0 ? "Sin pendientes de revisión." : "Ninguna coincide con el filtro de plaza."}
