@@ -551,7 +551,10 @@ export default function ImportarFacturasXML() {
           razon_social: row.receptor_nombre || null,
           rfc: row.receptor_rfc || null,
           tipo_pago: tipoPagoSel || null,
+          plaza_id: plazaResuelta(row),
+          creado_automaticamente: true,
           is_active: true,
+
         })
         .select("id")
         .single();
