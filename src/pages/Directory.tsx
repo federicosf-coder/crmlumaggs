@@ -49,6 +49,7 @@ interface Company {
   tipo_pago: string | null; forma_pago: string | null; metodo_pago: string | null; uso_cfdi: string | null;
   plazas?: { nombre: string } | null;
   contacts?: { id: string }[];
+  creado_automaticamente?: boolean;
 }
 
 interface Contact {
@@ -1180,6 +1181,9 @@ export default function Directory() {
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-3 mt-4 min-h-[580px] overflow-y-auto">
+                  {selectedCompany.creado_automaticamente && (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">Este cliente fue creado automáticamente por el sistema al importar un documento relacionado.</div>
+                  )}
                   {/* Resumen destacado */}
                   <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
                     <div className="grid grid-cols-2 gap-3">
