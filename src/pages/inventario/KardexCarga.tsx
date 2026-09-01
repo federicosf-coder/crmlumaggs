@@ -121,9 +121,10 @@ function parseInventario(rows: any[][], empresa: string): ParsedInventario {
       const mInline = c0.match(/:\s*(\d+)/);
       const codeRaw = mInline ? mInline[1] : row[1];
       const code = typeof codeRaw === "number" ? String(Math.round(codeRaw)) : String(codeRaw ?? "").trim();
-      curAlmacen = code;
-      almacenValido = ALMACENES_VALIDOS.has(code);
-      if (almacenValido) warehouses.add(code);
+      const mappedCode = empresa === "galsa" ? (GALSA_ALMACEN_MAP[code] ?? null) : code;
+      curAlmacen = mappedCode;
+      almacenValido = !!mappedCode && ALMACENES_VALIDOS.has(mappedCode);
+      if (almacenValido && mappedCode) warehouses.add(mappedCode);
       continue;
     }
     if (/^Nombre:/i.test(c0)) continue;
