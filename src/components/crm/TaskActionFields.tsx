@@ -300,7 +300,7 @@ export function TaskActionFields({
     onSent?.(`WhatsApp enviado a +${waNormalized}`);
   };
 
-  if (!isEmail && !isCall && !isWhatsApp && !isVisit) return null;
+  if (!isEmail && !isCall && !isWhatsApp && !isVisit && !isMeeting && !isNote) return null;
 
   return (
     <section className="space-y-3">
