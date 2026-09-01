@@ -737,6 +737,30 @@ export default function ImportarFacturasXML() {
     refetch();
   };
 
+  const handleRegistrarAutomatico = async (row: IntakeRow) => {
+    setRegistrandoId(row.id);
+    const ok = await importarFila(row, false, true);
+    setRegistrandoId(null);
+    if (ok) {
+      toast.success(`Factura ${row.serie || ""}${row.folio || ""} registrada automáticamente`);
+      refetch();
+    }
+  };
+
+  const handleRegistrarAutomaticoLote = async () => {
+    setRegistrandoLote(true);
+    let ok = 0;
+    for (const row of revisionFiltradas.filter(elegibleAutomatico)) {
+      const r = await importarFila(row, true, true);
+      if (r) ok++;
+    }
+    setRegistrandoLote(false);
+    toast.success(`${ok} factura(s) registrada(s) automáticamente`);
+    refetch();
+  };
+
+
+
   /* ---------------- Render ---------------- */
 
   const renderTarjeta = (row: IntakeRow, modo: "lista" | "revision" | "existente") => {
