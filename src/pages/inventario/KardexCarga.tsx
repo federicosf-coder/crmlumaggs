@@ -27,7 +27,20 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type TipoArchivo = "inventario_unidades" | "inventario_importe" | "kardex_unidades" | "kardex_importe";
 
-const ALMACENES_VALIDOS = new Set(["1001", "1002", "1003", "1004"]);
+const ALMACENES_VALIDOS = new Set(["1001", "1002", "1003", "1004", "1005", "1006", "1007"]);
+
+// Galsa usa su propio esquema de códigos de almacén en CONTPAQi (distinto a Chevron).
+// Mapeamos a los códigos canónicos de plaza. Tijuana 02 se fusiona con Tijuana.
+const GALSA_ALMACEN_MAP: Record<string, string> = {
+  "1": "1001",  // Mexicali
+  "9": "1002",  // Tijuana
+  "15": "1002", // Tijuana 02 -> Tijuana
+  "4": "1003",  // Morelos
+  "13": "1004", // Ensenada
+  "2": "1005",  // San Luis
+  "5": "1006",  // Puerto Peñasco
+  "6": "1007",  // San Quintín
+};
 
 const MESES_ES: Record<string, string> = {
   ENE: "01", FEB: "02", MAR: "03", ABR: "04", MAY: "05", JUN: "06",
