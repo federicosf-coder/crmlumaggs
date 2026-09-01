@@ -3309,6 +3309,44 @@ export type Database = {
           },
         ]
       }
+      crm_task_evidencias: {
+        Row: {
+          captured_at: string | null
+          created_at: string
+          file_name: string | null
+          id: string
+          storage_path: string
+          task_id: string
+          user_id: string | null
+        }
+        Insert: {
+          captured_at?: string | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          storage_path: string
+          task_id: string
+          user_id?: string | null
+        }
+        Update: {
+          captured_at?: string | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          storage_path?: string
+          task_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_task_evidencias_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_task_seguimiento: {
         Row: {
           created_at: string
