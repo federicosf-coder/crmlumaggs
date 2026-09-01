@@ -36,8 +36,8 @@ export default function ReporteVentasSistema() {
         title="Reporte de Ventas Sistema"
         description="Ventas mensuales por agente y sucursal recibidas automáticamente del sistema."
       />
-      <div className="container mx-auto p-4">
-        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+      <div className="container mx-auto p-4 flex flex-col h-[calc(100vh-3.5rem)]">
+        <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
           <TabsList className="bg-gradient-to-r from-indigo-100 via-sky-100 to-emerald-100 dark:from-indigo-950/40 dark:via-sky-950/40 dark:to-emerald-950/40 p-1 h-auto gap-1 border border-indigo-200 dark:border-indigo-900">
             <TabsTrigger
               value="dashboard"
@@ -76,24 +76,26 @@ export default function ReporteVentasSistema() {
               Configuración
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="dashboard">
-            <DashboardTab onIrAPersonal={() => setTab("personal")} />
-          </TabsContent>
-          <TabsContent value="personal">
-            <PersonalTab />
-          </TabsContent>
-          <TabsContent value="mes">
-            <ReportesMesTab />
-          </TabsContent>
-          <TabsContent value="hist12">
-            <Historico12MesesTab />
-          </TabsContent>
-          <TabsContent value="captura">
-            <CapturaManualTab />
-          </TabsContent>
-          <TabsContent value="config">
-            <ConfiguracionTab />
-          </TabsContent>
+          <div className="flex-1 min-h-0 overflow-auto mt-2">
+            <TabsContent value="dashboard" className="mt-0">
+              <DashboardTab onIrAPersonal={() => setTab("personal")} />
+            </TabsContent>
+            <TabsContent value="personal" className="mt-0 h-full">
+              <PersonalTab />
+            </TabsContent>
+            <TabsContent value="mes" className="mt-0">
+              <ReportesMesTab />
+            </TabsContent>
+            <TabsContent value="hist12" className="mt-0">
+              <Historico12MesesTab />
+            </TabsContent>
+            <TabsContent value="captura" className="mt-0">
+              <CapturaManualTab />
+            </TabsContent>
+            <TabsContent value="config" className="mt-0">
+              <ConfiguracionTab />
+            </TabsContent>
+          </div>
         </Tabs>
       </div>
     </>
