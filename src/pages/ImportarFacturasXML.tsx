@@ -14,6 +14,7 @@ import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle, Rotate
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
 import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
 import { fetchAllRows } from "@/lib/supabasePagination";
+import { FiltroChipsMulti } from "./rvs/components/FiltroChipsMulti";
 
 
 const BUCKET = "facturas-xml";
