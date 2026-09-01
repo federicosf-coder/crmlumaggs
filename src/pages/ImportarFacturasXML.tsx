@@ -51,6 +51,8 @@ export default function ImportarFacturasXML() {
   const [procesando, setProcesando] = useState(false);
   const [importandoId, setImportandoId] = useState<string | null>(null);
   const [importandoLote, setImportandoLote] = useState(false);
+  const [registrandoId, setRegistrandoId] = useState<string | null>(null);
+  const [registrandoLote, setRegistrandoLote] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Selecciones manuales por fila (plaza, cliente candidato, productos)
