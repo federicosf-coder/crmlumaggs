@@ -13,7 +13,7 @@ import { fetchAllRows } from "@/lib/supabasePagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type Entity = "companies" | "contacts" | "addresses";
+type Entity = "companies" | "contacts" | "addresses" | "productos";
 
 interface Props {
   open: boolean;
@@ -81,7 +81,7 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
     try {
       if (entity === "companies") {
         const rows = await fetchAllRows<any>((from, to) =>
-          supabase.from("companies").select("id, name, razon_social, id_contpaq, email, phone, city").range(from, to)
+          supabase.from("companies").select("id, name, razon_social, id_contpaq, email, phone, city, creado_automaticamente").range(from, to)
         );
         const all: Row[] = rows.map((r: any) => ({
           id: r.id,
@@ -147,6 +147,39 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
           const dp = digits(r.phone);
           if (dm.length >= 8) push(dm, "Mismo celular", r);
           if (dp.length >= 8 && dp !== dm) push(dp, "Mismo teléfono", r);
+        }
+        const out: Group[] = [];
+        for (const [k, v] of buckets) {
+          if (v.rows.length >= 2) out.push({ key: k, reason: v.reason, rows: v.rows });
+        }
+        out.sort((a, b) => b.rows.length - a.rows.length);
+        setGroups(out);
+      } else if (entity === "productos") {
+        const rows = await fetchAllRows<any>((from, to) =>
+          supabase.from("productos").select("id, codigo, nombre_producto, descripcion, is_active, creado_automaticamente").eq("is_active", true).range(from, to)
+        );
+        const all: Row[] = rows.map((r: any) => ({
+          id: r.id,
+          label: r.nombre_producto,
+          sub: [r.codigo, r.descripcion].filter(Boolean).join(" • ") || null,
+          raw: r,
+        }));
+        setAllRows(all);
+        const buckets = new Map<string, { reason: string; rows: Row[] }>();
+        const push = (key: string, reason: string, r: any) => {
+          if (!key) return;
+          const k = `${reason}::${key}`;
+          if (!buckets.has(k)) buckets.set(k, { reason, rows: [] });
+          const arr = buckets.get(k)!.rows;
+          if (!arr.find(x => x.id === r.id)) arr.push({
+            id: r.id,
+            label: r.nombre_producto,
+            sub: [r.codigo, r.descripcion].filter(Boolean).join(" • ") || null,
+            raw: r,
+          });
+        };
+        for (const r of rows) {
+          push(normalize(r.nombre_producto), "Mismo nombre de producto", r);
         }
         const out: Group[] = [];
         for (const [k, v] of buckets) {
@@ -319,7 +352,7 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
         if (delErr) throw delErr;
         ok = dupIds.length;
       } else {
-        const fnName = entity === "companies" ? "merge_companies" : "merge_contacts";
+        const fnName = entity === "companies" ? "merge_companies" : entity === "productos" ? "merge_productos" : "merge_contacts";
         for (const dupId of duplicateIds) {
           const { error } = await (supabase.rpc as any)(fnName, {
             _primary_id: primaryId,
@@ -345,7 +378,7 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Fusionar duplicados — {entity === "companies" ? "Empresas" : entity === "contacts" ? "Contactos" : "Direcciones"}</DialogTitle>
+            <DialogTitle>Fusionar duplicados — {entity === "companies" ? "Empresas" : entity === "contacts" ? "Contactos" : entity === "productos" ? "Productos" : "Direcciones"}</DialogTitle>
             <DialogDescription>
               Detecta posibles duplicados, elige el registro principal y los demás se fusionarán en él.
             </DialogDescription>
@@ -403,7 +436,7 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
                       <div className="relative">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder={`Buscar ${entity === "companies" ? "empresa" : "contacto"} por nombre, correo, etc...`}
+                          placeholder={entity === "productos" ? "Buscar producto por código o nombre..." : `Buscar ${entity === "companies" ? "empresa" : "contacto"} por nombre, correo, etc...`}
                           className="pl-8 h-9"
                           value={freeSearch}
                           onChange={e => setFreeSearch(e.target.value)}
@@ -450,7 +483,12 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
                                 onChange={() => toggleFreeSelected(r.id)}
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium truncate">{r.label}</div>
+                                <div className="font-medium truncate">
+                                  {r.label}
+                                  {r.raw?.creado_automaticamente && (
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] ml-1.5">Creado automáticamente</Badge>
+                                  )}
+                                </div>
                                 {r.sub && <div className="text-xs text-muted-foreground truncate">{r.sub}</div>}
                               </div>
                             </label>
@@ -481,6 +519,9 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
                                   {r.label}
                                   {primaryId === r.id && (
                                     <Badge className="ml-2" variant="default">Principal</Badge>
+                                  )}
+                                  {r.raw?.creado_automaticamente && (
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] ml-1.5">Creado automáticamente</Badge>
                                   )}
                                 </Label>
                                 {r.sub && <p className="text-xs text-muted-foreground truncate">{r.sub}</p>}
@@ -532,9 +573,9 @@ export function MergeDuplicatesDialog({ open, onOpenChange, entity, onMerged }: 
               Confirmar fusión
             </DialogTitle>
             <DialogDescription>
-              Esta acción reasigna todas las relaciones (documentos, pagos, oportunidades, tareas, actividades, ejecutivos)
-              del/los duplicado(s) al registro principal, completa los campos vacíos del principal y luego elimina
-              el/los duplicado(s). No se puede deshacer.
+              {entity === "productos"
+                ? "Esta acción reasigna todas las relaciones (documentos, pedidos, inventario, kardex, demanda) del/los duplicado(s) al principal, completa los campos vacíos del principal y desactiva el/los duplicado(s). No se puede deshacer."
+                : "Esta acción reasigna todas las relaciones (documentos, pagos, oportunidades, tareas, actividades, ejecutivos) del/los duplicado(s) al registro principal, completa los campos vacíos del principal y luego elimina el/los duplicado(s). No se puede deshacer."}
             </DialogDescription>
           </DialogHeader>
           <Separator />
