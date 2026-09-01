@@ -591,7 +591,19 @@ export function TaskActionFields({
               <MapPin className="h-3 w-3" /> Abrir en mapa
             </a>
           )}
+
+          <div className="pt-3 mt-1 border-t space-y-2">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Evidencia fotográfica</Label>
+            {taskId ? (
+              <VisitaEvidencias taskId={taskId} />
+            ) : (
+              <p className="text-[11px] text-muted-foreground font-light">
+                Guarda la visita para poder subir imágenes de evidencia.
+              </p>
+            )}
           </div>
+          </div>
+
         </div>
       )}
     </section>
