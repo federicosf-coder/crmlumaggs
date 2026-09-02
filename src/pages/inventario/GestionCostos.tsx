@@ -480,6 +480,9 @@ export default function GestionCostos() {
         <TabsContent value="mapeo" className="mt-4">
           <MapeoTabsContent />
         </TabsContent>
+        <TabsContent value="huerfanos" className="mt-4">
+          <HuerfanosInventarioSection />
+        </TabsContent>
       </Tabs>
     </div>
   );
