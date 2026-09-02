@@ -403,6 +403,19 @@ export default function GestionCostos() {
     return huerfanosInv.filter((r) => !ignoradosSet.has(r.codigo)).length;
   }, [huerfanosInv, ignoradosGlobal]);
 
+  if (!canViewCostos) {
+    return (
+      <div className="p-6 flex justify-center">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-10 flex flex-col items-center text-center gap-3">
+            <Lock className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm font-light text-muted-foreground">No tienes permiso para ver esta sección.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -2495,19 +2508,6 @@ function HuerfanosInventarioSection() {
       </Select>
     </div>
   );
-
-  if (!canViewCostos) {
-    return (
-      <div className="p-6 flex justify-center">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-10 flex flex-col items-center text-center gap-3">
-            <Lock className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm font-light text-muted-foreground">No tienes permiso para ver esta sección.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
