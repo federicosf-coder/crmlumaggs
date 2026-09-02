@@ -394,6 +394,13 @@ export default function GestionCostos() {
     },
   });
 
+  const { data: huerfanosInv = [] } = useHuerfanosInventario();
+  const { data: ignoradosGlobal = [] } = useCostosIgnorados();
+  const huerfanosInvCount = useMemo(() => {
+    const ignoradosSet = new Set((ignoradosGlobal as any[]).map((i) => i.codigo_producto));
+    return huerfanosInv.filter((r) => !ignoradosSet.has(r.codigo)).length;
+  }, [huerfanosInv, ignoradosGlobal]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -420,6 +427,10 @@ export default function GestionCostos() {
             {sinConfirmarCount > 0 && <Badge variant="secondary" className="ml-2">{sinConfirmarCount}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="mapeo">Mapeo</TabsTrigger>
+          <TabsTrigger value="huerfanos">
+            Huérfanos con Inventario
+            {huerfanosInvCount > 0 && <Badge variant="secondary" className="ml-2">{huerfanosInvCount}</Badge>}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="biblioteca" className="mt-4">
