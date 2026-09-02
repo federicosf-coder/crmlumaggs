@@ -8,7 +8,7 @@ import {
   FileCheck, Boxes, ChevronDown, Link2,
   Sliders, ClipboardList, ShieldAlert, Network, DollarSign, TableProperties,
   Workflow,
-  CalendarCheck, BadgeDollarSign, Upload,
+  CalendarCheck, BadgeDollarSign, Upload, Lock,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -27,7 +27,7 @@ import { usePendingLeadsCount } from "@/hooks/useLeads";
 import { useHuerfanosCount } from "@/hooks/useMapeoProductos";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting";
+type AppRole = "admin" | "manager" | "sales" | "delivery" | "warehouse" | "customer_service" | "accounting" | "master";
 
 interface NavItem {
   title: string;
@@ -38,6 +38,7 @@ interface NavItem {
 }
 
 const mainItems: NavItem[] = [
+  { title: "Facturas Chevron", url: "/facturas-chevron", icon: Lock, roles: ["master"] },
   { title: "Inicio", url: "/", icon: LayoutDashboard, roles: "all" },
   { title: "Portal del Vendedor", url: "/seller-portal", icon: Briefcase, roles: ["admin", "manager", "sales"] },
   { title: "Bandeja de Prospectos", url: "/leads", icon: Inbox, roles: ["admin", "manager", "sales", "customer_service"] },
