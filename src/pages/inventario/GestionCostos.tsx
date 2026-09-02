@@ -2238,3 +2238,452 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
     </div>
   );
 }
+
+// ─── HUÉRFANOS CON INVENTARIO ───────────────────────────────────
+type HuerfanoInvRow = {
+  codigo: string;
+  nombre: string;
+  empresa: string;
+  stock_total: number;
+  costo: number | null;
+  fuenteCosto: "lista_precios" | "kardex" | "sin_costo";
+  marcaSugerida: string | null;
+  marcaId: string | null;
+  sugerirIgnorar: boolean;
+};
+
+function useHuerfanosInventario() {
+  return useQuery({
+    queryKey: ["inv_huerfanos_inventario"],
+    queryFn: async (): Promise<HuerfanoInvRow[]> => {
+      const [nivelesRes, prodsRes, costosRes, marcasRes] = await Promise.all([
+        (supabase as any).from("inv_niveles_inventario").select("codigo_producto, nombre_producto, empresa_vendedora, stock_total, costo_promedio").gt("stock_total", 0),
+        supabase.from("productos").select("codigo"),
+        (supabase as any).from("inv_costos_producto").select("codigo_producto, costo_efectivo").eq("estado", "sin_producto").order("created_at", { ascending: false }),
+        supabase.from("product_option_values").select("id, value").eq("option_type", "marca"),
+      ]);
+      const codigosCatalogo = new Set((prodsRes.data || []).map((p: any) => p.codigo));
+      const costoListaPorCodigo = new Map<string, any>();
+      for (const c of (costosRes.data || []) as any[]) {
+        if (!costoListaPorCodigo.has(c.codigo_producto)) costoListaPorCodigo.set(c.codigo_producto, c.costo_efectivo);
+      }
+      const marcaIdByValue = new Map<string, string>(((marcasRes.data || []) as any[]).map((m: any) => [m.value, m.id]));
+
+      const inferirMarca = (empresa: string, nombre: string | null): string | null => {
+        const n = (nombre || "").toLowerCase();
+        if (empresa === "lumaggs") return "Chevron";
+        if (/p\.?\s?66/.test(n)) return "Phillips 66";
+        if (/\bgo\b/.test(n) || n.includes("gonher")) return "Gonher";
+        if (/\bgw\b/.test(n)) return "Green World";
+        if (n.includes("compass blue")) return "Compass Blue";
+        return null;
+      };
+      const esProbableNoLubricante = (codigo: string, nombre: string | null): boolean => {
+        const n = (nombre || "").toUpperCase();
+        if (n.startsWith("PIEZA")) return true;
+        if (/^NR/i.test(codigo)) return true;
+        if (/^[0-9]+$/.test(codigo)) return true;
+        return false;
+      };
+
+      return ((nivelesRes.data || []) as any[])
+        .filter((n) => !codigosCatalogo.has(n.codigo_producto))
+        .map((n) => {
+          const costoLista = costoListaPorCodigo.get(n.codigo_producto);
+          const costo = costoLista ?? n.costo_promedio ?? null;
+          const fuenteCosto: HuerfanoInvRow["fuenteCosto"] = costoLista != null ? "lista_precios" : n.costo_promedio != null ? "kardex" : "sin_costo";
+          const marcaSugerida = inferirMarca(n.empresa_vendedora, n.nombre_producto);
+          return {
+            codigo: n.codigo_producto,
+            nombre: n.nombre_producto,
+            empresa: n.empresa_vendedora,
+            stock_total: Number(n.stock_total || 0),
+            costo,
+            fuenteCosto,
+            marcaSugerida,
+            marcaId: marcaSugerida ? marcaIdByValue.get(marcaSugerida) || null : null,
+            sugerirIgnorar: esProbableNoLubricante(n.codigo_producto, n.nombre_producto),
+          };
+        });
+    },
+  });
+}
+
+function HuerfanosInventarioSection() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const { data: rows = [], isLoading } = useHuerfanosInventario();
+  const { data: ignorados = [] } = useCostosIgnorados();
+  const [q, setQ] = useState("");
+  const [fEmpresa, setFEmpresa] = useState("todas");
+  const [fMarca, setFMarca] = useState("todas");
+  const [fCosto, setFCosto] = useState<TriFiltro>("todos");
+  const [fSugerido, setFSugerido] = useState<TriFiltro>("todos");
+  const [sortKey, setSortKey] = useState<keyof HuerfanoInvRow>("codigo");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [mostrarIgnorados, setMostrarIgnorados] = useState(false);
+  const [confirmAgregar, setConfirmAgregar] = useState<HuerfanoInvRow[] | null>(null);
+  const [confirmIgnorar, setConfirmIgnorar] = useState<HuerfanoInvRow[] | null>(null);
+
+  const ignoradosSet = useMemo(
+    () => new Set((ignorados as any[]).map((i) => i.codigo_producto)),
+    [ignorados],
+  );
+
+  const visibles = useMemo(() => rows.filter(r => !ignoradosSet.has(r.codigo)), [rows, ignoradosSet]);
+
+  const marcasDisponibles = useMemo(
+    () => Array.from(new Set(visibles.map(r => r.marcaSugerida).filter(Boolean) as string[])).sort(),
+    [visibles],
+  );
+
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    let out = visibles;
+    if (term) out = out.filter(r => r.codigo.toLowerCase().includes(term) || (r.nombre || "").toLowerCase().includes(term));
+    out = out.filter(r => {
+      if (fEmpresa !== "todas" && r.empresa !== fEmpresa) return false;
+      if (fMarca === "sin_marca" && r.marcaSugerida !== null) return false;
+      if (fMarca !== "todas" && fMarca !== "sin_marca" && r.marcaSugerida !== fMarca) return false;
+      if (fCosto !== "todos" && (r.costo != null) !== (fCosto === "si")) return false;
+      if (fSugerido !== "todos" && r.sugerirIgnorar !== (fSugerido === "si")) return false;
+      return true;
+    });
+    return [...out].sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      const cmp = typeof av === "number" && typeof bv === "number"
+        ? av - bv
+        : String(av).localeCompare(String(bv), "es");
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [visibles, q, fEmpresa, fMarca, fCosto, fSugerido, sortKey, sortDir]);
+
+  const toggleSort = (k: keyof HuerfanoInvRow) => {
+    if (sortKey === k) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(k); setSortDir("asc"); }
+  };
+
+  const Th = ({ k, children, className }: { k: keyof HuerfanoInvRow; children: React.ReactNode; className?: string }) => (
+    <TableHead className={`cursor-pointer select-none ${className || ""}`} onClick={() => toggleSort(k)}>
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {sortKey === k ? (
+          sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
+        )}
+      </span>
+    </TableHead>
+  );
+
+  const todosSeleccionados = filtered.length > 0 && filtered.every(r => seleccion.has(r.codigo));
+  const toggleTodos = (on: boolean) => {
+    setSeleccion(prev => {
+      const s = new Set(prev);
+      filtered.forEach(r => (on ? s.add(r.codigo) : s.delete(r.codigo)));
+      return s;
+    });
+  };
+  const toggleUno = (codigo: string, on: boolean) => {
+    setSeleccion(prev => {
+      const s = new Set(prev);
+      if (on) s.add(codigo); else s.delete(codigo);
+      return s;
+    });
+  };
+
+  const agregarMut = useMutation({
+    mutationFn: async (seleccionados: HuerfanoInvRow[]) => {
+      const { data: margins } = await (supabase as any)
+        .from("producto_linea_margenes")
+        .select("*")
+        .is("linea_id", null)
+        .maybeSingle();
+      const mRec: Record<string, number> = {};
+      for (const lvl of MARGIN_LEVELS) mRec[lvl.key] = Number(margins?.[lvl.key] ?? 0);
+      const inserts = seleccionados.map((r) => {
+        const costo = Number(r.costo || 0);
+        const precios = costo > 0 ? computePricesFromCost(costo, mRec) : {};
+        const preciosRedondeados: Record<string, number> = {};
+        for (const [k, v] of Object.entries(precios)) preciosRedondeados[k] = ceilTo5(Number(v));
+        return {
+          codigo: r.codigo,
+          nombre_producto: r.nombre,
+          is_active: true,
+          creado_automaticamente: true,
+          marca_id: r.marcaId,
+          costo_actual: costo,
+          ...preciosRedondeados,
+        };
+      });
+      const { error } = await (supabase as any).from("productos").insert(inserts);
+      if (error) throw error;
+      return inserts.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} producto(s) agregado(s) al catálogo`);
+      setSeleccion(new Set());
+      setConfirmAgregar(null);
+      qc.invalidateQueries({ queryKey: ["productos"] });
+      qc.invalidateQueries({ queryKey: ["inv_huerfanos_inventario"] });
+    },
+    onError: (e: any) => { toast.error(e.message || "No se pudo agregar al catálogo"); setConfirmAgregar(null); },
+  });
+
+  const ignorarMut = useMutation({
+    mutationFn: async (items: HuerfanoInvRow[]) => {
+      const nuevos = items.filter(r => !ignoradosSet.has(r.codigo));
+      if (nuevos.length === 0) return 0;
+      const { error } = await (supabase as any)
+        .from("inv_costos_producto_ignorados")
+        .insert(nuevos.map(r => ({
+          codigo_producto: r.codigo,
+          empresa: r.empresa,
+          motivo: "Ignorado desde Huérfanos con Inventario",
+          ignorado_por: user?.id ?? null,
+        })));
+      if (error) throw error;
+      return nuevos.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} código(s) ignorado(s)`);
+      setSeleccion(new Set());
+      setConfirmIgnorar(null);
+      qc.invalidateQueries({ queryKey: ["inv_costos_producto_ignorados"] });
+    },
+    onError: (e: any) => { toast.error(e.message || "No se pudo ignorar"); setConfirmIgnorar(null); },
+  });
+
+  const quitarMut = useMutation({
+    mutationFn: async (codigo: string) => {
+      const { error } = await (supabase as any)
+        .from("inv_costos_producto_ignorados")
+        .delete()
+        .eq("codigo_producto", codigo);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Quitado de ignorados");
+      qc.invalidateQueries({ queryKey: ["inv_costos_producto_ignorados"] });
+    },
+    onError: (e: any) => toast.error(e.message || "No se pudo quitar"),
+  });
+
+  const money = (n: number | null) => (n == null ? "—" : `$${Number(n).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+
+  const ignoradosAqui = useMemo(() => {
+    const codigosAqui = new Set(rows.map(r => r.codigo));
+    return (ignorados as any[]).filter(i => codigosAqui.has(i.codigo_producto));
+  }, [ignorados, rows]);
+
+  const TriSelect = ({ label, value, onChange, si, no }: { label: string; value: TriFiltro; onChange: (v: TriFiltro) => void; si: string; no: string }) => (
+    <div className="space-y-1">
+      <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</Label>
+      <Select value={value} onValueChange={(v) => onChange(v as TriFiltro)}>
+        <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todos</SelectItem>
+          <SelectItem value="si">{si}</SelectItem>
+          <SelectItem value="no">{no}</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="text-base">Huérfanos con Inventario</CardTitle>
+            <p className="text-xs text-muted-foreground font-light mt-1">
+              Códigos con existencia en el Kárdex que no tienen producto en el catálogo.
+            </p>
+          </div>
+          <Input placeholder="Buscar por código o nombre…" value={q} onChange={e => setQ(e.target.value)} className="max-w-xs h-9" />
+        </CardHeader>
+        <CardContent className="pt-0 pb-4">
+          <div className="flex flex-wrap gap-3">
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Empresa</Label>
+              <Select value={fEmpresa} onValueChange={setFEmpresa}>
+                <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  <SelectItem value="lumaggs">Lumaggs</SelectItem>
+                  <SelectItem value="galsa">Galsa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Marca sugerida</Label>
+              <Select value={fMarca} onValueChange={setFMarca}>
+                <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {marcasDisponibles.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  <SelectItem value="sin_marca">Sin marca detectada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <TriSelect label="Costo" value={fCosto} onChange={setFCosto} si="Con costo" no="Sin costo" />
+            <TriSelect label="Sugerido ignorar" value={fSugerido} onChange={setFSugerido} si="Sí" no="No" />
+          </div>
+          {seleccion.size > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2">
+              <span className="text-sm font-medium">{seleccion.size} seleccionados</span>
+              <Button size="sm" onClick={() => setConfirmAgregar(rows.filter(r => seleccion.has(r.codigo)))}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Agregar al catálogo ({seleccion.size})
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setConfirmIgnorar(rows.filter(r => seleccion.has(r.codigo)))}>
+                Ignorar ({seleccion.size})
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSeleccion(new Set())}>Limpiar selección</Button>
+            </div>
+          )}
+        </CardContent>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox checked={todosSeleccionados} onCheckedChange={(v) => toggleTodos(!!v)} />
+                  </TableHead>
+                  <Th k="codigo">Código</Th>
+                  <Th k="nombre">Nombre</Th>
+                  <Th k="empresa">Empresa</Th>
+                  <Th k="stock_total" className="text-right">Existencia</Th>
+                  <Th k="costo" className="text-right">Costo</Th>
+                  <TableHead>Marca sugerida</TableHead>
+                  <TableHead>Ignorar sugerido</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Cargando…</TableCell></TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin registros…</TableCell></TableRow>
+                ) : filtered.map(r => (
+                  <TableRow key={r.codigo}>
+                    <TableCell>
+                      <Checkbox checked={seleccion.has(r.codigo)} onCheckedChange={(v) => toggleUno(r.codigo, !!v)} />
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
+                    <TableCell>{r.nombre}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={r.empresa === "lumaggs" ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-red-100 text-red-700 border-red-200"}>
+                        {r.empresa === "lumaggs" ? "Lumaggs" : "Galsa"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{Number(r.stock_total).toLocaleString("es-MX")}</TableCell>
+                    <TableCell className="text-right">
+                      <span className="inline-flex items-center gap-1.5 justify-end">
+                        {money(r.costo)}
+                        {r.fuenteCosto === "lista_precios" && <Badge variant="outline" className="text-[10px]">Lista</Badge>}
+                        {r.fuenteCosto === "kardex" && <Badge variant="outline" className="text-[10px]">Kárdex</Badge>}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm">{r.marcaSugerida ?? "—"}</TableCell>
+                    <TableCell>
+                      {r.sugerirIgnorar && <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">Sugerido</Badge>}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="inline-flex gap-1.5">
+                        <Button size="sm" variant="outline" onClick={() => setConfirmAgregar([r])} disabled={agregarMut.isPending}>
+                          <Plus className="h-3 w-3 mr-1" /> Agregar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setConfirmIgnorar([r])} disabled={ignorarMut.isPending}>
+                          Ignorar
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div>
+        <Button variant="outline" size="sm" onClick={() => setMostrarIgnorados(v => !v)}>
+          {mostrarIgnorados ? "Ocultar" : "Mostrar"} ignorados ({ignoradosAqui.length})
+        </Button>
+      </div>
+      {mostrarIgnorados && (
+        <Card>
+          <CardHeader><CardTitle className="text-sm">Códigos ignorados</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ignoradosAqui.map((ig: any, i: number) => (
+                  <TableRow key={ig.id || i}>
+                    <TableCell className="font-mono text-xs">{ig.codigo_producto}</TableCell>
+                    <TableCell className="text-xs">{ig.empresa || "—"}</TableCell>
+                    <TableCell className="text-xs">{ig.ignorado_at ? new Date(ig.ignorado_at).toLocaleDateString("es-MX") : "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="outline" onClick={() => quitarMut.mutate(ig.codigo_producto)} disabled={quitarMut.isPending}>
+                        Quitar de ignorados
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {ignoradosAqui.length === 0 && (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">Sin códigos ignorados</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <AlertDialog open={!!confirmAgregar} onOpenChange={(v) => !v && setConfirmAgregar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Agregar al catálogo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se crearán {confirmAgregar?.length ?? 0} producto(s) nuevos con su costo y precios calculados con los márgenes recomendados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmAgregar && agregarMut.mutate(confirmAgregar)} disabled={agregarMut.isPending}>
+              {agregarMut.isPending ? "Agregando…" : "Agregar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!confirmIgnorar} onOpenChange={(v) => !v && setConfirmIgnorar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Ignorar códigos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se ignorarán {confirmIgnorar?.length ?? 0} código(s). Podrás revertirlo desde "Mostrar ignorados".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmIgnorar && ignorarMut.mutate(confirmIgnorar)} disabled={ignorarMut.isPending}>
+              {ignorarMut.isPending ? "Ignorando…" : "Ignorar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
