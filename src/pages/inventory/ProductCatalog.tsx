@@ -362,11 +362,14 @@ function ProductosTab() {
     formula: [] as string[],
     viscosidad: [] as string[],
     categoria: [] as string[],
+    segmento: [] as string[],
     linea: [] as string[],
     activo: ["true"] as string[],
   });
+  const [vista, setVista] = useState<"tabla" | "cards">("tabla");
   const [precioMin, setPrecioMin] = useState<number | "">("");
   const [precioMax, setPrecioMax] = useState<number | "">("");
+
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
