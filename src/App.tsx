@@ -41,6 +41,7 @@ import SolicitudesExtraordinarias from "@/pages/inventario/pedidos/SolicitudesEx
 import DocumentsList from "@/pages/documents/DocumentsList";
 import ImportarFacturasXML from "@/pages/ImportarFacturasXML";
 import VincularPedidosFacturas from "@/pages/VincularPedidosFacturas";
+import ChevronFacturasRecibidas from "@/pages/ChevronFacturasRecibidas";
 import DocumentForm from "@/pages/documents/DocumentForm";
 import DeliverySchedule from "@/pages/documents/DeliverySchedule";
 import EntregaDetalle from "@/pages/documents/EntregaDetalle";
@@ -149,6 +150,7 @@ const App = () => (
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/importar-facturas-xml" element={<ProtectedRoute><ImportarFacturasXML /></ProtectedRoute>} />
             <Route path="/vincular-pedidos-facturas" element={<ProtectedRoute><VincularPedidosFacturas /></ProtectedRoute>} />
+            <Route path="/facturas-chevron" element={<ProtectedRoute><ChevronFacturasRecibidas /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute><ProductCatalog /></ProtectedRoute>} />
             <Route path="/entregas-corporativas" element={<ProtectedRoute><EntregasCorporativas /></ProtectedRoute>} />
             <Route path="/autorizacion-precios" element={<ProtectedRoute><AutorizacionPrecios /></ProtectedRoute>} />

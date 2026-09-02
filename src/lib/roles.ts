@@ -8,6 +8,7 @@ export const ROLE_LABELS: Record<string, string> = {
   customer_service: "Servicio al Cliente",
   accounting: "Contabilidad",
   cobranza: "Cobranza",
+  master: "Master",
 };
 
 export function roleLabel(role: string): string {
