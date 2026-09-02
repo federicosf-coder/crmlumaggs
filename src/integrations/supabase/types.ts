@@ -962,6 +962,108 @@ export type Database = {
         }
         Relationships: []
       }
+      chevron_facturas_recibidas: {
+        Row: {
+          creado_por: string | null
+          created_at: string
+          estatus_match: string
+          factura_relacionada_id: string | null
+          fecha: string | null
+          folio: string | null
+          folio_fiscal: string
+          id: string
+          nombre_archivo_origen: string | null
+          nombre_emisor: string | null
+          numero_orden_cliente: string | null
+          numero_pedido_proveedor: string | null
+          origen: string
+          pdf_storage_path: string | null
+          pedido_id: string | null
+          procesado_at: string | null
+          procesado_por: string | null
+          rfc_emisor: string | null
+          serie: string | null
+          subtotal: number | null
+          tipo_comprobante: string
+          total: number | null
+          updated_at: string
+          uuid_relacionado: string | null
+          xml_raw: string | null
+          xml_storage_path: string | null
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string
+          estatus_match?: string
+          factura_relacionada_id?: string | null
+          fecha?: string | null
+          folio?: string | null
+          folio_fiscal: string
+          id?: string
+          nombre_archivo_origen?: string | null
+          nombre_emisor?: string | null
+          numero_orden_cliente?: string | null
+          numero_pedido_proveedor?: string | null
+          origen?: string
+          pdf_storage_path?: string | null
+          pedido_id?: string | null
+          procesado_at?: string | null
+          procesado_por?: string | null
+          rfc_emisor?: string | null
+          serie?: string | null
+          subtotal?: number | null
+          tipo_comprobante: string
+          total?: number | null
+          updated_at?: string
+          uuid_relacionado?: string | null
+          xml_raw?: string | null
+          xml_storage_path?: string | null
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string
+          estatus_match?: string
+          factura_relacionada_id?: string | null
+          fecha?: string | null
+          folio?: string | null
+          folio_fiscal?: string
+          id?: string
+          nombre_archivo_origen?: string | null
+          nombre_emisor?: string | null
+          numero_orden_cliente?: string | null
+          numero_pedido_proveedor?: string | null
+          origen?: string
+          pdf_storage_path?: string | null
+          pedido_id?: string | null
+          procesado_at?: string | null
+          procesado_por?: string | null
+          rfc_emisor?: string | null
+          serie?: string | null
+          subtotal?: number | null
+          tipo_comprobante?: string
+          total?: number | null
+          updated_at?: string
+          uuid_relacionado?: string | null
+          xml_raw?: string | null
+          xml_storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chevron_facturas_recibidas_factura_relacionada_id_fkey"
+            columns: ["factura_relacionada_id"]
+            isOneToOne: false
+            referencedRelation: "chevron_facturas_recibidas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chevron_facturas_recibidas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "inv_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cliente_solicitud_lineas: {
         Row: {
           cantidad: number
@@ -6159,9 +6261,11 @@ export type Database = {
           created_at: string | null
           empresa_vendedora: string
           estatus: string
+          factura_recibida_id: string | null
           fecha_despacho: string | null
           fecha_entrega_estimada: string | null
           fecha_entrega_real: string | null
+          fecha_facturado: string | null
           fecha_pedido: string | null
           fuente: string | null
           generado_desde_sugeridos: boolean | null
@@ -6181,9 +6285,11 @@ export type Database = {
           created_at?: string | null
           empresa_vendedora: string
           estatus?: string
+          factura_recibida_id?: string | null
           fecha_despacho?: string | null
           fecha_entrega_estimada?: string | null
           fecha_entrega_real?: string | null
+          fecha_facturado?: string | null
           fecha_pedido?: string | null
           fuente?: string | null
           generado_desde_sugeridos?: boolean | null
@@ -6203,9 +6309,11 @@ export type Database = {
           created_at?: string | null
           empresa_vendedora?: string
           estatus?: string
+          factura_recibida_id?: string | null
           fecha_despacho?: string | null
           fecha_entrega_estimada?: string | null
           fecha_entrega_real?: string | null
+          fecha_facturado?: string | null
           fecha_pedido?: string | null
           fuente?: string | null
           generado_desde_sugeridos?: boolean | null
@@ -6219,7 +6327,15 @@ export type Database = {
           total_tarimas?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "inv_pedidos_factura_recibida_id_fkey"
+            columns: ["factura_recibida_id"]
+            isOneToOne: false
+            referencedRelation: "chevron_facturas_recibidas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inv_pedidos_activos_config: {
         Row: {
@@ -10338,6 +10454,7 @@ export type Database = {
         | "warehouse"
         | "customer_service"
         | "accounting"
+        | "master"
       approval_status: "pendiente" | "aprobado" | "rechazado"
       comprobante_intake_canal:
         | "android_share"
@@ -10696,6 +10813,7 @@ export const Constants = {
         "warehouse",
         "customer_service",
         "accounting",
+        "master",
       ],
       approval_status: ["pendiente", "aprobado", "rechazado"],
       comprobante_intake_canal: [
