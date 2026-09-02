@@ -185,7 +185,7 @@ export default function PermissionsManagement() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-2 font-medium text-muted-foreground min-w-[180px]">Permiso</th>
-                  {ALL_ROLES.map((role) => (
+                  {ALL_ROLES.filter((r) => r === "admin" || costosVisibility.some((c) => c.role === r)).map((role) => (
                     <th key={role} className="text-center p-2 font-medium text-muted-foreground min-w-[110px]">
                       {roleLabel(role)}
                     </th>
@@ -195,7 +195,7 @@ export default function PermissionsManagement() {
               <tbody>
                 <tr className="border-b hover:bg-muted/50">
                   <td className="p-2 font-medium">Ver información de costos</td>
-                  {ALL_ROLES.map((role) => (
+                  {ALL_ROLES.filter((r) => r === "admin" || costosVisibility.some((c) => c.role === r)).map((role) => (
                     <td key={role} className="p-2 text-center">
                       <Switch
                         checked={getPuedeVerCostos(role)}
