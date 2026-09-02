@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, X, Users, ArrowUp, ArrowDown, Filter, Merge } from "lucide-react";
+import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, X, Users, ArrowUp, ArrowDown, Filter, Merge, LayoutGrid, Table as TableIcon, Factory, Truck, Car } from "lucide-react";
 import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
@@ -30,6 +30,34 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
+
+// ─── Colores por categoría ───────────────────────────
+const CATEGORIA_COLORS: Record<string, string> = {
+  "hidraulicos": "bg-blue-100 text-blue-800",
+  "compresores": "bg-cyan-100 text-cyan-800",
+  "grasas": "bg-amber-100 text-amber-800",
+  "anticongelantes": "bg-teal-100 text-teal-800",
+  "motor": "bg-orange-100 text-orange-800",
+  "transmision y diferencial": "bg-purple-100 text-purple-800",
+  "guias y correderas": "bg-indigo-100 text-indigo-800",
+  "engranajes abiertos": "bg-stone-200 text-stone-800",
+  "corte": "bg-pink-100 text-pink-800",
+  "engranajes industriales": "bg-violet-100 text-violet-800",
+  "otros industriales": "bg-slate-100 text-slate-800",
+  "accesorios": "bg-lime-100 text-lime-800",
+};
+const normCat = (v: string) =>
+  v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+const catColor = (v?: string | null) =>
+  (v && CATEGORIA_COLORS[normCat(v)]) || "bg-gray-100 text-gray-800";
+
+// ─── Segmentos ───────────────────────────────────────
+const SEGMENTOS = [
+  { key: "industrial", label: "Industrial", short: "Industrial", field: "es_industrial", badge: "bg-neutral-800 text-white", icon: Factory },
+  { key: "pesado", label: "Equipo Pesado", short: "Pesado", field: "es_equipo_pesado", badge: "bg-red-700 text-white", icon: Truck },
+  { key: "ligero", label: "Equipo Ligero", short: "Ligero", field: "es_equipo_ligero", badge: "bg-green-600 text-white", icon: Car },
+] as const;
+
 
 const OPTION_TYPE_LABELS: Record<ProductOptionType, string> = {
   marca: "Marca",
@@ -362,11 +390,14 @@ function ProductosTab() {
     formula: [] as string[],
     viscosidad: [] as string[],
     categoria: [] as string[],
+    segmento: [] as string[],
     linea: [] as string[],
     activo: ["true"] as string[],
   });
+  const [vista, setVista] = useState<"tabla" | "cards">("tabla");
   const [precioMin, setPrecioMin] = useState<number | "">("");
   const [precioMax, setPrecioMax] = useState<number | "">("");
+
   const { data: productos = [], isLoading } = useProductos(search);
   const { data: presentaciones = [] } = usePresentaciones();
   const { data: allOptions = [] } = useOptionValues();
@@ -588,6 +619,10 @@ function ProductosTab() {
     return nonEmptySelected.includes(value as string);
   };
 
+  const matchesSegmento = (p: any) =>
+    selectedFilters.segmento.length === 0 ||
+    selectedFilters.segmento.every(k => !!p[SEGMENTOS.find(s => s.key === k)!.field]);
+
   const filteredProductos = productos
     .filter((p: any) =>
       matchesMultiFilter(p.marca_id, selectedFilters.marca) &&
@@ -597,11 +632,13 @@ function ProductosTab() {
       matchesMultiFilter(p.formula_id, selectedFilters.formula) &&
       matchesMultiFilter(p.viscosidad_id, selectedFilters.viscosidad) &&
       matchesMultiFilter(p.categoria_id, selectedFilters.categoria) &&
+      matchesSegmento(p) &&
       matchesMultiFilter(p.linea_id, selectedFilters.linea) &&
       matchesMultiFilter(String(!!p.is_active), selectedFilters.activo) &&
       (precioMin === "" || Number(p.precio_base_uf1 ?? 0) >= precioMin) &&
       (precioMax === "" || Number(p.precio_base_uf1 ?? 0) <= precioMax)
     )
+
     .sort((a: any, b: any) => {
       switch (productSort) {
         case "code_asc": return (a.codigo || "").localeCompare(b.codigo || "");
@@ -820,16 +857,17 @@ function ProductosTab() {
 
   const selectedPres = presentaciones.find(p => p.id === form.presentacion_id);
 
-  const filterDefs: { key: keyof typeof selectedFilters; label: string; opts: { id: string; value: string }[] }[] = [
-    { key: "marca", label: "Marca", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("marca").map(o => ({ id: o.id, value: o.value }))] },
-    { key: "presentacion", label: "Presentación", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...presentaciones.filter(p => p.is_active).map(p => ({ id: p.id, value: p.nombre }))] },
-    { key: "aplicacion", label: "Aplicación", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("aplicacion").map(o => ({ id: o.id, value: o.value }))] },
-    { key: "uso", label: "Uso", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("uso").map(o => ({ id: o.id, value: o.value }))] },
-    { key: "formula", label: "Fórmula", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("formula").map(o => ({ id: o.id, value: o.value }))] },
-    { key: "viscosidad", label: "Viscosidad", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("viscosidad").map(o => ({ id: o.id, value: o.value }))] },
+  const filterDefs: { key: keyof typeof selectedFilters; label: string; opts: { id: string; value: string }[]; inPopover?: boolean }[] = [
+    { key: "marca", label: "Marca", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("marca").map(o => ({ id: o.id, value: o.value }))], inPopover: true },
+    { key: "presentacion", label: "Presentación", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...presentaciones.filter(p => p.is_active).map(p => ({ id: p.id, value: p.nombre }))], inPopover: true },
+    { key: "aplicacion", label: "Aplicación", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("aplicacion").map(o => ({ id: o.id, value: o.value }))], inPopover: true },
+    { key: "uso", label: "Uso", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("uso").map(o => ({ id: o.id, value: o.value }))], inPopover: true },
+    { key: "formula", label: "Fórmula", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("formula").map(o => ({ id: o.id, value: o.value }))], inPopover: true },
+    { key: "viscosidad", label: "Viscosidad", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("viscosidad").map(o => ({ id: o.id, value: o.value }))], inPopover: true },
     { key: "categoria", label: "Categoría", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("categoria").map(o => ({ id: o.id, value: o.value }))] },
-    { key: "linea", label: "Línea", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("linea").map(o => ({ id: o.id, value: o.value }))] },
-    { key: "activo", label: "Estado", opts: [{ id: "true", value: "Activo" }, { id: "false", value: "Inactivo" }] },
+    { key: "segmento", label: "Segmento", opts: SEGMENTOS.map(s => ({ id: s.key, value: s.label })) },
+    { key: "linea", label: "Línea", opts: [{ id: "__EMPTY__", value: "Sin valor" }, ...optionsFor("linea").map(o => ({ id: o.id, value: o.value }))], inPopover: true },
+    { key: "activo", label: "Estado", opts: [{ id: "true", value: "Activo" }, { id: "false", value: "Inactivo" }], inPopover: true },
   ];
   const totalActiveFilters = filterDefs.reduce((acc, f) => acc + selectedFilters[f.key].length, 0) +
     (precioMin !== "" ? 1 : 0) + (precioMax !== "" ? 1 : 0);
@@ -841,10 +879,11 @@ function ProductosTab() {
     setSelectedFilters(prev => ({ ...prev, [key]: prev[key].filter(x => x !== id) }));
   };
   const clearAllFilters = () => {
-    setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], linea: [], activo: [] });
+    setSelectedFilters({ marca: [], presentacion: [], aplicacion: [], uso: [], formula: [], viscosidad: [], categoria: [], segmento: [], linea: [], activo: [] });
     setPrecioMin("");
     setPrecioMax("");
   };
+
 
   return (
     <Card>
@@ -872,7 +911,7 @@ function ProductosTab() {
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto">
-                {filterDefs.map(f => (
+                {filterDefs.filter(f => f.inPopover).map(f => (
                   <div key={f.key} className="flex flex-col gap-1">
                     <Label className="text-xs text-muted-foreground">{f.label}</Label>
                     <Select value="" onValueChange={(v) => addFilter(f.key, v)}>
@@ -971,10 +1010,97 @@ function ProductosTab() {
             <Button size="sm" variant="ghost" className="h-7" onClick={clearAllFilters}>Limpiar filtros</Button>
           </div>
         )}
+        <div className="flex items-start gap-3 flex-wrap border-t pt-3">
+          <div className="flex-1 min-w-[240px] space-y-1">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Categorías</span>
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {optionsFor("categoria").map(o => {
+                const active = selectedFilters.categoria.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => (active ? removeFilter("categoria", o.id) : addFilter("categoria", o.id))}
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-all ${catColor(o.value)} ${active ? "ring-2 ring-offset-1 ring-primary brightness-95" : "opacity-80 hover:opacity-100"}`}
+                  >
+                    {o.value}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Segmento</span>
+            <div className="flex gap-1.5 flex-wrap">
+              {SEGMENTOS.map(s => {
+                const active = selectedFilters.segmento.includes(s.key);
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => setSelectedFilters(prev => ({
+                      ...prev,
+                      segmento: active ? prev.segmento.filter(x => x !== s.key) : [...prev.segmento, s.key],
+                    }))}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${active ? s.badge + " border-transparent" : "bg-muted/40 hover:bg-muted"}`}
+                  >
+                    <s.icon className="h-3 w-3" />
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground block">Vista</span>
+            <div className="flex gap-1">
+              <Button size="icon" variant={vista === "tabla" ? "default" : "outline"} className="h-8 w-8" onClick={() => setVista("tabla")} title="Tabla"><TableIcon className="h-4 w-4" /></Button>
+              <Button size="icon" variant={vista === "cards" ? "default" : "outline"} className="h-8 w-8" onClick={() => setVista("cards")} title="Tarjetas"><LayoutGrid className="h-4 w-4" /></Button>
+            </div>
+          </div>
+        </div>
       </CardHeader>
+
       <CardContent>
-        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : vista === "cards" ? (
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {filteredProductos.map((p: any) => {
+              const stock = stockMap.get(p.id);
+              return (
+                <div key={p.id} className="rounded-lg border bg-card p-3 flex flex-col gap-2 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm leading-tight truncate" title={p.nombre_producto}>{p.nombre_producto}</p>
+                      <p className="text-[11px] text-muted-foreground tabular-nums">{p.codigo}{p.presentaciones?.nombre ? ` · ${p.presentaciones.nombre}` : ""}</p>
+                    </div>
+                    <div className="flex gap-0.5 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewProduct(p)} title="Ver"><Eye className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {p.categoria?.value && <Badge variant="outline" className={`border-0 text-[10px] ${catColor(p.categoria.value)}`}>{p.categoria.value}</Badge>}
+                    {SEGMENTOS.filter(s => p[s.field]).map(s => (
+                      <Badge key={s.key} variant="outline" className={`border-0 text-[10px] gap-1 ${s.badge}`}><s.icon className="h-3 w-3" />{s.short}</Badge>
+                    ))}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground space-y-0.5">
+                    {p.marca?.value && <div>Marca: <span className="text-foreground">{p.marca.value}</span></div>}
+                    {p.viscosidad?.value && <div>Viscosidad: <span className="text-foreground">{p.viscosidad.value}</span></div>}
+                    {p.formula?.value && <div>Base: <span className="text-foreground">{p.formula.value}</span></div>}
+                  </div>
+                  <div className="mt-auto flex items-center justify-between pt-1 border-t">
+                    <Badge variant="outline" className="text-[10px]">{stock?.stock_total ?? 0} uds</Badge>
+                    <span className="text-sm font-semibold tabular-nums">${Number(p.precio_base_uf1 ?? 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              );
+            })}
+            {filteredProductos.length === 0 && <p className="col-span-full text-center text-muted-foreground py-6">Sin productos</p>}
+          </div>
+        ) : (
           <div className="overflow-x-auto">
+
             <Table>
               <TableHeader>
                  <TableRow>
@@ -1010,7 +1136,16 @@ function ProductosTab() {
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{descripcionConcat}</TableCell>
+                    <TableCell className="font-medium">
+                      <div>{descripcionConcat}</div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {p.categoria?.value && <Badge variant="outline" className={`border-0 text-[10px] ${catColor(p.categoria.value)}`}>{p.categoria.value}</Badge>}
+                        {SEGMENTOS.filter(s => p[s.field]).map(s => (
+                          <Badge key={s.key} variant="outline" className={`border-0 text-[10px] gap-1 ${s.badge}`}><s.icon className="h-3 w-3" />{s.short}</Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+
                     <TableCell>{p.marca?.value ?? "—"}</TableCell>
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">
                       {stock ? (
@@ -1300,8 +1435,14 @@ function ProductosTab() {
                     ["Categoría", viewProduct.categoria?.value],
                     ["Línea", viewProduct.linea?.value],
                   ] as [string, string | undefined][]).map(([label, val]) => (
-                    <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="text-sm">{val ?? "—"}</p></div>
+                    <div key={label}>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      {label === "Categoría" && val
+                        ? <Badge variant="outline" className={`border-0 ${catColor(val)}`}>{val}</Badge>
+                        : <p className="text-sm">{val ?? "—"}</p>}
+                    </div>
                   ))}
+
                 </div>
               </div>
 
