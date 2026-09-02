@@ -5,14 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
