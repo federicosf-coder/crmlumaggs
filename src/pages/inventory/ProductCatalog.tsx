@@ -22,6 +22,7 @@ import { SortMenu } from "@/components/SortMenu";
 import { ProductoBaseCombobox } from "@/components/inventory/ProductoBaseCombobox";
 import PreciosConfigTab, { MARGIN_LEVELS, computePricesFromCost } from "./PreciosConfigTab";
 import { useStockPorProducto } from "@/hooks/useMapeoProductos";
+import { useCanViewCostos } from "@/hooks/useCanViewCostos";
 import { ALMACEN_LABELS, useKardexCargas } from "@/hooks/useInventario";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -344,6 +345,7 @@ function ProductosTab() {
   const { hasRole, user } = useAuth();
   const isAdmin = hasRole("admin");
   const canImportExport = isAdmin || hasRole("manager");
+  const canViewCostos = useCanViewCostos();
   const [search, setSearch] = useState("");
   const { data: stockMap = new Map<string, any>() } = useStockPorProducto();
   const { data: kardexCargas = [] } = useKardexCargas();
@@ -417,14 +419,14 @@ function ProductosTab() {
   // ─── Export ─────────────────────────────────────────
   const handleExport = () => {
     if (!productos.length) { toast.error("No hay productos para exportar"); return; }
-    const headers = ["codigo","nombre_producto","descripcion","presentacion","marca","aplicacion","uso","formula","viscosidad","categoria","linea","is_active","costo_actual","precio_base_uf1","precio_uf2","precio_uf3","precio_uf4","precio_r1","precio_r2","precio_r3","precio_r4","precio_lista_galper"];
+    const headers = ["codigo","nombre_producto","descripcion","presentacion","marca","aplicacion","uso","formula","viscosidad","categoria","linea","is_active",...(canViewCostos ? ["costo_actual"] : []),"precio_base_uf1","precio_uf2","precio_uf3","precio_uf4","precio_r1","precio_r2","precio_r3","precio_r4","precio_lista_galper"];
     const escCsv = (v: any) => { const s = String(v ?? ""); return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s; };
     const rows = productos.map((p: any) => [
       p.codigo, p.nombre_producto, p.descripcion ?? "",
       p.presentaciones?.nombre ?? "", p.marca?.value ?? "", p.aplicacion?.value ?? "",
       p.uso?.value ?? "", p.formula?.value ?? "", p.viscosidad?.value ?? "",
       p.categoria?.value ?? "", p.linea?.value ?? "", p.is_active ? "true" : "false",
-      p.costo_actual, p.precio_base_uf1, p.precio_uf2, p.precio_uf3, p.precio_uf4,
+      ...(canViewCostos ? [p.costo_actual] : []), p.precio_base_uf1, p.precio_uf2, p.precio_uf3, p.precio_uf4,
       p.precio_r1, p.precio_r2, p.precio_r3, p.precio_r4, p.precio_lista_galper,
     ].map(escCsv).join(","));
     const csv = [headers.join(","), ...rows].join("\n");
@@ -481,7 +483,7 @@ function ProductosTab() {
       const rows = lines.slice(1).map(l => parseLine(l));
       let updated = 0, created = 0, errors = 0, skipped = 0;
 
-      const numFields = ["costo_actual","precio_base_uf1","precio_uf2","precio_uf3","precio_uf4","precio_r1","precio_r2","precio_r3","precio_r4","precio_lista_galper"];
+      const numFields = [...(canViewCostos ? ["costo_actual"] : []),"precio_base_uf1","precio_uf2","precio_uf3","precio_uf4","precio_r1","precio_r2","precio_r3","precio_r4","precio_lista_galper"];
       const textFields = new Set(["nombre_producto", "descripcion"]);
       const numFieldsSet = new Set(numFields);
       const lookupMap: Record<string, { field: string; resolve: (v: string) => string | null }> = {
