@@ -4,6 +4,7 @@ import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCanViewCostos } from "@/hooks/useCanViewCostos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -238,6 +239,7 @@ function intentarParsearHoja(raw: any[][]): Map<string, { codigo: string; costo:
 export default function GestionCostos() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const canViewCostos = useCanViewCostos();
   const [tab, setTab] = useState(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
     return t || "biblioteca";
@@ -400,6 +402,19 @@ export default function GestionCostos() {
     const ignoradosSet = new Set((ignoradosGlobal as any[]).map((i) => i.codigo_producto));
     return huerfanosInv.filter((r) => !ignoradosSet.has(r.codigo)).length;
   }, [huerfanosInv, ignoradosGlobal]);
+
+  if (!canViewCostos) {
+    return (
+      <div className="p-6 flex justify-center">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-10 flex flex-col items-center text-center gap-3">
+            <Lock className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm font-light text-muted-foreground">No tienes permiso para ver esta sección.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

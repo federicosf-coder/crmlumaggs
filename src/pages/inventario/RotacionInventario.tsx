@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import { useCanViewCostos } from "@/hooks/useCanViewCostos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,6 +109,7 @@ export default function RotacionInventario() {
 }
 
 export function RotacionInventarioTabContent() {
+  const canViewCostos = useCanViewCostos();
   const [loading, setLoading] = useState(true);
   const [productos, setProductos] = useState<any[]>([]);
   const [marcas, setMarcas] = useState<Map<string, string>>(new Map());
@@ -327,7 +329,7 @@ export function RotacionInventarioTabContent() {
       "Stock MOR": r.s1003,
       "Stock ENS": r.s1004,
       "Stock Total": r.stock_total,
-      "Costo Promedio": r.costo_prom ?? "",
+      ...(canViewCostos ? { "Costo Promedio": r.costo_prom ?? "" } : {}),
       "Valor Stock": Number(r.valor_stock.toFixed(2)),
       "UE anualizadas": Number(r.ue.toFixed(2)),
       "% participación": Number(r.pct.toFixed(2)),
@@ -431,7 +433,7 @@ export function RotacionInventarioTabContent() {
                   <SortHead k="s1003" className="text-right">MOR</SortHead>
                   <SortHead k="s1004" className="text-right">ENS</SortHead>
                   <SortHead k="stock_total" className="text-right">Stock Total</SortHead>
-                  <SortHead k="costo_prom" className="text-right border-l">Costo Prom.</SortHead>
+                  {canViewCostos && <SortHead k="costo_prom" className="text-right border-l">Costo Prom.</SortHead>}
                   <SortHead k="valor_stock" className="text-right">Valor Stock</SortHead>
                   <SortHead k="ue" className="text-right border-l">UE (12m)</SortHead>
                   <SortHead k="pct" className="text-right">% part.</SortHead>
@@ -455,7 +457,7 @@ export function RotacionInventarioTabContent() {
                     <TableCell className="text-right text-sm">{fmtNum(r.s1003)}</TableCell>
                     <TableCell className="text-right text-sm">{fmtNum(r.s1004)}</TableCell>
                     <TableCell className="text-right text-sm font-bold">{fmtNum(r.stock_total)}</TableCell>
-                    <TableCell className="text-right text-sm border-l">{fmtMoney(r.costo_prom)}</TableCell>
+                    {canViewCostos && <TableCell className="text-right text-sm border-l">{fmtMoney(r.costo_prom)}</TableCell>}
                     <TableCell className="text-right text-sm">{fmtMoney(r.valor_stock)}</TableCell>
                     <TableCell className="text-right text-sm font-semibold border-l">{fmtNum(r.ue, 2)}</TableCell>
                     <TableCell className="text-right text-sm">{r.pct.toFixed(1)}%</TableCell>

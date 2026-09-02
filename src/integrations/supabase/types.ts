@@ -7918,6 +7918,24 @@ export type Database = {
         }
         Relationships: []
       }
+      role_costos_visibility: {
+        Row: {
+          puede_ver_costos: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          puede_ver_costos?: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          puede_ver_costos?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       role_module_permissions: {
         Row: {
           access_level: Database["public"]["Enums"]["access_level"]

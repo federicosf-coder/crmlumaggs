@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import { useCanViewCostos } from "@/hooks/useCanViewCostos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2730,6 +2731,7 @@ function MultiSelectFilter({
 }
 
 function ReportesTab({ refreshKey }: { refreshKey: number }) {
+  const canViewCostos = useCanViewCostos();
   const [loading, setLoading] = useState(false);
   const [lineas, setLineas] = useState<ReporteLinea[]>([]);
   const [fClientes, setFClientes] = useState<string[]>(CLIENTES);
@@ -2878,10 +2880,10 @@ function ReportesTab({ refreshKey }: { refreshKey: number }) {
       "Código": r.codigo,
       Producto: r.nombre,
       "Cantidad Total": r.cantidad,
-      "Costo Unitario": r.costo ?? 0,
+      ...(canViewCostos ? { "Costo Unitario": r.costo ?? 0 } : {}),
       "Importe Total": r.importe,
     }));
-    data.push({ "Código": "TOTAL", Producto: "", "Cantidad Total": totalProdCant, "Costo Unitario": 0, "Importe Total": totalProdImp } as any);
+    data.push({ "Código": "TOTAL", Producto: "", "Cantidad Total": totalProdCant, ...(canViewCostos ? { "Costo Unitario": 0 } : {}), "Importe Total": totalProdImp } as any);
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Por Producto");
@@ -2970,14 +2972,14 @@ function ReportesTab({ refreshKey }: { refreshKey: number }) {
                   <ThProd k="codigo">Código</ThProd>
                   <ThProd k="nombre">Producto</ThProd>
                   <ThProd k="cantidad" className="text-right">Cantidad Total</ThProd>
-                  <ThProd k="costo" className="text-right">Costo Unitario</ThProd>
+                  {canViewCostos && <ThProd k="costo" className="text-right">Costo Unitario</ThProd>}
                   <ThProd k="importe" className="text-right">Importe Total</ThProd>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {porProducto.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
+                    <TableCell colSpan={canViewCostos ? 5 : 4} className="text-center text-sm text-muted-foreground py-8">
                       {loading ? "Cargando…" : "Sin productos que mostrar"}
                     </TableCell>
                   </TableRow>
@@ -2992,7 +2994,7 @@ function ReportesTab({ refreshKey }: { refreshKey: number }) {
                       )}
                     </TableCell>
                     <TableCell className="text-right text-sm font-medium py-2.5">{r.cantidad}</TableCell>
-                    <TableCell className="text-right text-sm py-2.5">{mxn(r.costo ?? 0)}</TableCell>
+                    {canViewCostos && <TableCell className="text-right text-sm py-2.5">{mxn(r.costo ?? 0)}</TableCell>}
                     <TableCell className="text-right text-sm font-medium py-2.5">{mxn(r.importe)}</TableCell>
                   </TableRow>
                 ))}
@@ -3001,7 +3003,7 @@ function ReportesTab({ refreshKey }: { refreshKey: number }) {
                     <TableCell className="text-sm font-bold py-2.5">TOTAL</TableCell>
                     <TableCell />
                     <TableCell className="text-right text-sm font-bold py-2.5">{totalProdCant}</TableCell>
-                    <TableCell />
+                    {canViewCostos && <TableCell />}
                     <TableCell className="text-right text-sm font-bold py-2.5">{mxn(totalProdImp)}</TableCell>
                   </TableRow>
                 )}

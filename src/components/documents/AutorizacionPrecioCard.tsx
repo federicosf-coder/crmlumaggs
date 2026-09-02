@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCanViewCostos } from "@/hooks/useCanViewCostos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,7 @@ export default function AutorizacionPrecioCard({
   onDeleted?: () => void;
 }) {
   const { user, hasAnyRole } = useAuth();
+  const canViewCostos = useCanViewCostos();
   const canActualizarEstatus = hasAnyRole(["admin", "manager", "customer_service"]);
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(defaultOpen);
@@ -714,8 +716,8 @@ export default function AutorizacionPrecioCard({
                     <TableHead>Descripción</TableHead>
                     <TableHead className="text-right">Cantidad</TableHead>
                     <TableHead className="text-right">Precio venta</TableHead>
-                    <TableHead className="text-right">Costo (CRM)</TableHead>
-                    <TableHead className="text-right">Margen % (CRM)</TableHead>
+                    {canViewCostos && <TableHead className="text-right">Costo (CRM)</TableHead>}
+                    {canViewCostos && <TableHead className="text-right">Margen % (CRM)</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -725,14 +727,18 @@ export default function AutorizacionPrecioCard({
                       <TableCell className="text-sm">{l.descripcion || "—"}</TableCell>
                       <TableCell className="text-right">{numFmt(l.cantidad)}</TableCell>
                       <TableCell className="text-right">{money(l.precio_unitario)}</TableCell>
-                      <TableCell className="text-right">
-                        {l.costo === null || l.costo === undefined ? "—" : money(l.costo)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {l.margen_porcentaje === null || l.margen_porcentaje === undefined
-                          ? "—"
-                          : `${l.margen_porcentaje}%`}
-                      </TableCell>
+                      {canViewCostos && (
+                        <TableCell className="text-right">
+                          {l.costo === null || l.costo === undefined ? "—" : money(l.costo)}
+                        </TableCell>
+                      )}
+                      {canViewCostos && (
+                        <TableCell className="text-right">
+                          {l.margen_porcentaje === null || l.margen_porcentaje === undefined
+                            ? "—"
+                            : `${l.margen_porcentaje}%`}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

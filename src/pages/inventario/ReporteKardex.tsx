@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import { useCanViewCostos } from "@/hooks/useCanViewCostos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,6 +93,7 @@ export default function ReporteKardex() {
 }
 
 export function ReporteKardexTabContent() {
+  const canViewCostos = useCanViewCostos();
   const [loading, setLoading] = useState(true);
   const [niveles, setNiveles] = useState<any[]>([]);
   const [demanda, setDemanda] = useState<any[]>([]);
@@ -310,7 +312,7 @@ export function ReporteKardexTabContent() {
       "Vtas ENS": r.v1004,
       "Dem/día": Number(r.dem_dia.toFixed(2)),
       "Días Inventario": r.dias_inv != null ? Number(r.dias_inv.toFixed(1)) : "",
-      "Costo Promedio": r.costo_prom ?? "",
+      ...(canViewCostos ? { "Costo Promedio": r.costo_prom ?? "" } : {}),
       "Último Costo": r.ultimo_costo ?? "",
       "Alerta": alertaLabel[r.alerta],
     }));
@@ -420,7 +422,7 @@ export function ReporteKardexTabContent() {
                   <SortHead k="v1004" className="text-right">Vtas ENS</SortHead>
                   <SortHead k="dem_dia" className="text-right">Dem/día</SortHead>
                   <SortHead k="dias_inv" className="text-right">Días inv.</SortHead>
-                  <SortHead k="costo_prom" className="text-right border-l">Costo prom. (Kardex)</SortHead>
+                  {canViewCostos && <SortHead k="costo_prom" className="text-right border-l">Costo prom. (Kardex)</SortHead>}
                   <SortHead k="ultimo_costo" className="text-right">Precio Galper</SortHead>
                 </TableRow>
               </TableHeader>
@@ -447,7 +449,7 @@ export function ReporteKardexTabContent() {
                     <TableCell className="text-right text-sm">{fmtNum(r.v1004)}</TableCell>
                     <TableCell className="text-right text-sm">{fmtNum(r.dem_dia, 2)}</TableCell>
                     <TableCell className="text-right">{diasInvCell(r.dias_inv)}</TableCell>
-                    <TableCell className="text-right text-sm border-l">{fmtMoney(r.costo_prom)}</TableCell>
+                    {canViewCostos && <TableCell className="text-right text-sm border-l">{fmtMoney(r.costo_prom)}</TableCell>}
                     <TableCell className="text-right text-sm">{fmtMoney(r.ultimo_costo)}</TableCell>
                   </TableRow>
                 ))}
