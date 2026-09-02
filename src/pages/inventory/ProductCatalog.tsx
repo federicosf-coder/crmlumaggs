@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, X, Users, ArrowUp, ArrowDown, Filter, Merge } from "lucide-react";
+import { Plus, Search, Package, Tags, BoxesIcon, Pencil, Eye, Download, Upload, X, Users, ArrowUp, ArrowDown, Filter, Merge, LayoutGrid, Table as TableIcon, Factory, Truck, Car } from "lucide-react";
 import { MergeDuplicatesDialog } from "@/components/directory/MergeDuplicatesDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
