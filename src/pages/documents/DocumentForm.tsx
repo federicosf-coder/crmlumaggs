@@ -6,6 +6,7 @@ import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase: any = _supabaseTyped;
 import { useAuth } from "@/contexts/AuthContext";
+import { useCanViewCostos } from "@/hooks/useCanViewCostos";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,6 +108,7 @@ interface LineItem {
 }
 
 export default function DocumentForm() {
+  const canViewCostos = useCanViewCostos();
   const { id } = useParams();
   const { data: lastDocSends, refetch: refetchDocSends } = useLastAutomationRuns(
     id ?? null,
@@ -1580,7 +1582,7 @@ export default function DocumentForm() {
               <h4 className="font-semibold text-sm mb-3">Precios</h4>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
-                  ["costo_actual", "Costo Actual"], ["precio_base_uf1", "Base UF1"], ["precio_uf2", "UF2"], ["precio_uf3", "UF3"], ["precio_uf4", "UF4"],
+                  ...(canViewCostos ? [["costo_actual", "Costo Actual"]] : []), ["precio_base_uf1", "Base UF1"], ["precio_uf2", "UF2"], ["precio_uf3", "UF3"], ["precio_uf4", "UF4"],
                   ["precio_r1", "R1"], ["precio_r2", "R2"], ["precio_r3", "R3"], ["precio_r4", "R4"], ["precio_lista_galper", "Lista Galper"],
                 ].map(([k, label]) => (
                   <div key={k}><Label className="text-xs">{label}</Label><Input type="number" value={(newProductForm as any)[k]} onChange={e => setNP(k, Number(e.target.value))} /></div>
