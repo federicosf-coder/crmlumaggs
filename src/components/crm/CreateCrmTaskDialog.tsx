@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { localInputToIso } from "@/lib/formatters";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmTask, useUpdateCrmTask, type CrmTask } from "@/hooks/useCrmTasks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -184,7 +185,7 @@ export function CreateCrmTaskDialog({
         user_id: session.user.id,
         title: finalTitle,
         description: finalDescription,
-        due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : new Date().toISOString(),
+        due_date: localInputToIso(dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null) || new Date().toISOString(),
         priority,
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,
@@ -530,7 +531,7 @@ export function CreateCrmTaskDialog({
       const payload: any = {
         title: finalTitle,
         description: finalDescription || null,
-        due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null,
+        due_date: localInputToIso(dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null),
         priority,
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,
@@ -592,7 +593,7 @@ export function CreateCrmTaskDialog({
         user_id: session.user.id,
         title: finalTitle,
         description: `[${channelLabel}] ${description}`,
-        due_date: dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : new Date().toISOString(),
+        due_date: localInputToIso(dueDate ? (dueTime ? `${dueDate}T${dueTime}:00` : dueDate) : null) || new Date().toISOString(),
         priority,
         contact_id: contactId && contactId !== "none" ? contactId : null,
         company_id: companyId && companyId !== "none" ? companyId : null,

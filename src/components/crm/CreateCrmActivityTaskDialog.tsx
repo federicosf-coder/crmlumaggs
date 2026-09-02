@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { localInputToIso } from "@/lib/formatters";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmTask } from "@/hooks/useCrmTasks";
@@ -228,7 +229,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
         user_id: session.user.id,
         title: typeLabel,
         description: description || null,
-        due_date: activityDate || null,
+        due_date: localInputToIso(activityDate),
         priority,
         company_id: normalizedCompanyId,
         contact_id: normalizedContactId,

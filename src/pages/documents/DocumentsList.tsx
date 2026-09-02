@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { parseLocalDate } from "@/lib/formatters";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -1288,20 +1289,20 @@ export default function DocumentsList() {
                         )}
                         {isColVisible("fecha") && (
                           <TableCell className="whitespace-nowrap">
-                            {format(new Date(doc.fecha_documento), "dd/MM/yyyy")}
+                            {format(parseLocalDate(doc.fecha_documento), "dd/MM/yyyy")}
                           </TableCell>
                         )}
                         {tipoFilter === "factura" && isColVisible("fecha_vencimiento") && (
                           <TableCell className="whitespace-nowrap">
                             {doc.fecha_vencimiento
-                              ? format(new Date(doc.fecha_vencimiento), "dd/MM/yyyy")
+                              ? format(parseLocalDate(doc.fecha_vencimiento), "dd/MM/yyyy")
                               : "-"}
                           </TableCell>
                         )}
                         {showsScheduledDate && isColVisible("fecha_programada") && (
                           <TableCell className="hidden md:table-cell whitespace-nowrap">
                             {doc.fecha_entrega_programada
-                              ? format(new Date(doc.fecha_entrega_programada), "dd/MM/yyyy")
+                              ? format(parseLocalDate(doc.fecha_entrega_programada), "dd/MM/yyyy")
                               : "-"}
                           </TableCell>
                         )}
