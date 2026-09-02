@@ -31,6 +31,34 @@ import {
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
+// ─── Colores por categoría ───────────────────────────
+const CATEGORIA_COLORS: Record<string, string> = {
+  "hidraulicos": "bg-blue-100 text-blue-800",
+  "compresores": "bg-cyan-100 text-cyan-800",
+  "grasas": "bg-amber-100 text-amber-800",
+  "anticongelantes": "bg-teal-100 text-teal-800",
+  "motor": "bg-orange-100 text-orange-800",
+  "transmision y diferencial": "bg-purple-100 text-purple-800",
+  "guias y correderas": "bg-indigo-100 text-indigo-800",
+  "engranajes abiertos": "bg-stone-200 text-stone-800",
+  "corte": "bg-pink-100 text-pink-800",
+  "engranajes industriales": "bg-violet-100 text-violet-800",
+  "otros industriales": "bg-slate-100 text-slate-800",
+  "accesorios": "bg-lime-100 text-lime-800",
+};
+const normCat = (v: string) =>
+  v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+const catColor = (v?: string | null) =>
+  (v && CATEGORIA_COLORS[normCat(v)]) || "bg-gray-100 text-gray-800";
+
+// ─── Segmentos ───────────────────────────────────────
+const SEGMENTOS = [
+  { key: "industrial", label: "Industrial", short: "Industrial", field: "es_industrial", badge: "bg-neutral-800 text-white", icon: Factory },
+  { key: "pesado", label: "Equipo Pesado", short: "Pesado", field: "es_equipo_pesado", badge: "bg-red-700 text-white", icon: Truck },
+  { key: "ligero", label: "Equipo Ligero", short: "Ligero", field: "es_equipo_ligero", badge: "bg-green-600 text-white", icon: Car },
+] as const;
+
+
 const OPTION_TYPE_LABELS: Record<ProductOptionType, string> = {
   marca: "Marca",
   aplicacion: "Aplicación",
