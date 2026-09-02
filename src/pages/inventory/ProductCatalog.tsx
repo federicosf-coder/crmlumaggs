@@ -1047,7 +1047,16 @@ function ProductosTab() {
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{descripcionConcat}</TableCell>
+                    <TableCell className="font-medium">
+                      <div>{descripcionConcat}</div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {p.categoria?.value && <Badge variant="outline" className={`border-0 text-[10px] ${catColor(p.categoria.value)}`}>{p.categoria.value}</Badge>}
+                        {SEGMENTOS.filter(s => p[s.field]).map(s => (
+                          <Badge key={s.key} variant="outline" className={`border-0 text-[10px] gap-1 ${s.badge}`}><s.icon className="h-3 w-3" />{s.short}</Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+
                     <TableCell>{p.marca?.value ?? "—"}</TableCell>
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">
                       {stock ? (
