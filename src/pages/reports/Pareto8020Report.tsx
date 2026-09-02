@@ -21,7 +21,7 @@ export default function Pareto8020Report() {
   const [initPlazas, setInitPlazas] = useState(false);
   const [nivel, setNivel] = useState<"base" | "individual">("base");
 
-  const { desde, hasta } = useMemo(() => {
+  const defaultRange = useMemo(() => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
     return {
@@ -29,6 +29,9 @@ export default function Pareto8020Report() {
       hasta: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
     };
   }, []);
+
+  const [desde, setDesde] = useState<string>(defaultRange.desde);
+  const [hasta, setHasta] = useState<string>(defaultRange.hasta);
 
   const { data: plazas = [] } = useQuery({
     queryKey: ["plazas-activas"],
