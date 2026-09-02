@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { localInputToIso } from "@/lib/formatters";
 import { CrmTask, useUpdateCrmTask, useDeleteCrmTask, useTaskTimeline } from "@/hooks/useCrmTasks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
@@ -109,7 +110,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
     if (task && open) {
       setTitle(task.title || "");
       setDescription(task.description || "");
-      setDueDate(task.due_date ? task.due_date.slice(0, 10) : "");
+      setDueDate(task.due_date ? format(parseISO(task.due_date), "yyyy-MM-dd") : "");
       setPriority(task.priority || "medium");
       setCompleted(!!task.completed);
       setCompanyId(task.company_id || null);
@@ -218,7 +219,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const handleDescChange = (v: string) => { setDescription(v); triggerSave({ description: v || null }); };
   const handleDueDateChange = (v: string) => {
     setDueDate(v);
-    triggerSave({ due_date: v ? v : null });
+    triggerSave({ due_date: localInputToIso(v) });
     if (v) setCalMonth(parseISO(v));
     setCalendarOpen(false);
   };
@@ -853,7 +854,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
                     id: task.id,
                     title,
                     description: description || null,
-                    due_date: dueDate || null,
+                    due_date: localInputToIso(dueDate),
                     priority,
                     completed,
                     completed_at: completed ? (task.completed_at || new Date().toISOString()) : null,

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { localInputToIso } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +46,7 @@ export function RescheduleActivityDialog({ open, onOpenChange, context }: Props)
       toast({ title: "Falta fecha", description: "Selecciona la fecha (y hora) para reprogramar.", variant: "destructive" });
       return;
     }
-    const dueIso = time ? `${date}T${time}:00` : date;
+    const dueIso = localInputToIso(time ? `${date}T${time}:00` : date) || date;
     const newTitle = `[Programada] ${context.baseTitle || "Actividad"}`.trim();
     createTask.mutate(
       {

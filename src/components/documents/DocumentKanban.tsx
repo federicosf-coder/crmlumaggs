@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseLocalDate } from "@/lib/formatters";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -117,7 +118,7 @@ function KanbanColumn({
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-light text-muted-foreground">
-                    {format(new Date(doc.fecha_documento), "dd/MM/yy")}
+                    {format(parseLocalDate(doc.fecha_documento), "dd/MM/yy")}
                   </span>
                   <span className="font-semibold">
                     ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
