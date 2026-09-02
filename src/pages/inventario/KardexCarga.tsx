@@ -672,8 +672,8 @@ async function procesarInventario(
   const bySku = new Map<string, { nombre: string; stocks: Record<string, number>; valores: Record<string, number> }>();
   for (const l of parsed.lineas) {
     const e = bySku.get(l.codigo) || { nombre: l.nombre, stocks: {}, valores: {} };
-    if (tipo === "inventario_unidades") e.stocks[l.almacen] = l.existencia;
-    else e.valores[l.almacen] = l.existencia;
+    if (tipo === "inventario_unidades") e.stocks[l.almacen] = (e.stocks[l.almacen] ?? 0) + l.existencia;
+    else e.valores[l.almacen] = (e.valores[l.almacen] ?? 0) + l.existencia;
     bySku.set(l.codigo, e);
   }
 
