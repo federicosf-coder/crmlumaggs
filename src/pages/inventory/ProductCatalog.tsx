@@ -971,7 +971,57 @@ function ProductosTab() {
             <Button size="sm" variant="ghost" className="h-7" onClick={clearAllFilters}>Limpiar filtros</Button>
           </div>
         )}
+        <div className="flex items-start gap-3 flex-wrap border-t pt-3">
+          <div className="flex-1 min-w-[240px] space-y-1">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Categorías</span>
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {optionsFor("categoria").map(o => {
+                const active = selectedFilters.categoria.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => (active ? removeFilter("categoria", o.id) : addFilter("categoria", o.id))}
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-all ${catColor(o.value)} ${active ? "ring-2 ring-offset-1 ring-primary brightness-95" : "opacity-80 hover:opacity-100"}`}
+                  >
+                    {o.value}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Segmento</span>
+            <div className="flex gap-1.5 flex-wrap">
+              {SEGMENTOS.map(s => {
+                const active = selectedFilters.segmento.includes(s.key);
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => setSelectedFilters(prev => ({
+                      ...prev,
+                      segmento: active ? prev.segmento.filter(x => x !== s.key) : [...prev.segmento, s.key],
+                    }))}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${active ? s.badge + " border-transparent" : "bg-muted/40 hover:bg-muted"}`}
+                  >
+                    <s.icon className="h-3 w-3" />
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground block">Vista</span>
+            <div className="flex gap-1">
+              <Button size="icon" variant={vista === "tabla" ? "default" : "outline"} className="h-8 w-8" onClick={() => setVista("tabla")} title="Tabla"><TableIcon className="h-4 w-4" /></Button>
+              <Button size="icon" variant={vista === "cards" ? "default" : "outline"} className="h-8 w-8" onClick={() => setVista("cards")} title="Tarjetas"><LayoutGrid className="h-4 w-4" /></Button>
+            </div>
+          </div>
+        </div>
       </CardHeader>
+
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : vista === "cards" ? (
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
