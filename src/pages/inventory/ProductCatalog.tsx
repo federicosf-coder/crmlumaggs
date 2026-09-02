@@ -497,7 +497,7 @@ function ProductosTab() {
         linea:        { field: "linea_id",        resolve: (v) => findOpt("linea", v) },
       };
       // Columns that are recognized but handled separately (codigo) or ignored as system fields
-      const systemCols = new Set(["id", "created_at", "updated_at", "created_by"]);
+      const systemCols = new Set(["id", "created_at", "updated_at", "created_by", ...(canViewCostos ? [] : ["costo_actual"])]);
       const unknownCols = new Set<string>();
       for (const h of headers) {
         if (!h) continue;
@@ -1177,7 +1177,7 @@ function ProductosTab() {
               <h4 className="font-semibold text-sm mb-3">Precios</h4>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {([
-                  ...(isAdmin ? [["costo_actual", "Costo Actual"]] : []),
+                  ...(canViewCostos ? [["costo_actual", "Costo Actual"]] : []),
                   ["precio_base_uf1", "Base UF1"],
                   ["precio_uf2", "UF2"],
                   ["precio_uf3", "UF3"],
@@ -1347,7 +1347,7 @@ function ProductosTab() {
                 <h4 className="font-semibold text-sm mb-2">Precios</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-2">
                   {([
-                    ...(isAdmin ? [["Costo", viewProduct.costo_actual]] : []),
+                    ...(canViewCostos ? [["Costo", viewProduct.costo_actual]] : []),
                     ["Base UF1", viewProduct.precio_base_uf1],
                     ["UF2", viewProduct.precio_uf2],
                     ["UF3", viewProduct.precio_uf3],
@@ -1363,7 +1363,7 @@ function ProductosTab() {
                 </div>
               </div>
 
-              {isAdmin && <ReferenciasCostoSection codigo={viewProduct.codigo} />}
+              {canViewCostos && <ReferenciasCostoSection codigo={viewProduct.codigo} />}
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={() => setViewProduct(null)}>Cerrar</Button>
