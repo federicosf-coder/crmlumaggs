@@ -141,6 +141,24 @@ export default function Pareto8020Report() {
   const togglePlaza = (id: string) =>
     setPlazasSel((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
 
+  const handleDesdeMonth = (value: string) => {
+    if (!value) return;
+    setDesde(`${value}-01`);
+  };
+
+  const handleHastaMonth = (value: string) => {
+    if (!value) return;
+    const [year, month] = value.split("-").map(Number);
+    const now = new Date();
+    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
+    if (isCurrentMonth) {
+      setHasta(`${value}-${pad(now.getDate())}`);
+    } else {
+      const lastDay = new Date(year, month, 0).getDate();
+      setHasta(`${value}-${pad(lastDay)}`);
+    }
+  };
+
   return (
     <>
       <div className="container mx-auto px-4 pt-4">
@@ -171,33 +189,22 @@ export default function Pareto8020Report() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wide">Plazas</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="min-w-[220px] justify-between font-light">
-                    {todas ? "Todas las plazas" : `${plazasSel.length} plazas seleccionadas`}
-                    <ChevronDown className="h-4 w-4 opacity-60" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-2" align="start">
-                  <div className="flex justify-between pb-2 mb-2 border-b">
-                    <Button variant="ghost" size="sm" onClick={() => setPlazasSel(plazas.map((p) => p.id))}>
-                      Todas
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setPlazasSel([])}>
-                      Ninguna
-                    </Button>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto space-y-2">
-                    {plazas.map((p) => (
-                      <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox checked={plazasSel.includes(p.id)} onCheckedChange={() => togglePlaza(p.id)} />
-                        {p.nombre}
-                      </label>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <Label className="text-xs uppercase tracking-wide">Desde</Label>
+              <input
+                type="month"
+                value={desde.slice(0, 7)}
+                onChange={(e) => handleDesdeMonth(e.target.value)}
+                className="h-10 w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm font-light ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide">Hasta</Label>
+              <input
+                type="month"
+                value={hasta.slice(0, 7)}
+                onChange={(e) => handleHastaMonth(e.target.value)}
+                className="h-10 w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm font-light ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs uppercase tracking-wide">Nivel</Label>
@@ -210,6 +217,43 @@ export default function Pareto8020Report() {
                   <SelectItem value="individual">Por SKU Individual</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </CardContent>
+          <CardContent className="pb-6 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide">Plazas</Label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPlazasSel(todas ? [] : plazas.map((p) => p.id))}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium transition-all",
+                    todas
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/50 hover:bg-muted"
+                  )}
+                >
+                  Todas
+                </button>
+                {plazas.map((p) => {
+                  const active = plazasSel.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => togglePlaza(p.id)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-medium transition-all",
+                        active
+                          ? "bg-primary text-primary-foreground ring-2 ring-offset-1 ring-primary"
+                          : "bg-muted/50 hover:bg-muted"
+                      )}
+                    >
+                      {p.nombre}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>
