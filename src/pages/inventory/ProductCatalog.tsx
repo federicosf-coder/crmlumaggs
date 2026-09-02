@@ -1300,8 +1300,14 @@ function ProductosTab() {
                     ["Categoría", viewProduct.categoria?.value],
                     ["Línea", viewProduct.linea?.value],
                   ] as [string, string | undefined][]).map(([label, val]) => (
-                    <div key={label}><p className="text-xs text-muted-foreground">{label}</p><p className="text-sm">{val ?? "—"}</p></div>
+                    <div key={label}>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      {label === "Categoría" && val
+                        ? <Badge variant="outline" className={`border-0 ${catColor(val)}`}>{val}</Badge>
+                        : <p className="text-sm">{val ?? "—"}</p>}
+                    </div>
                   ))}
+
                 </div>
               </div>
 
