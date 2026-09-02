@@ -874,7 +874,7 @@ function ProductosTab() {
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto">
-                {filterDefs.map(f => (
+                {filterDefs.filter(f => f.inPopover).map(f => (
                   <div key={f.key} className="flex flex-col gap-1">
                     <Label className="text-xs text-muted-foreground">{f.label}</Label>
                     <Select value="" onValueChange={(v) => addFilter(f.key, v)}>
