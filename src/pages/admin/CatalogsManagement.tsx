@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCanViewCostos } from "@/hooks/useCanViewCostos";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -2110,6 +2111,7 @@ const LINEA_MARGIN_LEVELS = [
 
 function LineaMargenesTab() {
   const qc = useQueryClient();
+  const canViewCostos = useCanViewCostos();
 
   const { data: lineas = [] } = useQuery({
     queryKey: ["product_option_values_linea_active"],
@@ -2220,6 +2222,10 @@ function LineaMargenesTab() {
   const lineasDisponibles = lineas.filter((l: any) =>
     !lineasUsadas.has(l.id) || (editingId && form.linea_id === l.id)
   );
+
+  if (!canViewCostos) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">No tienes permiso para ver esta sección.</p>;
+  }
 
   return (
     <Card>
