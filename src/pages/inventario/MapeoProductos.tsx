@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCanViewCostos } from "@/hooks/useCanViewCostos";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -597,6 +598,7 @@ function MapeadosTab() {
 
 // ─── Página principal ───────────────────────────────
 function CostosSinProductoTab() {
+  const canViewCostos = useCanViewCostos();
   const { data: rows = [], isLoading } = useCostosSinProducto();
   const { data: ignorados = [] } = useCostosIgnorados();
   const queryClient = useQueryClient();
@@ -660,7 +662,7 @@ function CostosSinProductoTab() {
                   <TableHead>Código</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Marca</TableHead>
-                  <TableHead className="text-right">Costo</TableHead>
+                  {canViewCostos && <TableHead className="text-right">Costo</TableHead>}
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -674,9 +676,11 @@ function CostosSinProductoTab() {
                         {r.marca_label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {r.costo_efectivo != null ? Number(r.costo_efectivo).toLocaleString("es-MX", { style: "currency", currency: "MXN" }) : "—"}
-                    </TableCell>
+                    {canViewCostos && (
+                      <TableCell className="text-right tabular-nums">
+                        {r.costo_efectivo != null ? Number(r.costo_efectivo).toLocaleString("es-MX", { style: "currency", currency: "MXN" }) : "—"}
+                      </TableCell>
+                    )}
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
                         <Button
@@ -720,7 +724,7 @@ function CostosSinProductoTab() {
                   </TableRow>
                 ))}
                 {visibles.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sin costos huérfanos 🎉</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canViewCostos ? 5 : 4} className="text-center text-muted-foreground py-8">Sin costos huérfanos 🎉</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -739,7 +743,7 @@ function CostosSinProductoTab() {
                     <TableHead>Código</TableHead>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Marca</TableHead>
-                    <TableHead className="text-right">Costo</TableHead>
+                    {canViewCostos && <TableHead className="text-right">Costo</TableHead>}
                     <TableHead>Ignorado por</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
@@ -753,11 +757,13 @@ function CostosSinProductoTab() {
                         <TableCell className="font-mono text-xs">{ig.codigo_producto}</TableCell>
                         <TableCell className="text-sm">{r?.nombre_en_archivo || "—"}</TableCell>
                         <TableCell className="text-sm">{r?.marca_label || "—"}</TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {r?.costo_efectivo != null
-                            ? Number(r.costo_efectivo).toLocaleString("es-MX", { style: "currency", currency: "MXN" })
-                            : "—"}
-                        </TableCell>
+                        {canViewCostos && (
+                          <TableCell className="text-right tabular-nums">
+                            {r?.costo_efectivo != null
+                              ? Number(r.costo_efectivo).toLocaleString("es-MX", { style: "currency", currency: "MXN" })
+                              : "—"}
+                          </TableCell>
+                        )}
                         <TableCell className="text-xs">{ig.ignorado_por || "—"}</TableCell>
                         <TableCell className="text-xs">
                           {ig.ignorado_at ? new Date(ig.ignorado_at).toLocaleString("es-MX") : "—"}
