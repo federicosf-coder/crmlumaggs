@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { roleLabel } from "@/lib/roles";
@@ -51,6 +52,7 @@ interface Permission {
 
 export default function PermissionsManagement() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [costosVisibility, setCostosVisibility] = useState<{ role: string; puede_ver_costos: boolean }[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { hasRole } = useAuth();
@@ -62,7 +64,33 @@ export default function PermissionsManagement() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPermissions(); }, []);
+  const fetchCostosVisibility = async () => {
+    const { data } = await (supabase as any).from("role_costos_visibility").select("*");
+    setCostosVisibility((data || []) as { role: string; puede_ver_costos: boolean }[]);
+  };
+
+  useEffect(() => { fetchPermissions(); fetchCostosVisibility(); }, []);
+
+  const updateCostosVisibility = async (role: string, puede_ver_costos: boolean) => {
+    const { error } = await (supabase as any)
+      .from("role_costos_visibility")
+      .update({ puede_ver_costos })
+      .eq("role", role);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setCostosVisibility((prev) =>
+        prev.map((r) => (r.role === role ? { ...r, puede_ver_costos } : r))
+      );
+      toast({ title: "Visibilidad de costos actualizada" });
+    }
+  };
+
+  const getPuedeVerCostos = (role: string): boolean => {
+    if (role === "admin") return true;
+    return costosVisibility.find((r) => r.role === role)?.puede_ver_costos ?? false;
+  };
 
   const updatePermission = async (role: AppRole, module: AppModule, access_level: AccessLevel) => {
     const existing = permissions.find((p) => p.role === role && p.module === module);
@@ -143,6 +171,43 @@ export default function PermissionsManagement() {
               </table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Visibilidad de Costos</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Controla qué roles pueden ver campos de costo, márgenes y utilidad en todo el sistema (catálogo de productos, gestión de costos, autorización de precios, reportes, etc). No afecta los precios de venta, que siguen visibles para todos los roles con acceso al módulo correspondiente.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2 font-medium text-muted-foreground min-w-[180px]">Permiso</th>
+                  {ALL_ROLES.map((role) => (
+                    <th key={role} className="text-center p-2 font-medium text-muted-foreground min-w-[110px]">
+                      {roleLabel(role)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b hover:bg-muted/50">
+                  <td className="p-2 font-medium">Ver información de costos</td>
+                  {ALL_ROLES.map((role) => (
+                    <td key={role} className="p-2 text-center">
+                      <Switch
+                        checked={getPuedeVerCostos(role)}
+                        onCheckedChange={(v) => updateCostosVisibility(role, v)}
+                        disabled={role === "admin"}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>
