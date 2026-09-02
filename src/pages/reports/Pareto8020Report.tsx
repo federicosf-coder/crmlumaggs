@@ -219,6 +219,87 @@ export default function Pareto8020Report() {
               </Select>
             </div>
           </CardContent>
+
+          <CardContent className="pb-4 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide">Periodo rápido</Label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    setDesde(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`);
+                    setHasta(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
+                  }}
+                  className="rounded-full px-3 py-1 text-xs font-medium bg-muted/50 hover:bg-muted transition-all"
+                >
+                  Mes actual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+                    setDesde(`${firstDay.getFullYear()}-${pad(firstDay.getMonth() + 1)}-01`);
+                    setHasta(`${lastDay.getFullYear()}-${pad(lastDay.getMonth() + 1)}-${pad(lastDay.getDate())}`);
+                  }}
+                  className="rounded-full px-3 py-1 text-xs font-medium bg-muted/50 hover:bg-muted transition-all"
+                >
+                  Mes anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+                    setDesde(`${now.getFullYear()}-${pad(quarterStartMonth + 1)}-01`);
+                    setHasta(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
+                  }}
+                  className="rounded-full px-3 py-1 text-xs font-medium bg-muted/50 hover:bg-muted transition-all"
+                >
+                  Este trimestre
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const prevQuarterStartMonth = (Math.floor(now.getMonth() / 3) - 1) * 3;
+                    const firstDay = new Date(now.getFullYear(), prevQuarterStartMonth, 1);
+                    const lastDay = new Date(now.getFullYear(), prevQuarterStartMonth + 3, 0);
+                    setDesde(`${firstDay.getFullYear()}-${pad(firstDay.getMonth() + 1)}-01`);
+                    setHasta(`${lastDay.getFullYear()}-${pad(lastDay.getMonth() + 1)}-${pad(lastDay.getDate())}`);
+                  }}
+                  className="rounded-full px-3 py-1 text-xs font-medium bg-muted/50 hover:bg-muted transition-all"
+                >
+                  Trimestre anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    setDesde(`${now.getFullYear()}-01-01`);
+                    setHasta(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
+                  }}
+                  className="rounded-full px-3 py-1 text-xs font-medium bg-muted/50 hover:bg-muted transition-all"
+                >
+                  Año actual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    setDesde("2020-01-01");
+                    setHasta(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
+                  }}
+                  className="rounded-full px-3 py-1 text-xs font-medium bg-muted/50 hover:bg-muted transition-all"
+                >
+                  Todo el historial
+                </button>
+              </div>
+            </div>
+          </CardContent>
+
           <CardContent className="pb-6 pt-2">
             <div className="space-y-1.5">
               <Label className="text-xs uppercase tracking-wide">Plazas</Label>
