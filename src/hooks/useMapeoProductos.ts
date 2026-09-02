@@ -168,9 +168,10 @@ function useStockPorProductoImpl() {
       const result = new Map<string, any>();
       for (const p of (productosBrand || []) as any[]) {
         const empresa = productoEmpresaMap.get(p.id) || "lumaggs";
-        const codigoBuscar = mapeoCodigoMap.get(p.id) || p.codigo;
         const piezasPorTarima = mapeoPiezasMap.get(p.id);
-        const nivel = nivelMap.get(`${codigoBuscar}::${empresa}`);
+        const directo = nivelMap.get(`${p.codigo}::${empresa}`);
+        const codigoMapeo = mapeoCodigoMap.get(p.id);
+        const nivel = directo || (codigoMapeo ? nivelMap.get(`${codigoMapeo}::${empresa}`) : undefined);
         if (nivel || piezasPorTarima !== undefined) {
           result.set(p.id, {
             ...(nivel || {}),
