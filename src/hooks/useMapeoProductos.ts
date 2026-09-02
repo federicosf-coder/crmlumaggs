@@ -145,7 +145,8 @@ function useStockPorProductoImpl() {
         .select("producto_id, codigo_contpaqi, piezas_por_tarima");
       const { data: productosBrand } = await supabase
         .from("productos")
-        .select("id, marca:product_option_values!productos_marca_id_fkey(value)");
+        .select("id, codigo, marca:product_option_values!productos_marca_id_fkey(value)")
+        .eq("is_active", true);
       const { data: niveles } = await (supabase as any)
         .from("inv_niveles_inventario")
         .select("codigo_producto, empresa_vendedora, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, estatus_inventario");
@@ -156,13 +157,24 @@ function useStockPorProductoImpl() {
         productoEmpresaMap.set(p.id, empresa);
       }
       const nivelMap = new Map<string, any>((niveles || []).map((n: any) => [`${n.codigo_producto}::${n.empresa_vendedora}`, n]));
-      const result = new Map<string, any>();
+      const mapeoCodigoMap = new Map<string, string>();
+      const mapeoPiezasMap = new Map<string, any>();
       for (const m of (mapeos || [])) {
         if (m.producto_id) {
-          const empresa = productoEmpresaMap.get(m.producto_id) || "lumaggs";
-          result.set(m.producto_id, {
-            ...(nivelMap.get(`${m.codigo_contpaqi}::${empresa}`) || {}),
-            piezas_por_tarima: m.piezas_por_tarima,
+          mapeoCodigoMap.set(m.producto_id, m.codigo_contpaqi);
+          mapeoPiezasMap.set(m.producto_id, m.piezas_por_tarima);
+        }
+      }
+      const result = new Map<string, any>();
+      for (const p of (productosBrand || []) as any[]) {
+        const empresa = productoEmpresaMap.get(p.id) || "lumaggs";
+        const codigoBuscar = mapeoCodigoMap.get(p.id) || p.codigo;
+        const piezasPorTarima = mapeoPiezasMap.get(p.id);
+        const nivel = nivelMap.get(`${codigoBuscar}::${empresa}`);
+        if (nivel || piezasPorTarima !== undefined) {
+          result.set(p.id, {
+            ...(nivel || {}),
+            piezas_por_tarima: piezasPorTarima ?? null,
           });
         }
       }
