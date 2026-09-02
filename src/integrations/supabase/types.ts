@@ -1098,6 +1098,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cliente_solicitud_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clasificacion_pendiente"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cliente_solicitud_lineas_solicitud_id_fkey"
             columns: ["solicitud_id"]
             isOneToOne: false
@@ -4167,6 +4174,13 @@ export type Database = {
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "documento_productos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clasificacion_pendiente"
+            referencedColumns: ["id"]
+          },
         ]
       }
       documento_productos_backup_2026_04_22: {
@@ -6447,6 +6461,13 @@ export type Database = {
             referencedRelation: "productos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "inv_producto_proveedor_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clasificacion_pendiente"
+            referencedColumns: ["id"]
+          },
         ]
       }
       inv_recepcion_lineas: {
@@ -7623,6 +7644,9 @@ export type Database = {
           created_by: string | null
           descripcion: string | null
           documento_origen_id: string | null
+          es_equipo_ligero: boolean
+          es_equipo_pesado: boolean
+          es_industrial: boolean
           es_para_cotizar: boolean
           formula_id: string | null
           id: string
@@ -7662,6 +7686,9 @@ export type Database = {
           created_by?: string | null
           descripcion?: string | null
           documento_origen_id?: string | null
+          es_equipo_ligero?: boolean
+          es_equipo_pesado?: boolean
+          es_industrial?: boolean
           es_para_cotizar?: boolean
           formula_id?: string | null
           id?: string
@@ -7701,6 +7728,9 @@ export type Database = {
           created_by?: string | null
           descripcion?: string | null
           documento_origen_id?: string | null
+          es_equipo_ligero?: boolean
+          es_equipo_pesado?: boolean
+          es_industrial?: boolean
           es_para_cotizar?: boolean
           formula_id?: string | null
           id?: string
@@ -8545,6 +8575,13 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_recuperacion_ignorados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clasificacion_pendiente"
             referencedColumns: ["id"]
           },
         ]
@@ -10140,7 +10177,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vw_clasificacion_pendiente: {
+        Row: {
+          aplicacion: string | null
+          base: string | null
+          campos_faltantes: number | null
+          categoria: string | null
+          codigo: string | null
+          es_equipo_ligero: boolean | null
+          es_equipo_pesado: boolean | null
+          es_industrial: boolean | null
+          falta_aplicacion: boolean | null
+          falta_base: boolean | null
+          falta_categoria: boolean | null
+          falta_segmento: boolean | null
+          falta_viscosidad: boolean | null
+          id: string | null
+          marca: string | null
+          nombre_producto: string | null
+          viscosidad: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       backfill_documentos_negocio_id: { Args: never; Returns: Json }
