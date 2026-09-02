@@ -973,8 +973,45 @@ function ProductosTab() {
         )}
       </CardHeader>
       <CardContent>
-        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
+        {isLoading ? <p className="text-muted-foreground">Cargando...</p> : vista === "cards" ? (
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {filteredProductos.map((p: any) => {
+              const stock = stockMap.get(p.id);
+              return (
+                <div key={p.id} className="rounded-lg border bg-card p-3 flex flex-col gap-2 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm leading-tight truncate" title={p.nombre_producto}>{p.nombre_producto}</p>
+                      <p className="text-[11px] text-muted-foreground tabular-nums">{p.codigo}{p.presentaciones?.nombre ? ` · ${p.presentaciones.nombre}` : ""}</p>
+                    </div>
+                    <div className="flex gap-0.5 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewProduct(p)} title="Ver"><Eye className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {p.categoria?.value && <Badge variant="outline" className={`border-0 text-[10px] ${catColor(p.categoria.value)}`}>{p.categoria.value}</Badge>}
+                    {SEGMENTOS.filter(s => p[s.field]).map(s => (
+                      <Badge key={s.key} variant="outline" className={`border-0 text-[10px] gap-1 ${s.badge}`}><s.icon className="h-3 w-3" />{s.short}</Badge>
+                    ))}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground space-y-0.5">
+                    {p.marca?.value && <div>Marca: <span className="text-foreground">{p.marca.value}</span></div>}
+                    {p.viscosidad?.value && <div>Viscosidad: <span className="text-foreground">{p.viscosidad.value}</span></div>}
+                    {p.formula?.value && <div>Base: <span className="text-foreground">{p.formula.value}</span></div>}
+                  </div>
+                  <div className="mt-auto flex items-center justify-between pt-1 border-t">
+                    <Badge variant="outline" className="text-[10px]">{stock?.stock_total ?? 0} uds</Badge>
+                    <span className="text-sm font-semibold tabular-nums">${Number(p.precio_base_uf1 ?? 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              );
+            })}
+            {filteredProductos.length === 0 && <p className="col-span-full text-center text-muted-foreground py-6">Sin productos</p>}
+          </div>
+        ) : (
           <div className="overflow-x-auto">
+
             <Table>
               <TableHeader>
                  <TableRow>
