@@ -62,7 +62,7 @@ export default function Pareto8020Report() {
       let q = supabase
         .from("documento_productos")
         .select(
-          "unidades_equivalentes, producto_id, documentos!inner(fecha_documento, plaza_id, empresa_vendedora), productos(id, nombre_producto, producto_base_id, productos_base(nombre))"
+          "cantidad, unidades_equivalentes, producto_id, documentos!inner(fecha_documento, plaza_id, empresa_vendedora), productos(id, nombre_producto, producto_base_id, presentacion_id, productos_base(nombre), presentaciones(unidades_equivalentes))"
         )
         .eq("documentos.tipo_documento", "factura")
         .neq("documentos.estatus_factura", "cancelada")
@@ -74,13 +74,16 @@ export default function Pareto8020Report() {
       const { data, error } = await q.limit(50000);
       if (error) throw error;
       return (data ?? []) as unknown as {
+        cantidad: number | null;
         unidades_equivalentes: number | null;
         producto_id: string | null;
         productos: {
           id: string;
           nombre_producto: string | null;
           producto_base_id: string | null;
+          presentacion_id: string | null;
           productos_base: { nombre: string | null } | null;
+          presentaciones: { unidades_equivalentes: number | null } | null;
         } | null;
       }[];
     },
