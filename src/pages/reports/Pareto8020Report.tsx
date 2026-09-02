@@ -92,18 +92,20 @@ export default function Pareto8020Report() {
   const { rows, total, top80Count } = useMemo(() => {
     const map = new Map<string, { nombre: string; ue: number; skus: Set<string> }>();
     for (const l of lineas) {
+      const ueLinea =
+        Number(l.cantidad ?? 0) * Number(l.productos?.presentaciones?.unidades_equivalentes ?? 0);
       if (nivel === "base") {
         const baseId = l.productos?.producto_base_id ?? "__sin_base__";
         const nombre = l.productos?.productos_base?.nombre ?? "Sin producto base";
         const entry = map.get(baseId) ?? { nombre, ue: 0, skus: new Set<string>() };
-        entry.ue += Number(l.unidades_equivalentes ?? 0);
+        entry.ue += ueLinea;
         if (l.productos?.id) entry.skus.add(l.productos.id);
         map.set(baseId, entry);
       } else {
         const prodId = l.productos?.id ?? "__sin_producto__";
         const nombre = l.productos?.nombre_producto ?? "Sin producto";
         const entry = map.get(prodId) ?? { nombre, ue: 0, skus: new Set<string>() };
-        entry.ue += Number(l.unidades_equivalentes ?? 0);
+        entry.ue += ueLinea;
         map.set(prodId, entry);
       }
     }
