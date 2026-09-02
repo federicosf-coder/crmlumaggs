@@ -588,6 +588,10 @@ function ProductosTab() {
     return nonEmptySelected.includes(value as string);
   };
 
+  const matchesSegmento = (p: any) =>
+    selectedFilters.segmento.length === 0 ||
+    selectedFilters.segmento.every(k => !!p[SEGMENTOS.find(s => s.key === k)!.field]);
+
   const filteredProductos = productos
     .filter((p: any) =>
       matchesMultiFilter(p.marca_id, selectedFilters.marca) &&
@@ -597,11 +601,13 @@ function ProductosTab() {
       matchesMultiFilter(p.formula_id, selectedFilters.formula) &&
       matchesMultiFilter(p.viscosidad_id, selectedFilters.viscosidad) &&
       matchesMultiFilter(p.categoria_id, selectedFilters.categoria) &&
+      matchesSegmento(p) &&
       matchesMultiFilter(p.linea_id, selectedFilters.linea) &&
       matchesMultiFilter(String(!!p.is_active), selectedFilters.activo) &&
       (precioMin === "" || Number(p.precio_base_uf1 ?? 0) >= precioMin) &&
       (precioMax === "" || Number(p.precio_base_uf1 ?? 0) <= precioMax)
     )
+
     .sort((a: any, b: any) => {
       switch (productSort) {
         case "code_asc": return (a.codigo || "").localeCompare(b.codigo || "");
