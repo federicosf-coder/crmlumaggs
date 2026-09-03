@@ -579,6 +579,26 @@ export function RotacionInventarioTabContent() {
             </span>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">Agrupar por</span>
+            {groupLevels.map((gl, idx) => (
+              <Select
+                key={idx}
+                value={gl}
+                onValueChange={(v) => setGroupLevels((prev) => prev.map((p, i) => (i === idx ? (v as GroupKey) : p)))}
+              >
+                <SelectTrigger className="h-9 w-48"><SelectValue placeholder={`Nivel ${idx + 1}`} /></SelectTrigger>
+                <SelectContent>
+                  {GROUP_OPTIONS.filter((o) => o.value === "none" || o.value === gl || !groupLevels.includes(o.value)).map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.value === "none" ? `Nivel ${idx + 1}: Ninguno` : o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ))}
+          </div>
+
           <div className="rounded-md border overflow-auto max-h-[70vh]">
             <Table>
               <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50 sticky top-0 z-10">
