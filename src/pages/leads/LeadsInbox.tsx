@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Inbox, KeyRound, RefreshCw, Search, MessageCircle, Mail, ExternalLink,
-  CheckCircle2, XCircle, Clock, Flame, Snowflake, LifeBuoy, Sparkles,
+  CheckCircle2, XCircle, Clock, Flame, Snowflake, LifeBuoy, Sparkles, Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -243,6 +243,7 @@ export default function LeadsInbox() {
       </Tabs>
 
       <LeadSourcesDialog open={sourcesOpen} onOpenChange={setSourcesOpen} />
+      <ImportarLeadsDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }
