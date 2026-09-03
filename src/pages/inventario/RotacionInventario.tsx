@@ -23,11 +23,16 @@ type Clasificacion =
   | "rotacion_buena"
   | "estrella";
 
+type Velocidad = "rapido" | "medio" | "lento" | "sin_movimiento";
+
 type Row = {
   id: string;
   codigo: string;
   nombre: string;
   marca: string;
+  categoria: string;
+  linea: string;
+  velocidad: Velocidad;
   s1001: number; s1002: number; s1003: number; s1004: number; stock_total: number;
   costo_prom: number | null;
   valor_stock: number;
@@ -37,6 +42,63 @@ type Row = {
   ultima_venta: string | null;
   clasificacion: Clasificacion;
 };
+
+const VELOCIDAD_LABEL: Record<Velocidad, string> = {
+  rapido: "Rápido (1-2m)",
+  medio: "Medio (3-6m)",
+  lento: "Lento (6-12m+)",
+  sin_movimiento: "Sin movimiento",
+};
+
+type GroupKey = "marca" | "categoria" | "linea" | "velocidad" | "none";
+
+const GROUP_OPTIONS: { value: GroupKey; label: string }[] = [
+  { value: "none", label: "Ninguno" },
+  { value: "marca", label: "Marca" },
+  { value: "categoria", label: "Categoría" },
+  { value: "linea", label: "Línea" },
+  { value: "velocidad", label: "Velocidad de rotación" },
+];
+
+type GroupNode = {
+  label: string;
+  level: number;
+  count: number;
+  valor: number;
+  children: GroupNode[];
+  rows: Row[];
+};
+
+function groupValue(r: Row, k: GroupKey): string {
+  if (k === "marca") return r.marca || "Sin marca";
+  if (k === "categoria") return r.categoria;
+  if (k === "linea") return r.linea;
+  if (k === "velocidad") return VELOCIDAD_LABEL[r.velocidad];
+  return "";
+}
+
+function groupRows(rows: Row[], keys: GroupKey[], level = 0): GroupNode[] {
+  if (!keys.length) return [];
+  const [k, ...rest] = keys;
+  const map = new Map<string, Row[]>();
+  for (const r of rows) {
+    const v = groupValue(r, k);
+    const arr = map.get(v) || [];
+    arr.push(r);
+    map.set(v, arr);
+  }
+  return [...map.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0], "es"))
+    .map(([label, items]) => ({
+      label,
+      level,
+      count: items.length,
+      valor: items.reduce((s, r) => s + r.valor_stock, 0),
+      children: rest.length ? groupRows(items, rest, level + 1) : [],
+      rows: rest.length ? [] : items,
+    }));
+}
+
 
 type SortKey = keyof Row;
 
