@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
-import { Wallet } from "lucide-react";
+import { Wallet, FileBarChart } from "lucide-react";
 
 export default function CobranzaLanding() {
   const navigate = useNavigate();
