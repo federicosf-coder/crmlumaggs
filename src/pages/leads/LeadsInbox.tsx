@@ -55,6 +55,7 @@ export default function LeadsInbox() {
   const descartar = useDescartarLead();
   const [search, setSearch] = useState("");
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [tab, setTab] = useState("bandeja");
   const esAdmin = hasAnyRole(["admin", "manager"]);
 
