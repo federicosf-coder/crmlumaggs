@@ -273,11 +273,22 @@ export function RotacionInventarioTabContent() {
       const n = nivelesMap.get(p.codigo);
       const costo = n?.costo_promedio != null ? Number(n.costo_promedio) : null;
       const stock_total = Number(n?.stock_total || 0);
+      const ue = Number(demandaMap.get(p.codigo) || 0);
+      const demandaMensual = ue / 12;
+      let velocidad: Velocidad;
+      if (demandaMensual <= 0) velocidad = "sin_movimiento";
+      else {
+        const coberturaMeses = stock_total / demandaMensual;
+        velocidad = coberturaMeses <= 2 ? "rapido" : coberturaMeses <= 6 ? "medio" : "lento";
+      }
       return {
         id: p.id,
         codigo: p.codigo,
         nombre: p.nombre_producto || "",
         marca: marcas.get(p.marca_id) || "",
+        categoria: categoriaMap.get(p.categoria_id) || "Sin categoría",
+        linea: lineaMap.get(p.linea_id) || "Sin línea",
+        velocidad,
         s1001: Number(n?.stock_almacen_1001 || 0),
         s1002: Number(n?.stock_almacen_1002 || 0),
         s1003: Number(n?.stock_almacen_1003 || 0),
@@ -285,7 +296,7 @@ export function RotacionInventarioTabContent() {
         stock_total,
         costo_prom: costo,
         valor_stock: (costo || 0) * stock_total,
-        ue: Number(demandaMap.get(p.codigo) || 0),
+        ue,
         pct: 0,
         meses_con_venta: k?.meses.size || 0,
         ultima_venta: k?.ultima ?? null,
