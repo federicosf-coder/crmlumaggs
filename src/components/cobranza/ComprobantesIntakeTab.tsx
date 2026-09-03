@@ -117,11 +117,11 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-activas-intake"],
     queryFn: async () => {
-      return await fetchAllRows<{ id: string; name: string }>(
+      return await fetchAllRows<{ id: string; name: string; razon_social: string | null }>(
         (from, to) =>
           supabase
             .from("companies")
-            .select("id,name")
+            .select("id,name,razon_social")
             .eq("is_active", true)
             .order("name")
             .range(from, to),
@@ -129,6 +129,7 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
       );
     },
   });
+
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Cargando comprobantes...</p>;
@@ -160,7 +161,7 @@ function ComprobanteCard({
   onDone,
 }: {
   row: IntakeRow;
-  companies: { id: string; name: string }[];
+  companies: { id: string; name: string; razon_social?: string | null }[];
   empresaVendedora?: EmpresaVendedora;
   onDone: () => void;
 }) {
@@ -659,7 +660,12 @@ function ComprobanteCard({
             <SearchableSelect
               value={empresaId}
               onValueChange={setEmpresaId}
-              options={companies.map((c) => ({ value: c.id, label: c.name }))}
+              options={companies.map((c) => ({
+                value: c.id,
+                label: c.razon_social && c.razon_social.trim() && c.razon_social.trim().toUpperCase() !== c.name.trim().toUpperCase()
+                  ? `${c.name} / ${c.razon_social}`
+                  : c.name,
+              }))}
               placeholder="Selecciona cliente..."
             />
             {!autoVinculado && row.nombre_detectado && (
