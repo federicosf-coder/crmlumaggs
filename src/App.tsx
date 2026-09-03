@@ -55,6 +55,7 @@ import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 import ContactosSinEmpresa from "@/pages/directory/ContactosSinEmpresa";
 import Cobranza from "@/pages/cobranza/Cobranza";
 import CobranzaLanding from "@/pages/cobranza/CobranzaLanding";
+import CobranzaReporteDiario from "@/pages/cobranza/CobranzaReporteDiario";
 import Unsubscribe from "@/pages/Unsubscribe";
 import WhatsAppInbox from "@/pages/whatsapp/WhatsAppInbox";
 import WhatsAppCampaigns from "@/pages/whatsapp/WhatsAppCampaigns";
