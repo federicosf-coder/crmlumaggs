@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Inbox, KeyRound, RefreshCw, Search, MessageCircle, Mail, ExternalLink,
-  CheckCircle2, XCircle, Clock, Flame, Snowflake, LifeBuoy, Sparkles, Upload, Building2,
+  CheckCircle2, XCircle, Clock, Flame, Snowflake, LifeBuoy, Sparkles, Upload, Building2, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import { useLeads, useTomarLead, useDescartarLead, type Lead, type LeadEstatus }
 import { LeadSourcesDialog } from "@/components/leads/LeadSourcesDialog";
 import { ImportarLeadsDialog } from "@/components/leads/ImportarLeadsDialog";
 import { VincularLeadDialog } from "@/components/leads/VincularLeadDialog";
+import { NuevoLeadDialog } from "@/components/leads/NuevoLeadDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 const ESTATUS_META: Record<LeadEstatus, { label: string; className: string }> = {
@@ -57,6 +58,7 @@ export default function LeadsInbox() {
   const [search, setSearch] = useState("");
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [nuevoOpen, setNuevoOpen] = useState(false);
   const [vincularLead, setVincularLead] = useState<Lead | null>(null);
   const [tab, setTab] = useState("bandeja");
   const esAdmin = hasAnyRole(["admin", "manager"]);
@@ -115,9 +117,14 @@ export default function LeadsInbox() {
             <RefreshCw className="h-4 w-4 mr-1" /> Actualizar
           </Button>
           {hasAnyRole(["admin", "manager", "sales"]) && (
-            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-              <Upload className="h-4 w-4 mr-1" /> Importar lista
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4 mr-1" /> Importar lista
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setNuevoOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Nuevo prospecto
+              </Button>
+            </>
           )}
           {esAdmin && (
             <Button size="sm" onClick={() => setSourcesOpen(true)}>
@@ -255,6 +262,7 @@ export default function LeadsInbox() {
 
       <LeadSourcesDialog open={sourcesOpen} onOpenChange={setSourcesOpen} />
       <ImportarLeadsDialog open={importOpen} onOpenChange={setImportOpen} />
+      <NuevoLeadDialog open={nuevoOpen} onOpenChange={setNuevoOpen} />
       {vincularLead && (
         <VincularLeadDialog
           lead={vincularLead}
