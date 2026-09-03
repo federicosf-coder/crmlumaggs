@@ -265,10 +265,8 @@ export default function CobranzaReporteDiario() {
           <KpiCard label="Vencido Directo" value={carteraBy("credito_directo", "saldo_vencido")} />
           <KpiCard label="Vencido Cescemex" value={carteraBy("credito_cescemex", "saldo_vencido")} />
         </div>
-        <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground font-light">
-          <Info className="h-3.5 w-3.5 mt-[1px] shrink-0" />
-          Cartera calculada al cierre de {formatDate(hasta)}. Los montos de fechas pasadas pueden estar ligeramente
-          sobrestimados por un hueco de datos ya identificado en pagos aplicados históricos.
+        <p className="text-[11px] text-muted-foreground font-light">
+          Cartera calculada al cierre de {formatDate(hasta)}, con base en el estatus de cada factura.
         </p>
       </section>
 
