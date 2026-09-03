@@ -10,8 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Star, TrendingDown, RefreshCw, ChevronsUpDown, Clock, AlertOctagon, HelpCircle } from "lucide-react";
+import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Star, TrendingDown, RefreshCw, ChevronsUpDown, Clock, AlertOctagon, HelpCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { generateRotacionInventarioPdf } from "@/lib/generateRotacionInventarioPdf";
 
 type Clasificacion =
   | "estancado"
