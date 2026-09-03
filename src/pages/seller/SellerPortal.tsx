@@ -1065,7 +1065,7 @@ export default function SellerPortal() {
           sub={
             <div className="space-y-0.5 mt-1">
               <div className="flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-sky-500" />
                 <span className="text-[11px]">Sin venta: {empresasSinVenta}</span>
                 <span className="text-[10px] text-muted-foreground/70">({empresasSinVentaPeriodo} en periodo)</span>
               </div>
@@ -1093,7 +1093,7 @@ export default function SellerPortal() {
           icon={AlertTriangle}
           color="bg-rose-700"
         />
-        <KpiCard title="Unidades / cliente" value={fmtNum(unidadesPromedioCliente)} sub="promedio" icon={Package} color="bg-amber-700" />
+        <KpiCard title="Unidades / cliente" value={fmtNum(unidadesPromedioCliente)} sub="promedio" icon={Package} color="bg-slate-600" />
         <KpiCard title="Facturado (Unidades)" value={fmtNum(unidadesFacturadas)} sub="u. equivalentes" icon={Package} color="bg-indigo-600" />
       </div>
 
@@ -1195,7 +1195,7 @@ export default function SellerPortal() {
       {/* Fila 3 — Calidad y tareas */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <KpiCard title="Saldo vencido" value={fmtMoney(saldoVencidoTotal)} sub="importe pendiente" icon={AlertCircle} color="bg-red-700" />
-        <KpiCard title="Ticket promedio" value={fmtMoney(ticketPromedio)} sub="por factura" icon={TrendingUp} color="bg-amber-600" />
+        <KpiCard title="Ticket promedio" value={fmtMoney(ticketPromedio)} sub="por factura" icon={TrendingUp} color="bg-violet-600" />
         <KpiCard title="Tareas creadas" value={tasksCreadasPeriodo.length} sub="en el periodo" icon={ListChecks} color="bg-cyan-600" />
         <KpiCard title="Tareas completadas" value={tasksCompletadasPeriodo.length} sub="en el periodo" icon={CheckCircle2} color="bg-green-600" />
         <KpiCard title="Tareas vencidas" value={tasksVencidas.length} sub={`${tasksHoyPendientes.length} pendientes hoy`} icon={AlertCircle} color="bg-red-600" />
@@ -1206,7 +1206,7 @@ export default function SellerPortal() {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-base">Clientes sin venta</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <ConvBar label="Activos" value={convSinVenta.activos} max={convSinVenta.activos} color="bg-amber-500" />
+            <ConvBar label="Activos" value={convSinVenta.activos} max={convSinVenta.activos} color="bg-slate-500" />
             <ConvBar label="Cotizados" value={convSinVenta.cotizados} max={convSinVenta.activos} color="bg-blue-600" />
             <ConvBar label="Pedido" value={convSinVenta.pedidos} max={convSinVenta.activos} color="bg-indigo-600" />
             <ConvBar label="Facturados" value={convSinVenta.facturados} max={convSinVenta.activos} color="bg-green-600" />
@@ -1429,7 +1429,7 @@ export default function SellerPortal() {
                   const statusCls = t.completed ? "bg-green-100 text-green-800 border-green-300" : isVenc ? "bg-red-100 text-red-800 border-red-300" : "bg-yellow-100 text-yellow-800 border-yellow-300";
                   const statusText = t.completed ? "Completada" : isVenc ? "Vencida" : "Pendiente";
                   const cat = t.parent_category === "seguimiento" ? { label: "Seguimiento", cls: "bg-blue-50 text-blue-700 border-blue-200" }
-                    : t.parent_category === "cobranza" ? { label: "Cobranza", cls: "bg-amber-50 text-amber-700 border-amber-200" }
+                    : t.parent_category === "cobranza" ? { label: "Cobranza", cls: "bg-violet-50 text-violet-700 border-violet-200" }
                     : { label: "Otra", cls: "bg-muted text-muted-foreground" };
                   const tipoCfg = (ACTIVITY_TYPE_CONFIG as any)[t.task_type] || { emoji: "•", label: t.task_type || "—" };
                   const childCount = (t as any)._childCount || 0;
