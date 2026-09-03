@@ -231,6 +231,37 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
       }
     };
 
+    if (modo === "actividad") {
+      createActivity.mutate(
+        {
+          company_id: normalizedCompanyId,
+          contact_id: normalizedContactId,
+          user_id: session.user.id,
+          type: taskType as CrmActivityType,
+          title: typeLabel,
+          description: description || null,
+          activity_date: localInputToIso(activityDate),
+        },
+        {
+          onSuccess: (data) => {
+            verifyCompany(data);
+            invalidateAll();
+            toast({ title: "Actividad registrada" });
+            resetAndClose();
+            saveCollaborators("activity", data.id);
+          },
+          onError: (err: any) => {
+            toast({
+              title: "Error al registrar actividad",
+              description: err?.message || "No se pudo guardar la actividad.",
+              variant: "destructive",
+            });
+          },
+        }
+      );
+      return;
+    }
+
     createTask.mutate(
       {
         user_id: session.user.id,
