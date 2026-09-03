@@ -191,7 +191,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user) return;
-    if (createTask.isPending) return;
+    if (createTask.isPending || createActivity.isPending) return;
 
     if (brands.length === 0) {
       toast({ title: "Selecciona al menos una marca", description: "Marca Lumaggs y/o Galsa antes de guardar.", variant: "destructive" });
