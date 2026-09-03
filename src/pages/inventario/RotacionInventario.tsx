@@ -10,8 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Star, TrendingDown, RefreshCw, ChevronsUpDown, Clock, AlertOctagon, HelpCircle } from "lucide-react";
+import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Star, TrendingDown, RefreshCw, ChevronsUpDown, Clock, AlertOctagon, HelpCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { generateRotacionInventarioPdf } from "@/lib/generateRotacionInventarioPdf";
 
 type Clasificacion =
   | "estancado"
@@ -23,11 +24,16 @@ type Clasificacion =
   | "rotacion_buena"
   | "estrella";
 
+type Velocidad = "rapido" | "medio" | "lento" | "sin_movimiento";
+
 type Row = {
   id: string;
   codigo: string;
   nombre: string;
   marca: string;
+  categoria: string;
+  linea: string;
+  velocidad: Velocidad;
   s1001: number; s1002: number; s1003: number; s1004: number; stock_total: number;
   costo_prom: number | null;
   valor_stock: number;
@@ -37,6 +43,63 @@ type Row = {
   ultima_venta: string | null;
   clasificacion: Clasificacion;
 };
+
+const VELOCIDAD_LABEL: Record<Velocidad, string> = {
+  rapido: "Rápido (1-2m)",
+  medio: "Medio (3-6m)",
+  lento: "Lento (6-12m+)",
+  sin_movimiento: "Sin movimiento",
+};
+
+type GroupKey = "marca" | "categoria" | "linea" | "velocidad" | "none";
+
+const GROUP_OPTIONS: { value: GroupKey; label: string }[] = [
+  { value: "none", label: "Ninguno" },
+  { value: "marca", label: "Marca" },
+  { value: "categoria", label: "Categoría" },
+  { value: "linea", label: "Línea" },
+  { value: "velocidad", label: "Velocidad de rotación" },
+];
+
+type GroupNode = {
+  label: string;
+  level: number;
+  count: number;
+  valor: number;
+  children: GroupNode[];
+  rows: Row[];
+};
+
+function groupValue(r: Row, k: GroupKey): string {
+  if (k === "marca") return r.marca || "Sin marca";
+  if (k === "categoria") return r.categoria;
+  if (k === "linea") return r.linea;
+  if (k === "velocidad") return VELOCIDAD_LABEL[r.velocidad];
+  return "";
+}
+
+function groupRows(rows: Row[], keys: GroupKey[], level = 0): GroupNode[] {
+  if (!keys.length) return [];
+  const [k, ...rest] = keys;
+  const map = new Map<string, Row[]>();
+  for (const r of rows) {
+    const v = groupValue(r, k);
+    const arr = map.get(v) || [];
+    arr.push(r);
+    map.set(v, arr);
+  }
+  return [...map.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0], "es"))
+    .map(([label, items]) => ({
+      label,
+      level,
+      count: items.length,
+      valor: items.reduce((s, r) => s + r.valor_stock, 0),
+      children: rest.length ? groupRows(items, rest, level + 1) : [],
+      rows: rest.length ? [] : items,
+    }));
+}
+
 
 type SortKey = keyof Row;
 
@@ -113,6 +176,8 @@ export function RotacionInventarioTabContent() {
   const [loading, setLoading] = useState(true);
   const [productos, setProductos] = useState<any[]>([]);
   const [marcas, setMarcas] = useState<Map<string, string>>(new Map());
+  const [categoriaMap, setCategoriaMap] = useState<Map<string, string>>(new Map());
+  const [lineaMap, setLineaMap] = useState<Map<string, string>>(new Map());
   const [niveles, setNiveles] = useState<any[]>([]);
   const [fechasVenta, setFechasVenta] = useState<any[]>([]);
   const [demanda, setDemanda] = useState<any[]>([]);
@@ -122,6 +187,7 @@ export function RotacionInventarioTabContent() {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("ue");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [groupLevels, setGroupLevels] = useState<GroupKey[]>(["none", "none", "none", "none"]);
 
   const { desde, hasta, hace3Meses } = useMemo(() => {
     const now = new Date();
@@ -138,14 +204,18 @@ export function RotacionInventarioTabContent() {
     setLoading(true);
     try {
       const [prods, opts, nv, fv, dm] = await Promise.all([
-        fetchAll(() => (supabase as any).from("productos").select("id, codigo, nombre_producto, marca_id").eq("is_active", true).order("codigo")),
-        (supabase as any).from("product_option_values").select("id, value").eq("option_type", "marca"),
+        fetchAll(() => (supabase as any).from("productos").select("id, codigo, nombre_producto, marca_id, categoria_id, linea_id").eq("is_active", true).order("codigo")),
+        (supabase as any).from("product_option_values").select("id, value, option_type").in("option_type", ["marca", "categoria", "linea"]),
         fetchAll(() => (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, costo_promedio")),
         fetchAll(() => (supabase as any).from("inv_kardex_fechas_venta").select("codigo_producto, almacen, fecha, cantidad")),
         fetchAll(() => (supabase as any).from("inv_demanda_plaza").select("codigo_producto, almacen, periodo_fin, demanda_mensual_promedio, ultima_venta")),
       ]);
       setProductos(prods);
-      setMarcas(new Map(((opts.data || []) as any[]).map((o) => [o.id, o.value])));
+      const allOpts = ((opts.data || []) as any[]);
+      const mapOf = (t: string) => new Map(allOpts.filter((o) => o.option_type === t).map((o) => [o.id, o.value] as [string, string]));
+      setMarcas(mapOf("marca"));
+      setCategoriaMap(mapOf("categoria"));
+      setLineaMap(mapOf("linea"));
       setNiveles(nv);
       setFechasVenta(fv);
       setDemanda(dm);
@@ -204,11 +274,22 @@ export function RotacionInventarioTabContent() {
       const n = nivelesMap.get(p.codigo);
       const costo = n?.costo_promedio != null ? Number(n.costo_promedio) : null;
       const stock_total = Number(n?.stock_total || 0);
+      const ue = Number(demandaMap.get(p.codigo) || 0);
+      const demandaMensual = ue / 12;
+      let velocidad: Velocidad;
+      if (demandaMensual <= 0) velocidad = "sin_movimiento";
+      else {
+        const coberturaMeses = stock_total / demandaMensual;
+        velocidad = coberturaMeses <= 2 ? "rapido" : coberturaMeses <= 6 ? "medio" : "lento";
+      }
       return {
         id: p.id,
         codigo: p.codigo,
         nombre: p.nombre_producto || "",
         marca: marcas.get(p.marca_id) || "",
+        categoria: categoriaMap.get(p.categoria_id) || "Sin categoría",
+        linea: lineaMap.get(p.linea_id) || "Sin línea",
+        velocidad,
         s1001: Number(n?.stock_almacen_1001 || 0),
         s1002: Number(n?.stock_almacen_1002 || 0),
         s1003: Number(n?.stock_almacen_1003 || 0),
@@ -216,7 +297,7 @@ export function RotacionInventarioTabContent() {
         stock_total,
         costo_prom: costo,
         valor_stock: (costo || 0) * stock_total,
-        ue: Number(demandaMap.get(p.codigo) || 0),
+        ue,
         pct: 0,
         meses_con_venta: k?.meses.size || 0,
         ultima_venta: k?.ultima ?? null,
@@ -267,7 +348,7 @@ export function RotacionInventarioTabContent() {
       r.clasificacion = r.ue > 0 ? "estancado" : "nunca_vendido";
     }
     return base;
-  }, [productos, kardexMap, demandaMap, nivelesMap, marcas]);
+  }, [productos, kardexMap, demandaMap, nivelesMap, marcas, categoriaMap, lineaMap]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -343,6 +424,81 @@ export function RotacionInventarioTabContent() {
     XLSX.writeFile(wb, `rotacion_inventario_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
+  const activeGroupKeys = useMemo(() => groupLevels.filter((g) => g !== "none") as GroupKey[], [groupLevels]);
+  const grouped = useMemo(() => (activeGroupKeys.length ? groupRows(filtered, activeGroupKeys) : []), [filtered, activeGroupKeys]);
+
+  function toPdfRow(r: Row) {
+    return {
+      codigo: r.codigo,
+      nombre: r.nombre,
+      marca: r.marca,
+      stock_total: r.stock_total,
+      valor_stock: r.valor_stock,
+      clasificacionLabel: CLAS_LABEL[r.clasificacion],
+    };
+  }
+  function toPdfGroup(g: GroupNode): any {
+    return {
+      label: g.label,
+      level: g.level,
+      count: g.count,
+      valor: g.valor,
+      children: g.children.map(toPdfGroup),
+      rows: g.rows.map(toPdfRow),
+    };
+  }
+  function exportarPdf() {
+    generateRotacionInventarioPdf(grouped.map(toPdfGroup), filtered.map(toPdfRow), {
+      titulo: "Rotación de Inventario",
+      subtitulo: `Ventas registradas en Kárdex del ${desde} al ${hasta}`,
+    });
+  }
+
+  const colCount = canViewCostos ? 15 : 14;
+
+  function renderGroups(nodes: GroupNode[]): React.ReactNode[] {
+    const out: React.ReactNode[] = [];
+    for (const g of nodes) {
+      out.push(
+        <TableRow key={`g-${g.level}-${g.label}-${out.length}`} className="bg-violet-50/70 hover:bg-violet-50">
+          <TableCell colSpan={colCount} className="py-2">
+            <div style={{ paddingLeft: g.level * 20 }} className="flex items-center gap-3">
+              <span className="text-xs font-semibold uppercase tracking-wide">{g.label}</span>
+              <span className="text-[11px] text-muted-foreground">{g.count} SKUs</span>
+              <span className="text-[11px] text-muted-foreground">{fmtMoney(g.valor)}</span>
+            </div>
+          </TableCell>
+        </TableRow>
+      );
+      if (g.children.length) out.push(...renderGroups(g.children));
+      g.rows.forEach((r, i) => out.push(renderRow(r, i)));
+    }
+    return out;
+  }
+
+  function renderRow(r: Row, i: number) {
+    return (
+      <TableRow key={r.id} className={`hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-muted/20" : ""}`}>
+        <TableCell className="font-mono text-xs sticky left-0 bg-inherit z-10">{r.codigo}</TableCell>
+        <TableCell className="text-sm max-w-[220px] truncate" title={r.nombre}>{r.nombre}</TableCell>
+        <TableCell className="text-sm">{r.marca || "—"}</TableCell>
+        <TableCell className="text-right text-sm border-l">{fmtNum(r.s1001)}</TableCell>
+        <TableCell className="text-right text-sm">{fmtNum(r.s1002)}</TableCell>
+        <TableCell className="text-right text-sm">{fmtNum(r.s1003)}</TableCell>
+        <TableCell className="text-right text-sm">{fmtNum(r.s1004)}</TableCell>
+        <TableCell className="text-right text-sm font-bold">{fmtNum(r.stock_total)}</TableCell>
+        {canViewCostos && <TableCell className="text-right text-sm border-l">{fmtMoney(r.costo_prom)}</TableCell>}
+        <TableCell className="text-right text-sm">{fmtMoney(r.valor_stock)}</TableCell>
+        <TableCell className="text-right text-sm font-semibold border-l">{fmtNum(r.ue, 2)}</TableCell>
+        <TableCell className="text-right text-sm">{r.pct.toFixed(1)}%</TableCell>
+        <TableCell className="text-right text-sm">{r.meses_con_venta}/12</TableCell>
+        <TableCell className="text-sm">{r.ultima_venta || "—"}</TableCell>
+        <TableCell>{clasificacionBadge(r.clasificacion)}</TableCell>
+      </TableRow>
+    );
+  }
+
+
   const clasLabelBtn =
     clasSel.length === CLAS_ORDER.length ? "Clasificación: Todas" :
     clasSel.length === 0 ? "Clasificación: Ninguna" :
@@ -358,6 +514,9 @@ export function RotacionInventarioTabContent() {
           </Button>
           <Button onClick={exportar} disabled={filtered.length === 0}>
             <Download className="h-4 w-4 mr-2" /> Descargar Excel ({filtered.length})
+          </Button>
+          <Button variant="outline" onClick={exportarPdf} disabled={filtered.length === 0}>
+            <FileText className="h-4 w-4 mr-2" /> Descargar PDF
           </Button>
         </div>
       </div>
@@ -421,6 +580,26 @@ export function RotacionInventarioTabContent() {
             </span>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">Agrupar por</span>
+            {groupLevels.map((gl, idx) => (
+              <Select
+                key={idx}
+                value={gl}
+                onValueChange={(v) => setGroupLevels((prev) => prev.map((p, i) => (i === idx ? (v as GroupKey) : p)))}
+              >
+                <SelectTrigger className="h-9 w-48"><SelectValue placeholder={`Nivel ${idx + 1}`} /></SelectTrigger>
+                <SelectContent>
+                  {GROUP_OPTIONS.filter((o) => o.value === "none" || o.value === gl || !groupLevels.includes(o.value)).map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.value === "none" ? `Nivel ${idx + 1}: Ninguno` : o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ))}
+          </div>
+
           <div className="rounded-md border overflow-auto max-h-[70vh]">
             <Table>
               <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50 sticky top-0 z-10">
@@ -444,28 +623,12 @@ export function RotacionInventarioTabContent() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-10">Cargando…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={colCount} className="text-center text-muted-foreground py-10">Cargando…</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-10">Sin resultados</TableCell></TableRow>
-                ) : filtered.map((r, i) => (
-                  <TableRow key={r.id} className={`hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-muted/20" : ""}`}>
-                    <TableCell className="font-mono text-xs sticky left-0 bg-inherit z-10">{r.codigo}</TableCell>
-                    <TableCell className="text-sm max-w-[220px] truncate" title={r.nombre}>{r.nombre}</TableCell>
-                    <TableCell className="text-sm">{r.marca || "—"}</TableCell>
-                    <TableCell className="text-right text-sm border-l">{fmtNum(r.s1001)}</TableCell>
-                    <TableCell className="text-right text-sm">{fmtNum(r.s1002)}</TableCell>
-                    <TableCell className="text-right text-sm">{fmtNum(r.s1003)}</TableCell>
-                    <TableCell className="text-right text-sm">{fmtNum(r.s1004)}</TableCell>
-                    <TableCell className="text-right text-sm font-bold">{fmtNum(r.stock_total)}</TableCell>
-                    {canViewCostos && <TableCell className="text-right text-sm border-l">{fmtMoney(r.costo_prom)}</TableCell>}
-                    <TableCell className="text-right text-sm">{fmtMoney(r.valor_stock)}</TableCell>
-                    <TableCell className="text-right text-sm font-semibold border-l">{fmtNum(r.ue, 2)}</TableCell>
-                    <TableCell className="text-right text-sm">{r.pct.toFixed(1)}%</TableCell>
-                    <TableCell className="text-right text-sm">{r.meses_con_venta}/12</TableCell>
-                    <TableCell className="text-sm">{r.ultima_venta || "—"}</TableCell>
-                    <TableCell>{clasificacionBadge(r.clasificacion)}</TableCell>
-                  </TableRow>
-                ))}
+                  <TableRow><TableCell colSpan={colCount} className="text-center text-muted-foreground py-10">Sin resultados</TableCell></TableRow>
+                ) : activeGroupKeys.length ? (
+                  renderGroups(grouped)
+                ) : filtered.map((r, i) => renderRow(r, i))}
               </TableBody>
             </Table>
           </div>

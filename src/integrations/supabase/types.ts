@@ -10473,6 +10473,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      sync_ec_fecha_venta: {
+        Args: { p_codigo: string; p_fecha: string }
+        Returns: undefined
+      }
       unaccent: { Args: { "": string }; Returns: string }
       user_can_access_crm_item: {
         Args: { _item_id: string; _user_id: string }
