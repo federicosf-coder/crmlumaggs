@@ -210,7 +210,11 @@ export function RotacionInventarioTabContent() {
         fetchAll(() => (supabase as any).from("inv_demanda_plaza").select("codigo_producto, almacen, periodo_fin, demanda_mensual_promedio, ultima_venta")),
       ]);
       setProductos(prods);
-      setMarcas(new Map(((opts.data || []) as any[]).map((o) => [o.id, o.value])));
+      const allOpts = ((opts.data || []) as any[]);
+      const mapOf = (t: string) => new Map(allOpts.filter((o) => o.option_type === t).map((o) => [o.id, o.value] as [string, string]));
+      setMarcas(mapOf("marca"));
+      setCategoriaMap(mapOf("categoria"));
+      setLineaMap(mapOf("linea"));
       setNiveles(nv);
       setFechasVenta(fv);
       setDemanda(dm);
