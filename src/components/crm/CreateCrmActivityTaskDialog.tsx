@@ -107,6 +107,10 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
     if (open) setBrands(defaultBrands || []);
   }, [open, defaultBrands?.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (modo === "actividad" && taskType === "cobranza") setTaskType("call");
+  }, [modo, taskType]);
+
   const toggleBrand = (b: Brand) => {
     setBrands((prev) => (prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]));
   };
