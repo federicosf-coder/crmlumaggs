@@ -628,6 +628,63 @@ export default function SellerPortal() {
     return m;
   }, [seguimientoRows]);
   const empresasRegistradasTotal = seguimientoByCompany.size;
+
+  // Mapa de estatus del catálogo: id -> { nombre, color, orden }
+  const estatusMap = useMemo(() => {
+    const m = new Map<string, { nombre: string; color: string; orden: number }>();
+    for (const e of estatusCatalogo) {
+      m.set(e.id, { nombre: e.nombre, color: e.color, orden: Number(e.orden ?? 0) });
+    }
+    return m;
+  }, [estatusCatalogo]);
+
+  // Prospectos nuevos contactados: empresas sin venta cuya PRIMERA actividad/tarea cae en el rango
+  const prospectosContactadosPeriodo = useMemo(() => {
+    const first = new Map<string, number>();
+    const push = (cid: string | null, created: string | null) => {
+      if (!cid || !created) return;
+      const t = new Date(created).getTime();
+      if (Number.isNaN(t)) return;
+      const prev = first.get(cid);
+      if (prev === undefined || t < prev) first.set(cid, t);
+    };
+    (actividades || []).forEach((a: any) => push(a.company_id, a.created_at));
+    (tasks || []).forEach((t: any) => push(t.company_id, t.created_at));
+    let n = 0;
+    first.forEach((t, cid) => {
+      const sg = seguimientoByCompany.get(cid);
+      if (!sg || sg.tiene_venta) return;
+      if (t >= fromTs && t <= toTs) n += 1;
+    });
+    return n;
+  }, [actividades, tasks, seguimientoByCompany, fromTs, toTs]);
+
+  // Meta del mes (clientes con venta)
+  const metaMes = useMemo(() => {
+    let meta = 0;
+    let avance = 0;
+    seguimientoByCompany.forEach((s) => {
+      if (!s.tiene_venta) return;
+      meta += Number(s.promedio_historico_mensual || 0);
+      avance += Number(s.acum_mes || 0);
+    });
+    return { meta, avance, pct: meta > 0 ? Math.min(100, (avance / meta) * 100) : 0 };
+  }, [seguimientoByCompany]);
+
+  // Seguimiento a clientes actuales (ordenado por mayor riesgo)
+  const clientesActualesSeguimiento = useMemo(() => {
+    const rows: any[] = [];
+    seguimientoByCompany.forEach((s, cid) => {
+      if (!s.tiene_venta) return;
+      rows.push({ ...s, company_id: cid });
+    });
+    return rows.sort((a, b) => {
+      const oa = a.estatus_riesgo_id ? (estatusMap.get(a.estatus_riesgo_id)?.orden ?? 999) : 999;
+      const ob = b.estatus_riesgo_id ? (estatusMap.get(b.estatus_riesgo_id)?.orden ?? 999) : 999;
+      if (oa !== ob) return ob - oa;
+      return Number(b.dias_ultima_compra || 0) - Number(a.dias_ultima_compra || 0);
+    });
+  }, [seguimientoByCompany, estatusMap]);
   const empresasRegistradasPeriodo = useMemo(() => {
     let n = 0;
     seguimientoByCompany.forEach((s) => {
