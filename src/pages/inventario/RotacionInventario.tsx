@@ -7,22 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Star, TrendingDown, RefreshCw, ChevronsUpDown, Clock, AlertOctagon, HelpCircle, FileText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, Star, RefreshCw, Clock, AlertOctagon, HelpCircle, FileText, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateRotacionInventarioPdf } from "@/lib/generateRotacionInventarioPdf";
 
 type Clasificacion =
-  | "estancado"
-  | "estancado_urgente"
+  | "estrella"
+  | "normal"
   | "en_riesgo"
-  | "nunca_vendido"
-  | "sin_stock"
-  | "baja_rotacion"
-  | "rotacion_buena"
-  | "estrella";
+  | "estancado"
+  | "sin_movimiento";
 
 type Velocidad = "rapido" | "medio" | "lento" | "sin_movimiento";
 
@@ -109,36 +106,27 @@ const fmtNum = (n: number | null | undefined, dec = 0) =>
   n == null || isNaN(Number(n)) ? "—" : Number(n).toLocaleString("es-MX", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
 const CLAS_LABEL: Record<Clasificacion, string> = {
-  estancado: "Estancado (6-12m)",
-  estancado_urgente: "Estancado Urgente (12m+)",
-  en_riesgo: "En Riesgo (3-6m)",
-  nunca_vendido: "Nunca vendido",
-  sin_stock: "Sin stock ni movimiento",
-  baja_rotacion: "Baja rotación",
-  rotacion_buena: "Rotación buena",
   estrella: "⭐ Estrella",
+  normal: "Normal (<3m)",
+  en_riesgo: "En Riesgo (3-6m)",
+  estancado: "Estancado (6-12m)",
+  sin_movimiento: "Sin Movimiento (12m+ o nunca vendido)",
 };
 
 const CLAS_ORDER: Clasificacion[] = [
   "estrella",
-  "rotacion_buena",
-  "baja_rotacion",
+  "normal",
   "en_riesgo",
   "estancado",
-  "estancado_urgente",
-  "nunca_vendido",
-  "sin_stock",
+  "sin_movimiento",
 ];
 
 const CLAS_STYLE: Record<Clasificacion, string> = {
-  estancado: "bg-red-100 text-red-700 border-red-200",
-  estancado_urgente: "bg-red-700 text-white border-red-800",
-  en_riesgo: "bg-orange-100 text-orange-700 border-orange-200",
-  nunca_vendido: "bg-sky-100 text-sky-700 border-sky-200",
-  sin_stock: "bg-slate-100 text-slate-600 border-slate-200",
-  baja_rotacion: "bg-amber-100 text-amber-800 border-amber-200",
-  rotacion_buena: "bg-emerald-100 text-emerald-700 border-emerald-200",
   estrella: "bg-violet-100 text-violet-700 border-violet-200",
+  normal: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  en_riesgo: "bg-orange-100 text-orange-700 border-orange-200",
+  estancado: "bg-red-100 text-red-700 border-red-200",
+  sin_movimiento: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
 function clasificacionBadge(c: Clasificacion) {
@@ -301,7 +289,7 @@ export function RotacionInventarioTabContent() {
         pct: 0,
         meses_con_venta: k?.meses.size || 0,
         ultima_venta: k?.ultima ?? null,
-        clasificacion: "nunca_vendido" as Clasificacion,
+        clasificacion: "sin_movimiento" as Clasificacion,
       };
     });
 
@@ -320,32 +308,18 @@ export function RotacionInventarioTabContent() {
     for (const r of base) {
       r.pct = total > 0 ? (r.ue / total) * 100 : 0;
       const k = kardexMap.get(r.codigo);
-      const tieneHistorico = !!k?.ultima;
 
-      if (r.stock_total <= 0) {
-        r.clasificacion = "sin_stock";
+      if (!k?.ultima) {
+        r.clasificacion = "sin_movimiento";
         continue;
       }
 
-      if (k?.reciente) {
-        const isTop80 = top80.has(r.id);
-        if (isTop80 && r.meses_con_venta >= 9) r.clasificacion = "estrella";
-        else if (r.meses_con_venta <= 3 || !isTop80) r.clasificacion = "baja_rotacion";
-        else r.clasificacion = "rotacion_buena";
-        continue;
-      }
-
-      if (tieneHistorico) {
-        const ult = new Date(`${k!.ultima}T00:00:00`);
-        const meses = (hoy.getFullYear() - ult.getFullYear()) * 12 + (hoy.getMonth() - ult.getMonth());
-        if (meses < 6) r.clasificacion = "en_riesgo";
-        else if (meses < 12) r.clasificacion = "estancado";
-        else r.clasificacion = "estancado_urgente";
-        continue;
-      }
-
-      // Sin registros en kárdex de fechas: si tiene demanda histórica se considera estancado
-      r.clasificacion = r.ue > 0 ? "estancado" : "nunca_vendido";
+      const ult = new Date(`${k.ultima}T00:00:00`);
+      const meses = (hoy.getFullYear() - ult.getFullYear()) * 12 + (hoy.getMonth() - ult.getMonth());
+      if (meses < 3) r.clasificacion = top80.has(r.id) ? "estrella" : "normal";
+      else if (meses < 6) r.clasificacion = "en_riesgo";
+      else if (meses < 12) r.clasificacion = "estancado";
+      else r.clasificacion = "sin_movimiento";
     }
     return base;
   }, [productos, kardexMap, demandaMap, nivelesMap, marcas, categoriaMap, lineaMap]);
@@ -371,17 +345,13 @@ export function RotacionInventarioTabContent() {
   }, [rows, search, marcaSel, clasSel, sortKey, sortDir]);
 
   const kpis = useMemo(() => {
-    const estancados = filtered.filter((r) => r.clasificacion === "estancado");
-    const urgentes = filtered.filter((r) => r.clasificacion === "estancado_urgente");
     return {
       total: filtered.length,
-      enRiesgo: filtered.filter((r) => r.clasificacion === "en_riesgo").length,
-      estancados: estancados.length,
-      urgentes: urgentes.length,
-      valorEstancado: [...estancados, ...urgentes].reduce((s, r) => s + r.valor_stock, 0),
       estrella: filtered.filter((r) => r.clasificacion === "estrella").length,
-      baja: filtered.filter((r) => r.clasificacion === "baja_rotacion").length,
-      nuncaVendido: filtered.filter((r) => r.clasificacion === "nunca_vendido").length,
+      normal: filtered.filter((r) => r.clasificacion === "normal").length,
+      enRiesgo: filtered.filter((r) => r.clasificacion === "en_riesgo").length,
+      estancados: filtered.filter((r) => r.clasificacion === "estancado").length,
+      sinMovimiento: filtered.filter((r) => r.clasificacion === "sin_movimiento").length,
     };
   }, [filtered]);
 
@@ -479,8 +449,18 @@ export function RotacionInventarioTabContent() {
   function renderRow(r: Row, i: number) {
     return (
       <TableRow key={r.id} className={`hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-muted/20" : ""}`}>
-        <TableCell className="font-mono text-xs sticky left-0 bg-inherit z-10">{r.codigo}</TableCell>
-        <TableCell className="text-sm max-w-[220px] truncate" title={r.nombre}>{r.nombre}</TableCell>
+        <TableCell className="font-mono text-xs sticky left-0 bg-inherit z-10">
+          <Tooltip>
+            <TooltipTrigger asChild><span className="block max-w-[120px] truncate cursor-default">{r.codigo}</span></TooltipTrigger>
+            <TooltipContent>{r.codigo}</TooltipContent>
+          </Tooltip>
+        </TableCell>
+        <TableCell className="text-sm">
+          <Tooltip>
+            <TooltipTrigger asChild><span className="block max-w-[280px] truncate cursor-default">{r.nombre}</span></TooltipTrigger>
+            <TooltipContent className="max-w-xs">{r.nombre}</TooltipContent>
+          </Tooltip>
+        </TableCell>
         <TableCell className="text-sm">{r.marca || "—"}</TableCell>
         <TableCell className="text-right text-sm border-l">{fmtNum(r.s1001)}</TableCell>
         <TableCell className="text-right text-sm">{fmtNum(r.s1002)}</TableCell>
@@ -499,43 +479,16 @@ export function RotacionInventarioTabContent() {
   }
 
 
-  const clasLabelBtn =
-    clasSel.length === CLAS_ORDER.length ? "Clasificación: Todas" :
-    clasSel.length === 0 ? "Clasificación: Ninguna" :
-    `Clasificación: ${clasSel.length} seleccionadas`;
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <TooltipProvider delayDuration={200}>
+      <div className="space-y-4">
         <p className="text-sm text-muted-foreground font-light">Ventas registradas en Kárdex del {desde} al {hasta}.</p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={recargar} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Actualizar
-          </Button>
-          <Button onClick={exportar} disabled={filtered.length === 0}>
-            <Download className="h-4 w-4 mr-2" /> Descargar Excel ({filtered.length})
-          </Button>
-          <Button variant="outline" onClick={exportarPdf} disabled={filtered.length === 0}>
-            <FileText className="h-4 w-4 mr-2" /> Descargar PDF
-          </Button>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-7 gap-4">
-        <Kpi label="Total SKUs" value={kpis.total.toLocaleString("es-MX")} icon={<Package className="h-4 w-4" />} tone="slate" />
-        <Kpi label="En Riesgo (3-6m)" value={kpis.enRiesgo.toLocaleString("es-MX")} icon={<Clock className="h-4 w-4" />} tone="orange" />
-        <Kpi label="Estancado (6-12m)" value={kpis.estancados.toLocaleString("es-MX")} icon={<AlertTriangle className="h-4 w-4" />} tone="red" />
-        <Kpi label="Estancado Urgente (12m+)" value={kpis.urgentes.toLocaleString("es-MX")} icon={<AlertOctagon className="h-4 w-4" />} tone="redDark" />
-        <Kpi label="Valor estancado" value={fmtMoney(kpis.valorEstancado)} icon={<DollarSign className="h-4 w-4" />} tone="blue" />
-        <Kpi label="Estrella" value={kpis.estrella.toLocaleString("es-MX")} icon={<Star className="h-4 w-4" />} tone="violet" />
-        <Kpi label="Baja rotación" value={kpis.baja.toLocaleString("es-MX")} icon={<TrendingDown className="h-4 w-4" />} tone="amber" />
-      </div>
-
-      <Card>
-        <CardContent className="p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col md:flex-row gap-4 items-start">
+          {/* Filtros */}
+          <aside className="w-full md:w-64 md:shrink-0 md:sticky md:top-4 md:self-start flex flex-col gap-3">
             <Select value={marcaSel} onValueChange={setMarcaSel}>
-              <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">Marca: Todas</SelectItem>
                 <SelectItem value="Chevron">Chevron</SelectItem>
@@ -543,98 +496,118 @@ export function RotacionInventarioTabContent() {
               </SelectContent>
             </Select>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-9 w-64 justify-between font-normal">
-                  <span className="truncate">{clasLabelBtn}</span>
-                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-64 p-3 space-y-2">
-                <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" className="h-7 text-xs flex-1" onClick={() => setClasSel([...CLAS_ORDER])}>Todas</Button>
-                  <Button size="sm" variant="secondary" className="h-7 text-xs flex-1" onClick={() => setClasSel([])}>Ninguna</Button>
-                </div>
-                <div className="space-y-2 pt-1">
-                  {CLAS_ORDER.map((c) => (
-                    <label key={c} className="flex items-center gap-2 text-sm font-light cursor-pointer">
-                      <Checkbox
-                        checked={clasSel.includes(c)}
-                        onCheckedChange={(v) =>
-                          setClasSel((prev) => (v ? [...prev, c] : prev.filter((x) => x !== c)))
-                        }
-                      />
-                      {CLAS_LABEL[c]}
-                    </label>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
+            <div className="rounded-md border p-3 space-y-2">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Clasificación</div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" className="h-7 text-xs flex-1" onClick={() => setClasSel([...CLAS_ORDER])}>Todas</Button>
+                <Button size="sm" variant="secondary" className="h-7 text-xs flex-1" onClick={() => setClasSel([])}>Ninguna</Button>
+              </div>
+              <div className="space-y-2 pt-1">
+                {CLAS_ORDER.map((c) => (
+                  <label key={c} className="flex items-start gap-2 text-xs font-light cursor-pointer">
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={clasSel.includes(c)}
+                      onCheckedChange={(v) =>
+                        setClasSel((prev) => (v ? [...prev, c] : prev.filter((x) => x !== c)))
+                      }
+                    />
+                    <span>{CLAS_LABEL[c]}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
 
-            <div className="relative flex-1 min-w-[220px]">
+            <div className="relative">
               <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código o nombre…" className="pl-8 h-9" />
             </div>
-            <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-              <HelpCircle className="h-3 w-3" /> {kpis.nuncaVendido.toLocaleString("es-MX")} nunca vendidos
+            <span className="text-xs text-muted-foreground inline-flex items-start gap-1">
+              <HelpCircle className="h-3 w-3 mt-0.5 shrink-0" /> {kpis.sinMovimiento.toLocaleString("es-MX")} {CLAS_LABEL.sin_movimiento}
             </span>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">Agrupar por</span>
-            {groupLevels.map((gl, idx) => (
-              <Select
-                key={idx}
-                value={gl}
-                onValueChange={(v) => setGroupLevels((prev) => prev.map((p, i) => (i === idx ? (v as GroupKey) : p)))}
-              >
-                <SelectTrigger className="h-9 w-48"><SelectValue placeholder={`Nivel ${idx + 1}`} /></SelectTrigger>
-                <SelectContent>
-                  {GROUP_OPTIONS.filter((o) => o.value === "none" || o.value === gl || !groupLevels.includes(o.value)).map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.value === "none" ? `Nivel ${idx + 1}: Ninguno` : o.label}
-                    </SelectItem>
+            <Button variant="outline" onClick={recargar} disabled={loading} className="w-full">
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Actualizar
+            </Button>
+            <Button onClick={exportar} disabled={filtered.length === 0} className="w-full">
+              <Download className="h-4 w-4 mr-2" /> Excel ({filtered.length})
+            </Button>
+            <Button variant="outline" onClick={exportarPdf} disabled={filtered.length === 0} className="w-full">
+              <FileText className="h-4 w-4 mr-2" /> Descargar PDF
+            </Button>
+          </aside>
+
+          {/* Contenido */}
+          <div className="flex-1 min-w-0 space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              <Kpi label="Total SKUs" value={kpis.total.toLocaleString("es-MX")} icon={<Package className="h-4 w-4" />} tone="slate" />
+              <Kpi label="Estrella" value={kpis.estrella.toLocaleString("es-MX")} icon={<Star className="h-4 w-4" />} tone="violet" />
+              <Kpi label="Normal (<3m)" value={kpis.normal.toLocaleString("es-MX")} icon={<CheckCircle2 className="h-4 w-4" />} tone="sky" />
+              <Kpi label="En Riesgo (3-6m)" value={kpis.enRiesgo.toLocaleString("es-MX")} icon={<Clock className="h-4 w-4" />} tone="orange" />
+              <Kpi label="Estancado (6-12m)" value={kpis.estancados.toLocaleString("es-MX")} icon={<AlertTriangle className="h-4 w-4" />} tone="red" />
+              <Kpi label="Sin Movimiento (12m+)" value={kpis.sinMovimiento.toLocaleString("es-MX")} icon={<AlertOctagon className="h-4 w-4" />} tone="slate" />
+            </div>
+
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs uppercase tracking-wide text-muted-foreground">Agrupar por</span>
+                  {groupLevels.map((gl, idx) => (
+                    <Select
+                      key={idx}
+                      value={gl}
+                      onValueChange={(v) => setGroupLevels((prev) => prev.map((p, i) => (i === idx ? (v as GroupKey) : p)))}
+                    >
+                      <SelectTrigger className="h-9 w-44"><SelectValue placeholder={`Nivel ${idx + 1}`} /></SelectTrigger>
+                      <SelectContent>
+                        {GROUP_OPTIONS.filter((o) => o.value === "none" || o.value === gl || !groupLevels.includes(o.value)).map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.value === "none" ? `Nivel ${idx + 1}: Ninguno` : o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ))}
-                </SelectContent>
-              </Select>
-            ))}
-          </div>
+                </div>
 
-          <div className="rounded-md border overflow-auto max-h-[70vh]">
-            <Table>
-              <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50 sticky top-0 z-10">
-                <TableRow>
-                  <SortHead k="codigo" className="sticky left-0 bg-violet-50 z-20">Código</SortHead>
-                  <SortHead k="nombre">Producto</SortHead>
-                  <SortHead k="marca">Marca</SortHead>
-                  <SortHead k="s1001" className="text-right border-l">MXL</SortHead>
-                  <SortHead k="s1002" className="text-right">TIJ</SortHead>
-                  <SortHead k="s1003" className="text-right">MOR</SortHead>
-                  <SortHead k="s1004" className="text-right">ENS</SortHead>
-                  <SortHead k="stock_total" className="text-right">Stock Total</SortHead>
-                  {canViewCostos && <SortHead k="costo_prom" className="text-right border-l">Costo Prom.</SortHead>}
-                  <SortHead k="valor_stock" className="text-right">Valor Stock</SortHead>
-                  <SortHead k="ue" className="text-right border-l">UE (12m)</SortHead>
-                  <SortHead k="pct" className="text-right">% part.</SortHead>
-                  <SortHead k="meses_con_venta" className="text-right">Meses c/venta</SortHead>
-                  <SortHead k="ultima_venta">Última venta</SortHead>
-                  <SortHead k="clasificacion">Clasificación</SortHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={colCount} className="text-center text-muted-foreground py-10">Cargando…</TableCell></TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={colCount} className="text-center text-muted-foreground py-10">Sin resultados</TableCell></TableRow>
-                ) : activeGroupKeys.length ? (
-                  renderGroups(grouped)
-                ) : filtered.map((r, i) => renderRow(r, i))}
-              </TableBody>
-            </Table>
+                <div className="rounded-md border overflow-auto overflow-x-auto max-h-[70vh]">
+                  <Table>
+                    <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50 sticky top-0 z-10">
+                      <TableRow>
+                        <SortHead k="codigo" className="sticky left-0 bg-violet-50 z-20">Código</SortHead>
+                        <SortHead k="nombre">Producto</SortHead>
+                        <SortHead k="marca">Marca</SortHead>
+                        <SortHead k="s1001" className="text-right border-l">MXL</SortHead>
+                        <SortHead k="s1002" className="text-right">TIJ</SortHead>
+                        <SortHead k="s1003" className="text-right">MOR</SortHead>
+                        <SortHead k="s1004" className="text-right">ENS</SortHead>
+                        <SortHead k="stock_total" className="text-right">Stock Total</SortHead>
+                        {canViewCostos && <SortHead k="costo_prom" className="text-right border-l">Costo Prom.</SortHead>}
+                        <SortHead k="valor_stock" className="text-right">Valor Stock</SortHead>
+                        <SortHead k="ue" className="text-right border-l">UE (12m)</SortHead>
+                        <SortHead k="pct" className="text-right">% part.</SortHead>
+                        <SortHead k="meses_con_venta" className="text-right">Meses c/venta</SortHead>
+                        <SortHead k="ultima_venta">Última venta</SortHead>
+                        <SortHead k="clasificacion">Clasificación</SortHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loading ? (
+                        <TableRow><TableCell colSpan={colCount} className="text-center text-muted-foreground py-10">Cargando…</TableCell></TableRow>
+                      ) : filtered.length === 0 ? (
+                        <TableRow><TableCell colSpan={colCount} className="text-center text-muted-foreground py-10">Sin resultados</TableCell></TableRow>
+                      ) : activeGroupKeys.length ? (
+                        renderGroups(grouped)
+                      ) : filtered.map((r, i) => renderRow(r, i))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </TooltipProvider>
   );
 }
 
