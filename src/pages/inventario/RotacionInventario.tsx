@@ -10,19 +10,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, DollarSign, Star, TrendingDown, RefreshCw, ChevronsUpDown, Clock, AlertOctagon, HelpCircle, FileText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, Star, TrendingDown, RefreshCw, Clock, AlertOctagon, HelpCircle, FileText, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateRotacionInventarioPdf } from "@/lib/generateRotacionInventarioPdf";
 
 type Clasificacion =
-  | "estancado"
-  | "estancado_urgente"
+  | "estrella"
+  | "normal"
   | "en_riesgo"
-  | "nunca_vendido"
-  | "sin_stock"
-  | "baja_rotacion"
-  | "rotacion_buena"
-  | "estrella";
+  | "estancado"
+  | "sin_movimiento";
 
 type Velocidad = "rapido" | "medio" | "lento" | "sin_movimiento";
 
@@ -109,36 +107,27 @@ const fmtNum = (n: number | null | undefined, dec = 0) =>
   n == null || isNaN(Number(n)) ? "—" : Number(n).toLocaleString("es-MX", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
 const CLAS_LABEL: Record<Clasificacion, string> = {
-  estancado: "Estancado (6-12m)",
-  estancado_urgente: "Estancado Urgente (12m+)",
-  en_riesgo: "En Riesgo (3-6m)",
-  nunca_vendido: "Nunca vendido",
-  sin_stock: "Sin stock ni movimiento",
-  baja_rotacion: "Baja rotación",
-  rotacion_buena: "Rotación buena",
   estrella: "⭐ Estrella",
+  normal: "Normal (<3m)",
+  en_riesgo: "En Riesgo (3-6m)",
+  estancado: "Estancado (6-12m)",
+  sin_movimiento: "Sin Movimiento (12m+ o nunca vendido)",
 };
 
 const CLAS_ORDER: Clasificacion[] = [
   "estrella",
-  "rotacion_buena",
-  "baja_rotacion",
+  "normal",
   "en_riesgo",
   "estancado",
-  "estancado_urgente",
-  "nunca_vendido",
-  "sin_stock",
+  "sin_movimiento",
 ];
 
 const CLAS_STYLE: Record<Clasificacion, string> = {
-  estancado: "bg-red-100 text-red-700 border-red-200",
-  estancado_urgente: "bg-red-700 text-white border-red-800",
-  en_riesgo: "bg-orange-100 text-orange-700 border-orange-200",
-  nunca_vendido: "bg-sky-100 text-sky-700 border-sky-200",
-  sin_stock: "bg-slate-100 text-slate-600 border-slate-200",
-  baja_rotacion: "bg-amber-100 text-amber-800 border-amber-200",
-  rotacion_buena: "bg-emerald-100 text-emerald-700 border-emerald-200",
   estrella: "bg-violet-100 text-violet-700 border-violet-200",
+  normal: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  en_riesgo: "bg-orange-100 text-orange-700 border-orange-200",
+  estancado: "bg-red-100 text-red-700 border-red-200",
+  sin_movimiento: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
 function clasificacionBadge(c: Clasificacion) {
@@ -301,7 +290,7 @@ export function RotacionInventarioTabContent() {
         pct: 0,
         meses_con_venta: k?.meses.size || 0,
         ultima_venta: k?.ultima ?? null,
-        clasificacion: "nunca_vendido" as Clasificacion,
+        clasificacion: "sin_movimiento" as Clasificacion,
       };
     });
 
@@ -320,32 +309,18 @@ export function RotacionInventarioTabContent() {
     for (const r of base) {
       r.pct = total > 0 ? (r.ue / total) * 100 : 0;
       const k = kardexMap.get(r.codigo);
-      const tieneHistorico = !!k?.ultima;
 
-      if (r.stock_total <= 0) {
-        r.clasificacion = "sin_stock";
+      if (!k?.ultima) {
+        r.clasificacion = "sin_movimiento";
         continue;
       }
 
-      if (k?.reciente) {
-        const isTop80 = top80.has(r.id);
-        if (isTop80 && r.meses_con_venta >= 9) r.clasificacion = "estrella";
-        else if (r.meses_con_venta <= 3 || !isTop80) r.clasificacion = "baja_rotacion";
-        else r.clasificacion = "rotacion_buena";
-        continue;
-      }
-
-      if (tieneHistorico) {
-        const ult = new Date(`${k!.ultima}T00:00:00`);
-        const meses = (hoy.getFullYear() - ult.getFullYear()) * 12 + (hoy.getMonth() - ult.getMonth());
-        if (meses < 6) r.clasificacion = "en_riesgo";
-        else if (meses < 12) r.clasificacion = "estancado";
-        else r.clasificacion = "estancado_urgente";
-        continue;
-      }
-
-      // Sin registros en kárdex de fechas: si tiene demanda histórica se considera estancado
-      r.clasificacion = r.ue > 0 ? "estancado" : "nunca_vendido";
+      const ult = new Date(`${k.ultima}T00:00:00`);
+      const meses = (hoy.getFullYear() - ult.getFullYear()) * 12 + (hoy.getMonth() - ult.getMonth());
+      if (meses < 3) r.clasificacion = top80.has(r.id) ? "estrella" : "normal";
+      else if (meses < 6) r.clasificacion = "en_riesgo";
+      else if (meses < 12) r.clasificacion = "estancado";
+      else r.clasificacion = "sin_movimiento";
     }
     return base;
   }, [productos, kardexMap, demandaMap, nivelesMap, marcas, categoriaMap, lineaMap]);
@@ -371,17 +346,13 @@ export function RotacionInventarioTabContent() {
   }, [rows, search, marcaSel, clasSel, sortKey, sortDir]);
 
   const kpis = useMemo(() => {
-    const estancados = filtered.filter((r) => r.clasificacion === "estancado");
-    const urgentes = filtered.filter((r) => r.clasificacion === "estancado_urgente");
     return {
       total: filtered.length,
-      enRiesgo: filtered.filter((r) => r.clasificacion === "en_riesgo").length,
-      estancados: estancados.length,
-      urgentes: urgentes.length,
-      valorEstancado: [...estancados, ...urgentes].reduce((s, r) => s + r.valor_stock, 0),
       estrella: filtered.filter((r) => r.clasificacion === "estrella").length,
-      baja: filtered.filter((r) => r.clasificacion === "baja_rotacion").length,
-      nuncaVendido: filtered.filter((r) => r.clasificacion === "nunca_vendido").length,
+      normal: filtered.filter((r) => r.clasificacion === "normal").length,
+      enRiesgo: filtered.filter((r) => r.clasificacion === "en_riesgo").length,
+      estancados: filtered.filter((r) => r.clasificacion === "estancado").length,
+      sinMovimiento: filtered.filter((r) => r.clasificacion === "sin_movimiento").length,
     };
   }, [filtered]);
 
