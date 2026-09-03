@@ -19,6 +19,7 @@ import { useLeads, useTomarLead, useDescartarLead, type Lead, type LeadEstatus }
 import { LeadSourcesDialog } from "@/components/leads/LeadSourcesDialog";
 import { ImportarLeadsDialog } from "@/components/leads/ImportarLeadsDialog";
 import { VincularLeadDialog } from "@/components/leads/VincularLeadDialog";
+import { NuevoLeadDialog } from "@/components/leads/NuevoLeadDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 const ESTATUS_META: Record<LeadEstatus, { label: string; className: string }> = {
