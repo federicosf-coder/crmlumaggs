@@ -450,13 +450,13 @@ export function RotacionInventarioTabContent() {
   function renderRow(r: Row, i: number) {
     return (
       <TableRow key={r.id} className={`hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-muted/20" : ""}`}>
-        <TableCell className="font-mono text-xs sticky left-0 bg-inherit z-10">
+        <TableCell className="font-mono text-xs sticky left-0 bg-background z-10 w-[120px]">
           <Tooltip>
             <TooltipTrigger asChild><span className="block max-w-[120px] truncate cursor-default">{r.codigo}</span></TooltipTrigger>
             <TooltipContent>{r.codigo}</TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell className="text-sm">
+        <TableCell className="text-sm sticky left-[120px] bg-background z-10 border-r">
           <Tooltip>
             <TooltipTrigger asChild><span className="block max-w-[280px] truncate cursor-default">{r.nombre}</span></TooltipTrigger>
             <TooltipContent className="max-w-xs">{r.nombre}</TooltipContent>
