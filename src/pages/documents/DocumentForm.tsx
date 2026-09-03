@@ -1328,7 +1328,7 @@ export default function DocumentForm() {
                         </TableCell>
                         <TableCell className="text-center px-1">
                           {prod ? (
-                            <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[9px] text-muted-foreground leading-tight">
+                            <div className="flex flex-col gap-y-0.5 text-[9px] text-muted-foreground leading-tight">
                               <span>1: {Number(prod.precio_base_uf1).toFixed(0)}</span>
                               <span>2: {Number(prod.precio_uf2).toFixed(0)}</span>
                               <span>3: {Number(prod.precio_uf3).toFixed(0)}</span>
@@ -1338,7 +1338,7 @@ export default function DocumentForm() {
                         </TableCell>
                         <TableCell className="text-center px-1">
                           {prod ? (
-                            <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[9px] text-muted-foreground leading-tight">
+                            <div className="flex flex-col gap-y-0.5 text-[9px] text-muted-foreground leading-tight">
                               <span>1: {Number(prod.precio_r1).toFixed(0)}</span>
                               <span>2: {Number(prod.precio_r2).toFixed(0)}</span>
                               <span>3: {Number(prod.precio_r3).toFixed(0)}</span>
