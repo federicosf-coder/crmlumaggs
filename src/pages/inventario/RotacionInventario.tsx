@@ -176,6 +176,7 @@ export function RotacionInventarioTabContent() {
   const [sortKey, setSortKey] = useState<SortKey>("ue");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [groupLevels, setGroupLevels] = useState<GroupKey[]>(["none", "none", "none", "none"]);
+  const [filtrosVisibles, setFiltrosVisibles] = useState(true);
 
   const { desde, hasta, hace3Meses } = useMemo(() => {
     const now = new Date();
