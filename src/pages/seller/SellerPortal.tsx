@@ -73,6 +73,8 @@ export default function SellerPortal() {
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
   const [cobradoDeVencido, setCobradoDeVencido] = useState<number>(0);
   const [seguimientoRows, setSeguimientoRows] = useState<any[]>([]);
+  const [estatusCatalogo, setEstatusCatalogo] = useState<any[]>([]);
+  const [verTodosSeguimiento, setVerTodosSeguimiento] = useState(false);
   const [convertidosPeriodo, setConvertidosPeriodo] = useState<number>(0);
   const [bucketActivo, setBucketActivo] = useState<"vencidas" | "1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
