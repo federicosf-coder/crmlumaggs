@@ -548,6 +548,7 @@ export function RotacionInventarioTabContent() {
               <FileText className="h-4 w-4 mr-2" /> Descargar PDF
             </Button>
           </aside>
+          )}
 
           {/* Contenido */}
           <div className="flex-1 min-w-0 space-y-4">
