@@ -3,6 +3,7 @@ import { localInputToIso } from "@/lib/formatters";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmTask } from "@/hooks/useCrmTasks";
+import { useCreateCrmActivity, CrmActivityType } from "@/hooks/useCrmActivities";
 import { useQuery } from "@tanstack/react-query";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
