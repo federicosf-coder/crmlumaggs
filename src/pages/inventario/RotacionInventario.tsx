@@ -599,28 +599,12 @@ export function RotacionInventarioTabContent() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-10">Cargando…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={colCount} className="text-center text-muted-foreground py-10">Cargando…</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-10">Sin resultados</TableCell></TableRow>
-                ) : filtered.map((r, i) => (
-                  <TableRow key={r.id} className={`hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-muted/20" : ""}`}>
-                    <TableCell className="font-mono text-xs sticky left-0 bg-inherit z-10">{r.codigo}</TableCell>
-                    <TableCell className="text-sm max-w-[220px] truncate" title={r.nombre}>{r.nombre}</TableCell>
-                    <TableCell className="text-sm">{r.marca || "—"}</TableCell>
-                    <TableCell className="text-right text-sm border-l">{fmtNum(r.s1001)}</TableCell>
-                    <TableCell className="text-right text-sm">{fmtNum(r.s1002)}</TableCell>
-                    <TableCell className="text-right text-sm">{fmtNum(r.s1003)}</TableCell>
-                    <TableCell className="text-right text-sm">{fmtNum(r.s1004)}</TableCell>
-                    <TableCell className="text-right text-sm font-bold">{fmtNum(r.stock_total)}</TableCell>
-                    {canViewCostos && <TableCell className="text-right text-sm border-l">{fmtMoney(r.costo_prom)}</TableCell>}
-                    <TableCell className="text-right text-sm">{fmtMoney(r.valor_stock)}</TableCell>
-                    <TableCell className="text-right text-sm font-semibold border-l">{fmtNum(r.ue, 2)}</TableCell>
-                    <TableCell className="text-right text-sm">{r.pct.toFixed(1)}%</TableCell>
-                    <TableCell className="text-right text-sm">{r.meses_con_venta}/12</TableCell>
-                    <TableCell className="text-sm">{r.ultima_venta || "—"}</TableCell>
-                    <TableCell>{clasificacionBadge(r.clasificacion)}</TableCell>
-                  </TableRow>
-                ))}
+                  <TableRow><TableCell colSpan={colCount} className="text-center text-muted-foreground py-10">Sin resultados</TableCell></TableRow>
+                ) : activeGroupKeys.length ? (
+                  renderGroups(grouped)
+                ) : filtered.map((r, i) => renderRow(r, i))}
               </TableBody>
             </Table>
           </div>
