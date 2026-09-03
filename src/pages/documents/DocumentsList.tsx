@@ -251,7 +251,6 @@ export default function DocumentsList() {
   const [estatusCotFilter, setEstatusCotFilter] = useState<string>("all");
   const [estatusPedFilter, setEstatusPedFilter] = useState<string>(searchParams.get("estatus") || "all");
   const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
-  const [estatusCobFilter, setEstatusCobFilter] = useState<string>("all");
   useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter]);
   const clearFilters = () => {
     setTipoPagoFilter("all");
@@ -260,7 +259,6 @@ export default function DocumentsList() {
     setEstatusCotFilter("all");
     setEstatusPedFilter("all");
     setEstatusFacFilter("all");
-    setEstatusCobFilter("all");
   };
   const activeFiltersCount =
     (tipoPagoFilter !== "all" ? 1 : 0) +
@@ -268,8 +266,7 @@ export default function DocumentsList() {
     (fechaHasta ? 1 : 0) +
     (tipoFilter === "cotizacion" && estatusCotFilter !== "all" ? 1 : 0) +
     (tipoFilter === "pedido" && estatusPedFilter !== "all" ? 1 : 0) +
-    (tipoFilter === "factura" && estatusFacFilter !== "all" ? 1 : 0) +
-    (tipoFilter === "factura" && estatusCobFilter !== "all" ? 1 : 0);
+    (tipoFilter === "factura" && estatusFacFilter !== "all" ? 1 : 0);
 
   // Sync pedido status filter with URL ?estatus
   useEffect(() => {
@@ -372,12 +369,12 @@ export default function DocumentsList() {
   // seleccionar manualmente una plaza si lo desea.
 
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, estatusCobFilter, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
     queryFn: async () => {
       if (!access.canView) return [];
       let q = supabase
         .from("documentos")
-        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, numero_oc_cliente, fecha_documento, fecha_vencimiento, fecha_entrega_programada, total, tipo_pago, plaza_id, empresa_id, contacto_id, ejecutivo_venta_id, created_by, created_at, pdf_url, estatus_cotizacion, estatus_pedido, estatus_factura, estatus_entrega_corporativa, estado_cobranza, saldo_pendiente_cobranza, cotizacion_original_id, companies(name), contacts(first_name, last_name), plazas(nombre)")
+        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, numero_oc_cliente, fecha_documento, fecha_vencimiento, fecha_entrega_programada, total, tipo_pago, plaza_id, empresa_id, contacto_id, ejecutivo_venta_id, created_by, created_at, pdf_url, estatus_cotizacion, estatus_pedido, estatus_factura, estatus_entrega_corporativa, saldo_pendiente_cobranza, cotizacion_original_id, companies(name), contacts(first_name, last_name), plazas(nombre)")
         .eq("is_active", true)
         .eq("empresa_vendedora", empresaFilter as any)
         .order("created_at", { ascending: false });
@@ -399,7 +396,6 @@ export default function DocumentsList() {
           q = q.eq("estatus_factura", estatusFacFilter as any);
         }
       }
-      if (tipoFilter === "factura" && estatusCobFilter !== "all") q = q.eq("estado_cobranza", estatusCobFilter as any);
       if (access.accessLevel === "propio" && access.userId) {
         const parts = [
           `created_by.eq.${access.userId}`,
@@ -690,7 +686,6 @@ export default function DocumentsList() {
     { key: "estatus_cotizacion", label: "Estatus Cotización", importable: true },
     { key: "estatus_pedido", label: "Estatus Pedido", importable: true },
     { key: "estatus_factura", label: "Estatus Factura", importable: true },
-    { key: "estado_cobranza", label: "Estado Cobranza", importable: false },
     { key: "tipo_pago", label: "Tipo de Pago", importable: true },
     { key: "metodo_pago", label: "Método de Pago", importable: true },
     { key: "uso_cfdi", label: "Uso CFDI", importable: true },
@@ -1094,20 +1089,6 @@ export default function DocumentsList() {
                               <SelectContent>
                                 <SelectItem value="all"><Pill cls={NEUTRAL_PILL}>Todos</Pill></SelectItem>
                                 <SelectItem value="vigente"><Pill cls={STATUS_PILL_MAP.vigente}>Vigente</Pill></SelectItem>
-                                <SelectItem value="pagada"><Pill cls={STATUS_PILL_MAP.pagada}>Pagada</Pill></SelectItem>
-                                <SelectItem value="vencida"><Pill cls={STATUS_PILL_MAP.vencida}>Vencida</Pill></SelectItem>
-                                <SelectItem value="cancelada"><Pill cls={STATUS_PILL_MAP.cancelada}>Cancelada</Pill></SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs text-muted-foreground">Estatus cobranza</label>
-                            <Select value={estatusCobFilter} onValueChange={setEstatusCobFilter}>
-                              <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all"><Pill cls={NEUTRAL_PILL}>Todos</Pill></SelectItem>
-                                <SelectItem value="pendiente"><Pill cls={STATUS_PILL_MAP.pendiente}>Pendiente</Pill></SelectItem>
-                                <SelectItem value="parcial"><Pill cls={STATUS_PILL_MAP.parcial}>Parcial</Pill></SelectItem>
                                 <SelectItem value="pagada"><Pill cls={STATUS_PILL_MAP.pagada}>Pagada</Pill></SelectItem>
                                 <SelectItem value="vencida"><Pill cls={STATUS_PILL_MAP.vencida}>Vencida</Pill></SelectItem>
                                 <SelectItem value="cancelada"><Pill cls={STATUS_PILL_MAP.cancelada}>Cancelada</Pill></SelectItem>
