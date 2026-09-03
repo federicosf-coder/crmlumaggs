@@ -657,7 +657,7 @@ export default function DeliverySchedule() {
   const { user, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
 
-  const [showPool, setShowPool] = useState(false);
+  const [showPool, setShowPool] = useState(true);
   const [searchPool, setSearchPool] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [activeItem, setActiveItem] = useState<PoolItem | null>(null);
@@ -1563,91 +1563,86 @@ export default function DeliverySchedule() {
           </div>
         </div>
         {/* Plaza filter chips + pool toggle + view toggle */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex gap-1.5 flex-wrap items-center">
-              <Button
-                size="sm"
-                variant={showPool ? "default" : "outline"}
-                className="h-7 text-xs"
-                onClick={() => setShowPool(!showPool)}
-              >
-                {showPool ? <PanelLeftClose className="h-3.5 w-3.5 mr-1" /> : <PanelLeftOpen className="h-3.5 w-3.5 mr-1" />}
-                Pool de Pedidos
-              </Button>
-              <Separator orientation="vertical" className="h-5 mx-1" />
-              <Button
-                size="sm"
-                variant={selectedPlaza === "all" ? "default" : "outline"}
-                className="h-7 text-xs"
-                onClick={() => setSelectedPlaza("all")}
-              >
-                Todas las plazas
-              </Button>
-              {plazas.map((p: any) => (
-                <Button
-                  key={p.id}
-                  size="sm"
-                  variant={selectedPlaza === p.id ? "default" : "outline"}
-                  className="h-7 text-xs"
-                  onClick={() => setSelectedPlaza(p.id)}
-                >
-                  {p.nombre}
-                </Button>
-              ))}
-            </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant={showPool ? "default" : "outline"}
+            className="h-7 text-xs"
+            onClick={() => setShowPool(!showPool)}
+          >
+            {showPool ? <PanelLeftClose className="h-3.5 w-3.5 mr-1" /> : <PanelLeftOpen className="h-3.5 w-3.5 mr-1" />}
+            Pool de Pedidos
+          </Button>
+          <Separator orientation="vertical" className="h-5 mx-1" />
+          <Button
+            size="sm"
+            variant={selectedPlaza === "all" ? "default" : "outline"}
+            className="h-7 text-xs"
+            onClick={() => setSelectedPlaza("all")}
+          >
+            Todas las plazas
+          </Button>
+          {plazas.map((p: any) => (
+            <Button
+              key={p.id}
+              size="sm"
+              variant={selectedPlaza === p.id ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setSelectedPlaza(p.id)}
+            >
+              {p.nombre}
+            </Button>
+          ))}
+          <Separator orientation="vertical" className="h-5 mx-1 hidden sm:block" />
+          <div className="flex gap-1 border rounded-md p-0.5">
+            <Button
+              size="sm"
+              variant={mainView === "kanban" ? "default" : "ghost"}
+              className="h-7 text-xs px-3"
+              onClick={() => setMainView("kanban")}
+              title="Vista de lista (Kanban)"
+            >
+              <ListIcon className="h-3.5 w-3.5 mr-1" /> Lista
+            </Button>
+            <Button
+              size="sm"
+              variant={mainView === "map" ? "default" : "ghost"}
+              className="h-7 text-xs px-3"
+              onClick={() => setMainView("map")}
+              title="Vista de mapa"
+            >
+              <MapIcon className="h-3.5 w-3.5 mr-1" /> Mapa
+            </Button>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          {mainView === "kanban" && (
             <div className="flex gap-1 border rounded-md p-0.5">
               <Button
                 size="sm"
-                variant={mainView === "kanban" ? "default" : "ghost"}
+                variant={routeViewMode === "list" ? "default" : "ghost"}
                 className="h-7 text-xs px-3"
-                onClick={() => setMainView("kanban")}
-                title="Vista de lista (Kanban)"
+                onClick={() => { setRouteViewMode("list"); setCalendarDate(undefined); }}
               >
-                <ListIcon className="h-3.5 w-3.5 mr-1" /> Lista
+                <Truck className="h-3.5 w-3.5 mr-1" /> Rutas
               </Button>
               <Button
                 size="sm"
-                variant={mainView === "map" ? "default" : "ghost"}
+                variant={routeViewMode === "calendar" ? "default" : "ghost"}
                 className="h-7 text-xs px-3"
-                onClick={() => setMainView("map")}
-                title="Vista de mapa"
+                onClick={() => setRouteViewMode("calendar")}
               >
-                <MapIcon className="h-3.5 w-3.5 mr-1" /> Mapa
+                <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Calendario
               </Button>
             </div>
-            {mainView === "kanban" && (
-              <div className="flex gap-1 border rounded-md p-0.5">
-                <Button
-                  size="sm"
-                  variant={routeViewMode === "list" ? "default" : "ghost"}
-                  className="h-7 text-xs px-3"
-                  onClick={() => { setRouteViewMode("list"); setCalendarDate(undefined); }}
-                >
-                  <Truck className="h-3.5 w-3.5 mr-1" /> Rutas
-                </Button>
-                <Button
-                  size="sm"
-                  variant={routeViewMode === "calendar" ? "default" : "ghost"}
-                  className="h-7 text-xs px-3"
-                  onClick={() => setRouteViewMode("calendar")}
-                >
-                  <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Calendario
-                </Button>
-              </div>
-            )}
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs"
-              onClick={() => navigate("/reports/daily-delivery")}
-              title="Reporte Diario de Entregas"
-            >
-              <FileText className="h-3.5 w-3.5 mr-1" /> Reportes
-            </Button>
-          </div>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() => navigate("/reports/daily-delivery")}
+            title="Reporte Diario de Entregas"
+          >
+            <FileText className="h-3.5 w-3.5 mr-1" /> Reportes
+          </Button>
         </div>
       </div>
 
