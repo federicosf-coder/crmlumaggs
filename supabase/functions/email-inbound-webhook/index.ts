@@ -639,6 +639,153 @@ Deno.serve(async (req) => {
       return jsonRes({ ok: true, procesados: procesadosFact });
     }
 
+    // ===================== FLUJO PROSPECTOS (prospectos@) =====================
+    if (esProspectos) {
+      try {
+        console.log('[prospectos] correo recibido de:', from, '| adjuntos:', attachments.length);
+
+        let responsableId: string | null = null;
+        if (from) {
+          const { data: perfil, error: perfilErr } = await admin
+            .from('profiles')
+            .select('id')
+            .ilike('email', from)
+            .maybeSingle();
+          if (perfilErr) console.error('[prospectos] error buscando perfil:', perfilErr.message);
+          responsableId = perfil?.id ?? null;
+          console.log('[prospectos] responsable detectado:', responsableId);
+        }
+
+        const mensajeTexto = [subject, bodyText].filter(Boolean).join(' — ').slice(0, 4000) || null;
+
+        const imagenes = attachments.filter((a: any) =>
+          String(a?.content_type ?? '').toLowerCase().startsWith('image/'),
+        );
+        console.log('[prospectos] imágenes detectadas:', imagenes.length);
+
+        if (imagenes.length === 0) {
+          const { error: insErr } = await admin.from('leads').insert({
+            source_id: '7d615fa2-be2a-4e13-bcc3-e49452b7865e',
+            estatus: 'nuevo',
+            responsable_id: responsableId,
+            nombre: 'Prospecto por correo',
+            mensaje: mensajeTexto,
+            email: from || null,
+            payload: { remitente: from || null, asunto: subject ?? null },
+          });
+          if (insErr) console.error('[prospectos] error insertando lead sin imagen:', insErr.message);
+          else console.log('[prospectos] lead creado sin imagen');
+          return jsonRes({ ok: true, prospecto: true, con_imagen: false });
+        }
+
+        let listadoProsp: Array<any> = [];
+        try {
+          const attRes = await fetch(`https://connector-gateway.lovable.dev/resend/emails/receiving/${emailId}/attachments`, {
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              'X-Connection-Api-Key': RESEND_API_KEY ?? '',
+            },
+          });
+          if (!attRes.ok) {
+            console.error('[prospectos] error listando adjuntos:', attRes.status, await attRes.text());
+          } else {
+            const attJson = await attRes.json();
+            listadoProsp = attJson?.data ?? attJson ?? [];
+            if (!Array.isArray(listadoProsp)) listadoProsp = [];
+          }
+        } catch (e) {
+          console.error('[prospectos] error listando adjuntos:', (e as Error).message);
+        }
+
+        const att = imagenes[0];
+        const meta = listadoProsp.find((l: any) => String(l?.id) === String(att?.id)) ?? null;
+        const downloadUrl = meta?.download_url ?? meta?.downloadUrl ?? null;
+
+        let fotoPath: string | null = null;
+        let extraido: Record<string, any> | null = null;
+
+        if (!downloadUrl) {
+          console.error('[prospectos] sin download_url para adjunto', att?.id);
+        } else {
+          const dl = await fetch(downloadUrl);
+          if (!dl.ok) {
+            console.error('[prospectos] descarga fallida:', dl.status);
+          } else {
+            const bytes = new Uint8Array(await dl.arrayBuffer());
+            const mime = String(att?.content_type || 'image/jpeg');
+            const seguro = String(att?.filename || 'foto.jpg').replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120);
+            const ruta = `email/${Date.now()}-${seguro}`;
+            const { error: upErr } = await admin.storage
+              .from('leads-fotos')
+              .upload(ruta, bytes, { contentType: mime, upsert: false });
+            if (upErr) console.error('[prospectos] error subiendo foto:', upErr.message);
+            else {
+              fotoPath = ruta;
+              console.log('[prospectos] foto subida:', ruta);
+            }
+
+            try {
+              if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY no configurada');
+              let bin = '';
+              for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+              const dataUrl = `data:${mime};base64,${btoa(bin)}`;
+
+              const PROMPT_PROSPECTOS = 'Esta es una foto tomada en campo (posiblemente enviada por correo desde un celular) de un vehículo, letrero, aviso o tarjeta de presentación de un posible cliente/prospecto de venta de lubricantes. Extrae SOLO este JSON sin texto adicional ni markdown: {"nombre_contacto":"string o null","empresa_nombre":"string o null","telefono":"string o null","giro_negocio":"string o null","notas":"string o null"}. Si no puedes leer con certeza algún dato, usa null. No inventes información que no esté visible en la imagen.';
+
+              const res = await fetch(GATEWAY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
+                body: JSON.stringify({
+                  model: MODEL,
+                  messages: [
+                    {
+                      role: 'user',
+                      content: [
+                        { type: 'text', text: PROMPT_PROSPECTOS },
+                        { type: 'image_url', image_url: { url: dataUrl } },
+                      ],
+                    },
+                  ],
+                  max_tokens: 800,
+                }),
+              });
+              if (!res.ok) throw new Error(`gateway_${res.status}`);
+              const json = await res.json();
+              const text = json?.choices?.[0]?.message?.content || '';
+              const m = text.match(/\{[\s\S]*\}/);
+              if (!m) throw new Error('json_not_found');
+              extraido = JSON.parse(m[0]);
+              console.log('[prospectos] extracción IA OK:', JSON.stringify(extraido));
+            } catch (e) {
+              console.error('[prospectos] error en extracción IA:', (e as Error).message);
+            }
+          }
+        }
+
+        const mensajeIa = [extraido?.giro_negocio, extraido?.notas].filter(Boolean).join(' — ') || null;
+
+        const { error: insErr } = await admin.from('leads').insert({
+          source_id: '7d615fa2-be2a-4e13-bcc3-e49452b7865e',
+          estatus: 'nuevo',
+          responsable_id: responsableId,
+          nombre: extraido?.nombre_contacto || 'Prospecto por correo',
+          empresa_nombre: extraido?.empresa_nombre ?? null,
+          telefono: extraido?.telefono ?? null,
+          mensaje: mensajeIa || mensajeTexto,
+          payload: { foto_path: fotoPath, extraccion_ia: extraido, remitente: from || null },
+        });
+        if (insErr) console.error('[prospectos] error insertando lead:', insErr.message);
+        else console.log('[prospectos] lead creado con foto');
+
+        return jsonRes({ ok: true, prospecto: true, con_imagen: true });
+      } catch (e) {
+        console.error('[prospectos] error general:', (e as Error).message);
+        return jsonRes({ ok: true, prospecto: true, error: (e as Error).message });
+      }
+    }
+
+
+
 
     // ===================== FLUJO CRÉDITO (documentos@) =====================
     if (esCredito) {
