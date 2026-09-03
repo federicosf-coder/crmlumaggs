@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, Star, RefreshCw, Clock, AlertOctagon, HelpCircle, FileText, CheckCircle2 } from "lucide-react";
+import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, Star, RefreshCw, Clock, AlertOctagon, HelpCircle, FileText, CheckCircle2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { toast } from "sonner";
 import { generateRotacionInventarioPdf } from "@/lib/generateRotacionInventarioPdf";
 
@@ -176,6 +176,7 @@ export function RotacionInventarioTabContent() {
   const [sortKey, setSortKey] = useState<SortKey>("ue");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [groupLevels, setGroupLevels] = useState<GroupKey[]>(["none", "none", "none", "none"]);
+  const [filtrosVisibles, setFiltrosVisibles] = useState(true);
 
   const { desde, hasta, hace3Meses } = useMemo(() => {
     const now = new Date();
@@ -449,13 +450,13 @@ export function RotacionInventarioTabContent() {
   function renderRow(r: Row, i: number) {
     return (
       <TableRow key={r.id} className={`hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-muted/20" : ""}`}>
-        <TableCell className="font-mono text-xs sticky left-0 bg-inherit z-10">
+        <TableCell className="font-mono text-xs sticky left-0 bg-background z-10 w-[120px]">
           <Tooltip>
             <TooltipTrigger asChild><span className="block max-w-[120px] truncate cursor-default">{r.codigo}</span></TooltipTrigger>
             <TooltipContent>{r.codigo}</TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell className="text-sm">
+        <TableCell className="text-sm sticky left-[120px] bg-background z-10 border-r">
           <Tooltip>
             <TooltipTrigger asChild><span className="block max-w-[280px] truncate cursor-default">{r.nombre}</span></TooltipTrigger>
             <TooltipContent className="max-w-xs">{r.nombre}</TooltipContent>
@@ -484,9 +485,20 @@ export function RotacionInventarioTabContent() {
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground font-light">Ventas registradas en Kárdex del {desde} al {hasta}.</p>
 
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setFiltrosVisibles((v) => !v)}
+          className="gap-2"
+        >
+          {filtrosVisibles ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+          <span className="hidden sm:inline">{filtrosVisibles ? "Ocultar filtros" : "Mostrar filtros"}</span>
+        </Button>
+
         <div className="flex flex-col md:flex-row gap-4 items-start">
           {/* Filtros */}
-          <aside className="w-full md:w-64 md:shrink-0 md:sticky md:top-4 md:self-start flex flex-col gap-3">
+          {filtrosVisibles && (
+            <aside className="w-full md:w-64 md:shrink-0 md:sticky md:top-4 md:self-start flex flex-col gap-3">
             <Select value={marcaSel} onValueChange={setMarcaSel}>
               <SelectTrigger className="h-9 w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -536,6 +548,7 @@ export function RotacionInventarioTabContent() {
               <FileText className="h-4 w-4 mr-2" /> Descargar PDF
             </Button>
           </aside>
+          )}
 
           {/* Contenido */}
           <div className="flex-1 min-w-0 space-y-4">
@@ -574,8 +587,8 @@ export function RotacionInventarioTabContent() {
                   <Table>
                     <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50 sticky top-0 z-10">
                       <TableRow>
-                        <SortHead k="codigo" className="sticky left-0 bg-violet-50 z-20">Código</SortHead>
-                        <SortHead k="nombre">Producto</SortHead>
+                        <SortHead k="codigo" className="sticky left-0 bg-violet-50 z-20 w-[120px]">Código</SortHead>
+                        <SortHead k="nombre" className="sticky left-[120px] bg-violet-50 z-20 border-r">Producto</SortHead>
                         <SortHead k="marca">Marca</SortHead>
                         <SortHead k="s1001" className="text-right border-l">MXL</SortHead>
                         <SortHead k="s1002" className="text-right">TIJ</SortHead>
