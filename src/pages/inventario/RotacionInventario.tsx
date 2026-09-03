@@ -423,6 +423,81 @@ export function RotacionInventarioTabContent() {
     XLSX.writeFile(wb, `rotacion_inventario_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
+  const activeGroupKeys = useMemo(() => groupLevels.filter((g) => g !== "none") as GroupKey[], [groupLevels]);
+  const grouped = useMemo(() => (activeGroupKeys.length ? groupRows(filtered, activeGroupKeys) : []), [filtered, activeGroupKeys]);
+
+  function toPdfRow(r: Row) {
+    return {
+      codigo: r.codigo,
+      nombre: r.nombre,
+      marca: r.marca,
+      stock_total: r.stock_total,
+      valor_stock: r.valor_stock,
+      clasificacionLabel: CLAS_LABEL[r.clasificacion],
+    };
+  }
+  function toPdfGroup(g: GroupNode): any {
+    return {
+      label: g.label,
+      level: g.level,
+      count: g.count,
+      valor: g.valor,
+      children: g.children.map(toPdfGroup),
+      rows: g.rows.map(toPdfRow),
+    };
+  }
+  function exportarPdf() {
+    generateRotacionInventarioPdf(grouped.map(toPdfGroup), filtered.map(toPdfRow), {
+      titulo: "Rotación de Inventario",
+      subtitulo: `Ventas registradas en Kárdex del ${desde} al ${hasta}`,
+    });
+  }
+
+  const colCount = canViewCostos ? 15 : 14;
+
+  function renderGroups(nodes: GroupNode[]): React.ReactNode[] {
+    const out: React.ReactNode[] = [];
+    for (const g of nodes) {
+      out.push(
+        <TableRow key={`g-${g.level}-${g.label}-${out.length}`} className="bg-violet-50/70 hover:bg-violet-50">
+          <TableCell colSpan={colCount} className="py-2">
+            <div style={{ paddingLeft: g.level * 20 }} className="flex items-center gap-3">
+              <span className="text-xs font-semibold uppercase tracking-wide">{g.label}</span>
+              <span className="text-[11px] text-muted-foreground">{g.count} SKUs</span>
+              <span className="text-[11px] text-muted-foreground">{fmtMoney(g.valor)}</span>
+            </div>
+          </TableCell>
+        </TableRow>
+      );
+      if (g.children.length) out.push(...renderGroups(g.children));
+      g.rows.forEach((r, i) => out.push(renderRow(r, i)));
+    }
+    return out;
+  }
+
+  function renderRow(r: Row, i: number) {
+    return (
+      <TableRow key={r.id} className={`hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-muted/20" : ""}`}>
+        <TableCell className="font-mono text-xs sticky left-0 bg-inherit z-10">{r.codigo}</TableCell>
+        <TableCell className="text-sm max-w-[220px] truncate" title={r.nombre}>{r.nombre}</TableCell>
+        <TableCell className="text-sm">{r.marca || "—"}</TableCell>
+        <TableCell className="text-right text-sm border-l">{fmtNum(r.s1001)}</TableCell>
+        <TableCell className="text-right text-sm">{fmtNum(r.s1002)}</TableCell>
+        <TableCell className="text-right text-sm">{fmtNum(r.s1003)}</TableCell>
+        <TableCell className="text-right text-sm">{fmtNum(r.s1004)}</TableCell>
+        <TableCell className="text-right text-sm font-bold">{fmtNum(r.stock_total)}</TableCell>
+        {canViewCostos && <TableCell className="text-right text-sm border-l">{fmtMoney(r.costo_prom)}</TableCell>}
+        <TableCell className="text-right text-sm">{fmtMoney(r.valor_stock)}</TableCell>
+        <TableCell className="text-right text-sm font-semibold border-l">{fmtNum(r.ue, 2)}</TableCell>
+        <TableCell className="text-right text-sm">{r.pct.toFixed(1)}%</TableCell>
+        <TableCell className="text-right text-sm">{r.meses_con_venta}/12</TableCell>
+        <TableCell className="text-sm">{r.ultima_venta || "—"}</TableCell>
+        <TableCell>{clasificacionBadge(r.clasificacion)}</TableCell>
+      </TableRow>
+    );
+  }
+
+
   const clasLabelBtn =
     clasSel.length === CLAS_ORDER.length ? "Clasificación: Todas" :
     clasSel.length === 0 ? "Clasificación: Ninguna" :
