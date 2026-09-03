@@ -65,6 +65,7 @@ export default function ImportarFacturasXML() {
   const [fechaVencManual, setFechaVencManual] = useState<Record<string, string>>({});
   const [estatusManual, setEstatusManual] = useState<Record<string, string>>({});
   const [mostrarBusquedaAmplia, setMostrarBusquedaAmplia] = useState<Record<string, boolean>>({});
+  const [mostrarCambioClienteExacto, setMostrarCambioClienteExacto] = useState<Record<string, boolean>>({});
   const [plazasFiltroRevision, setPlazasFiltroRevision] = useState<string[]>([]);
 
 
@@ -394,10 +395,10 @@ export default function ImportarFacturasXML() {
     lineasDe(row).every((l, i) => !!productoResuelto(row, i, l));
 
   const empresaResuelta = (row: IntakeRow): string | null => {
-    if (row.cliente_match_estatus === "exacto_rfc") return row.empresa_id_matched || null;
     const manual = clienteManual[row.id];
     if (manual && manual !== "__nuevo__") return manual;
     if (manual === "__nuevo__") return "__nuevo__";
+    if (row.cliente_match_estatus === "exacto_rfc") return row.empresa_id_matched || null;
     if (row.cliente_match_estatus === "pendiente") return "__nuevo__";
     return null;
   };
