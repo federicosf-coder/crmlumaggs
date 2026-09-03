@@ -12,7 +12,8 @@ export default function CobranzaLanding() {
         title="Cobranza"
         description="Cobrado, facturado y cartera por periodo, plaza y empresa"
         avatar={<div className="h-10 w-10 rounded-md bg-primary/10 text-primary flex items-center justify-center"><Wallet className="h-5 w-5" /></div>}
-        actions={
+      >
+        <div className="flex flex-wrap gap-2">
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
