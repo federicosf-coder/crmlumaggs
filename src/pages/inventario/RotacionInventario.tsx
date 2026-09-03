@@ -514,6 +514,9 @@ export function RotacionInventarioTabContent() {
           <Button onClick={exportar} disabled={filtered.length === 0}>
             <Download className="h-4 w-4 mr-2" /> Descargar Excel ({filtered.length})
           </Button>
+          <Button variant="outline" onClick={exportarPdf} disabled={filtered.length === 0}>
+            <FileText className="h-4 w-4 mr-2" /> Descargar PDF
+          </Button>
         </div>
       </div>
 
