@@ -251,7 +251,6 @@ export default function DocumentsList() {
   const [estatusCotFilter, setEstatusCotFilter] = useState<string>("all");
   const [estatusPedFilter, setEstatusPedFilter] = useState<string>(searchParams.get("estatus") || "all");
   const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
-  const [estatusCobFilter, setEstatusCobFilter] = useState<string>("all");
   useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter]);
   const clearFilters = () => {
     setTipoPagoFilter("all");
