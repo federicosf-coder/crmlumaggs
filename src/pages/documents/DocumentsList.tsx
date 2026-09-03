@@ -369,12 +369,12 @@ export default function DocumentsList() {
   // seleccionar manualmente una plaza si lo desea.
 
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, estatusCobFilter, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
     queryFn: async () => {
       if (!access.canView) return [];
       let q = supabase
         .from("documentos")
-        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, numero_oc_cliente, fecha_documento, fecha_vencimiento, fecha_entrega_programada, total, tipo_pago, plaza_id, empresa_id, contacto_id, ejecutivo_venta_id, created_by, created_at, pdf_url, estatus_cotizacion, estatus_pedido, estatus_factura, estatus_entrega_corporativa, estado_cobranza, saldo_pendiente_cobranza, cotizacion_original_id, companies(name), contacts(first_name, last_name), plazas(nombre)")
+        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, numero_oc_cliente, fecha_documento, fecha_vencimiento, fecha_entrega_programada, total, tipo_pago, plaza_id, empresa_id, contacto_id, ejecutivo_venta_id, created_by, created_at, pdf_url, estatus_cotizacion, estatus_pedido, estatus_factura, estatus_entrega_corporativa, saldo_pendiente_cobranza, cotizacion_original_id, companies(name), contacts(first_name, last_name), plazas(nombre)")
         .eq("is_active", true)
         .eq("empresa_vendedora", empresaFilter as any)
         .order("created_at", { ascending: false });
@@ -396,7 +396,6 @@ export default function DocumentsList() {
           q = q.eq("estatus_factura", estatusFacFilter as any);
         }
       }
-      if (tipoFilter === "factura" && estatusCobFilter !== "all") q = q.eq("estado_cobranza", estatusCobFilter as any);
       if (access.accessLevel === "propio" && access.userId) {
         const parts = [
           `created_by.eq.${access.userId}`,
