@@ -296,11 +296,39 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {/* Modo: tarea vs actividad */}
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Modo *</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: "tarea", label: "Tarea pendiente" },
+                  { key: "actividad", label: "Actividad ya realizada" },
+                ].map((m) => {
+                  const selected = modo === (m.key as "tarea" | "actividad");
+                  return (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setModo(m.key as "tarea" | "actividad")}
+                      className={cn(
+                        "rounded-md border px-3 py-2 text-sm font-medium transition-all",
+                        selected
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted/50 text-muted-foreground border-muted hover:bg-muted"
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Tipo - iconos compactos full width */}
             <div className="space-y-1.5">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Tipo *</Label>
               <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
-                {TASK_TYPES.map(({ key, label, Icon, soft, active }) => {
+                {TASK_TYPES.filter((t) => modo === "tarea" || t.key !== "cobranza").map(({ key, label, Icon, soft, active }) => {
                   const selected = taskType === key;
                   return (
                     <button
