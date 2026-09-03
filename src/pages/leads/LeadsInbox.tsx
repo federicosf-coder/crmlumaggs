@@ -112,6 +112,11 @@ export default function LeadsInbox() {
           <Button variant="outline" size="sm" onClick={() => { refetch(); recalcular(); }}>
             <RefreshCw className="h-4 w-4 mr-1" /> Actualizar
           </Button>
+          {hasAnyRole(["admin", "manager", "sales"]) && (
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-1" /> Importar lista
+            </Button>
+          )}
           {esAdmin && (
             <Button size="sm" onClick={() => setSourcesOpen(true)}>
               <KeyRound className="h-4 w-4 mr-1" /> Fuentes y API
