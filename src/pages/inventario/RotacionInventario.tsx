@@ -485,9 +485,20 @@ export function RotacionInventarioTabContent() {
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground font-light">Ventas registradas en Kárdex del {desde} al {hasta}.</p>
 
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setFiltrosVisibles((v) => !v)}
+          className="gap-2"
+        >
+          {filtrosVisibles ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+          <span className="hidden sm:inline">{filtrosVisibles ? "Ocultar filtros" : "Mostrar filtros"}</span>
+        </Button>
+
         <div className="flex flex-col md:flex-row gap-4 items-start">
           {/* Filtros */}
-          <aside className="w-full md:w-64 md:shrink-0 md:sticky md:top-4 md:self-start flex flex-col gap-3">
+          {filtrosVisibles && (
+            <aside className="w-full md:w-64 md:shrink-0 md:sticky md:top-4 md:self-start flex flex-col gap-3">
             <Select value={marcaSel} onValueChange={setMarcaSel}>
               <SelectTrigger className="h-9 w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
