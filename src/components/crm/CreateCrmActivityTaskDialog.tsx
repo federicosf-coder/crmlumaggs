@@ -374,45 +374,49 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
               {/* Columna Izquierda */}
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label>Fecha y hora *</Label>
+                  <Label>{modo === "actividad" ? "Fecha en que ocurrió *" : "Fecha y hora *"}</Label>
                   <Input type="datetime-local" value={activityDate} onChange={(e) => setActivityDate(e.target.value)} />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1.5">
-                    <Label>Prioridad</Label>
-                    <Select value={priority} onValueChange={setPriority}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Baja</SelectItem>
-                        <SelectItem value="medium">Media</SelectItem>
-                        <SelectItem value="high">Alta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Estatus</Label>
-                    <Select value={taskStatus} onValueChange={(v) => setTaskStatus(v as any)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="planned">Planificada</SelectItem>
-                        <SelectItem value="done">Realizada</SelectItem>
-                        <SelectItem value="cancelled">Cancelada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Recurrencia</Label>
-                  <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Ninguna</SelectItem>
-                      <SelectItem value="daily">Diaria</SelectItem>
-                      <SelectItem value="weekly">Semanal</SelectItem>
-                      <SelectItem value="monthly">Mensual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {modo === "tarea" && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1.5">
+                        <Label>Prioridad</Label>
+                        <Select value={priority} onValueChange={setPriority}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Baja</SelectItem>
+                            <SelectItem value="medium">Media</SelectItem>
+                            <SelectItem value="high">Alta</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Estatus</Label>
+                        <Select value={taskStatus} onValueChange={(v) => setTaskStatus(v as any)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="planned">Planificada</SelectItem>
+                            <SelectItem value="done">Realizada</SelectItem>
+                            <SelectItem value="cancelled">Cancelada</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Recurrencia</Label>
+                      <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Ninguna</SelectItem>
+                          <SelectItem value="daily">Diaria</SelectItem>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="monthly">Mensual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Columna Derecha - Vinculación */}
