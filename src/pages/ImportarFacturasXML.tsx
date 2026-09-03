@@ -65,6 +65,7 @@ export default function ImportarFacturasXML() {
   const [fechaVencManual, setFechaVencManual] = useState<Record<string, string>>({});
   const [estatusManual, setEstatusManual] = useState<Record<string, string>>({});
   const [mostrarBusquedaAmplia, setMostrarBusquedaAmplia] = useState<Record<string, boolean>>({});
+  const [mostrarCambioClienteExacto, setMostrarCambioClienteExacto] = useState<Record<string, boolean>>({});
   const [plazasFiltroRevision, setPlazasFiltroRevision] = useState<string[]>([]);
 
 
@@ -394,10 +395,10 @@ export default function ImportarFacturasXML() {
     lineasDe(row).every((l, i) => !!productoResuelto(row, i, l));
 
   const empresaResuelta = (row: IntakeRow): string | null => {
-    if (row.cliente_match_estatus === "exacto_rfc") return row.empresa_id_matched || null;
     const manual = clienteManual[row.id];
     if (manual && manual !== "__nuevo__") return manual;
     if (manual === "__nuevo__") return "__nuevo__";
+    if (row.cliente_match_estatus === "exacto_rfc") return row.empresa_id_matched || null;
     if (row.cliente_match_estatus === "pendiente") return "__nuevo__";
     return null;
   };
@@ -799,9 +800,29 @@ export default function ImportarFacturasXML() {
                 <div className="space-y-1.5">
                   <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Cliente</Label>
                   {row.cliente_match_estatus === "exacto_rfc" && (
-                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                      Cliente emparejado por RFC
-                    </Badge>
+                    <div className="space-y-1.5">
+                      <Badge className={clienteManual[row.id] && clienteManual[row.id] !== "__nuevo__" ? "bg-blue-100 text-blue-800 hover:bg-blue-100" : "bg-green-100 text-green-800 hover:bg-green-100"}>
+                        {clienteManual[row.id] && clienteManual[row.id] !== "__nuevo__"
+                          ? "Cliente cambiado manualmente"
+                          : "Cliente emparejado por RFC"}
+                      </Badge>
+                      {!mostrarCambioClienteExacto[row.id] ? (
+                        <button
+                          type="button"
+                          className="block text-[11px] text-blue-600 hover:underline"
+                          onClick={() => setMostrarCambioClienteExacto((p) => ({ ...p, [row.id]: true }))}
+                        >
+                          ¿Cliente incorrecto? Cambiar
+                        </button>
+                      ) : (
+                        <SearchableSelect
+                          value={clienteManual[row.id] || ""}
+                          onValueChange={(v) => setClienteManual((p) => ({ ...p, [row.id]: v }))}
+                          options={companyOptions}
+                          placeholder="Buscar cliente por nombre o razón social…"
+                        />
+                      )}
+                    </div>
                   )}
                   {row.cliente_match_estatus === "nombre_similar" && (
                     <div className="space-y-1.5">
