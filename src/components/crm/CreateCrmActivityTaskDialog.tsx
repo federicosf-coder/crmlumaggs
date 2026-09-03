@@ -300,6 +300,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
 
   const resetAndClose = () => {
     onOpenChange(false);
+    setModo("tarea");
     setTaskType(defaultTaskType || "call");
     setActivityDate(defaultDate || nextRoundHourLocal());
     setDescription(defaultDescription || "");
@@ -313,7 +314,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
     setBrands(defaultBrands || []);
   };
 
-  const isPending = createTask.isPending;
+  const isPending = createTask.isPending || createActivity.isPending;
 
   return (
     <>
