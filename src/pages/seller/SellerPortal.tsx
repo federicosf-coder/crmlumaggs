@@ -1097,6 +1097,92 @@ export default function SellerPortal() {
         <KpiCard title="Facturado (Unidades)" value={fmtNum(unidadesFacturadas)} sub="u. equivalentes" icon={Package} color="bg-indigo-600" />
       </div>
 
+      {/* Prospectos nuevos contactados */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <KpiCard
+          title="Prospectos Nuevos Contactados"
+          value={prospectosContactadosPeriodo}
+          sub="1er contacto en el periodo"
+          icon={UserPlus}
+          color="bg-sky-600"
+        />
+      </div>
+
+      {/* Meta del Mes */}
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Meta del Mes</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex flex-wrap items-center gap-6">
+            <div>
+              <p className="text-xs text-muted-foreground">Meta</p>
+              <p className="text-lg font-semibold">{fmtNum(metaMes.meta)} u.</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Avance</p>
+              <p className="text-lg font-semibold">{fmtNum(metaMes.avance)} u.</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Cumplimiento</p>
+              <p className="text-lg font-semibold">{fmtNum(metaMes.pct)}%</p>
+            </div>
+          </div>
+          <Progress value={metaMes.pct} />
+        </CardContent>
+      </Card>
+
+      {/* Seguimiento a Clientes Actuales */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Seguimiento a Clientes Actuales ({clientesActualesSeguimiento.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Empresa</TableHead>
+                <TableHead className="text-right">Días última compra</TableHead>
+                <TableHead>Riesgo</TableHead>
+                <TableHead>Ritmo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(verTodosSeguimiento ? clientesActualesSeguimiento : clientesActualesSeguimiento.slice(0, 20)).map((s: any) => {
+                const riesgo = s.estatus_riesgo_id ? estatusMap.get(s.estatus_riesgo_id) : null;
+                const ritmo = s.estatus_ritmo_id ? estatusMap.get(s.estatus_ritmo_id) : null;
+                return (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{companyMap[s.company_id] || "—"}</TableCell>
+                    <TableCell className="text-right">{s.dias_ultima_compra ?? "—"}</TableCell>
+                    <TableCell>
+                      {riesgo ? (
+                        <Badge className="text-xs text-white" style={{ backgroundColor: riesgo.color }}>{riesgo.nombre}</Badge>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {ritmo ? (
+                        <Badge className="text-xs text-white" style={{ backgroundColor: ritmo.color }}>{ritmo.nombre}</Badge>
+                      ) : "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {clientesActualesSeguimiento.length === 0 && (
+                <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Sin clientes con venta</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+          {clientesActualesSeguimiento.length > 20 && (
+            <div className="pt-2">
+              <Button variant="ghost" size="sm" onClick={() => setVerTodosSeguimiento(v => !v)}>
+                {verTodosSeguimiento ? "Ver menos" : `Ver todas (${clientesActualesSeguimiento.length})`}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
+
       {/* Fila 2 — Operación y cobranza */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <KpiCard title="Cotizaciones generadas" value={cotizaciones.length} sub={`${fmtMoney(sum(cotizaciones, "total"))}`} icon={FileText} color="bg-blue-500" />
