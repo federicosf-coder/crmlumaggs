@@ -10244,6 +10244,7 @@ export type Database = {
       calcular_cartera_al_dia: {
         Args: { p_fecha_corte: string; p_plaza_ids?: string[] }
         Returns: {
+          empresa_vendedora: string
           saldo_total: number
           saldo_vencido: number
           tipo_pago: string
