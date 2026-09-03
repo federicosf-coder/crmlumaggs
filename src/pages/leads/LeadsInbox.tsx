@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Inbox, KeyRound, RefreshCw, Search, MessageCircle, Mail, ExternalLink,
-  CheckCircle2, XCircle, Clock, Flame, Snowflake, LifeBuoy, Sparkles, Upload,
+  CheckCircle2, XCircle, Clock, Flame, Snowflake, LifeBuoy, Sparkles, Upload, Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useLeads, useTomarLead, useDescartarLead, type Lead, type LeadEstatus } from "@/hooks/useLeads";
 import { LeadSourcesDialog } from "@/components/leads/LeadSourcesDialog";
 import { ImportarLeadsDialog } from "@/components/leads/ImportarLeadsDialog";
+import { VincularLeadDialog } from "@/components/leads/VincularLeadDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 const ESTATUS_META: Record<LeadEstatus, { label: string; className: string }> = {
@@ -56,6 +57,7 @@ export default function LeadsInbox() {
   const [search, setSearch] = useState("");
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [vincularLead, setVincularLead] = useState<Lead | null>(null);
   const [tab, setTab] = useState("bandeja");
   const esAdmin = hasAnyRole(["admin", "manager"]);
 
@@ -211,6 +213,15 @@ export default function LeadsInbox() {
                         {l.email && (
                           <Button size="icon" variant="ghost" title="Correo" asChild>
                             <a href={`mailto:${l.email}`}><Mail className="h-4 w-4" /></a>
+                          </Button>
+                        )}
+                        {l.company_id ? (
+                          <Button size="icon" variant="ghost" title="Ver empresa" asChild>
+                            <Link to={`/directory?tab=companies&select=${l.company_id}`}><ExternalLink className="h-4 w-4" /></Link>
+                          </Button>
+                        ) : (
+                          <Button size="icon" variant="ghost" title="Vincular o convertir" onClick={() => setVincularLead(l)}>
+                            <Building2 className="h-4 w-4" />
                           </Button>
                         )}
                         {l.contact_id && (
