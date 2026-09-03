@@ -52,6 +52,7 @@ import NotFound from "@/pages/NotFound";
 import Alertas from "@/pages/Alertas";
 
 import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
+import ContactosSinEmpresa from "@/pages/directory/ContactosSinEmpresa";
 import Cobranza from "@/pages/cobranza/Cobranza";
 import CobranzaLanding from "@/pages/cobranza/CobranzaLanding";
 import Unsubscribe from "@/pages/Unsubscribe";
@@ -141,6 +142,7 @@ const App = () => (
             <Route path="/leads" element={<ProtectedRoute><LeadsInbox /></ProtectedRoute>} />
             <Route path="/directory" element={<ProtectedRoute><Directory /></ProtectedRoute>} />
             <Route path="/directory/addresses" element={<ProtectedRoute><DeliveryAddresses /></ProtectedRoute>} />
+            <Route path="/directorio/contactos-sin-empresa" element={<ProtectedRoute><ContactosSinEmpresa /></ProtectedRoute>} />
             <Route path="/seguimiento" element={<ProtectedRoute><SeguimientoLanding /></ProtectedRoute>} />
             <Route path="/seguimiento/:brand" element={<ProtectedRoute><SeguimientoVentas /></ProtectedRoute>} />
             <Route path="/activities" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />

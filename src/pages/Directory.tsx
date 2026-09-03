@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Building2, User, Search, Pencil, LayoutList, LayoutGrid, Phone, MapPin, CheckSquare, Trash2, Download, Upload, Mail, Globe, Briefcase, Users, Tag, FileText, CreditCard, DollarSign, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Merge } from "lucide-react";
+import { Merge, UserX } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SortMenu } from "@/components/SortMenu";
 import { CompanyFormDialog, type CompanyData, FORMA_PAGO_OPTS, LISTA_PRECIOS_OPTIONS } from "@/components/CompanyFormDialog";
@@ -98,7 +98,7 @@ export default function Directory() {
   const navigate = useNavigate();
   const activeTab = searchParams.get("tab") || "companies";
   const selectId = searchParams.get("select");
-  const { hasRole } = useAuth();
+  const { hasRole, hasAnyRole } = useAuth();
 
   // Deep-link: subtab dentro del diálogo de empresa, y URL para "Regresar"
   const [initialSubtab, setInitialSubtab] = useState<string>("general");
@@ -647,6 +647,12 @@ export default function Directory() {
             <Merge className="mr-1 h-4 w-4" />
             Fusionar duplicados
           </Button>
+          {hasAnyRole(["admin", "manager"]) && (
+            <Button size="sm" variant="outline" onClick={() => navigate("/directorio/contactos-sin-empresa")}>
+              <UserX className="mr-1 h-4 w-4" />
+              Contactos sin empresa
+            </Button>
+          )}
         </div>
       </div>
 
