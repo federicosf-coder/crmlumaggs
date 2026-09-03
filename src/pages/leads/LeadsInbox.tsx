@@ -255,6 +255,13 @@ export default function LeadsInbox() {
 
       <LeadSourcesDialog open={sourcesOpen} onOpenChange={setSourcesOpen} />
       <ImportarLeadsDialog open={importOpen} onOpenChange={setImportOpen} />
+      {vincularLead && (
+        <VincularLeadDialog
+          lead={vincularLead}
+          open={!!vincularLead}
+          onOpenChange={(v) => !v && setVincularLead(null)}
+        />
+      )}
     </div>
   );
 }
