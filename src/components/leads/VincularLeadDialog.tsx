@@ -153,12 +153,16 @@ export function VincularLeadDialog({ lead, open, onOpenChange }: Props) {
           <TabsContent value="existente" className="space-y-4 pt-4">
             <div className="space-y-1.5">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Empresa</Label>
+              <Input
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar empresa por nombre..."
+              />
               <SearchableSelect
                 value={companyId}
                 onValueChange={setCompanyId}
                 options={opciones}
-                placeholder="Buscar empresa..."
-                onSearchChange={setBusqueda}
+                placeholder="Seleccionar empresa..."
               />
             </div>
 
