@@ -73,6 +73,8 @@ export default function SellerPortal() {
   const [ejecutivoMap, setEjecutivoMap] = useState<Record<string, string>>({});
   const [cobradoDeVencido, setCobradoDeVencido] = useState<number>(0);
   const [seguimientoRows, setSeguimientoRows] = useState<any[]>([]);
+  const [estatusCatalogo, setEstatusCatalogo] = useState<any[]>([]);
+  const [verTodosSeguimiento, setVerTodosSeguimiento] = useState(false);
   const [convertidosPeriodo, setConvertidosPeriodo] = useState<number>(0);
   const [bucketActivo, setBucketActivo] = useState<"vencidas" | "1-5" | "6-10" | "11-20" | "21-30" | null>(null);
 
@@ -141,7 +143,16 @@ export default function SellerPortal() {
     return p.toString();
   }, [from, to, ejecutivoId, teamId, plazaId, marcaChevron, marcaPhillips]);
 
+  // Catálogo de estatus de seguimiento (no depende de filtros)
+  useEffect(() => {
+    supabase
+      .from("seguimiento_estatus_catalogo")
+      .select("id, nombre, color, ambito, familia, orden")
+      .then(({ data }) => setEstatusCatalogo((data || []) as any[]));
+  }, []);
+
   // Load filter options
+
   useEffect(() => {
     if (!user) return;
     if (isManager) {
@@ -459,7 +470,7 @@ export default function SellerPortal() {
       try {
         let sgQ = supabase
           .from("seguimiento_ventas")
-          .select("id, company_id, tiene_venta, perdido, fecha_perdida, owner_id, empresa_vendedora, companies:company_id(id, created_at)")
+          .select("id, company_id, tiene_venta, perdido, fecha_perdida, owner_id, empresa_vendedora, dias_ultima_compra, promedio_historico_mensual, acum_mes, acum_mes_anterior, ritmo_pct, cotizaciones_total, dias_ultima_cotizacion, dias_ultima_actividad, estatus_riesgo_id, estatus_ritmo_id, estatus_gestion_id, companies:company_id(id, created_at)")
           .in("empresa_vendedora", marcasSeleccionadas as any)
           .limit(20000);
         if (uIds) sgQ = sgQ.in("owner_id", uIds);
@@ -589,47 +600,6 @@ export default function SellerPortal() {
     return unique.sort((a: any, b: any) => b.dias_vencidos - a.dias_vencidos);
   }, [facturasVencidasAll, facturasPorVencer]);
 
-  const dealsNuevos: any[] = [];
-  const dealsRecompra: any[] = [];
-
-  const sumDealsField = (arr: any[], key: string) => arr.reduce((a, b) => a + Number(b[key] || 0), 0);
-
-  // Helper único: métricas de conversión por clientes únicos
-  const buildConv = (dealsArr: any[]) => {
-    const companyIds = new Set(dealsArr.map(d => d.company_id).filter(Boolean));
-    const docsDeClientes = (tipo: string) =>
-      docs.filter(d =>
-        d.tipo_documento === tipo &&
-        (tipo !== "factura" || d.estatus_factura !== "cancelada") &&
-        companyIds.has(d.empresa_id)
-      );
-    const distinctEmpresas = (rows: any[]) =>
-      new Set(rows.map(r => r.empresa_id).filter(Boolean)).size;
-
-    return {
-      activos: companyIds.size, // clientes únicos activos en el pipeline
-      cotizados: distinctEmpresas(docsDeClientes("cotizacion")),
-      pedidos: distinctEmpresas(docsDeClientes("pedido")),
-      facturados: distinctEmpresas(docsDeClientes("factura")),
-      uCot: sumDealsField(dealsArr, "cotizado_unidades"),
-      uPed: sumDealsField(dealsArr, "pedido_unidades"),
-      uFac: sumDealsField(dealsArr, "facturado_unidades"),
-      facturadosSet: new Set(
-        docs
-          .filter(d => d.tipo_documento === "factura" && d.estatus_factura !== "cancelada" && companyIds.has(d.empresa_id))
-          .map(d => d.empresa_id)
-          .filter(Boolean)
-      ),
-    };
-  };
-
-  const convNuevos = buildConv(dealsNuevos);
-  const convRecompra = buildConv(dealsRecompra);
-
-  // KPIs derivados de la misma base que las barras "Facturados"
-  const clientesNuevosCompraron = convNuevos.facturados;
-  const clientesRecompraCompraron = convRecompra.facturados;
-
   // KPIs adicionales
   // Clientes únicos con factura (no cancelada) en el periodo filtrado
   const clientesConCompra = new Set(
@@ -637,23 +607,7 @@ export default function SellerPortal() {
   ).size;
   const ticketPromedio = facturas.length > 0 ? totalFacturado / facturas.length : 0;
   const unidadesPromedioCliente = clientesConCompra > 0 ? unidadesFacturadas / clientesConCompra : 0;
-  // Prospectos nuevos en periodo = deals primera_compra cuyo created_at cae en el periodo. Contamos por empresa única.
-  const dealsNuevosEnPeriodo = dealsNuevos.filter(d => {
-    const t = new Date(d.created_at).getTime();
-    return t >= fromTs && t <= toTs;
-  });
-  const empresasProspectoPeriodo = new Set(dealsNuevosEnPeriodo.map((d: any) => d.company_id).filter(Boolean));
-  const prospectosNuevosPeriodo = empresasProspectoPeriodo.size;
-  // Empresas únicas que facturaron en el periodo (no cancelada)
-  const empresasFacturaronPeriodo = new Set(
-    facturas.map((f: any) => f.empresa_id).filter(Boolean)
-  );
-  // Numerador: empresas únicas de prospectos primera_compra creados en el periodo que ADEMÁS facturaron en el periodo.
-  const prospectosConvertidosEnPeriodo = Array.from(empresasProspectoPeriodo)
-    .filter((cid) => empresasFacturaronPeriodo.has(cid)).length;
-  const pctConversionProspectos = prospectosNuevosPeriodo > 0
-    ? (prospectosConvertidosEnPeriodo / prospectosNuevosPeriodo) * 100
-    : 0;
+
 
   // ===== Nuevos KPIs basados en seguimiento_ventas =====
   // Distintas por company_id (una empresa puede tener seguimiento por marca; deduplicamos para "empresas registradas")
@@ -674,6 +628,63 @@ export default function SellerPortal() {
     return m;
   }, [seguimientoRows]);
   const empresasRegistradasTotal = seguimientoByCompany.size;
+
+  // Mapa de estatus del catálogo: id -> { nombre, color, orden }
+  const estatusMap = useMemo(() => {
+    const m = new Map<string, { nombre: string; color: string; orden: number }>();
+    for (const e of estatusCatalogo) {
+      m.set(e.id, { nombre: e.nombre, color: e.color, orden: Number(e.orden ?? 0) });
+    }
+    return m;
+  }, [estatusCatalogo]);
+
+  // Prospectos nuevos contactados: empresas sin venta cuya PRIMERA actividad/tarea cae en el rango
+  const prospectosContactadosPeriodo = useMemo(() => {
+    const first = new Map<string, number>();
+    const push = (cid: string | null, created: string | null) => {
+      if (!cid || !created) return;
+      const t = new Date(created).getTime();
+      if (Number.isNaN(t)) return;
+      const prev = first.get(cid);
+      if (prev === undefined || t < prev) first.set(cid, t);
+    };
+    (actividades || []).forEach((a: any) => push(a.company_id, a.created_at));
+    (tasks || []).forEach((t: any) => push(t.company_id, t.created_at));
+    let n = 0;
+    first.forEach((t, cid) => {
+      const sg = seguimientoByCompany.get(cid);
+      if (!sg || sg.tiene_venta) return;
+      if (t >= fromTs && t <= toTs) n += 1;
+    });
+    return n;
+  }, [actividades, tasks, seguimientoByCompany, fromTs, toTs]);
+
+  // Meta del mes (clientes con venta)
+  const metaMes = useMemo(() => {
+    let meta = 0;
+    let avance = 0;
+    seguimientoByCompany.forEach((s) => {
+      if (!s.tiene_venta) return;
+      meta += Number(s.promedio_historico_mensual || 0);
+      avance += Number(s.acum_mes || 0);
+    });
+    return { meta, avance, pct: meta > 0 ? Math.min(100, (avance / meta) * 100) : 0 };
+  }, [seguimientoByCompany]);
+
+  // Seguimiento a clientes actuales (ordenado por mayor riesgo)
+  const clientesActualesSeguimiento = useMemo(() => {
+    const rows: any[] = [];
+    seguimientoByCompany.forEach((s, cid) => {
+      if (!s.tiene_venta) return;
+      rows.push({ ...s, company_id: cid });
+    });
+    return rows.sort((a, b) => {
+      const oa = a.estatus_riesgo_id ? (estatusMap.get(a.estatus_riesgo_id)?.orden ?? 999) : 999;
+      const ob = b.estatus_riesgo_id ? (estatusMap.get(b.estatus_riesgo_id)?.orden ?? 999) : 999;
+      if (oa !== ob) return ob - oa;
+      return Number(b.dias_ultima_compra || 0) - Number(a.dias_ultima_compra || 0);
+    });
+  }, [seguimientoByCompany, estatusMap]);
   const empresasRegistradasPeriodo = useMemo(() => {
     let n = 0;
     seguimientoByCompany.forEach((s) => {
@@ -1085,6 +1096,92 @@ export default function SellerPortal() {
         <KpiCard title="Unidades / cliente" value={fmtNum(unidadesPromedioCliente)} sub="promedio" icon={Package} color="bg-amber-700" />
         <KpiCard title="Facturado (Unidades)" value={fmtNum(unidadesFacturadas)} sub="u. equivalentes" icon={Package} color="bg-indigo-600" />
       </div>
+
+      {/* Prospectos nuevos contactados */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <KpiCard
+          title="Prospectos Nuevos Contactados"
+          value={prospectosContactadosPeriodo}
+          sub="1er contacto en el periodo"
+          icon={UserPlus}
+          color="bg-sky-600"
+        />
+      </div>
+
+      {/* Meta del Mes */}
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Meta del Mes</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex flex-wrap items-center gap-6">
+            <div>
+              <p className="text-xs text-muted-foreground">Meta</p>
+              <p className="text-lg font-semibold">{fmtNum(metaMes.meta)} u.</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Avance</p>
+              <p className="text-lg font-semibold">{fmtNum(metaMes.avance)} u.</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Cumplimiento</p>
+              <p className="text-lg font-semibold">{fmtNum(metaMes.pct)}%</p>
+            </div>
+          </div>
+          <Progress value={metaMes.pct} />
+        </CardContent>
+      </Card>
+
+      {/* Seguimiento a Clientes Actuales */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Seguimiento a Clientes Actuales ({clientesActualesSeguimiento.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Empresa</TableHead>
+                <TableHead className="text-right">Días última compra</TableHead>
+                <TableHead>Riesgo</TableHead>
+                <TableHead>Ritmo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(verTodosSeguimiento ? clientesActualesSeguimiento : clientesActualesSeguimiento.slice(0, 20)).map((s: any) => {
+                const riesgo = s.estatus_riesgo_id ? estatusMap.get(s.estatus_riesgo_id) : null;
+                const ritmo = s.estatus_ritmo_id ? estatusMap.get(s.estatus_ritmo_id) : null;
+                return (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{companyMap[s.company_id] || "—"}</TableCell>
+                    <TableCell className="text-right">{s.dias_ultima_compra ?? "—"}</TableCell>
+                    <TableCell>
+                      {riesgo ? (
+                        <Badge className="text-xs text-white" style={{ backgroundColor: riesgo.color }}>{riesgo.nombre}</Badge>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {ritmo ? (
+                        <Badge className="text-xs text-white" style={{ backgroundColor: ritmo.color }}>{ritmo.nombre}</Badge>
+                      ) : "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {clientesActualesSeguimiento.length === 0 && (
+                <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Sin clientes con venta</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+          {clientesActualesSeguimiento.length > 20 && (
+            <div className="pt-2">
+              <Button variant="ghost" size="sm" onClick={() => setVerTodosSeguimiento(v => !v)}>
+                {verTodosSeguimiento ? "Ver menos" : `Ver todas (${clientesActualesSeguimiento.length})`}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
 
       {/* Fila 2 — Operación y cobranza */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
