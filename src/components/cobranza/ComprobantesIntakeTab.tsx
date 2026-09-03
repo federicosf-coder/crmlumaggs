@@ -161,7 +161,7 @@ function ComprobanteCard({
   onDone,
 }: {
   row: IntakeRow;
-  companies: { id: string; name: string }[];
+  companies: { id: string; name: string; razon_social?: string | null }[];
   empresaVendedora?: EmpresaVendedora;
   onDone: () => void;
 }) {
