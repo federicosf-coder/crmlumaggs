@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Inbox, KeyRound, RefreshCw, Search, MessageCircle, Mail, ExternalLink,
-  CheckCircle2, XCircle, Clock, Flame, Snowflake, LifeBuoy, Sparkles, Upload, Building2,
+  CheckCircle2, XCircle, Clock, Flame, Snowflake, LifeBuoy, Sparkles, Upload, Building2, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
