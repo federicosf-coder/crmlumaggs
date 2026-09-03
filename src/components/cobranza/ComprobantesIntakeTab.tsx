@@ -117,11 +117,11 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-activas-intake"],
     queryFn: async () => {
-      return await fetchAllRows<{ id: string; name: string }>(
+      return await fetchAllRows<{ id: string; name: string; razon_social: string | null }>(
         (from, to) =>
           supabase
             .from("companies")
-            .select("id,name")
+            .select("id,name,razon_social")
             .eq("is_active", true)
             .order("name")
             .range(from, to),
@@ -129,6 +129,7 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
       );
     },
   });
+
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Cargando comprobantes...</p>;
