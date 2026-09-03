@@ -3,6 +3,7 @@ import { localInputToIso } from "@/lib/formatters";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateCrmTask } from "@/hooks/useCrmTasks";
+import { useCreateCrmActivity, CrmActivityType } from "@/hooks/useCrmActivities";
 import { useQuery } from "@tanstack/react-query";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,6 +51,7 @@ type Brand = "lumaggs_chevron" | "galsa_phillips66";
 export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContactId, defaultBrand, defaultDate, defaultCompanyId, defaultTaskType, defaultDescription, origenTareaId, defaultBrands }: Props) {
   const { session } = useAuth();
   const createTask = useCreateCrmTask();
+  const createActivity = useCreateCrmActivity();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -79,6 +81,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   const [priority, setPriority] = useState("medium");
   const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
   const [taskStatus, setTaskStatus] = useState<"planned" | "done" | "cancelled">("planned");
+  const [modo, setModo] = useState<"tarea" | "actividad">("tarea");
   const [companyId, setCompanyId] = useState(defaultCompanyId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
 
@@ -103,6 +106,10 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   useEffect(() => {
     if (open) setBrands(defaultBrands || []);
   }, [open, defaultBrands?.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (modo === "actividad" && taskType === "cobranza") setTaskType("call");
+  }, [modo, taskType]);
 
   const toggleBrand = (b: Brand) => {
     setBrands((prev) => (prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]));
@@ -184,7 +191,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user) return;
-    if (createTask.isPending) return;
+    if (createTask.isPending || createActivity.isPending) return;
 
     if (brands.length === 0) {
       toast({ title: "Selecciona al menos una marca", description: "Marca Lumaggs y/o Galsa antes de guardar.", variant: "destructive" });
@@ -224,6 +231,37 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
       }
     };
 
+    if (modo === "actividad") {
+      createActivity.mutate(
+        {
+          company_id: normalizedCompanyId,
+          contact_id: normalizedContactId,
+          user_id: session.user.id,
+          type: taskType as CrmActivityType,
+          title: typeLabel,
+          description: description || null,
+          activity_date: localInputToIso(activityDate),
+        },
+        {
+          onSuccess: (data) => {
+            verifyCompany(data);
+            invalidateAll();
+            toast({ title: "Actividad registrada" });
+            resetAndClose();
+            saveCollaborators("activity", data.id);
+          },
+          onError: (err: any) => {
+            toast({
+              title: "Error al registrar actividad",
+              description: err?.message || "No se pudo guardar la actividad.",
+              variant: "destructive",
+            });
+          },
+        }
+      );
+      return;
+    }
+
     createTask.mutate(
       {
         user_id: session.user.id,
@@ -262,6 +300,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
 
   const resetAndClose = () => {
     onOpenChange(false);
+    setModo("tarea");
     setTaskType(defaultTaskType || "call");
     setActivityDate(defaultDate || nextRoundHourLocal());
     setDescription(defaultDescription || "");
@@ -275,7 +314,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
     setBrands(defaultBrands || []);
   };
 
-  const isPending = createTask.isPending;
+  const isPending = createTask.isPending || createActivity.isPending;
 
   return (
     <>
@@ -285,15 +324,43 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
-          <DialogTitle>Nueva Actividad / Tarea</DialogTitle>
+          <DialogTitle>{modo === "actividad" ? "Nueva Actividad" : "Nueva Tarea"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {/* Modo: tarea vs actividad */}
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Modo *</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: "tarea", label: "Tarea pendiente" },
+                  { key: "actividad", label: "Actividad ya realizada" },
+                ].map((m) => {
+                  const selected = modo === (m.key as "tarea" | "actividad");
+                  return (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setModo(m.key as "tarea" | "actividad")}
+                      className={cn(
+                        "rounded-md border px-3 py-2 text-sm font-medium transition-all",
+                        selected
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted/50 text-muted-foreground border-muted hover:bg-muted"
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Tipo - iconos compactos full width */}
             <div className="space-y-1.5">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Tipo *</Label>
               <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
-                {TASK_TYPES.map(({ key, label, Icon, soft, active }) => {
+                {TASK_TYPES.filter((t) => modo === "tarea" || t.key !== "cobranza").map(({ key, label, Icon, soft, active }) => {
                   const selected = taskType === key;
                   return (
                     <button
@@ -339,45 +406,49 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
               {/* Columna Izquierda */}
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label>Fecha y hora *</Label>
+                  <Label>{modo === "actividad" ? "Fecha en que ocurrió *" : "Fecha y hora *"}</Label>
                   <Input type="datetime-local" value={activityDate} onChange={(e) => setActivityDate(e.target.value)} />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1.5">
-                    <Label>Prioridad</Label>
-                    <Select value={priority} onValueChange={setPriority}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Baja</SelectItem>
-                        <SelectItem value="medium">Media</SelectItem>
-                        <SelectItem value="high">Alta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Estatus</Label>
-                    <Select value={taskStatus} onValueChange={(v) => setTaskStatus(v as any)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="planned">Planificada</SelectItem>
-                        <SelectItem value="done">Realizada</SelectItem>
-                        <SelectItem value="cancelled">Cancelada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Recurrencia</Label>
-                  <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Ninguna</SelectItem>
-                      <SelectItem value="daily">Diaria</SelectItem>
-                      <SelectItem value="weekly">Semanal</SelectItem>
-                      <SelectItem value="monthly">Mensual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {modo === "tarea" && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1.5">
+                        <Label>Prioridad</Label>
+                        <Select value={priority} onValueChange={setPriority}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Baja</SelectItem>
+                            <SelectItem value="medium">Media</SelectItem>
+                            <SelectItem value="high">Alta</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Estatus</Label>
+                        <Select value={taskStatus} onValueChange={(v) => setTaskStatus(v as any)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="planned">Planificada</SelectItem>
+                            <SelectItem value="done">Realizada</SelectItem>
+                            <SelectItem value="cancelled">Cancelada</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Recurrencia</Label>
+                      <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Ninguna</SelectItem>
+                          <SelectItem value="daily">Diaria</SelectItem>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="monthly">Mensual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Columna Derecha - Vinculación */}
