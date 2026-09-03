@@ -1293,14 +1293,8 @@ export default function DocumentForm() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="sticky left-0 z-20 bg-background min-w-[220px] border-r">Producto</TableHead>
-                    <TableHead className="text-right min-w-[70px]">UF1</TableHead>
-                    <TableHead className="text-right min-w-[70px]">UF2</TableHead>
-                    <TableHead className="text-right min-w-[70px]">UF3</TableHead>
-                    <TableHead className="text-right min-w-[70px]">UF4</TableHead>
-                    <TableHead className="text-right min-w-[70px]">R1</TableHead>
-                    <TableHead className="text-right min-w-[70px]">R2</TableHead>
-                    <TableHead className="text-right min-w-[70px]">R3</TableHead>
-                    <TableHead className="text-right min-w-[70px]">R4</TableHead>
+                    <TableHead className="text-center min-w-[90px]">UF</TableHead>
+                    <TableHead className="text-center min-w-[90px]">R</TableHead>
                     <TableHead className="text-right min-w-[80px]">Cant.</TableHead>
                     <TableHead className="text-right min-w-[110px]">Precio Unit.</TableHead>
                     <TableHead className="text-right min-w-[90px]">Desc. %</TableHead>
@@ -1332,14 +1326,26 @@ export default function DocumentForm() {
                             <Button variant="outline" size="icon" className="shrink-0 h-8 w-8" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_base_uf1).toFixed(2) : "—"}</TableCell>
-                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_uf2).toFixed(2) : "—"}</TableCell>
-                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_uf3).toFixed(2) : "—"}</TableCell>
-                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_uf4).toFixed(2) : "—"}</TableCell>
-                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_r1).toFixed(2) : "—"}</TableCell>
-                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_r2).toFixed(2) : "—"}</TableCell>
-                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_r3).toFixed(2) : "—"}</TableCell>
-                        <TableCell className="text-right text-[11px] text-muted-foreground">{prod ? Number(prod.precio_r4).toFixed(2) : "—"}</TableCell>
+                        <TableCell className="text-center px-1">
+                          {prod ? (
+                            <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[9px] text-muted-foreground leading-tight">
+                              <span>1: {Number(prod.precio_base_uf1).toFixed(0)}</span>
+                              <span>2: {Number(prod.precio_uf2).toFixed(0)}</span>
+                              <span>3: {Number(prod.precio_uf3).toFixed(0)}</span>
+                              <span>4: {Number(prod.precio_uf4).toFixed(0)}</span>
+                            </div>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell className="text-center px-1">
+                          {prod ? (
+                            <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[9px] text-muted-foreground leading-tight">
+                              <span>1: {Number(prod.precio_r1).toFixed(0)}</span>
+                              <span>2: {Number(prod.precio_r2).toFixed(0)}</span>
+                              <span>3: {Number(prod.precio_r3).toFixed(0)}</span>
+                              <span>4: {Number(prod.precio_r4).toFixed(0)}</span>
+                            </div>
+                          ) : "—"}
+                        </TableCell>
                         <TableCell className="text-right">
                           <Input type="number" className="h-8 w-20 ml-auto text-right text-sm" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} />
                         </TableCell>
