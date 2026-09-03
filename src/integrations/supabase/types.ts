@@ -1375,6 +1375,41 @@ export type Database = {
           },
         ]
       }
+      cobranza_reporte_suscriptores: {
+        Row: {
+          activo: boolean
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          plaza_id: string | null
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          plaza_id?: string | null
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          plaza_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranza_reporte_suscriptores_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -10205,6 +10240,14 @@ export type Database = {
       brand_from_empresa_vendedora: {
         Args: { _ev: Database["public"]["Enums"]["empresa_vendedora"] }
         Returns: string
+      }
+      calcular_cartera_al_dia: {
+        Args: { p_fecha_corte: string; p_plaza_ids?: string[] }
+        Returns: {
+          saldo_total: number
+          saldo_vencido: number
+          tipo_pago: string
+        }[]
       }
       calcular_precios_catalogo_externo: {
         Args: { p_clasificacion_id?: string; p_costo: number }
