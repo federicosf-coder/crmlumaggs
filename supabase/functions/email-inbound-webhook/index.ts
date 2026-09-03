@@ -648,11 +648,11 @@ Deno.serve(async (req) => {
         if (from) {
           const { data: perfil, error: perfilErr } = await admin
             .from('profiles')
-            .select('id')
+            .select('user_id')
             .ilike('email', from)
             .maybeSingle();
           if (perfilErr) console.error('[prospectos] error buscando perfil:', perfilErr.message);
-          responsableId = perfil?.id ?? null;
+          responsableId = perfil?.user_id ?? null;
           console.log('[prospectos] responsable detectado:', responsableId);
         }
 
