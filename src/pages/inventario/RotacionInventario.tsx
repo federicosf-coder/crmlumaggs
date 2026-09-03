@@ -175,6 +175,8 @@ export function RotacionInventarioTabContent() {
   const [loading, setLoading] = useState(true);
   const [productos, setProductos] = useState<any[]>([]);
   const [marcas, setMarcas] = useState<Map<string, string>>(new Map());
+  const [categoriaMap, setCategoriaMap] = useState<Map<string, string>>(new Map());
+  const [lineaMap, setLineaMap] = useState<Map<string, string>>(new Map());
   const [niveles, setNiveles] = useState<any[]>([]);
   const [fechasVenta, setFechasVenta] = useState<any[]>([]);
   const [demanda, setDemanda] = useState<any[]>([]);
