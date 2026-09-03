@@ -203,8 +203,8 @@ export function RotacionInventarioTabContent() {
     setLoading(true);
     try {
       const [prods, opts, nv, fv, dm] = await Promise.all([
-        fetchAll(() => (supabase as any).from("productos").select("id, codigo, nombre_producto, marca_id").eq("is_active", true).order("codigo")),
-        (supabase as any).from("product_option_values").select("id, value").eq("option_type", "marca"),
+        fetchAll(() => (supabase as any).from("productos").select("id, codigo, nombre_producto, marca_id, categoria_id, linea_id").eq("is_active", true).order("codigo")),
+        (supabase as any).from("product_option_values").select("id, value, option_type").in("option_type", ["marca", "categoria", "linea"]),
         fetchAll(() => (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, costo_promedio")),
         fetchAll(() => (supabase as any).from("inv_kardex_fechas_venta").select("codigo_producto, almacen, fecha, cantidad")),
         fetchAll(() => (supabase as any).from("inv_demanda_plaza").select("codigo_producto, almacen, periodo_fin, demanda_mensual_promedio, ultima_venta")),
