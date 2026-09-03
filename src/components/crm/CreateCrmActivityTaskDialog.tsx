@@ -81,6 +81,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   const [priority, setPriority] = useState("medium");
   const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
   const [taskStatus, setTaskStatus] = useState<"planned" | "done" | "cancelled">("planned");
+  const [modo, setModo] = useState<"tarea" | "actividad">("tarea");
   const [companyId, setCompanyId] = useState(defaultCompanyId || "");
   const [contactId, setContactId] = useState(defaultContactId || "");
 
