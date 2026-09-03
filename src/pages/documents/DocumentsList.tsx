@@ -259,7 +259,6 @@ export default function DocumentsList() {
     setEstatusCotFilter("all");
     setEstatusPedFilter("all");
     setEstatusFacFilter("all");
-    setEstatusCobFilter("all");
   };
   const activeFiltersCount =
     (tipoPagoFilter !== "all" ? 1 : 0) +
@@ -267,8 +266,7 @@ export default function DocumentsList() {
     (fechaHasta ? 1 : 0) +
     (tipoFilter === "cotizacion" && estatusCotFilter !== "all" ? 1 : 0) +
     (tipoFilter === "pedido" && estatusPedFilter !== "all" ? 1 : 0) +
-    (tipoFilter === "factura" && estatusFacFilter !== "all" ? 1 : 0) +
-    (tipoFilter === "factura" && estatusCobFilter !== "all" ? 1 : 0);
+    (tipoFilter === "factura" && estatusFacFilter !== "all" ? 1 : 0);
 
   // Sync pedido status filter with URL ?estatus
   useEffect(() => {
