@@ -587,8 +587,8 @@ export function RotacionInventarioTabContent() {
                   <Table>
                     <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50 sticky top-0 z-10">
                       <TableRow>
-                        <SortHead k="codigo" className="sticky left-0 bg-violet-50 z-20">Código</SortHead>
-                        <SortHead k="nombre">Producto</SortHead>
+                        <SortHead k="codigo" className="sticky left-0 bg-violet-50 z-20 w-[120px]">Código</SortHead>
+                        <SortHead k="nombre" className="sticky left-[120px] bg-violet-50 z-20 border-r">Producto</SortHead>
                         <SortHead k="marca">Marca</SortHead>
                         <SortHead k="s1001" className="text-right border-l">MXL</SortHead>
                         <SortHead k="s1002" className="text-right">TIJ</SortHead>
