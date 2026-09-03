@@ -51,6 +51,7 @@ type Brand = "lumaggs_chevron" | "galsa_phillips66";
 export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContactId, defaultBrand, defaultDate, defaultCompanyId, defaultTaskType, defaultDescription, origenTareaId, defaultBrands }: Props) {
   const { session } = useAuth();
   const createTask = useCreateCrmTask();
+  const createActivity = useCreateCrmActivity();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
