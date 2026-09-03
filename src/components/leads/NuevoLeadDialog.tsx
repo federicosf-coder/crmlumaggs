@@ -125,7 +125,6 @@ export function NuevoLeadDialog({ open, onOpenChange }: Props) {
     }
   };
 
-  const Campos = ({ value, onChange }: { value: FormState; onChange: (v: FormState) => void }) => null;
 
   const renderCampos = (value: FormState, onChange: (v: FormState) => void) => (
     <div className="grid gap-3 sm:grid-cols-2">
