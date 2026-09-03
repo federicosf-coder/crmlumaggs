@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Inbox, KeyRound, RefreshCw, Search, MessageCircle, Mail, ExternalLink,
-  CheckCircle2, XCircle, Clock, Flame, Snowflake, LifeBuoy, Sparkles,
+  CheckCircle2, XCircle, Clock, Flame, Snowflake, LifeBuoy, Sparkles, Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLeads, useTomarLead, useDescartarLead, type Lead, type LeadEstatus } from "@/hooks/useLeads";
 import { LeadSourcesDialog } from "@/components/leads/LeadSourcesDialog";
+import { ImportarLeadsDialog } from "@/components/leads/ImportarLeadsDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 const ESTATUS_META: Record<LeadEstatus, { label: string; className: string }> = {
@@ -54,6 +55,7 @@ export default function LeadsInbox() {
   const descartar = useDescartarLead();
   const [search, setSearch] = useState("");
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [tab, setTab] = useState("bandeja");
   const esAdmin = hasAnyRole(["admin", "manager"]);
 
@@ -110,6 +112,11 @@ export default function LeadsInbox() {
           <Button variant="outline" size="sm" onClick={() => { refetch(); recalcular(); }}>
             <RefreshCw className="h-4 w-4 mr-1" /> Actualizar
           </Button>
+          {hasAnyRole(["admin", "manager", "sales"]) && (
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-1" /> Importar lista
+            </Button>
+          )}
           {esAdmin && (
             <Button size="sm" onClick={() => setSourcesOpen(true)}>
               <KeyRound className="h-4 w-4 mr-1" /> Fuentes y API
@@ -236,6 +243,7 @@ export default function LeadsInbox() {
       </Tabs>
 
       <LeadSourcesDialog open={sourcesOpen} onOpenChange={setSourcesOpen} />
+      <ImportarLeadsDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }
