@@ -347,7 +347,7 @@ export function RotacionInventarioTabContent() {
       r.clasificacion = r.ue > 0 ? "estancado" : "nunca_vendido";
     }
     return base;
-  }, [productos, kardexMap, demandaMap, nivelesMap, marcas]);
+  }, [productos, kardexMap, demandaMap, nivelesMap, marcas, categoriaMap, lineaMap]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
