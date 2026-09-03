@@ -459,7 +459,7 @@ export default function SellerPortal() {
       try {
         let sgQ = supabase
           .from("seguimiento_ventas")
-          .select("id, company_id, tiene_venta, perdido, fecha_perdida, owner_id, empresa_vendedora, companies:company_id(id, created_at)")
+          .select("id, company_id, tiene_venta, perdido, fecha_perdida, owner_id, empresa_vendedora, dias_ultima_compra, promedio_historico_mensual, acum_mes, acum_mes_anterior, ritmo_pct, cotizaciones_total, dias_ultima_cotizacion, dias_ultima_actividad, estatus_riesgo_id, estatus_ritmo_id, estatus_gestion_id, companies:company_id(id, created_at)")
           .in("empresa_vendedora", marcasSeleccionadas as any)
           .limit(20000);
         if (uIds) sgQ = sgQ.in("owner_id", uIds);
