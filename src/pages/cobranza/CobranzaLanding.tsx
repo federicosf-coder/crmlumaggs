@@ -12,7 +12,7 @@ export default function CobranzaLanding() {
         description="Selecciona la marca para gestionar pagos y cartera"
         avatar={<div className="h-10 w-10 rounded-md bg-primary/10 text-primary flex items-center justify-center"><Wallet className="h-5 w-5" /></div>}
       />
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card
           className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary"
           onClick={() => navigate("/cobranza/chevron")}
@@ -31,7 +31,18 @@ export default function CobranzaLanding() {
             <p className="text-muted-foreground">Galsa</p>
           </CardContent>
         </Card>
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary"
+          onClick={() => navigate("/cobranza/reporte")}
+        >
+          <CardContent className="p-8 text-center space-y-2">
+            <FileBarChart className="h-7 w-7 mx-auto text-primary" />
+            <h2 className="text-2xl font-bold">Reporte de Cobranza</h2>
+            <p className="text-muted-foreground">Cobrado, facturado y cartera</p>
+          </CardContent>
+        </Card>
       </div>
+
     </div>
   );
 }
