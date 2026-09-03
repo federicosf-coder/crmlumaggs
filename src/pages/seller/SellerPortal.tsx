@@ -589,47 +589,6 @@ export default function SellerPortal() {
     return unique.sort((a: any, b: any) => b.dias_vencidos - a.dias_vencidos);
   }, [facturasVencidasAll, facturasPorVencer]);
 
-  const dealsNuevos: any[] = [];
-  const dealsRecompra: any[] = [];
-
-  const sumDealsField = (arr: any[], key: string) => arr.reduce((a, b) => a + Number(b[key] || 0), 0);
-
-  // Helper único: métricas de conversión por clientes únicos
-  const buildConv = (dealsArr: any[]) => {
-    const companyIds = new Set(dealsArr.map(d => d.company_id).filter(Boolean));
-    const docsDeClientes = (tipo: string) =>
-      docs.filter(d =>
-        d.tipo_documento === tipo &&
-        (tipo !== "factura" || d.estatus_factura !== "cancelada") &&
-        companyIds.has(d.empresa_id)
-      );
-    const distinctEmpresas = (rows: any[]) =>
-      new Set(rows.map(r => r.empresa_id).filter(Boolean)).size;
-
-    return {
-      activos: companyIds.size, // clientes únicos activos en el pipeline
-      cotizados: distinctEmpresas(docsDeClientes("cotizacion")),
-      pedidos: distinctEmpresas(docsDeClientes("pedido")),
-      facturados: distinctEmpresas(docsDeClientes("factura")),
-      uCot: sumDealsField(dealsArr, "cotizado_unidades"),
-      uPed: sumDealsField(dealsArr, "pedido_unidades"),
-      uFac: sumDealsField(dealsArr, "facturado_unidades"),
-      facturadosSet: new Set(
-        docs
-          .filter(d => d.tipo_documento === "factura" && d.estatus_factura !== "cancelada" && companyIds.has(d.empresa_id))
-          .map(d => d.empresa_id)
-          .filter(Boolean)
-      ),
-    };
-  };
-
-  const convNuevos = buildConv(dealsNuevos);
-  const convRecompra = buildConv(dealsRecompra);
-
-  // KPIs derivados de la misma base que las barras "Facturados"
-  const clientesNuevosCompraron = convNuevos.facturados;
-  const clientesRecompraCompraron = convRecompra.facturados;
-
   // KPIs adicionales
   // Clientes únicos con factura (no cancelada) en el periodo filtrado
   const clientesConCompra = new Set(
@@ -637,23 +596,7 @@ export default function SellerPortal() {
   ).size;
   const ticketPromedio = facturas.length > 0 ? totalFacturado / facturas.length : 0;
   const unidadesPromedioCliente = clientesConCompra > 0 ? unidadesFacturadas / clientesConCompra : 0;
-  // Prospectos nuevos en periodo = deals primera_compra cuyo created_at cae en el periodo. Contamos por empresa única.
-  const dealsNuevosEnPeriodo = dealsNuevos.filter(d => {
-    const t = new Date(d.created_at).getTime();
-    return t >= fromTs && t <= toTs;
-  });
-  const empresasProspectoPeriodo = new Set(dealsNuevosEnPeriodo.map((d: any) => d.company_id).filter(Boolean));
-  const prospectosNuevosPeriodo = empresasProspectoPeriodo.size;
-  // Empresas únicas que facturaron en el periodo (no cancelada)
-  const empresasFacturaronPeriodo = new Set(
-    facturas.map((f: any) => f.empresa_id).filter(Boolean)
-  );
-  // Numerador: empresas únicas de prospectos primera_compra creados en el periodo que ADEMÁS facturaron en el periodo.
-  const prospectosConvertidosEnPeriodo = Array.from(empresasProspectoPeriodo)
-    .filter((cid) => empresasFacturaronPeriodo.has(cid)).length;
-  const pctConversionProspectos = prospectosNuevosPeriodo > 0
-    ? (prospectosConvertidosEnPeriodo / prospectosNuevosPeriodo) * 100
-    : 0;
+
 
   // ===== Nuevos KPIs basados en seguimiento_ventas =====
   // Distintas por company_id (una empresa puede tener seguimiento por marca; deduplicamos para "empresas registradas")
