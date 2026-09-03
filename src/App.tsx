@@ -184,7 +184,9 @@ const App = () => (
             <Route path="/delivery/schedule" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/entrega/:id" element={<ProtectedRoute><EntregaDetalle /></ProtectedRoute>} />
             <Route path="/cobranza" element={<ProtectedRoute><CobranzaLanding /></ProtectedRoute>} />
+            <Route path="/cobranza/reporte" element={<ProtectedRoute><CobranzaReporteDiario /></ProtectedRoute>} />
             <Route path="/cobranza/:brand" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
+
             
             <Route path="/whatsapp" element={<ProtectedRoute><WhatsAppInbox /></ProtectedRoute>} />
             <Route path="/whatsapp/campaigns" element={<ProtectedRoute><WhatsAppCampaigns /></ProtectedRoute>} />
