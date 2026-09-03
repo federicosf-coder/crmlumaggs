@@ -686,7 +686,6 @@ export default function DocumentsList() {
     { key: "estatus_cotizacion", label: "Estatus Cotización", importable: true },
     { key: "estatus_pedido", label: "Estatus Pedido", importable: true },
     { key: "estatus_factura", label: "Estatus Factura", importable: true },
-    { key: "estado_cobranza", label: "Estado Cobranza", importable: false },
     { key: "tipo_pago", label: "Tipo de Pago", importable: true },
     { key: "metodo_pago", label: "Método de Pago", importable: true },
     { key: "uso_cfdi", label: "Uso CFDI", importable: true },
