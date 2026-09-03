@@ -141,7 +141,16 @@ export default function SellerPortal() {
     return p.toString();
   }, [from, to, ejecutivoId, teamId, plazaId, marcaChevron, marcaPhillips]);
 
+  // Catálogo de estatus de seguimiento (no depende de filtros)
+  useEffect(() => {
+    supabase
+      .from("seguimiento_estatus_catalogo")
+      .select("id, nombre, color, ambito, familia, orden")
+      .then(({ data }) => setEstatusCatalogo((data || []) as any[]));
+  }, []);
+
   // Load filter options
+
   useEffect(() => {
     if (!user) return;
     if (isManager) {
