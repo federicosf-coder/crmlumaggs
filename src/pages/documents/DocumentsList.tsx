@@ -1095,20 +1095,6 @@ export default function DocumentsList() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs text-muted-foreground">Estatus cobranza</label>
-                            <Select value={estatusCobFilter} onValueChange={setEstatusCobFilter}>
-                              <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all"><Pill cls={NEUTRAL_PILL}>Todos</Pill></SelectItem>
-                                <SelectItem value="pendiente"><Pill cls={STATUS_PILL_MAP.pendiente}>Pendiente</Pill></SelectItem>
-                                <SelectItem value="parcial"><Pill cls={STATUS_PILL_MAP.parcial}>Parcial</Pill></SelectItem>
-                                <SelectItem value="pagada"><Pill cls={STATUS_PILL_MAP.pagada}>Pagada</Pill></SelectItem>
-                                <SelectItem value="vencida"><Pill cls={STATUS_PILL_MAP.vencida}>Vencida</Pill></SelectItem>
-                                <SelectItem value="cancelada"><Pill cls={STATUS_PILL_MAP.cancelada}>Cancelada</Pill></SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
                         </>
                       )}
                     </div>
