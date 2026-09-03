@@ -58,6 +58,7 @@ export default function LeadsInbox() {
   const [search, setSearch] = useState("");
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [nuevoOpen, setNuevoOpen] = useState(false);
   const [vincularLead, setVincularLead] = useState<Lead | null>(null);
   const [tab, setTab] = useState("bandeja");
   const esAdmin = hasAnyRole(["admin", "manager"]);
@@ -116,9 +117,14 @@ export default function LeadsInbox() {
             <RefreshCw className="h-4 w-4 mr-1" /> Actualizar
           </Button>
           {hasAnyRole(["admin", "manager", "sales"]) && (
-            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-              <Upload className="h-4 w-4 mr-1" /> Importar lista
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4 mr-1" /> Importar lista
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setNuevoOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Nuevo prospecto
+              </Button>
+            </>
           )}
           {esAdmin && (
             <Button size="sm" onClick={() => setSourcesOpen(true)}>
@@ -256,6 +262,7 @@ export default function LeadsInbox() {
 
       <LeadSourcesDialog open={sourcesOpen} onOpenChange={setSourcesOpen} />
       <ImportarLeadsDialog open={importOpen} onOpenChange={setImportOpen} />
+      <NuevoLeadDialog open={nuevoOpen} onOpenChange={setNuevoOpen} />
       {vincularLead && (
         <VincularLeadDialog
           lead={vincularLead}
