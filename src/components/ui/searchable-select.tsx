@@ -70,7 +70,7 @@ export function SearchableSelect({
             className
           )}
         >
-          <span className="truncate">{selectedLabel || placeholder}</span>
+          <span className="truncate text-left">{selectedLabel || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
