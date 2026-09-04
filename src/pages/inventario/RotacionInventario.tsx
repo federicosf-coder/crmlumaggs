@@ -471,8 +471,8 @@ export function RotacionInventarioTabContent() {
             <TooltipContent className="max-w-xs">{r.nombre}</TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell className="text-sm">{r.marca || "—"}</TableCell>
         <TableCell className="text-sm">{r.presentacion}</TableCell>
+        <TableCell className="text-sm">{r.marca || "—"}</TableCell>
         <TableCell className="text-right text-sm border-l">{fmtNum(r.s1001)}</TableCell>
         <TableCell className="text-right text-sm">{fmtNum(r.s1002)}</TableCell>
         <TableCell className="text-right text-sm">{fmtNum(r.s1003)}</TableCell>
@@ -617,8 +617,8 @@ export function RotacionInventarioTabContent() {
                       <TableRow>
                         <SortHead k="codigo" className="sticky left-0 bg-violet-50 z-20 w-[120px]">Código</SortHead>
                         <SortHead k="nombre" className="sticky left-[120px] bg-violet-50 z-20 border-r">Producto</SortHead>
-                        <SortHead k="marca">Marca</SortHead>
                         <SortHead k="presentacion">Presentación</SortHead>
+                        <SortHead k="marca">Marca</SortHead>
                         <SortHead k="s1001" className="text-right border-l">MXL</SortHead>
                         <SortHead k="s1002" className="text-right">TIJ</SortHead>
                         <SortHead k="s1003" className="text-right">MOR</SortHead>
