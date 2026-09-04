@@ -16,7 +16,10 @@ export interface CorteCajaInput {
   pagos: CorteCajaPagoRow[];
 }
 
-export function generateCorteCajaXlsx(input: CorteCajaInput): void {
+export function generateCorteCajaXlsx(
+  input: CorteCajaInput,
+  opts?: { returnBase64?: boolean }
+): string | void {
   const wb = XLSX.utils.book_new();
   const aoa: any[][] = [];
 
