@@ -1228,7 +1228,7 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("cobranza_pagos")
-        .select("id, empresa_id, monto_total, metodo_pago, tipo_pago, referencia_pago, fecha_pago, empresa:companies(name)")
+        .select("id, empresa_id, monto_total, metodo_pago, tipo_pago, referencia_pago, fecha_pago, estado_pago, empresa:companies(name)")
         .eq("fecha_pago", fecha)
         .eq("empresa_vendedora" as any, empresaVendedora as any)
         .neq("estado_pago" as any, "cancelado" as any);
@@ -1281,117 +1281,227 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
 
   const metodoLabel = (k: string) => (k === "Sin especificar" ? k : k.charAt(0).toUpperCase() + k.slice(1));
 
-  return (
-    <Card className="border-t-4 border-t-emerald-500">
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Receipt className="h-5 w-5 text-emerald-600" />
-            Corte de Caja
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="corte-caja-fecha" className="text-xs text-muted-foreground whitespace-nowrap">
-              Corte de caja del:
-            </Label>
-            <Input
-              id="corte-caja-fecha"
-              type="date"
-              value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
-              className="w-[170px] h-9"
-            />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <DetailedKpiCard
-            title="Total Cobrado"
-            total={totalCobrado}
-            countLabel={`${pagosDia.length} pago${pagosDia.length === 1 ? "" : "s"}`}
-            icon={Wallet}
-            variant="success"
-          />
-          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {porMetodo.length === 0 ? (
-              <p className="text-sm text-muted-foreground col-span-full self-center">
-                {isLoading ? "Cargando…" : "Sin pagos en la fecha seleccionada"}
-              </p>
-            ) : (
-              porMetodo.map(([metodo, monto]) => (
-                <KpiCard key={metodo} title={metodoLabel(metodo)} value={formatCurrency(monto)} icon={Receipt} />
-              ))
-            )}
-          </div>
-        </div>
+  const metodoConfig = (k: string) => {
+    const key = (k || "").toLowerCase();
+    if (key === "transferencia" || key.includes("transfer")) {
+      return { icon: ArrowLeftRight, border: "border-t-blue-500", bg: "bg-blue-50/50 dark:bg-blue-950/20", text: "text-blue-700 dark:text-blue-300", iconColor: "text-blue-500/40" };
+    }
+    if (key === "efectivo" || key.includes("cash") || key.includes("efect")) {
+      return { icon: Banknote, border: "border-t-green-500", bg: "bg-green-50/50 dark:bg-green-950/20", text: "text-green-700 dark:text-green-300", iconColor: "text-green-500/40" };
+    }
+    if (key === "cheque" || key.includes("cheque") || key.includes("check")) {
+      return { icon: FileText, border: "border-t-violet-500", bg: "bg-violet-50/50 dark:bg-violet-950/20", text: "text-violet-700 dark:text-violet-300", iconColor: "text-violet-500/40" };
+    }
+    if (key === "tarjeta" || key.includes("tarjeta") || key.includes("card") || key.includes("debito") || key.includes("credito")) {
+      return { icon: CreditCard, border: "border-t-orange-500", bg: "bg-orange-50/50 dark:bg-orange-950/20", text: "text-orange-700 dark:text-orange-300", iconColor: "text-orange-500/40" };
+    }
+    return { icon: HelpCircle, border: "border-t-slate-400", bg: "bg-slate-50/50 dark:bg-slate-900/30", text: "text-slate-700 dark:text-slate-300", iconColor: "text-slate-400/40" };
+  };
 
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Método</TableHead>
-                <TableHead>Referencia</TableHead>
-                <TableHead className="text-right">Importe</TableHead>
-                <TableHead>Facturas aplicadas</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">Cargando…</TableCell>
-                </TableRow>
-              ) : pagosDia.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                    Sin pagos registrados en esta fecha
-                  </TableCell>
-                </TableRow>
+  const { duplicados, duplicadoPagoIds } = useMemo(() => {
+    const grupos: Record<string, { empresaName: string; monto: number; pagos: any[] }> = {};
+    for (const p of pagosDia as any[]) {
+      if (p.estado_pago === "cancelado") continue;
+      const key = `${p.empresa_id}::${Number(p.monto_total || 0)}`;
+      if (!grupos[key]) grupos[key] = { empresaName: p.empresa?.name ?? "—", monto: Number(p.monto_total || 0), pagos: [] };
+      grupos[key].pagos.push(p);
+    }
+    const duplicados = Object.values(grupos).filter((g) => g.pagos.length >= 2);
+    const duplicadoPagoIds = new Set<string>(duplicados.flatMap((g) => g.pagos.map((p) => p.id as string)));
+    return { duplicados, duplicadoPagoIds };
+  }, [pagosDia]);
+
+  const sinCazarCount = useMemo(() => {
+    return pagosDia.filter((p: any) => !(aplicacionesPorPago[p.id]?.length)).length;
+  }, [pagosDia, aplicacionesPorPago]);
+
+  const pagosOrdenados = useMemo(() => {
+    return [...pagosDia].sort((a: any, b: any) => {
+      const aApps = (aplicacionesPorPago[a.id] || []).length;
+      const bApps = (aplicacionesPorPago[b.id] || []).length;
+      if (aApps === 0 && bApps > 0) return -1;
+      if (aApps > 0 && bApps === 0) return 1;
+      return 0;
+    });
+  }, [pagosDia, aplicacionesPorPago]);
+
+  return (
+    <TooltipProvider>
+      <Card className="border-t-4 border-t-emerald-500">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Receipt className="h-5 w-5 text-emerald-600" />
+                Corte de Caja
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {pagosDia.length} pago{pagosDia.length === 1 ? "" : "s"} registrados · {sinCazarCount} sin cazar
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="corte-caja-fecha" className="text-xs text-muted-foreground whitespace-nowrap">
+                Corte de caja del:
+              </Label>
+              <Input
+                id="corte-caja-fecha"
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                className="w-[170px] h-9"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <DetailedKpiCard
+              title="Total Cobrado"
+              total={totalCobrado}
+              countLabel={`${pagosDia.length} pago${pagosDia.length === 1 ? "" : "s"}`}
+              icon={Wallet}
+              variant="success"
+            />
+            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {porMetodo.length === 0 ? (
+                <p className="text-sm text-muted-foreground col-span-full self-center">
+                  {isLoading ? "Cargando…" : "Sin pagos en la fecha seleccionada"}
+                </p>
               ) : (
-                pagosDia.map((p: any) => {
-                  const apps = aplicacionesPorPago[p.id] || [];
+                porMetodo.map(([metodo, monto]) => {
+                  const cfg = metodoConfig(metodo);
                   return (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.empresa?.name ?? "—"}</TableCell>
-                      <TableCell>{metodoLabel(p.metodo_pago || "Sin especificar")}</TableCell>
-                      <TableCell className="text-muted-foreground">{p.referencia_pago || "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatCurrency(Number(p.monto_total || 0))}</TableCell>
-                      <TableCell>
-                        {apps.length === 0 ? (
-                          <Badge variant="destructive">Sin cazar</Badge>
-                        ) : (
-                          <div className="flex flex-wrap gap-1">
-                            {apps.map((a, i) => (
-                              <Badge key={i} variant="secondary" title={formatCurrency(a.monto_aplicado)}>
-                                {a.numero_factura}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                    <KpiCard
+                      key={metodo}
+                      title={metodoLabel(metodo)}
+                      value={formatCurrency(monto)}
+                      icon={cfg.icon}
+                      borderClassName={cfg.border}
+                      bgClassName={cfg.bg}
+                      textClassName={cfg.text}
+                      iconClassName={cfg.iconColor}
+                    />
                   );
                 })
               )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+            </div>
+          </div>
+
+          {duplicados.length > 0 && (
+            <Alert variant="default" className="border-amber-400 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-100 dark:border-amber-700">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertTitle className="text-sm">Posible(s) pago(s) duplicado(s) detectado(s)</AlertTitle>
+              <AlertDescription className="text-xs">
+                {duplicados.map((g, idx) => (
+                  <span key={idx}>
+                    {g.empresaName} — {g.pagos.length} pagos de {formatCurrency(g.monto)} el mismo día
+                    {idx < duplicados.length - 1 ? "; " : ""}
+                  </span>
+                ))}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40">
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Método</TableHead>
+                  <TableHead>Referencia</TableHead>
+                  <TableHead className="text-right">Importe</TableHead>
+                  <TableHead>Facturas aplicadas</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-6">Cargando…</TableCell>
+                  </TableRow>
+                ) : pagosOrdenados.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                      Sin pagos registrados en esta fecha
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  pagosOrdenados.map((p: any) => {
+                    const apps = aplicacionesPorPago[p.id] || [];
+                    const esDuplicado = duplicadoPagoIds.has(p.id) && p.estado_pago !== "cancelado";
+                    return (
+                      <TableRow key={p.id} className="odd:bg-muted/30">
+                        <TableCell className="py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{p.empresa?.name ?? "—"}</span>
+                            {esDuplicado && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <p className="max-w-xs">Mismo cliente e importe que otro pago de hoy — revisa si es duplicado</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">{metodoLabel(p.metodo_pago || "Sin especificar")}</TableCell>
+                        <TableCell className="py-4 text-muted-foreground">{p.referencia_pago || "—"}</TableCell>
+                        <TableCell className="py-4 text-right tabular-nums">{formatCurrency(Number(p.monto_total || 0))}</TableCell>
+                        <TableCell className="py-4">
+                          {apps.length === 0 ? (
+                            <Badge variant="destructive">Sin cazar</Badge>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {apps.map((a, i) => (
+                                <Badge key={i} variant="secondary" title={formatCurrency(a.monto_aplicado)}>
+                                  {a.numero_factura}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 }
 
-function KpiCard({ title, value, icon: Icon, variant }: { title: string; value: string; icon: any; variant?: "destructive" | "success" }) {
-
+function KpiCard({
+  title,
+  value,
+  icon: Icon,
+  variant,
+  iconClassName,
+  borderClassName,
+  bgClassName,
+  textClassName,
+}: {
+  title: string;
+  value: string;
+  icon: any;
+  variant?: "destructive" | "success";
+  iconClassName?: string;
+  borderClassName?: string;
+  bgClassName?: string;
+  textClassName?: string;
+}) {
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className={cn("border-t-4", borderClassName || (variant === "destructive" ? "border-destructive" : "border-primary/30"))}>
+      <CardContent className={cn("p-4", bgClassName)}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">{title}</p>
-            <p className={`text-xl font-bold mt-1 ${variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : ""}`}>{value}</p>
+            <p className={cn("text-xl font-bold mt-1", textClassName || (variant === "destructive" ? "text-destructive" : variant === "success" ? "text-primary" : ""))}>{value}</p>
           </div>
-          <Icon className={`h-8 w-8 ${variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30"}`} />
+          <Icon className={cn("h-8 w-8", iconClassName || (variant === "destructive" ? "text-destructive/30" : "text-muted-foreground/30"))} />
         </div>
       </CardContent>
     </Card>
