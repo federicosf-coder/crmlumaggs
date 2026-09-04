@@ -411,6 +411,7 @@ export function RotacionInventarioTabContent() {
       codigo: r.codigo,
       nombre: r.nombre,
       marca: r.marca,
+      presentacion: r.presentacion,
       stock_total: r.stock_total,
       valor_stock: r.valor_stock,
       clasificacionLabel: CLAS_LABEL[r.clasificacion],
