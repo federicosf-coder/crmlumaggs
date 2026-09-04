@@ -88,7 +88,7 @@ export function generateCorteCajaPdf(input: CorteCajaInput): void {
     p.cliente,
     p.metodo,
     p.referencia,
-    { content: fmtCurrency(p.importe), styles: { halign: "right" } },
+    { content: fmtCurrency(p.importe), styles: { halign: "right" as const } },
     p.facturas.join(", ") || "—",
   ]);
 
