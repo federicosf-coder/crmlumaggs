@@ -203,6 +203,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
   };
 
   const handleSave = async () => {
+    if (!empVend) { toast.error("Selecciona la empresa vendedora"); return; }
     if (!empresaId) { toast.error("Selecciona la empresa"); return; }
     if (!plazaId) { toast.error("La plaza es requerida"); return; }
     if (!formaPago) { toast.error("Selecciona la forma de pago"); return; }
@@ -224,7 +225,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
       estatus_pago: "recibido",
       observaciones: observaciones || null,
       creado_por: user?.id,
-      ...(empresaVendedora ? { empresa_vendedora: empresaVendedora } : {}),
+      empresa_vendedora: empVend,
     } as any).select("id").single();
 
     if (error || !pago) { setSaving(false); toast.error(error?.message || "Error"); return; }
