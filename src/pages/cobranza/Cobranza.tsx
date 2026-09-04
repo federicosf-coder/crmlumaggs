@@ -1460,6 +1460,15 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
                 <FileSpreadsheet className="h-4 w-4 mr-1" />
                 Descargar Excel
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagosDia.length === 0}
+                onClick={() => setOpenEnviarCorte(true)}
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                Enviar por correo
+              </Button>
               <Label htmlFor="corte-caja-fecha" className="text-xs text-muted-foreground whitespace-nowrap">
                 Corte de caja del:
               </Label>
