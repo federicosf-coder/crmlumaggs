@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, Star, RefreshCw, Clock, AlertOctagon, HelpCircle, FileText, CheckCircle2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Package, AlertTriangle, Star, RefreshCw, Clock, AlertOctagon, HelpCircle, FileText, CheckCircle2, PanelLeftClose, PanelLeftOpen, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { generateRotacionInventarioPdf } from "@/lib/generateRotacionInventarioPdf";
 
