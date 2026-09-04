@@ -82,11 +82,19 @@ async function loadSystemTemplate(systemKey: string): Promise<{
 
 const ESTADO_PAGO_LABEL: Record<string, string> = {
   registrado: "Registrado",
-  no_aplicado: "No aplicado",
+  no_aplicado: "Por aplicar",
   aplicado_parcial: "Parcial",
   aplicado_total: "Aplicado",
   cancelado: "Cancelado",
 };
+
+const ESTADO_PAGO_OPTIONS = [
+  { value: "registrado", label: "Registrado" },
+  { value: "no_aplicado", label: "Por aplicar" },
+  { value: "aplicado_parcial", label: "Parcial" },
+  { value: "aplicado_total", label: "Aplicado" },
+  { value: "cancelado", label: "Cancelado" },
+];
 
 const ESTATUS_PAGO_LABEL: Record<string, string> = {
   recibido: "Recibido",
