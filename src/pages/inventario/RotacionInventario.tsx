@@ -383,6 +383,7 @@ export function RotacionInventarioTabContent() {
       "Código": r.codigo,
       "Producto": r.nombre,
       "Marca": r.marca,
+      "Presentación": r.presentacion,
       "Stock MXL": r.s1001,
       "Stock TIJ": r.s1002,
       "Stock MOR": r.s1003,
