@@ -870,7 +870,10 @@ Deno.serve(async (req) => {
           const meta = listadoCredito.find((l: any) => String(l?.id) === String(att.id)) ?? null;
           const sizeReal = Number(meta?.size ?? 0) || 0;
           console.log(`att ${att.id}: ct=${ct} meta=${!!meta} size=${sizeReal}`);
-          if (ct.startsWith('image/') && sizeReal <= 15000) continue;
+          if (ct.startsWith('image/') && sizeReal <= 3000) {
+            console.log('adjunto omitido por tamaño (posible firma/logo):', att?.filename, sizeReal, 'bytes');
+            continue;
+          }
 
           const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
           if (!downloadUrl) throw new Error(`sin_download_url para adjunto ${att.id}`);
@@ -1091,7 +1094,10 @@ Deno.serve(async (req) => {
         const meta = listado.find((l: any) => String(l?.id) === String(att.id)) ?? null;
         const sizeReal = Number(meta?.size ?? 0) || 0;
         console.log(`att ${att.id}: ct=${ct} meta_encontrado=${!!meta} sizeReal=${sizeReal}`);
-        if (ct.startsWith('image/') && sizeReal <= 15000) continue;
+        if (ct.startsWith('image/') && sizeReal <= 3000) {
+          console.log('adjunto omitido por tamaño (posible firma/logo):', att?.filename, sizeReal, 'bytes');
+          continue;
+        }
 
         const downloadUrl = meta?.download_url ?? meta?.downloadUrl;
         if (!downloadUrl) throw new Error(`sin_download_url para adjunto ${att.id}`);
