@@ -177,6 +177,7 @@ export function RotacionInventarioTabContent() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [groupLevels, setGroupLevels] = useState<GroupKey[]>(["none", "none", "none", "none"]);
   const [filtrosVisibles, setFiltrosVisibles] = useState(true);
+  const [soloConExistencia, setSoloConExistencia] = useState(false);
 
   const { desde, hasta, hace3Meses } = useMemo(() => {
     const now = new Date();
@@ -331,6 +332,7 @@ export function RotacionInventarioTabContent() {
       if (marcaSel !== "ALL" && r.marca !== marcaSel) return false;
       if (!clasSel.includes(r.clasificacion)) return false;
       if (q && !(r.codigo.toLowerCase().includes(q) || r.nombre.toLowerCase().includes(q))) return false;
+      if (soloConExistencia && !(r.stock_total > 0)) return false;
       return true;
     });
     out = [...out].sort((a, b) => {
@@ -343,7 +345,7 @@ export function RotacionInventarioTabContent() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return out;
-  }, [rows, search, marcaSel, clasSel, sortKey, sortDir]);
+  }, [rows, search, marcaSel, clasSel, sortKey, sortDir, soloConExistencia]);
 
   const kpis = useMemo(() => {
     return {
@@ -534,6 +536,14 @@ export function RotacionInventarioTabContent() {
               <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código o nombre…" className="pl-8 h-9" />
             </div>
+            <label className="flex items-center gap-2 text-xs font-light cursor-pointer">
+              <Checkbox
+                className="mt-0.5"
+                checked={soloConExistencia}
+                onCheckedChange={(v) => setSoloConExistencia(Boolean(v))}
+              />
+              <span>Solo con existencia actual</span>
+            </label>
             <span className="text-xs text-muted-foreground inline-flex items-start gap-1">
               <HelpCircle className="h-3 w-3 mt-0.5 shrink-0" /> {kpis.sinMovimiento.toLocaleString("es-MX")} {CLAS_LABEL.sin_movimiento}
             </span>
