@@ -662,7 +662,6 @@ export default function DocumentForm() {
         metodo_pago: form.metodo_pago || null,
         forma_pago: form.forma_pago || null,
         fecha_entrega_programada: (form.tipo_documento === "pedido" || form.tipo_documento === "entrega_corporativa") ? (form.fecha_entrega_programada || null) : null,
-        ...(!isEdit && form.tipo_documento === "factura" ? { saldo_pendiente_cobranza: total } : {}),
       };
       // FK a direcciones_empresa (sólo si la dirección seleccionada es una existente)
       docData.direccion_envio_id = selectedAddr?.id || null;
@@ -815,7 +814,6 @@ export default function DocumentForm() {
         estatus_cotizacion: null,
         estatus_pedido: targetType === "pedido" ? "confirmado_cliente" : null,
         estatus_factura: targetType === "factura" ? "vigente" : null,
-        saldo_pendiente_cobranza: targetType === "factura" ? Number(rest.total || 0) : null,
         fecha_documento: todayStr,
         fecha_vencimiento: vencStr,
         cotizacion_original_id: srcDoc.tipo_documento === "cotizacion" ? id : (srcDoc.cotizacion_original_id || null),
