@@ -1223,7 +1223,7 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
   const { data: pagosDia = [], isLoading } = useQuery({
     queryKey: ["corte-caja-pagos", fecha, empresaVendedora],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("cobranza_pagos")
         .select("id, empresa_id, monto_total, metodo_pago, tipo_pago, referencia_pago, fecha_pago, empresa:companies(name)")
         .eq("fecha_pago", fecha)
@@ -1241,7 +1241,7 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
     queryKey: ["corte-caja-aplicaciones", pagoIds],
     queryFn: async () => {
       if (!pagoIds.length) return [] as any[];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("cobranza_aplicaciones")
         .select("pago_id, documento_id, monto_aplicado, documentos(numero_factura)")
         .in("pago_id", pagoIds)
