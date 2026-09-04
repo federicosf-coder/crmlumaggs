@@ -472,6 +472,7 @@ export function RotacionInventarioTabContent() {
           </Tooltip>
         </TableCell>
         <TableCell className="text-sm">{r.marca || "—"}</TableCell>
+        <TableCell className="text-sm">{r.presentacion}</TableCell>
         <TableCell className="text-right text-sm border-l">{fmtNum(r.s1001)}</TableCell>
         <TableCell className="text-right text-sm">{fmtNum(r.s1002)}</TableCell>
         <TableCell className="text-right text-sm">{fmtNum(r.s1003)}</TableCell>
