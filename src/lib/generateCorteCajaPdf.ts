@@ -55,8 +55,8 @@ export function generateCorteCajaPdf(input: CorteCajaInput): void {
   y += 16;
 
   const resumenBody: any[] = [
-    ["Total Cobrado", { content: fmtCurrency(input.totalCobrado), styles: { halign: "right", fontStyle: "bold" } }],
-    ...input.porMetodo.map(([metodo, monto]) => [metodo, { content: fmtCurrency(monto), styles: { halign: "right" } }]),
+    ["Total Cobrado", { content: fmtCurrency(input.totalCobrado), styles: { halign: "right" as const, fontStyle: "bold" as const } }],
+    ...input.porMetodo.map(([metodo, monto]) => [metodo, { content: fmtCurrency(monto), styles: { halign: "right" as const } }]),
   ];
 
   autoTable(doc, {
