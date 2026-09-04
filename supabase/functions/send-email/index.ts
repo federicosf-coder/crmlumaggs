@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { to, cc, subject, html, text, from } = await req.json();
+    const { to, cc, subject, html, text, from, attachments } = await req.json();
 
     if (!to || !subject || (!html && !text)) {
       return new Response(JSON.stringify({ error: "Faltan campos requeridos: to, subject, html o text" }), {
@@ -37,6 +37,11 @@ serve(async (req) => {
     if (cc) body.cc = Array.isArray(cc) ? cc : [cc];
     if (html) body.html = html;
     if (text) body.text = text;
+    if (Array.isArray(attachments) && attachments.length > 0) {
+      body.attachments = attachments
+        .filter((a: any) => a && a.filename && a.content)
+        .map((a: any) => ({ filename: a.filename, content: a.content }));
+    }
 
     const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
       method: "POST",
