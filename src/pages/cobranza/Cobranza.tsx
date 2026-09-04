@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Wallet, Receipt, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil, Download, ArrowLeftRight, Banknote, CreditCard, HelpCircle } from "lucide-react";
+import { Plus, Wallet, Receipt, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil, Download, FileSpreadsheet, ArrowLeftRight, Banknote, CreditCard, HelpCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,8 @@ import { toast } from "sonner";
 import { renderTemplate, resolveEmailRecipients, type EmailRecipientItem } from "@/lib/templates";
 import { generateCobranzaReportPdf } from "@/lib/generateCobranzaReportPdf";
 import { generateCobranzaReportXlsx } from "@/lib/generateCobranzaReportXlsx";
+import { generateCorteCajaPdf } from "@/lib/generateCorteCajaPdf";
+import { generateCorteCajaXlsx } from "@/lib/generateCorteCajaXlsx";
 import { useLastAutomationRuns } from "@/hooks/useLastAutomationRuns";
 import { LastSendStamp } from "@/components/automations/LastSendStamp";
 
@@ -1404,6 +1406,60 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagosDia.length === 0}
+                onClick={() => {
+                  const empresaNombre =
+                    empresaVendedora === "galsa_phillips66"
+                      ? "Galsa · Phillips 66"
+                      : "Lumaggs · Chevron";
+                  generateCorteCajaPdf({
+                    empresaNombre,
+                    fecha,
+                    totalCobrado,
+                    porMetodo,
+                    pagos: pagosOrdenados.map((p: any) => ({
+                      cliente: p.empresa?.name ?? "—",
+                      metodo: metodoLabel(p.metodo_pago || "Sin especificar"),
+                      referencia: p.referencia_pago || "—",
+                      importe: Number(p.monto_total || 0),
+                      facturas: (aplicacionesPorPago[p.id] || []).map((a) => a.numero_factura),
+                    })),
+                  });
+                }}
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Descargar PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagosDia.length === 0}
+                onClick={() => {
+                  const empresaNombre =
+                    empresaVendedora === "galsa_phillips66"
+                      ? "Galsa · Phillips 66"
+                      : "Lumaggs · Chevron";
+                  generateCorteCajaXlsx({
+                    empresaNombre,
+                    fecha,
+                    totalCobrado,
+                    porMetodo,
+                    pagos: pagosOrdenados.map((p: any) => ({
+                      cliente: p.empresa?.name ?? "—",
+                      metodo: metodoLabel(p.metodo_pago || "Sin especificar"),
+                      referencia: p.referencia_pago || "—",
+                      importe: Number(p.monto_total || 0),
+                      facturas: (aplicacionesPorPago[p.id] || []).map((a) => a.numero_factura),
+                    })),
+                  });
+                }}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-1" />
+                Descargar Excel
+              </Button>
               <Label htmlFor="corte-caja-fecha" className="text-xs text-muted-foreground whitespace-nowrap">
                 Corte de caja del:
               </Label>
