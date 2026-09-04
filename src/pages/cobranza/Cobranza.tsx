@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Wallet, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil, Download } from "lucide-react";
+import { Plus, Wallet, Receipt, AlertTriangle, CheckCircle2, Clock, Eye, X, Paperclip, FileText, Image as ImageIcon, ExternalLink, Trash2, ArrowLeft, Mail, Pencil, Download } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -922,7 +922,9 @@ export default function Cobranza() {
             />
           ) : (
           <>
+          <CorteCajaSection empresaVendedora={empresaVendedora} />
           {/* Fila 1: Cartera Total + Crédito Directo + Crédito Cescemex */}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <DetailedKpiCard
               title="Cartera Total"
@@ -1210,7 +1212,174 @@ export default function Cobranza() {
   );
 }
 
+function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_chevron" | "galsa_phillips66" }) {
+  const hoyStr = (() => {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  })();
+  const [fecha, setFecha] = useState(hoyStr);
+
+  const { data: pagosDia = [], isLoading } = useQuery({
+    queryKey: ["corte-caja-pagos", fecha, empresaVendedora],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("cobranza_pagos")
+        .select("id, empresa_id, monto_total, metodo_pago, tipo_pago, referencia_pago, fecha_pago, empresa:companies(name)")
+        .eq("fecha_pago", fecha)
+        .eq("empresa_vendedora" as any, empresaVendedora as any)
+        .neq("estado_pago" as any, "cancelado" as any);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!fecha,
+  });
+
+  const pagoIds = pagosDia.map((p: any) => p.id);
+
+  const { data: aplicaciones = [] } = useQuery({
+    queryKey: ["corte-caja-aplicaciones", pagoIds],
+    queryFn: async () => {
+      if (!pagoIds.length) return [] as any[];
+      const { data, error } = await (supabase as any)
+        .from("cobranza_aplicaciones")
+        .select("pago_id, documento_id, monto_aplicado, documentos(numero_factura)")
+        .in("pago_id", pagoIds)
+        .eq("estatus_aplicacion" as any, "activa" as any);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: pagoIds.length > 0,
+  });
+
+  const aplicacionesPorPago = useMemo(() => {
+    const map: Record<string, { numero_factura: string; monto_aplicado: number }[]> = {};
+    for (const a of aplicaciones as any[]) {
+      const key = a.pago_id as string;
+      if (!map[key]) map[key] = [];
+      map[key].push({
+        numero_factura: a.documentos?.numero_factura ?? "—",
+        monto_aplicado: Number(a.monto_aplicado || 0),
+      });
+    }
+    return map;
+  }, [aplicaciones]);
+
+  const totalCobrado = pagosDia.reduce((s: number, p: any) => s + Number(p.monto_total || 0), 0);
+
+  const porMetodo = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const p of pagosDia as any[]) {
+      const k = p.metodo_pago || "Sin especificar";
+      m[k] = (m[k] || 0) + Number(p.monto_total || 0);
+    }
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  }, [pagosDia]);
+
+  const metodoLabel = (k: string) => (k === "Sin especificar" ? k : k.charAt(0).toUpperCase() + k.slice(1));
+
+  return (
+    <Card className="border-t-4 border-t-emerald-500">
+      <CardHeader className="pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Receipt className="h-5 w-5 text-emerald-600" />
+            Corte de Caja
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="corte-caja-fecha" className="text-xs text-muted-foreground whitespace-nowrap">
+              Corte de caja del:
+            </Label>
+            <Input
+              id="corte-caja-fecha"
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              className="w-[170px] h-9"
+            />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <DetailedKpiCard
+            title="Total Cobrado"
+            total={totalCobrado}
+            countLabel={`${pagosDia.length} pago${pagosDia.length === 1 ? "" : "s"}`}
+            icon={Wallet}
+            variant="success"
+          />
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            {porMetodo.length === 0 ? (
+              <p className="text-sm text-muted-foreground col-span-full self-center">
+                {isLoading ? "Cargando…" : "Sin pagos en la fecha seleccionada"}
+              </p>
+            ) : (
+              porMetodo.map(([metodo, monto]) => (
+                <KpiCard key={metodo} title={metodoLabel(metodo)} value={formatCurrency(monto)} icon={Receipt} />
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Método</TableHead>
+                <TableHead>Referencia</TableHead>
+                <TableHead className="text-right">Importe</TableHead>
+                <TableHead>Facturas aplicadas</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">Cargando…</TableCell>
+                </TableRow>
+              ) : pagosDia.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                    Sin pagos registrados en esta fecha
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pagosDia.map((p: any) => {
+                  const apps = aplicacionesPorPago[p.id] || [];
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.empresa?.name ?? "—"}</TableCell>
+                      <TableCell>{metodoLabel(p.metodo_pago || "Sin especificar")}</TableCell>
+                      <TableCell className="text-muted-foreground">{p.referencia_pago || "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatCurrency(Number(p.monto_total || 0))}</TableCell>
+                      <TableCell>
+                        {apps.length === 0 ? (
+                          <Badge variant="destructive">Sin cazar</Badge>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {apps.map((a, i) => (
+                              <Badge key={i} variant="secondary" title={formatCurrency(a.monto_aplicado)}>
+                                {a.numero_factura}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function KpiCard({ title, value, icon: Icon, variant }: { title: string; value: string; icon: any; variant?: "destructive" | "success" }) {
+
   return (
     <Card>
       <CardContent className="p-4">
