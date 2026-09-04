@@ -434,7 +434,7 @@ export function RotacionInventarioTabContent() {
     });
   }
 
-  const colCount = canViewCostos ? 15 : 14;
+  const colCount = canViewCostos ? 16 : 15;
 
   function renderGroups(nodes: GroupNode[]): React.ReactNode[] {
     const out: React.ReactNode[] = [];
