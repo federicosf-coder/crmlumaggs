@@ -65,6 +65,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
 
   const [empresaId, setEmpresaId] = useState("");
   const [plazaId, setPlazaId] = useState("");
+  const [empVend, setEmpVend] = useState<"lumaggs_chevron" | "galsa_phillips66" | "">(empresaVendedora || "");
   const [fechaPago, setFechaPago] = useState(new Date().toISOString().split("T")[0]);
   const [montoTotal, setMontoTotal] = useState("");
   const [observaciones, setObservaciones] = useState("");
@@ -132,11 +133,12 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
 
   // Cargar documentos al cambiar empresa
   useEffect(() => {
-    if (!empresaId) { setDocs([]); setSeleccion({}); return; }
+    if (!empresaId || !empVend) { setDocs([]); setSeleccion({}); return; }
     setLoadingDocs(true);
     supabase.from("documentos")
       .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,total,saldo_pendiente_cobranza,estatus_factura")
       .eq("empresa_id", empresaId)
+      .eq("empresa_vendedora", empVend)
       .eq("is_active", true)
       .gt("total", 0)
       .in("tipo_documento", ["factura", "pedido", "cotizacion"])
@@ -159,7 +161,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
         setSeleccion({});
         setLoadingDocs(false);
       });
-  }, [empresaId]);
+  }, [empresaId, empVend]);
 
   const totalAsignado = useMemo(
     () => Object.values(seleccion).reduce((s, v) => s + (Number(v) || 0), 0),
@@ -196,12 +198,13 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
 
   const reset = () => {
-    setEmpresaId(""); setPlazaId(""); setMontoTotal(""); setObservaciones("");
+    setEmpresaId(""); setPlazaId(""); setEmpVend(empresaVendedora || ""); setMontoTotal(""); setObservaciones("");
     setSeleccion({}); setFiles([]); setDocs([]); setFormaPago("");
     setFechaPago(new Date().toISOString().split("T")[0]);
   };
 
   const handleSave = async () => {
+    if (!empVend) { toast.error("Selecciona la empresa vendedora"); return; }
     if (!empresaId) { toast.error("Selecciona la empresa"); return; }
     if (!plazaId) { toast.error("La plaza es requerida"); return; }
     if (!formaPago) { toast.error("Selecciona la forma de pago"); return; }
@@ -223,7 +226,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
       estatus_pago: "recibido",
       observaciones: observaciones || null,
       creado_por: user?.id,
-      ...(empresaVendedora ? { empresa_vendedora: empresaVendedora } : {}),
+      empresa_vendedora: empVend,
     } as any).select("id").single();
 
     if (error || !pago) { setSaving(false); toast.error(error?.message || "Error"); return; }
@@ -283,7 +286,19 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
         <DialogHeader><DialogTitle>Registrar pago</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2">
+            <div>
+              <Label>Empresa vendedora *</Label>
+              <SearchableSelect
+                value={empVend}
+                onValueChange={(v) => setEmpVend(v as "lumaggs_chevron" | "galsa_phillips66")}
+                options={[
+                  { value: "lumaggs_chevron", label: "Lumaggs (Chevron)" },
+                  { value: "galsa_phillips66", label: "Galsa (Phillips 66)" },
+                ]}
+                placeholder="Selecciona empresa vendedora..."
+              />
+            </div>
+            <div>
               <Label>Empresa *</Label>
               <SearchableSelect
                 value={empresaId}
@@ -292,7 +307,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
                 placeholder="Buscar empresa..."
               />
             </div>
-            <div className="col-span-1">
+            <div>
               <Label>Plaza *</Label>
               <SearchableSelect
                 value={plazaId}

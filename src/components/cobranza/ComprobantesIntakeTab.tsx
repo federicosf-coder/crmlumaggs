@@ -169,7 +169,7 @@ function ComprobanteCard({
   const navigate = useNavigate();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState(row.empresa_id || "");
-  const [empVend, setEmpVend] = useState<EmpresaVendedora>(empresaVendedora || ("lumaggs_chevron" as EmpresaVendedora));
+  const [empVend, setEmpVend] = useState<EmpresaVendedora>(empresaVendedora || null);
   const autoVinculado = !!row.empresa_id;
 
   const [empresaDatos, setEmpresaDatos] = useState<{ clabe_bancaria: string | null; tarjeta_ultimos4: string | null } | null>(null);
@@ -462,6 +462,10 @@ function ComprobanteCard({
   };
 
   const handleCrearPago = async () => {
+    if (!empVend) {
+      toast.error("Selecciona la empresa vendedora");
+      return;
+    }
     if (!empresaId) {
       toast.error("Selecciona el cliente");
       return;
@@ -491,6 +495,10 @@ function ComprobanteCard({
   };
 
   const handleGuardarYEnviar = async () => {
+    if (!empVend) {
+      toast.error("Selecciona la empresa vendedora");
+      return;
+    }
     if (!empresaId) {
       toast.error("Selecciona el cliente");
       return;
@@ -637,7 +645,7 @@ function ComprobanteCard({
           <div>
             <Label>Empresa vendedora *</Label>
             <SearchableSelect
-              value={empVend}
+              value={empVend || ""}
               onValueChange={(v) => setEmpVend(v as EmpresaVendedora)}
               options={[
                 { value: "lumaggs_chevron", label: "Lumaggs (Chevron)" },
