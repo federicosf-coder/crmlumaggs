@@ -28,6 +28,7 @@ type Row = {
   codigo: string;
   nombre: string;
   marca: string;
+  presentacion: string;
   categoria: string;
   linea: string;
   velocidad: Velocidad;
@@ -166,6 +167,7 @@ export function RotacionInventarioTabContent() {
   const [marcas, setMarcas] = useState<Map<string, string>>(new Map());
   const [categoriaMap, setCategoriaMap] = useState<Map<string, string>>(new Map());
   const [lineaMap, setLineaMap] = useState<Map<string, string>>(new Map());
+  const [presentaciones, setPresentaciones] = useState<Map<string, string>>(new Map());
   const [niveles, setNiveles] = useState<any[]>([]);
   const [fechasVenta, setFechasVenta] = useState<any[]>([]);
   const [demanda, setDemanda] = useState<any[]>([]);
@@ -193,9 +195,10 @@ export function RotacionInventarioTabContent() {
   const recargar = async () => {
     setLoading(true);
     try {
-      const [prods, opts, nv, fv, dm] = await Promise.all([
-        fetchAll(() => (supabase as any).from("productos").select("id, codigo, nombre_producto, marca_id, categoria_id, linea_id").eq("is_active", true).order("codigo")),
+      const [prods, opts, pres, nv, fv, dm] = await Promise.all([
+        fetchAll(() => (supabase as any).from("productos").select("id, codigo, nombre_producto, marca_id, categoria_id, linea_id, presentacion_id").eq("is_active", true).order("codigo")),
         (supabase as any).from("product_option_values").select("id, value, option_type").in("option_type", ["marca", "categoria", "linea"]),
+        fetchAll(() => (supabase as any).from("presentaciones").select("id, nombre")),
         fetchAll(() => (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, costo_promedio")),
         fetchAll(() => (supabase as any).from("inv_kardex_fechas_venta").select("codigo_producto, almacen, fecha, cantidad")),
         fetchAll(() => (supabase as any).from("inv_demanda_plaza").select("codigo_producto, almacen, periodo_fin, demanda_mensual_promedio, ultima_venta")),
@@ -206,6 +209,7 @@ export function RotacionInventarioTabContent() {
       setMarcas(mapOf("marca"));
       setCategoriaMap(mapOf("categoria"));
       setLineaMap(mapOf("linea"));
+      setPresentaciones(new Map((pres || []).map((p: any) => [p.id, p.nombre] as [string, string])));
       setNiveles(nv);
       setFechasVenta(fv);
       setDemanda(dm);
@@ -277,6 +281,7 @@ export function RotacionInventarioTabContent() {
         codigo: p.codigo,
         nombre: p.nombre_producto || "",
         marca: marcas.get(p.marca_id) || "",
+        presentacion: presentaciones.get(p.presentacion_id) || "—",
         categoria: categoriaMap.get(p.categoria_id) || "Sin categoría",
         linea: lineaMap.get(p.linea_id) || "Sin línea",
         velocidad,
@@ -324,7 +329,7 @@ export function RotacionInventarioTabContent() {
       else r.clasificacion = "sin_movimiento";
     }
     return base;
-  }, [productos, kardexMap, demandaMap, nivelesMap, marcas, categoriaMap, lineaMap]);
+  }, [productos, kardexMap, demandaMap, nivelesMap, marcas, categoriaMap, lineaMap, presentaciones]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -378,6 +383,7 @@ export function RotacionInventarioTabContent() {
       "Código": r.codigo,
       "Producto": r.nombre,
       "Marca": r.marca,
+      "Presentación": r.presentacion,
       "Stock MXL": r.s1001,
       "Stock TIJ": r.s1002,
       "Stock MOR": r.s1003,
@@ -405,6 +411,7 @@ export function RotacionInventarioTabContent() {
       codigo: r.codigo,
       nombre: r.nombre,
       marca: r.marca,
+      presentacion: r.presentacion,
       stock_total: r.stock_total,
       valor_stock: r.valor_stock,
       clasificacionLabel: CLAS_LABEL[r.clasificacion],
@@ -427,7 +434,7 @@ export function RotacionInventarioTabContent() {
     });
   }
 
-  const colCount = canViewCostos ? 15 : 14;
+  const colCount = canViewCostos ? 16 : 15;
 
   function renderGroups(nodes: GroupNode[]): React.ReactNode[] {
     const out: React.ReactNode[] = [];
@@ -465,6 +472,7 @@ export function RotacionInventarioTabContent() {
           </Tooltip>
         </TableCell>
         <TableCell className="text-sm">{r.marca || "—"}</TableCell>
+        <TableCell className="text-sm">{r.presentacion}</TableCell>
         <TableCell className="text-right text-sm border-l">{fmtNum(r.s1001)}</TableCell>
         <TableCell className="text-right text-sm">{fmtNum(r.s1002)}</TableCell>
         <TableCell className="text-right text-sm">{fmtNum(r.s1003)}</TableCell>
@@ -610,6 +618,7 @@ export function RotacionInventarioTabContent() {
                         <SortHead k="codigo" className="sticky left-0 bg-violet-50 z-20 w-[120px]">Código</SortHead>
                         <SortHead k="nombre" className="sticky left-[120px] bg-violet-50 z-20 border-r">Producto</SortHead>
                         <SortHead k="marca">Marca</SortHead>
+                        <SortHead k="presentacion">Presentación</SortHead>
                         <SortHead k="s1001" className="text-right border-l">MXL</SortHead>
                         <SortHead k="s1002" className="text-right">TIJ</SortHead>
                         <SortHead k="s1003" className="text-right">MOR</SortHead>
