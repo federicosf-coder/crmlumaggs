@@ -618,6 +618,7 @@ export function RotacionInventarioTabContent() {
                         <SortHead k="codigo" className="sticky left-0 bg-violet-50 z-20 w-[120px]">Código</SortHead>
                         <SortHead k="nombre" className="sticky left-[120px] bg-violet-50 z-20 border-r">Producto</SortHead>
                         <SortHead k="marca">Marca</SortHead>
+                        <SortHead k="presentacion">Presentación</SortHead>
                         <SortHead k="s1001" className="text-right border-l">MXL</SortHead>
                         <SortHead k="s1002" className="text-right">TIJ</SortHead>
                         <SortHead k="s1003" className="text-right">MOR</SortHead>
