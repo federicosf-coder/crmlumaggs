@@ -65,6 +65,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
 
   const [empresaId, setEmpresaId] = useState("");
   const [plazaId, setPlazaId] = useState("");
+  const [empVend, setEmpVend] = useState<"lumaggs_chevron" | "galsa_phillips66" | "">(empresaVendedora || "");
   const [fechaPago, setFechaPago] = useState(new Date().toISOString().split("T")[0]);
   const [montoTotal, setMontoTotal] = useState("");
   const [observaciones, setObservaciones] = useState("");
