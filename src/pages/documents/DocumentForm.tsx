@@ -392,14 +392,17 @@ export default function DocumentForm() {
   }, [existingDoc]);
 
   useEffect(() => {
-    if (existingItems.length > 0) {
-      setItems(existingItems.map((it: any) => ({
+    if (existingItems.length === 0 || productos.length === 0) return;
+    setItems(existingItems.map((it: any) => {
+      const prod = productos.find((p: any) => p.id === it.producto_id);
+      const ue = (prod?.presentaciones as any)?.unidades_equivalentes || 1;
+      return {
         id: it.id, producto_id: it.producto_id, cantidad: it.cantidad, precio_unitario: it.precio_unitario,
-        descuento_porcentaje: it.descuento_porcentaje, subtotal: it.subtotal, unidades_equivalentes: it.unidades_equivalentes,
+        descuento_porcentaje: it.descuento_porcentaje, subtotal: it.subtotal, unidades_equivalentes: it.cantidad * ue,
         _nombre: `${it.productos?.codigo} - ${it.productos?.nombre_producto}`,
-      })));
-    }
-  }, [existingItems]);
+      };
+    }));
+  }, [existingItems, productos]);
 
   const set = (key: string, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
