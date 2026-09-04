@@ -1047,6 +1047,7 @@ export default function DocumentForm() {
                 onValueChange={v => set("ejecutivo_venta_id", v)}
                 placeholder="Seleccionar"
                 options={users.map((u: any) => ({ value: u.user_id, label: u.full_name || u.user_id }))}
+                className="text-left"
               />
             </div>
           </fieldset>
@@ -1075,7 +1076,7 @@ export default function DocumentForm() {
                   onValueChange={v => { set("empresa_id", v); set("contacto_id", ""); set("direccion_envio", ""); }}
                   placeholder="Seleccionar"
                   options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
-                  className="flex-1"
+                  className="flex-1 text-left"
                 />
                 <Button variant="outline" size="icon" onClick={() => setShowNewCompany(true)}><Plus className="h-4 w-4" /></Button>
               </div>
@@ -1114,7 +1115,7 @@ export default function DocumentForm() {
                   placeholder={form.empresa_id ? "Seleccionar" : "Selecciona empresa primero"}
                   disabled={!form.empresa_id}
                   options={contacts.map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))}
-                  className="flex-1"
+                  className="flex-1 text-left"
                 />
                 <Button variant="outline" size="icon" onClick={() => setShowNewContact(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
               </div>
@@ -1167,7 +1168,7 @@ export default function DocumentForm() {
             <div>
               <Label>IVA %</Label>
               <Select value={form.iva_porcentaje} onValueChange={v => set("iva_porcentaje", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="text-left"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="8">8%</SelectItem>
                   <SelectItem value="16">16%</SelectItem>
@@ -1185,7 +1186,7 @@ export default function DocumentForm() {
                 <div>
                   <Label>Estatus Cotización</Label>
                   <Select value={form.estatus_cotizacion} onValueChange={v => set("estatus_cotizacion", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="text-left"><SelectValue /></SelectTrigger>
                     <SelectContent>{ESTATUS_COT.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
@@ -1200,7 +1201,7 @@ export default function DocumentForm() {
                 <div>
                   <Label>Estatus Pedido</Label>
                   <Select value={form.estatus_pedido} onValueChange={v => set("estatus_pedido", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="text-left"><SelectValue /></SelectTrigger>
                     <SelectContent>{ESTATUS_PED.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
@@ -1243,7 +1244,7 @@ export default function DocumentForm() {
                 <div>
                   <Label>Estatus Factura</Label>
                   <Select value={form.estatus_factura} onValueChange={v => set("estatus_factura", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="text-left"><SelectValue /></SelectTrigger>
                     <SelectContent>{ESTATUS_FAC.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
@@ -1256,7 +1257,7 @@ export default function DocumentForm() {
                 <div>
                   <Label>Estatus Entrega <span className="text-destructive">*</span></Label>
                   <Select value={form.estatus_entrega_corporativa} onValueChange={v => set("estatus_entrega_corporativa", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="text-left"><SelectValue /></SelectTrigger>
                     <SelectContent>{ESTATUS_ENT_CORP.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
@@ -1393,7 +1394,7 @@ export default function DocumentForm() {
           <div>
             <Label>Tipo de Pago</Label>
             <Select value={form.tipo_pago} onValueChange={v => set("tipo_pago", v)}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <SelectTrigger className="text-left"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
               <SelectContent>{TIPO_PAGO_OPTS.map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -1404,6 +1405,7 @@ export default function DocumentForm() {
               onValueChange={v => set("uso_cfdi", v)}
               placeholder="Seleccionar"
               options={USO_CFDI_OPTS.map(o => ({ value: o.v, label: o.l }))}
+              className="text-left"
             />
           </div>
           <div>
@@ -1413,12 +1415,13 @@ export default function DocumentForm() {
               onValueChange={v => set("forma_pago", v)}
               placeholder="Seleccionar"
               options={FORMA_PAGO_OPTS.map(o => ({ value: o.v, label: o.l }))}
+              className="text-left"
             />
           </div>
           <div>
             <Label>Método de Pago</Label>
             <Select value={form.metodo_pago} onValueChange={v => set("metodo_pago", v)}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <SelectTrigger className="text-left"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
               <SelectContent>{METODO_PAGO_OPTS.map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -1466,7 +1469,7 @@ export default function DocumentForm() {
                   description: a.direccion_completa || `${a.calle}${a.ciudad ? `, ${a.ciudad}` : ""}${a.estado ? `, ${a.estado}` : ""}`,
                   searchText: `${a.nombre || ""} ${a.direccion_completa || ""} ${a.calle || ""} ${a.ciudad || ""} ${a.estado || ""}`,
                 }))}
-                className="flex-1"
+                className="flex-1 text-left"
               />
               <Button variant="outline" size="icon" onClick={() => setShowNewAddress(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
             </div>
@@ -1513,7 +1516,7 @@ export default function DocumentForm() {
             <div>
               <Label>Tipo</Label>
               <Select value={newAddrTipo} onValueChange={setNewAddrTipo}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="text-left"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="envio">Entrega</SelectItem>
                   <SelectItem value="fiscal">Fiscal</SelectItem>
@@ -1564,7 +1567,7 @@ export default function DocumentForm() {
             <div>
               <Label>Presentación</Label>
               <Select value={newProductForm.presentacion_id} onValueChange={v => setNP("presentacion_id", v)}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                <SelectTrigger className="text-left"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                 <SelectContent>{presentacionesList.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -1576,7 +1579,7 @@ export default function DocumentForm() {
               <div key={t}>
                 <Label>{t === "marca" ? "Marca" : t === "aplicacion" ? "Aplicación" : t === "uso" ? "Uso" : t === "formula" ? "Fórmula" : t === "viscosidad" ? "Viscosidad" : t === "categoria" ? "Categoría" : "Línea"}</Label>
                 <Select value={(newProductForm as any)[`${t}_id`] || ""} onValueChange={v => setNP(`${t}_id`, v)}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectTrigger className="text-left"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>{optionsFor(t).map((o: any) => <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
