@@ -82,11 +82,19 @@ async function loadSystemTemplate(systemKey: string): Promise<{
 
 const ESTADO_PAGO_LABEL: Record<string, string> = {
   registrado: "Registrado",
-  no_aplicado: "No aplicado",
+  no_aplicado: "Por aplicar",
   aplicado_parcial: "Parcial",
   aplicado_total: "Aplicado",
   cancelado: "Cancelado",
 };
+
+const ESTADO_PAGO_OPTIONS = [
+  { value: "registrado", label: "Registrado" },
+  { value: "no_aplicado", label: "Por aplicar" },
+  { value: "aplicado_parcial", label: "Parcial" },
+  { value: "aplicado_total", label: "Aplicado" },
+  { value: "cancelado", label: "Cancelado" },
+];
 
 const ESTATUS_PAGO_LABEL: Record<string, string> = {
   recibido: "Recibido",
@@ -141,6 +149,62 @@ function EstatusPagoEditor({
       </SelectTrigger>
       <SelectContent>
         {ESTATUS_PAGO_OPTIONS.map((o) => (
+          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function EstadoPagoEditor({
+  pagoId,
+  value,
+  canEdit,
+  compact = false,
+  onChanged,
+}: {
+  pagoId: string;
+  value: string;
+  canEdit: boolean;
+  compact?: boolean;
+  onChanged?: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const badgeVariant = value === "aplicado_total" ? "default" : value === "cancelado" ? "destructive" : "secondary";
+  if (!canEdit) {
+    return <Badge variant={badgeVariant}>{ESTADO_PAGO_LABEL[value] || value}</Badge>;
+  }
+  const handleChange = async (next: string) => {
+    if (next === value) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("cobranza_pagos")
+      .update({ estado_pago: next as any })
+      .eq("id", pagoId);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Estado actualizado");
+    onChanged?.();
+  };
+  return (
+    <Select value={value} onValueChange={handleChange} disabled={saving}>
+      <SelectTrigger
+        className={cn(
+          "border-0 shadow-none focus:ring-0 focus:ring-offset-0 hover:opacity-90 cursor-pointer",
+          badgeVariant === "default" && "bg-primary text-primary-foreground hover:bg-primary/90",
+          badgeVariant === "destructive" && "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          badgeVariant === "secondary" && "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          compact ? "h-7 text-xs px-2 py-0 w-fit min-w-[80px]" : "h-8 w-[120px]"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {ESTADO_PAGO_OPTIONS.map((o) => (
           <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
         ))}
       </SelectContent>
@@ -1148,7 +1212,7 @@ export default function Cobranza() {
                       <TableCell className="text-right font-medium">{formatCurrency(dispFact)}</TableCell>
                       <TableCell className="text-xs">{FORMA_PAGO_LABEL[p.tipo_pago || ""] || p.tipo_pago || "—"}</TableCell>
                       <TableCell><EstatusPagoEditor pagoId={p.id} value={p.estatus_pago} canEdit={canEditEstatus} compact onChanged={refetchPagos} /></TableCell>
-                      <TableCell><Badge variant={p.estado_pago === "aplicado_total" ? "default" : p.estado_pago === "cancelado" ? "destructive" : "secondary"}>{ESTADO_PAGO_LABEL[p.estado_pago]}</Badge></TableCell>
+                      <TableCell><EstadoPagoEditor pagoId={p.id} value={p.estado_pago} canEdit={canEditEstatus} compact onChanged={refetchPagos} /></TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => handleVerDetalle(p)}><Eye className="h-4 w-4" /></Button>
