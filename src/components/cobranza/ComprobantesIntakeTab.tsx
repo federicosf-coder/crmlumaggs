@@ -462,6 +462,10 @@ function ComprobanteCard({
   };
 
   const handleCrearPago = async () => {
+    if (!empVend) {
+      toast.error("Selecciona la empresa vendedora");
+      return;
+    }
     if (!empresaId) {
       toast.error("Selecciona el cliente");
       return;
