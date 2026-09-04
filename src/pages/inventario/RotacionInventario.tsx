@@ -329,7 +329,7 @@ export function RotacionInventarioTabContent() {
       else r.clasificacion = "sin_movimiento";
     }
     return base;
-  }, [productos, kardexMap, demandaMap, nivelesMap, marcas, categoriaMap, lineaMap]);
+  }, [productos, kardexMap, demandaMap, nivelesMap, marcas, categoriaMap, lineaMap, presentaciones]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
