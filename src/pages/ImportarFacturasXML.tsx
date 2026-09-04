@@ -587,7 +587,6 @@ export default function ImportarFacturasXML() {
         contacto_id: contactoSel || null,
         tipo_pago: tipoPagoSel || null,
         estatus_factura: estatusResuelto(row),
-        saldo_pendiente_cobranza: row.total,
         subtotal: row.subtotal,
         total: row.total,
         forma_pago: row.forma_pago,
