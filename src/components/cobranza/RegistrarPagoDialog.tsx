@@ -284,7 +284,19 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
         <DialogHeader><DialogTitle>Registrar pago</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2">
+            <div>
+              <Label>Empresa vendedora *</Label>
+              <SearchableSelect
+                value={empVend}
+                onValueChange={(v) => setEmpVend(v as "lumaggs_chevron" | "galsa_phillips66")}
+                options={[
+                  { value: "lumaggs_chevron", label: "Lumaggs (Chevron)" },
+                  { value: "galsa_phillips66", label: "Galsa (Phillips 66)" },
+                ]}
+                placeholder="Selecciona empresa vendedora..."
+              />
+            </div>
+            <div>
               <Label>Empresa *</Label>
               <SearchableSelect
                 value={empresaId}
@@ -293,7 +305,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
                 placeholder="Buscar empresa..."
               />
             </div>
-            <div className="col-span-1">
+            <div>
               <Label>Plaza *</Label>
               <SearchableSelect
                 value={plazaId}
