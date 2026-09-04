@@ -133,11 +133,12 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
 
   // Cargar documentos al cambiar empresa
   useEffect(() => {
-    if (!empresaId) { setDocs([]); setSeleccion({}); return; }
+    if (!empresaId || !empVend) { setDocs([]); setSeleccion({}); return; }
     setLoadingDocs(true);
     supabase.from("documentos")
       .select("id,tipo_documento,numero_factura,numero_pedido,numero_cotizacion,fecha_documento,total,saldo_pendiente_cobranza,estatus_factura")
       .eq("empresa_id", empresaId)
+      .eq("empresa_vendedora", empVend)
       .eq("is_active", true)
       .gt("total", 0)
       .in("tipo_documento", ["factura", "pedido", "cotizacion"])
@@ -160,7 +161,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
         setSeleccion({});
         setLoadingDocs(false);
       });
-  }, [empresaId]);
+  }, [empresaId, empVend]);
 
   const totalAsignado = useMemo(
     () => Object.values(seleccion).reduce((s, v) => s + (Number(v) || 0), 0),
