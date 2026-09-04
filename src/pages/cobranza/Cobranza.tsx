@@ -156,6 +156,62 @@ function EstatusPagoEditor({
   );
 }
 
+function EstadoPagoEditor({
+  pagoId,
+  value,
+  canEdit,
+  compact = false,
+  onChanged,
+}: {
+  pagoId: string;
+  value: string;
+  canEdit: boolean;
+  compact?: boolean;
+  onChanged?: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const badgeVariant = value === "aplicado_total" ? "default" : value === "cancelado" ? "destructive" : "secondary";
+  if (!canEdit) {
+    return <Badge variant={badgeVariant}>{ESTADO_PAGO_LABEL[value] || value}</Badge>;
+  }
+  const handleChange = async (next: string) => {
+    if (next === value) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("cobranza_pagos")
+      .update({ estado_pago: next as any })
+      .eq("id", pagoId);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Estado actualizado");
+    onChanged?.();
+  };
+  return (
+    <Select value={value} onValueChange={handleChange} disabled={saving}>
+      <SelectTrigger
+        className={cn(
+          "border-0 shadow-none focus:ring-0 focus:ring-offset-0 hover:opacity-90 cursor-pointer",
+          badgeVariant === "default" && "bg-primary text-primary-foreground hover:bg-primary/90",
+          badgeVariant === "destructive" && "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          badgeVariant === "secondary" && "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          compact ? "h-7 text-xs px-2 py-0 w-fit min-w-[80px]" : "h-8 w-[120px]"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {ESTADO_PAGO_OPTIONS.map((o) => (
+          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 const FORMA_PAGO_LABEL: Record<string, string> = {
   contado: "Contado",
   credito: "Crédito Directo",
