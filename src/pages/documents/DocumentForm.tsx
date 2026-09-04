@@ -1295,12 +1295,12 @@ export default function DocumentForm() {
                     <TableHead className="sticky left-0 z-20 bg-background min-w-[220px] border-r">Producto</TableHead>
                     <TableHead className="text-center min-w-[90px]">UF</TableHead>
                     <TableHead className="text-center min-w-[90px]">R</TableHead>
-                    <TableHead className="text-right min-w-[80px]">Cant.</TableHead>
-                    <TableHead className="text-right min-w-[110px]">Precio Unit.</TableHead>
-                    <TableHead className="text-right min-w-[90px]">Desc. %</TableHead>
-                    <TableHead className="text-right min-w-[110px]">Subtotal</TableHead>
-                    <TableHead className="text-right min-w-[100px]">Unidades Equiv.</TableHead>
-                    <TableHead className="text-center w-14"></TableHead>
+                    <TableHead className="text-right min-w-[60px]">Cant.</TableHead>
+                    <TableHead className="text-right min-w-[85px]">Precio Unit.</TableHead>
+                    <TableHead className="text-right min-w-[65px]">Desc. %</TableHead>
+                    <TableHead className="text-right min-w-[90px]">Subtotal</TableHead>
+                    <TableHead className="text-right min-w-[75px]">Unid. Equiv.</TableHead>
+                    <TableHead className="text-center w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1309,26 +1309,23 @@ export default function DocumentForm() {
                     return (
                       <TableRow key={idx}>
                         <TableCell className="sticky left-0 z-10 bg-background min-w-[220px] border-r">
-                          <div className="flex gap-1 items-start">
-                            <SearchableSelect
-                              value={item.producto_id}
-                              onValueChange={v => updateItem(idx, "producto_id", v)}
-                              placeholder="Seleccionar producto"
-                              options={filteredProductos.map((p: any) => {
-                                const pres = (p.presentaciones as any)?.nombre || '';
-                                const label = `${p.codigo} - ${p.nombre_producto}`;
-                                const searchStr = `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''} ${pres}`;
-                                return { value: p.id, label, detail: pres || undefined, searchText: searchStr };
-                              })}
-                              popoverClassName="min-w-[280px] sm:min-w-[360px]"
-                              className="flex-1"
-                            />
-                            <Button variant="outline" size="icon" className="shrink-0 h-8 w-8" onClick={() => setShowNewProduct(true)}><Plus className="h-4 w-4" /></Button>
-                          </div>
+                          <SearchableSelect
+                            value={item.producto_id}
+                            onValueChange={v => updateItem(idx, "producto_id", v)}
+                            placeholder="Seleccionar producto"
+                            options={filteredProductos.map((p: any) => {
+                              const pres = (p.presentaciones as any)?.nombre || '';
+                              const label = `${p.codigo} - ${p.nombre_producto}`;
+                              const searchStr = `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''} ${pres}`;
+                              return { value: p.id, label, detail: pres || undefined, searchText: searchStr };
+                            })}
+                            popoverClassName="min-w-[280px] sm:min-w-[360px]"
+                            className="text-left"
+                          />
                         </TableCell>
                         <TableCell className="text-center px-1">
                           {prod ? (
-                            <div className="flex flex-col gap-y-0.5 text-[9px] text-muted-foreground leading-tight">
+                            <div className="flex flex-col gap-y-0.5 text-xs text-muted-foreground leading-tight">
                               <span>1: {Number(prod.precio_base_uf1).toFixed(0)}</span>
                               <span>2: {Number(prod.precio_uf2).toFixed(0)}</span>
                               <span>3: {Number(prod.precio_uf3).toFixed(0)}</span>
@@ -1338,7 +1335,7 @@ export default function DocumentForm() {
                         </TableCell>
                         <TableCell className="text-center px-1">
                           {prod ? (
-                            <div className="flex flex-col gap-y-0.5 text-[9px] text-muted-foreground leading-tight">
+                            <div className="flex flex-col gap-y-0.5 text-xs text-muted-foreground leading-tight">
                               <span>1: {Number(prod.precio_r1).toFixed(0)}</span>
                               <span>2: {Number(prod.precio_r2).toFixed(0)}</span>
                               <span>3: {Number(prod.precio_r3).toFixed(0)}</span>
@@ -1347,12 +1344,12 @@ export default function DocumentForm() {
                           ) : "—"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Input type="number" className="h-8 w-20 ml-auto text-right text-sm" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} />
+                          <Input type="number" className="h-8 w-14 ml-auto text-right text-sm" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} />
                         </TableCell>
                         <TableCell className="text-right">
                           <Input
                             type="number"
-                            className="h-8 w-24 ml-auto text-right text-sm"
+                            className="h-8 w-20 ml-auto text-right text-sm"
                             value={isEntregaCorp ? 0 : item.precio_unitario}
                             disabled={isEntregaCorp}
                             readOnly={isEntregaCorp}
@@ -1361,7 +1358,7 @@ export default function DocumentForm() {
                           />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Input type="number" className="h-8 w-20 ml-auto text-right text-sm" value={item.descuento_porcentaje} onChange={e => updateItem(idx, "descuento_porcentaje", Number(e.target.value))} />
+                          <Input type="number" className="h-8 w-14 ml-auto text-right text-sm" value={item.descuento_porcentaje} onChange={e => updateItem(idx, "descuento_porcentaje", Number(e.target.value))} />
                         </TableCell>
                         <TableCell className="text-right font-medium text-sm">${item.subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-right text-sm">{item.unidades_equivalentes}</TableCell>
