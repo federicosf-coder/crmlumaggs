@@ -114,6 +114,10 @@ export function generateCorteCajaPdf(
     },
   });
 
+  if (opts?.returnBase64) {
+    return doc.output("datauristring").split(",")[1];
+  }
+
   const fname = `corte-caja-${input.fecha}.pdf`;
   doc.save(fname);
 }
