@@ -197,7 +197,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
 
   const reset = () => {
-    setEmpresaId(""); setPlazaId(""); setMontoTotal(""); setObservaciones("");
+    setEmpresaId(""); setPlazaId(""); setEmpVend(empresaVendedora || ""); setMontoTotal(""); setObservaciones("");
     setSeleccion({}); setFiles([]); setDocs([]); setFormaPago("");
     setFechaPago(new Date().toISOString().split("T")[0]);
   };
