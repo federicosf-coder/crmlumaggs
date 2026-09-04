@@ -1212,7 +1212,7 @@ export default function Cobranza() {
                       <TableCell className="text-right font-medium">{formatCurrency(dispFact)}</TableCell>
                       <TableCell className="text-xs">{FORMA_PAGO_LABEL[p.tipo_pago || ""] || p.tipo_pago || "—"}</TableCell>
                       <TableCell><EstatusPagoEditor pagoId={p.id} value={p.estatus_pago} canEdit={canEditEstatus} compact onChanged={refetchPagos} /></TableCell>
-                      <TableCell><Badge variant={p.estado_pago === "aplicado_total" ? "default" : p.estado_pago === "cancelado" ? "destructive" : "secondary"}>{ESTADO_PAGO_LABEL[p.estado_pago]}</Badge></TableCell>
+                      <TableCell><EstadoPagoEditor pagoId={p.id} value={p.estado_pago} canEdit={canEditEstatus} compact onChanged={refetchPagos} /></TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => handleVerDetalle(p)}><Eye className="h-4 w-4" /></Button>
