@@ -1601,6 +1601,24 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
           </div>
         </CardContent>
       </Card>
+      <EnviarCorteCajaDialog
+        open={openEnviarCorte}
+        onOpenChange={setOpenEnviarCorte}
+        input={{
+          empresaNombre:
+            empresaVendedora === "galsa_phillips66" ? "Galsa · Phillips 66" : "Lumaggs · Chevron",
+          fecha,
+          totalCobrado,
+          porMetodo,
+          pagos: pagosOrdenados.map((p: any) => ({
+            cliente: p.empresa?.name ?? "—",
+            metodo: metodoLabel(p.metodo_pago || "Sin especificar"),
+            referencia: p.referencia_pago || "—",
+            importe: Number(p.monto_total || 0),
+            facturas: (aplicacionesPorPago[p.id] || []).map((a) => a.numero_factura),
+          })),
+        }}
+      />
     </TooltipProvider>
   );
 }
