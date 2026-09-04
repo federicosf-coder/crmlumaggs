@@ -581,6 +581,16 @@ export function RotacionInventarioTabContent() {
                       </SelectContent>
                     </Select>
                   ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!groupLevels.some((g) => g !== "none")}
+                    onClick={() => setGroupLevels(["none", "none", "none", "none"])}
+                    className="gap-1.5"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Reiniciar agrupación
+                  </Button>
                 </div>
 
                 <div className="rounded-md border overflow-auto overflow-x-auto max-h-[70vh]">
