@@ -332,6 +332,7 @@ export function RotacionInventarioTabContent() {
       if (marcaSel !== "ALL" && r.marca !== marcaSel) return false;
       if (!clasSel.includes(r.clasificacion)) return false;
       if (q && !(r.codigo.toLowerCase().includes(q) || r.nombre.toLowerCase().includes(q))) return false;
+      if (soloConExistencia && !(r.stock_total > 0)) return false;
       return true;
     });
     out = [...out].sort((a, b) => {
@@ -344,7 +345,7 @@ export function RotacionInventarioTabContent() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return out;
-  }, [rows, search, marcaSel, clasSel, sortKey, sortDir]);
+  }, [rows, search, marcaSel, clasSel, sortKey, sortDir, soloConExistencia]);
 
   const kpis = useMemo(() => {
     return {
