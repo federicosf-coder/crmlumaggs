@@ -281,6 +281,7 @@ export function RotacionInventarioTabContent() {
         codigo: p.codigo,
         nombre: p.nombre_producto || "",
         marca: marcas.get(p.marca_id) || "",
+        presentacion: presentaciones.get(p.presentacion_id) || "—",
         categoria: categoriaMap.get(p.categoria_id) || "Sin categoría",
         linea: lineaMap.get(p.linea_id) || "Sin línea",
         velocidad,
