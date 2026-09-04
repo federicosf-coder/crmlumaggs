@@ -922,7 +922,9 @@ export default function Cobranza() {
             />
           ) : (
           <>
+          <CorteCajaSection empresaVendedora={empresaVendedora} />
           {/* Fila 1: Cartera Total + Crédito Directo + Crédito Cescemex */}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <DetailedKpiCard
               title="Cartera Total"
