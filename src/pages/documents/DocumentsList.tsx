@@ -78,7 +78,7 @@ const PEDIDO_STATUS_ORDER = [
   "cancelado",
 ];
 const ESTATUS_FAC_LABELS: Record<string, string> = {
-  vigente: "Vigente", pendiente: "Vigente", pagada: "Pagada", parcial: "Parcial",
+  vigente: "Vigente", pagada: "Pagada", parcial: "Parcial",
   vencida: "Vencida", cancelada: "Cancelada",
 };
 const ESTATUS_ENT_CORP_LABELS: Record<string, string> = {
