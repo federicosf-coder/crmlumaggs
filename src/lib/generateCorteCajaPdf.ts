@@ -20,7 +20,10 @@ export interface CorteCajaInput {
 const fmtCurrency = (n: number) =>
   "$" + n.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function generateCorteCajaPdf(input: CorteCajaInput): void {
+export function generateCorteCajaPdf(
+  input: CorteCajaInput,
+  opts?: { returnBase64?: boolean }
+): string | void {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -110,6 +113,10 @@ export function generateCorteCajaPdf(input: CorteCajaInput): void {
       doc.text(pStr, pageW - margin, pageH - 12, { align: "right" });
     },
   });
+
+  if (opts?.returnBase64) {
+    return doc.output("datauristring").split(",")[1];
+  }
 
   const fname = `corte-caja-${input.fecha}.pdf`;
   doc.save(fname);

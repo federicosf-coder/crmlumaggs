@@ -16,7 +16,10 @@ export interface CorteCajaInput {
   pagos: CorteCajaPagoRow[];
 }
 
-export function generateCorteCajaXlsx(input: CorteCajaInput): void {
+export function generateCorteCajaXlsx(
+  input: CorteCajaInput,
+  opts?: { returnBase64?: boolean }
+): string | void {
   const wb = XLSX.utils.book_new();
   const aoa: any[][] = [];
 
@@ -60,6 +63,10 @@ export function generateCorteCajaXlsx(input: CorteCajaInput): void {
   }
 
   XLSX.utils.book_append_sheet(wb, ws, "Corte de Caja");
+
+  if (opts?.returnBase64) {
+    return XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
+  }
 
   const fname = `corte-caja-${input.fecha}.xlsx`;
   XLSX.writeFile(wb, fname);

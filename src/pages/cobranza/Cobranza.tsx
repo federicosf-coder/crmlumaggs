@@ -29,6 +29,7 @@ import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfir
 import { ColumnFilterBuilder, evaluateConditions, type ColumnFilterCondition, type ColumnFilterDef } from "@/components/cobranza/ColumnFilterBuilder";
 import { FacturasListEmbedded, type CobranzaPrefilter, type DaysBucket } from "@/components/cobranza/FacturasListEmbedded";
 import { ComprobantesIntakeTab } from "@/components/cobranza/ComprobantesIntakeTab";
+import { EnviarCorteCajaDialog } from "@/components/cobranza/EnviarCorteCajaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderTemplate, resolveEmailRecipients, type EmailRecipientItem } from "@/lib/templates";
@@ -1288,6 +1289,7 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   })();
   const [fecha, setFecha] = useState(hoyStr);
+  const [openEnviarCorte, setOpenEnviarCorte] = useState(false);
 
   const { data: pagosDia = [], isLoading } = useQuery({
     queryKey: ["corte-caja-pagos", fecha, empresaVendedora],
@@ -1460,6 +1462,15 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
                 <FileSpreadsheet className="h-4 w-4 mr-1" />
                 Descargar Excel
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagosDia.length === 0}
+                onClick={() => setOpenEnviarCorte(true)}
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                Enviar por correo
+              </Button>
               <Label htmlFor="corte-caja-fecha" className="text-xs text-muted-foreground whitespace-nowrap">
                 Corte de caja del:
               </Label>
@@ -1590,6 +1601,24 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
           </div>
         </CardContent>
       </Card>
+      <EnviarCorteCajaDialog
+        open={openEnviarCorte}
+        onOpenChange={setOpenEnviarCorte}
+        input={{
+          empresaNombre:
+            empresaVendedora === "galsa_phillips66" ? "Galsa · Phillips 66" : "Lumaggs · Chevron",
+          fecha,
+          totalCobrado,
+          porMetodo,
+          pagos: pagosOrdenados.map((p: any) => ({
+            cliente: p.empresa?.name ?? "—",
+            metodo: metodoLabel(p.metodo_pago || "Sin especificar"),
+            referencia: p.referencia_pago || "—",
+            importe: Number(p.monto_total || 0),
+            facturas: (aplicacionesPorPago[p.id] || []).map((a) => a.numero_factura),
+          })),
+        }}
+      />
     </TooltipProvider>
   );
 }
