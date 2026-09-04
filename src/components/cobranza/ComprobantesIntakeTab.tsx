@@ -645,7 +645,7 @@ function ComprobanteCard({
           <div>
             <Label>Empresa vendedora *</Label>
             <SearchableSelect
-              value={empVend}
+              value={empVend || ""}
               onValueChange={(v) => setEmpVend(v as EmpresaVendedora)}
               options={[
                 { value: "lumaggs_chevron", label: "Lumaggs (Chevron)" },
