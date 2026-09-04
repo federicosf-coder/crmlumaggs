@@ -29,6 +29,7 @@ import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfir
 import { ColumnFilterBuilder, evaluateConditions, type ColumnFilterCondition, type ColumnFilterDef } from "@/components/cobranza/ColumnFilterBuilder";
 import { FacturasListEmbedded, type CobranzaPrefilter, type DaysBucket } from "@/components/cobranza/FacturasListEmbedded";
 import { ComprobantesIntakeTab } from "@/components/cobranza/ComprobantesIntakeTab";
+import { EnviarCorteCajaDialog } from "@/components/cobranza/EnviarCorteCajaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderTemplate, resolveEmailRecipients, type EmailRecipientItem } from "@/lib/templates";
@@ -1288,6 +1289,7 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   })();
   const [fecha, setFecha] = useState(hoyStr);
+  const [openEnviarCorte, setOpenEnviarCorte] = useState(false);
 
   const { data: pagosDia = [], isLoading } = useQuery({
     queryKey: ["corte-caja-pagos", fecha, empresaVendedora],
