@@ -8,7 +8,9 @@ import { ConfiguracionTab } from "./ConfiguracionTab";
 import { CapturaManualTab } from "./CapturaManualTab";
 import { Historico12MesesTab } from "./Historico12MesesTab";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { AccessMessage } from "@/components/AccessMessage";
 import { Loader2 } from "lucide-react";
+
 
 export default function ReporteVentasSistema() {
   const access = useModuleAccess("reporte_ventas_sistema");
@@ -25,10 +27,15 @@ export default function ReporteVentasSistema() {
   if (!access.canView) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">No tienes permiso para ver este módulo.</p>
+        <AccessMessage
+          isError={access.isError}
+          onRetry={access.retry}
+          deniedText="No tienes permiso para ver este módulo."
+        />
       </div>
     );
   }
+
 
   return (
     <>
