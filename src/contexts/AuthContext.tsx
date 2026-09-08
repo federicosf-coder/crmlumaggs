@@ -37,22 +37,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Reintenta ante fallos de red/timeout: si esto falla en silencio, el usuario
+  // pierde su rol y la app parece "sin permisos".
+  const withRetry = async <T,>(fn: () => Promise<{ data: T; error: unknown }>, attempts = 3) => {
+    for (let i = 0; i < attempts; i++) {
+      const { data, error } = await fn();
+      if (!error) return data;
+      if (i < attempts - 1) await new Promise((r) => setTimeout(r, 800 * 2 ** i));
+    }
+    return null as T | null;
+  };
+
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-    setProfile(data);
+    const data = await withRetry(() =>
+      supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle() as any
+    );
+    if (data) setProfile(data as Profile);
   };
 
   const fetchRoles = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    setRoles((data || []).map((r) => r.role as AppRole));
+    const data = await withRetry(() =>
+      supabase.from("user_roles").select("role").eq("user_id", userId) as any
+    );
+    if (data) setRoles(((data as { role: string }[]) || []).map((r) => r.role as AppRole));
   };
+
 
   const refreshProfile = async () => {
     if (user) {
