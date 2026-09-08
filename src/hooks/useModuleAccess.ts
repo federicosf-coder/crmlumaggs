@@ -18,13 +18,15 @@ interface ModuleAccess {
   userId: string | null;
   isLoading: boolean;
   canView: boolean;
+  isError: boolean;
+  retry: () => void;
 }
 
 export function useModuleAccess(module: AppModule): ModuleAccess {
   const { user } = useAuth();
   const userId = user?.id || null;
 
-  const { data: accessLevel = "ninguno" as AccessLevel, isLoading: loadingAccess } = useQuery({
+  const accessQuery = useQuery({
     queryKey: ["module_access", userId, module],
     queryFn: async () => {
       if (!userId) return "ninguno" as AccessLevel;
@@ -32,39 +34,58 @@ export function useModuleAccess(module: AppModule): ModuleAccess {
         _user_id: userId,
         _module: module,
       });
-      if (error) {
-        console.error("Error fetching module access:", error);
-        return "ninguno" as AccessLevel;
-      }
+      // Throw so react-query retries instead of silently denying access.
+      if (error) throw error;
       return (data || "ninguno") as AccessLevel;
     },
     enabled: !!userId,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
-  const { data: teamMemberIds = [], isLoading: loadingTeam } = useQuery({
+  const accessLevel = (accessQuery.data ?? "ninguno") as AccessLevel;
+
+  const teamQuery = useQuery({
     queryKey: ["team_member_ids", userId],
     queryFn: async () => {
       if (!userId) return [];
       const { data, error } = await supabase.rpc("get_user_team_member_ids", {
         _user_id: userId,
       });
-      if (error) {
-        console.error("Error fetching team members:", error);
-        return [userId];
-      }
+      if (error) throw error;
       return (data || [userId]) as string[];
     },
     enabled: !!userId && accessLevel === "equipo",
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
+
+  const teamMemberIds = (teamQuery.data ?? []) as string[];
+  const isError = accessQuery.isError || (accessLevel === "equipo" && teamQuery.isError);
 
   return {
     accessLevel,
     teamMemberIds: accessLevel === "equipo" ? teamMemberIds : [],
     userId,
-    isLoading: loadingAccess || (accessLevel === "equipo" && loadingTeam),
-    canView: accessLevel !== "ninguno",
+    isLoading:
+      (accessQuery.isLoading && !accessQuery.isError) ||
+      (accessLevel === "equipo" && teamQuery.isLoading && !teamQuery.isError),
+    // Never deny access just because the permission check failed to load.
+    canView: isError ? false : accessLevel !== "ninguno",
+    isError,
+    retry: () => {
+      accessQuery.refetch();
+      if (accessLevel === "equipo") teamQuery.refetch();
+    },
   };
 }
+
 
 /**
  * Apply access level filtering to a Supabase query builder.
