@@ -615,9 +615,10 @@ Deno.serve(async (req) => {
             clienteEstatus === 'exacto_rfc' &&
             !!empresaIdMatched &&
             !!plazaId &&
-            !!empresaVendedora &&
+            empresaVendedora === 'lumaggs_chevron' &&
             productos.length > 0 &&
             productos.every((p) => p.matched === true && !!p.producto_id);
+
 
           let documentoCreadoId: string | null = null;
           if (matchPerfecto) {
