@@ -50,6 +50,7 @@ const BUZON_COMPROBANTES = 'comprobantes@correo.lumaggs.com.mx';
 const BUZON_CREDITO = 'documentos@correo.lumaggs.com.mx';
 const BUZON_PRECIOS = 'precios@correo.lumaggs.com.mx';
 const BUZON_FACTURAS = 'facturas@correo.lumaggs.com.mx';
+const BUZON_FACTURAS_CHEVRON = 'facturaschevron@correo.lumaggs.com.mx';
 const BUZON_PROSPECTOS = 'prospectos@correo.lumaggs.com.mx';
 const FOLIO_REGEX = /CR-\d{4}-\d{4}/i;
 const CONFIANZAS = ['alta', 'media', 'baja'];
@@ -181,8 +182,13 @@ Deno.serve(async (req) => {
     const esCredito = !esComprobantes && destinatarios.some((d) => d.includes(BUZON_CREDITO));
     const esPrecios =
       !esComprobantes && !esCredito && destinatarios.some((d) => d.includes(BUZON_PRECIOS));
+    const esFacturasChevron =
+      !esComprobantes && !esCredito && !esPrecios &&
+      destinatarios.some((d) => d.includes(BUZON_FACTURAS_CHEVRON));
     const esFacturas =
-      !esComprobantes && !esCredito && !esPrecios && destinatarios.some((d) => d.includes(BUZON_FACTURAS));
+      !esComprobantes && !esCredito && !esPrecios &&
+      (esFacturasChevron || destinatarios.some((d) => d.includes(BUZON_FACTURAS)));
+    const esAutoImport = esFacturasChevron;
     const esProspectos =
       !esComprobantes && !esCredito && !esPrecios && !esFacturas &&
       destinatarios.some((d) => d.includes(BUZON_PROSPECTOS));
@@ -602,6 +608,86 @@ Deno.serve(async (req) => {
             console.error('error procesando PDF hermano:', (e as Error).message);
           }
 
+          // ¿Match perfecto para auto-importación (buzón facturaschevron@)?
+          const matchPerfecto =
+            esAutoImport &&
+            !yaExiste &&
+            clienteEstatus === 'exacto_rfc' &&
+            !!empresaIdMatched &&
+            !!plazaId &&
+            !!empresaVendedora &&
+            productos.length > 0 &&
+            productos.every((p) => p.matched === true && !!p.producto_id);
+
+          let documentoCreadoId: string | null = null;
+          if (matchPerfecto) {
+            try {
+              const { data: ejec } = await admin
+                .from('company_ejecutivos')
+                .select('user_id')
+                .eq('company_id', empresaIdMatched)
+                .limit(1);
+              const ejecutivoId = ejec && ejec.length ? (ejec[0] as any).user_id : null;
+
+              const { data: comp0 } = await admin
+                .from('companies')
+                .select('primary_contact_id, tipo_pago')
+                .eq('id', empresaIdMatched)
+                .maybeSingle();
+              const contactoId = (comp0 as any)?.primary_contact_id ?? null;
+              const tipoPago = (comp0 as any)?.tipo_pago ?? 'contado';
+
+              const fechaDoc = fecha ? fecha.slice(0, 10) : null;
+              let fechaVenc: string | null = fechaDoc;
+              if (fechaDoc && tipoPago !== 'contado') {
+                const d = new Date(`${fechaDoc}T00:00:00Z`);
+                d.setUTCDate(d.getUTCDate() + 30);
+                fechaVenc = d.toISOString().slice(0, 10);
+              }
+
+              const { data: docIns, error: docErr } = await admin
+                .from('documentos')
+                .insert({
+                  tipo_documento: 'factura',
+                  numero_factura: `${serie}${folio}`,
+                  empresa_id: empresaIdMatched,
+                  empresa_vendedora: empresaVendedora,
+                  plaza_id: plazaId,
+                  fecha_documento: fechaDoc,
+                  fecha_vencimiento: fechaVenc,
+                  subtotal: asNumber(comp.SubTotal),
+                  total: asNumber(comp.Total),
+                  forma_pago: asText(comp.FormaPago),
+                  metodo_pago: asText(comp.MetodoPago),
+                  uso_cfdi: asText(receptor.UsoCFDI),
+                  folio_fiscal_uuid: uuidFiscal,
+                  ejecutivo_venta_id: ejecutivoId,
+                  contacto_id: contactoId,
+                  tipo_pago: tipoPago,
+                  estatus_factura: 'vigente',
+                  is_active: true,
+                  created_by: null,
+                })
+                .select('id')
+                .single();
+              if (docErr) throw new Error(docErr.message);
+              documentoCreadoId = (docIns as any).id;
+
+              const lineas = productos.map((p) => ({
+                documento_id: documentoCreadoId,
+                producto_id: p.producto_id,
+                cantidad: p.cantidad,
+                precio_unitario: p.valorUnitario,
+                subtotal: p.importe,
+              }));
+              const { error: lnErr } = await admin.from('documento_productos').insert(lineas);
+              if (lnErr) console.error('error insertando productos de factura auto-importada:', lnErr.message);
+            } catch (e) {
+              console.error('auto-importación fallida, se deja en revisión:', (e as Error).message);
+              documentoCreadoId = null;
+            }
+          }
+
           const { error: insErr } = await admin.from('documentos_xml_intake').insert({
             storage_path: storagePath,
             pdf_storage_path: pdfPath,
@@ -625,7 +711,10 @@ Deno.serve(async (req) => {
             cliente_match_estatus: yaExiste ? 'pendiente' : clienteEstatus,
             cliente_candidatos: candidatos,
             productos_json: productos,
-            estatus: yaExiste ? 'ya_existia' : 'pendiente',
+            estatus: documentoCreadoId ? 'importado' : (yaExiste ? 'ya_existia' : 'pendiente'),
+            documento_creado_id: documentoCreadoId,
+            importado_at: documentoCreadoId ? new Date().toISOString() : null,
+            importado_por: null,
             subido_por: null,
           });
           if (insErr) throw new Error(`insert_failed: ${insErr.message}`);
