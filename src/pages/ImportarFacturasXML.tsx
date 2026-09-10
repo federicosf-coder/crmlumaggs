@@ -30,6 +30,7 @@ interface ProductoLinea {
   producto_id: string | null;
   producto_nombre: string | null;
   matched: boolean;
+  ue: number;
 }
 
 const money = (n: number | null | undefined) =>
@@ -301,7 +302,7 @@ export default function ImportarFacturasXML() {
           if (c.codigo) {
             const { data: p } = await (supabase as any)
               .from("productos")
-              .select("id, codigo, descripcion")
+              .select("id, codigo, descripcion, presentacion:presentaciones(unidades_equivalentes)")
               .eq("codigo", c.codigo)
               .limit(1);
             prod = p && p.length ? p[0] : null;
@@ -315,6 +316,7 @@ export default function ImportarFacturasXML() {
             producto_id: prod?.id ?? null,
             producto_nombre: prod ? `${prod.codigo} — ${prod.descripcion || ""}` : null,
             matched: !!prod,
+            ue: prod?.presentacion?.unidades_equivalentes || 1,
           });
         }
       }
@@ -666,6 +668,7 @@ export default function ImportarFacturasXML() {
       cantidad: l.cantidad,
       precio_unitario: l.valorUnitario,
       subtotal: l.importe,
+      unidades_equivalentes: l.cantidad * (l.ue || 1),
     }));
     if (payload.length) {
       const { error: errProd } = await (supabase as any).from("documento_productos").insert(payload);
