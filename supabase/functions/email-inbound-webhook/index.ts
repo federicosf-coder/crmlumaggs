@@ -562,7 +562,7 @@ Deno.serve(async (req) => {
               const codigo = asText(c.NoIdentificacion);
               let prod: any = null;
               if (codigo) {
-                const { data: p } = await admin.from('productos').select('id, codigo, descripcion').eq('codigo', codigo).limit(1);
+                const { data: p } = await admin.from('productos').select('id, codigo, descripcion, presentacion:presentaciones(unidades_equivalentes)').eq('codigo', codigo).limit(1);
                 prod = p && p.length ? p[0] : null;
               }
               productos.push({
@@ -574,6 +574,7 @@ Deno.serve(async (req) => {
                 producto_id: prod?.id ?? null,
                 producto_nombre: prod ? `${prod.codigo} — ${prod.descripcion || ''}` : null,
                 matched: !!prod,
+                ue: (prod as any)?.presentacion?.unidades_equivalentes || 1,
               });
             }
           }
@@ -680,6 +681,7 @@ Deno.serve(async (req) => {
                 cantidad: p.cantidad,
                 precio_unitario: p.valorUnitario,
                 subtotal: p.importe,
+                unidades_equivalentes: p.cantidad * (p.ue || 1),
               }));
               const { error: lnErr } = await admin.from('documento_productos').insert(lineas);
               if (lnErr) console.error('error insertando productos de factura auto-importada:', lnErr.message);
