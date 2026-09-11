@@ -75,7 +75,7 @@ export function usePendingLeadsCount() {
       const { count } = await (supabase as any)
         .from("leads")
         .select("*", { count: "exact", head: true })
-        .in("estatus", ["nuevo", "pendiente_atencion", "alerta", "frio", "recuperacion"]);
+        .in("estatus", ["nuevo", "pendiente_atencion", "alerta", "frio"]);
       return count ?? 0;
     },
     refetchInterval: 60000,

@@ -57,6 +57,7 @@ export function ImportarLeadsDialog({ open, onOpenChange }: Props) {
   const [mapeo, setMapeo] = useState<Destino[]>([]);
   const [importando, setImportando] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [tipoLista, setTipoLista] = useState<"nuevo" | "recuperacion">("nuevo");
 
   const reset = () => {
     setFileName(null); setHeaders([]); setRows([]); setMapeo([]); setDragOver(false);
@@ -108,7 +109,8 @@ export function ImportarLeadsDialog({ open, onOpenChange }: Props) {
         .filter(({ m }) => m.nombre || m.empresa_nombre || m.telefono)
         .map(({ m, original }) => ({
           source_id: SOURCE_ID,
-          estatus: "nuevo",
+          estatus: tipoLista,
+          ...(tipoLista === "recuperacion" ? { alerta_enviada_at: new Date().toISOString() } : {}),
           nombre: m.nombre ?? m.empresa_nombre ?? m.telefono ?? "Sin nombre",
           empresa_nombre: m.empresa_nombre,
           telefono: m.telefono,
@@ -176,6 +178,22 @@ export function ImportarLeadsDialog({ open, onOpenChange }: Props) {
                   <span className="text-muted-foreground text-xs">({rows.length} filas)</span>
                 </div>
                 <Button size="sm" variant="ghost" onClick={reset}><X className="h-4 w-4" /></Button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">¿Qué tipo de lista es?</p>
+                <Select value={tipoLista} onValueChange={(v) => setTipoLista(v as "nuevo" | "recuperacion")}>
+                  <SelectTrigger className="h-8 w-[260px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nuevo">Prospectos nuevos (entran a la bandeja)</SelectItem>
+                    <SelectItem value="recuperacion">Lista de recuperación (contactos a reactivar)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {tipoLista === "recuperacion" && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Irán directo a la pestaña "Recuperación", sin alertas ni avisos de WhatsApp.
+                  </p>
+                )}
               </div>
 
               <div>
