@@ -57,6 +57,7 @@ export function ImportarLeadsDialog({ open, onOpenChange }: Props) {
   const [mapeo, setMapeo] = useState<Destino[]>([]);
   const [importando, setImportando] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [tipoLista, setTipoLista] = useState<"nuevo" | "recuperacion">("nuevo");
 
   const reset = () => {
     setFileName(null); setHeaders([]); setRows([]); setMapeo([]); setDragOver(false);
@@ -108,7 +109,8 @@ export function ImportarLeadsDialog({ open, onOpenChange }: Props) {
         .filter(({ m }) => m.nombre || m.empresa_nombre || m.telefono)
         .map(({ m, original }) => ({
           source_id: SOURCE_ID,
-          estatus: "nuevo",
+          estatus: tipoLista,
+          ...(tipoLista === "recuperacion" ? { alerta_enviada_at: new Date().toISOString() } : {}),
           nombre: m.nombre ?? m.empresa_nombre ?? m.telefono ?? "Sin nombre",
           empresa_nombre: m.empresa_nombre,
           telefono: m.telefono,
