@@ -68,7 +68,7 @@ export function ReportesMesTab() {
           .from("rvs_ventas_mes_plaza")
           .select("plaza_id, sucursal_reporte, marca, venta, unidades, utilidad")
           .eq("anio_mes", mes),
-        supabase.from("rvs_personas").select("id, nombre_reporte, nombre_mostrar, plaza_id"),
+        supabase.from("rvs_personas").select("id, nombre_reporte, nombre_mostrar, plaza_id, empresa_grupo_id"),
         supabase.from("plazas").select("id, nombre"),
         supabase.from("zonas").select("id, nombre, is_active").eq("is_active", true),
         supabase.from("zona_plazas").select("zona_id, plaza_id"),
