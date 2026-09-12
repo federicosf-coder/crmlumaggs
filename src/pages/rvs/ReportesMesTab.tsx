@@ -479,6 +479,7 @@ export function ReportesMesTab() {
             udsTotal: p.udsTotal,
             rows: p.personas.map((per) => ({
               nombre: per.nombre,
+              empresa: per.empresaGrupo || "",
               udsGalsa: per.udsGalsa,
               udsLumaggs: per.udsLumaggs,
               udsTotal: per.udsTotal,
@@ -489,6 +490,7 @@ export function ReportesMesTab() {
         ? []
         : (z.plazas[0]?.personas || []).map((per) => ({
             nombre: per.nombre,
+            empresa: per.empresaGrupo || "",
             udsGalsa: per.udsGalsa,
             udsLumaggs: per.udsLumaggs,
             udsTotal: per.udsTotal,
@@ -496,7 +498,7 @@ export function ReportesMesTab() {
     }));
     generateRvsZonaPdf(grupos, {
       titulo: "Zona Costa + plazas independientes",
-      subtitulo: mesLabel(mes),
+      subtitulo: `${mesLabel(mes)} · Generado ${fechaGen()}`,
       archivo: `RVS_TodasLasPlazas_${mes}.pdf`,
     });
   };
