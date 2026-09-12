@@ -59,7 +59,7 @@ export function ReportesMesTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["rvs_reportes_mes", mes],
     queryFn: async () => {
-      const [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas] = await Promise.all([
+      const [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas, empresasGrupo] = await Promise.all([
         supabase
           .from("rvs_ventas_mes")
           .select("persona_id, marca, venta, unidades, costo, utilidad, plaza_id")
@@ -72,8 +72,9 @@ export function ReportesMesTab() {
         supabase.from("plazas").select("id, nombre"),
         supabase.from("zonas").select("id, nombre, is_active").eq("is_active", true),
         supabase.from("zona_plazas").select("zona_id, plaza_id"),
+        supabase.from("rvs_empresas_grupo").select("id, etiqueta"),
       ]);
-      const err = [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas].find((r) => r.error);
+      const err = [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas, empresasGrupo].find((r) => r.error);
       if (err?.error) throw err.error;
       return {
         ventas: (ventas.data || []) as any[],
@@ -82,6 +83,7 @@ export function ReportesMesTab() {
         plazas: (plazas.data || []) as any[],
         zonas: (zonas.data || []) as any[],
         zonaPlazas: (zonaPlazas.data || []) as any[],
+        empresasGrupo: (empresasGrupo.data || []) as any[],
       };
     },
   });
@@ -104,6 +106,15 @@ export function ReportesMesTab() {
     (data?.plazas || []).forEach((p: any) => m.set(p.id, p.nombre));
     return m;
   }, [data]);
+
+  const grupoNombre = useMemo(() => {
+    const m = new Map<string, string>();
+    (data?.empresasGrupo || []).forEach((g: any) => m.set(g.id, g.etiqueta));
+    return m;
+  }, [data]);
+
+  const fechaGen = () =>
+    new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
 
   type Fila = {
     nombre: string;
@@ -337,8 +348,9 @@ export function ReportesMesTab() {
       data.zonas,
       data.zonaPlazas,
       zonaIdsSeleccionadas,
+      grupoNombre,
     );
-  }, [data, plazaNombre, zonaIdsSeleccionadas]);
+  }, [data, plazaNombre, zonaIdsSeleccionadas, grupoNombre]);
 
   const totalUdsArbol = useMemo(
     () => arbolZonas.reduce((s, z) => s + z.udsTotal, 0),
@@ -367,13 +379,18 @@ export function ReportesMesTab() {
   }, [totalUdsArbol, totalUdsOficialZonas]);
 
   const exportarZonaExcel = () => {
-    const aoa: any[][] = [["Nombre", "Nivel", "Uds Galsa", "Uds Lumaggs", "Uds Total"]];
+    const aoa: any[][] = [
+      [`Reporte: ${mesLabel(mes)}`],
+      [`Generado: ${fechaGen()}`],
+      [],
+      ["Nombre", "Nivel", "Empresa", "Uds Galsa", "Uds Lumaggs", "Uds Total"],
+    ];
     for (const z of arbolZonas) {
-      aoa.push([z.nombre, "Zona", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
+      aoa.push([z.nombre, "Zona", "", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
       for (const p of z.plazas) {
-        aoa.push([`  ${p.nombre}`, "Plaza", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
+        aoa.push([`  ${p.nombre}`, "Plaza", "", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
         for (const per of p.personas) {
-          aoa.push([`    ${per.nombre}`, "Persona", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
+          aoa.push([`    ${per.nombre}`, "Persona", per.empresaGrupo || "", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
         }
       }
     }
@@ -397,6 +414,7 @@ export function ReportesMesTab() {
         udsTotal: p.udsTotal,
         rows: p.personas.map((per) => ({
           nombre: per.nombre,
+          empresa: per.empresaGrupo || "",
           udsGalsa: per.udsGalsa,
           udsLumaggs: per.udsLumaggs,
           udsTotal: per.udsTotal,
@@ -405,7 +423,7 @@ export function ReportesMesTab() {
     }));
     generateRvsZonaPdf(grupos, {
       titulo: "Ventas por zona",
-      subtitulo: mesLabel(mes),
+      subtitulo: `${mesLabel(mes)} · Generado ${fechaGen()}`,
       archivo: `RVS_Zonas_${mes}.pdf`,
     });
   };
@@ -420,17 +438,23 @@ export function ReportesMesTab() {
       data.plazas,
       data.zonas,
       data.zonaPlazas,
+      grupoNombre,
     );
-  }, [data, plazaNombre]);
+  }, [data, plazaNombre, grupoNombre]);
 
   const exportarTodasExcel = () => {
-    const aoa: any[][] = [["Nombre", "Nivel", "Uds Galsa", "Uds Lumaggs", "Uds Total"]];
+    const aoa: any[][] = [
+      [`Reporte: ${mesLabel(mes)}`],
+      [`Generado: ${fechaGen()}`],
+      [],
+      ["Nombre", "Nivel", "Empresa", "Uds Galsa", "Uds Lumaggs", "Uds Total"],
+    ];
     for (const z of arbolTodas) {
-      aoa.push([z.nombre, z.esZonaReal ? "Zona" : "Plaza", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
+      aoa.push([z.nombre, z.esZonaReal ? "Zona" : "Plaza", "", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
       for (const p of z.plazas) {
-        if (z.esZonaReal) aoa.push([`  ${p.nombre}`, "Plaza", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
+        if (z.esZonaReal) aoa.push([`  ${p.nombre}`, "Plaza", "", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
         for (const per of p.personas) {
-          aoa.push([`    ${per.nombre}`, "Persona", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
+          aoa.push([`    ${per.nombre}`, "Persona", per.empresaGrupo || "", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
         }
       }
     }
@@ -455,6 +479,7 @@ export function ReportesMesTab() {
             udsTotal: p.udsTotal,
             rows: p.personas.map((per) => ({
               nombre: per.nombre,
+              empresa: per.empresaGrupo || "",
               udsGalsa: per.udsGalsa,
               udsLumaggs: per.udsLumaggs,
               udsTotal: per.udsTotal,
@@ -465,6 +490,7 @@ export function ReportesMesTab() {
         ? []
         : (z.plazas[0]?.personas || []).map((per) => ({
             nombre: per.nombre,
+            empresa: per.empresaGrupo || "",
             udsGalsa: per.udsGalsa,
             udsLumaggs: per.udsLumaggs,
             udsTotal: per.udsTotal,
@@ -472,7 +498,7 @@ export function ReportesMesTab() {
     }));
     generateRvsZonaPdf(grupos, {
       titulo: "Zona Costa + plazas independientes",
-      subtitulo: mesLabel(mes),
+      subtitulo: `${mesLabel(mes)} · Generado ${fechaGen()}`,
       archivo: `RVS_TodasLasPlazas_${mes}.pdf`,
     });
   };
@@ -703,6 +729,7 @@ export function ReportesMesTab() {
               <TableHeader>
                 <TableRow className={headClass}>
                   <TableHead className="text-[11px] uppercase tracking-wide">Nombre</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Empresa</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Galsa</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Lumaggs</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Total</TableHead>
@@ -712,7 +739,7 @@ export function ReportesMesTab() {
               <TableBody>
                 {arbolZonas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-6 text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-6 text-sm text-muted-foreground">
                       {isLoading ? "Cargando…" : "Sin zonas o sin datos para este mes."}
                     </TableCell>
                   </TableRow>
@@ -721,6 +748,7 @@ export function ReportesMesTab() {
                   <>
                     <TableRow key={`zz-${z.id}`} className="bg-violet-50/60 dark:bg-violet-950/20">
                       <TableCell className="font-semibold uppercase text-xs tracking-wide">{z.nombre}</TableCell>
+                      <TableCell />
                       <TableCell className="text-right">{uds(z.udsGalsa)}</TableCell>
                       <TableCell className="text-right">{uds(z.udsLumaggs)}</TableCell>
                       <TableCell className="text-right font-semibold">{uds(z.udsTotal)}</TableCell>
@@ -732,6 +760,7 @@ export function ReportesMesTab() {
                           <TableCell className="pl-6 text-xs uppercase tracking-wide font-semibold">
                             {p.nombre}
                           </TableCell>
+                          <TableCell />
                           <TableCell className="text-right">{uds(p.udsGalsa)}</TableCell>
                           <TableCell className="text-right">{uds(p.udsLumaggs)}</TableCell>
                           <TableCell className="text-right font-semibold">{uds(p.udsTotal)}</TableCell>
@@ -740,6 +769,7 @@ export function ReportesMesTab() {
                         {p.personas.map((per, i) => (
                           <TableRow key={`zpp-${p.id}-${per.id}`} className={i % 2 ? "bg-muted/30" : undefined}>
                             <TableCell className="pl-10 font-medium">{per.nombre}</TableCell>
+                            <TableCell className="text-muted-foreground text-xs">{per.empresaGrupo}</TableCell>
                             <TableCell className="text-right">{uds(per.udsGalsa)}</TableCell>
                             <TableCell className="text-right">{uds(per.udsLumaggs)}</TableCell>
                             <TableCell className="text-right font-semibold">{uds(per.udsTotal)}</TableCell>
@@ -766,6 +796,7 @@ export function ReportesMesTab() {
               <TableHeader>
                 <TableRow className={headClass}>
                   <TableHead className="text-[11px] uppercase tracking-wide">Nombre</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Empresa</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Galsa</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Lumaggs</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Total</TableHead>
@@ -775,7 +806,7 @@ export function ReportesMesTab() {
               <TableBody>
                 {arbolTodas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-6 text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-6 text-sm text-muted-foreground">
                       {isLoading ? "Cargando…" : "Sin zonas, plazas o datos para este mes."}
                     </TableCell>
                   </TableRow>
@@ -791,6 +822,7 @@ export function ReportesMesTab() {
                           </span>
                         )}
                       </TableCell>
+                      <TableCell />
                       <TableCell className="text-right">{uds(z.udsGalsa)}</TableCell>
                       <TableCell className="text-right">{uds(z.udsLumaggs)}</TableCell>
                       <TableCell className="text-right font-semibold">{uds(z.udsTotal)}</TableCell>
@@ -803,6 +835,7 @@ export function ReportesMesTab() {
                             <TableCell className="pl-6 text-xs uppercase tracking-wide font-semibold">
                               {p.nombre}
                             </TableCell>
+                            <TableCell />
                             <TableCell className="text-right">{uds(p.udsGalsa)}</TableCell>
                             <TableCell className="text-right">{uds(p.udsLumaggs)}</TableCell>
                             <TableCell className="text-right font-semibold">{uds(p.udsTotal)}</TableCell>
@@ -812,6 +845,7 @@ export function ReportesMesTab() {
                         {p.personas.map((per, i) => (
                           <TableRow key={`tpp-${p.id}-${per.id}`} className={i % 2 ? "bg-muted/30" : undefined}>
                             <TableCell className="pl-10 font-medium">{per.nombre}</TableCell>
+                            <TableCell className="text-muted-foreground text-xs">{per.empresaGrupo}</TableCell>
                             <TableCell className="text-right">{uds(per.udsGalsa)}</TableCell>
                             <TableCell className="text-right">{uds(per.udsLumaggs)}</TableCell>
                             <TableCell className="text-right font-semibold">{uds(per.udsTotal)}</TableCell>

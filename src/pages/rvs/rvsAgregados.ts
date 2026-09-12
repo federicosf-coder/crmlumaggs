@@ -133,6 +133,7 @@ export interface NodoUnidades {
 export interface NodoPersona extends NodoUnidades {
   id: string;
   nombre: string;
+  empresaGrupo?: string;
 }
 
 export interface NodoPlaza extends NodoUnidades {
@@ -181,7 +182,8 @@ export function agregarZonaPlazaPersona(
   plazaNombre: Map<string, string>,
   zonas: any[],
   zonaPlazas: any[],
-  zonaIdsSeleccionadas: string[] = []
+  zonaIdsSeleccionadas: string[] = [],
+  grupoNombre?: Map<string, string>
 ): NodoZona[] {
   const personaMap = new Map<string, any>();
   personas.forEach((p) => personaMap.set(p.id, p));
@@ -199,6 +201,7 @@ export function agregarZonaPlazaPersona(
         nodo: {
           id: v.persona_id,
           nombre: p.nombre_mostrar || p.nombre_reporte || "Sin nombre",
+          empresaGrupo: (p.empresa_grupo_id && grupoNombre?.get(p.empresa_grupo_id)) || "Sin empresa/grupo",
           ...nodoVacio(),
         },
       };
@@ -265,9 +268,10 @@ export function agregarTodoConPlazasSueltas(
   plazaNombre: Map<string, string>,
   plazas: any[],
   zonas: any[],
-  zonaPlazas: any[]
+  zonaPlazas: any[],
+  grupoNombre?: Map<string, string>
 ): NodoZona[] {
-  const zonasNodos = agregarZonaPlazaPersona(ventas, personas, plazaNombre, zonas, zonaPlazas, []);
+  const zonasNodos = agregarZonaPlazaPersona(ventas, personas, plazaNombre, zonas, zonaPlazas, [], grupoNombre);
   zonasNodos.forEach((z) => (z.esZonaReal = true));
 
   const plazaIdsEnZonas = new Set(
@@ -290,6 +294,7 @@ export function agregarTodoConPlazasSueltas(
         nodo: {
           id: v.persona_id,
           nombre: p.nombre_mostrar || p.nombre_reporte || "Sin nombre",
+          empresaGrupo: (p.empresa_grupo_id && grupoNombre?.get(p.empresa_grupo_id)) || "Sin empresa/grupo",
           ...nodoVacio(),
         },
       };
