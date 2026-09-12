@@ -729,6 +729,7 @@ export function ReportesMesTab() {
               <TableHeader>
                 <TableRow className={headClass}>
                   <TableHead className="text-[11px] uppercase tracking-wide">Nombre</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Empresa</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Galsa</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Lumaggs</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Total</TableHead>
@@ -738,7 +739,7 @@ export function ReportesMesTab() {
               <TableBody>
                 {arbolZonas.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-6 text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-6 text-sm text-muted-foreground">
                       {isLoading ? "Cargando…" : "Sin zonas o sin datos para este mes."}
                     </TableCell>
                   </TableRow>
@@ -747,6 +748,7 @@ export function ReportesMesTab() {
                   <>
                     <TableRow key={`zz-${z.id}`} className="bg-violet-50/60 dark:bg-violet-950/20">
                       <TableCell className="font-semibold uppercase text-xs tracking-wide">{z.nombre}</TableCell>
+                      <TableCell />
                       <TableCell className="text-right">{uds(z.udsGalsa)}</TableCell>
                       <TableCell className="text-right">{uds(z.udsLumaggs)}</TableCell>
                       <TableCell className="text-right font-semibold">{uds(z.udsTotal)}</TableCell>
@@ -758,6 +760,7 @@ export function ReportesMesTab() {
                           <TableCell className="pl-6 text-xs uppercase tracking-wide font-semibold">
                             {p.nombre}
                           </TableCell>
+                          <TableCell />
                           <TableCell className="text-right">{uds(p.udsGalsa)}</TableCell>
                           <TableCell className="text-right">{uds(p.udsLumaggs)}</TableCell>
                           <TableCell className="text-right font-semibold">{uds(p.udsTotal)}</TableCell>
@@ -766,6 +769,7 @@ export function ReportesMesTab() {
                         {p.personas.map((per, i) => (
                           <TableRow key={`zpp-${p.id}-${per.id}`} className={i % 2 ? "bg-muted/30" : undefined}>
                             <TableCell className="pl-10 font-medium">{per.nombre}</TableCell>
+                            <TableCell className="text-muted-foreground text-xs">{per.empresaGrupo}</TableCell>
                             <TableCell className="text-right">{uds(per.udsGalsa)}</TableCell>
                             <TableCell className="text-right">{uds(per.udsLumaggs)}</TableCell>
                             <TableCell className="text-right font-semibold">{uds(per.udsTotal)}</TableCell>
