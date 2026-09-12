@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 
 export interface RvsZonaPdfRow {
   nombre: string;
+  empresa?: string;
   udsGalsa: number;
   udsLumaggs: number;
   udsTotal: number;
@@ -31,6 +32,7 @@ function pushGroups(groups: RvsZonaPdfGroup[], body: Body) {
         content: `${"    ".repeat(g.level)}${g.label}`,
         styles: { fontStyle: "bold", fillColor: fill, textColor: [40, 40, 60] },
       },
+      { content: "", styles: { fillColor: fill } },
       { content: fmtNum(g.udsGalsa), styles: { halign: "right", fontStyle: "bold", fillColor: fill, textColor: [40, 40, 60] } },
       { content: fmtNum(g.udsLumaggs), styles: { halign: "right", fontStyle: "bold", fillColor: fill, textColor: [40, 40, 60] } },
       { content: fmtNum(g.udsTotal), styles: { halign: "right", fontStyle: "bold", fillColor: fill, textColor: [40, 40, 60] } },
@@ -43,6 +45,7 @@ function pushGroups(groups: RvsZonaPdfGroup[], body: Body) {
 function rowCells(r: RvsZonaPdfRow, level = 0) {
   return [
     `${"    ".repeat(level)}${r.nombre}`,
+    r.empresa || "",
     { content: fmtNum(r.udsGalsa), styles: { halign: "right" } },
     { content: fmtNum(r.udsLumaggs), styles: { halign: "right" } },
     { content: fmtNum(r.udsTotal), styles: { halign: "right" } },
@@ -77,18 +80,19 @@ export function generateRvsZonaPdf(
 
   autoTable(doc, {
     startY: 72,
-    head: [["Nombre", "Uds Galsa", "Uds Lumaggs", "Uds Total"]],
+    head: [["Nombre", "Empresa", "Uds Galsa", "Uds Lumaggs", "Uds Total"]],
     body,
     styles: { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: [56, 84, 186], textColor: 255, fontSize: 8 },
     columnStyles: {
-      1: { halign: "right", cellWidth: 75 },
-      2: { halign: "right", cellWidth: 80 },
+      2: { halign: "right", cellWidth: 70 },
       3: { halign: "right", cellWidth: 75 },
+      4: { halign: "right", cellWidth: 70 },
     },
     margin: { left: margin, right: margin },
     foot: [[
       { content: "Total", styles: { halign: "right" } },
+      { content: "", styles: {} },
       { content: fmtNum(totalGalsa), styles: { halign: "right" } },
       { content: fmtNum(totalLumaggs), styles: { halign: "right" } },
       { content: fmtNum(totalUds), styles: { halign: "right" } },
