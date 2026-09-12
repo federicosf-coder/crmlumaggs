@@ -133,7 +133,7 @@ export interface NodoUnidades {
 export interface NodoPersona extends NodoUnidades {
   id: string;
   nombre: string;
-  empresaGrupo?: string;
+  empresaGrupo: string;
 }
 
 export interface NodoPlaza extends NodoUnidades {
@@ -183,7 +183,7 @@ export function agregarZonaPlazaPersona(
   zonas: any[],
   zonaPlazas: any[],
   zonaIdsSeleccionadas: string[] = [],
-  grupoNombre?: Map<string, string>
+  grupoNombre: Map<string, string> = new Map()
 ): NodoZona[] {
   const personaMap = new Map<string, any>();
   personas.forEach((p) => personaMap.set(p.id, p));
@@ -269,7 +269,7 @@ export function agregarTodoConPlazasSueltas(
   plazas: any[],
   zonas: any[],
   zonaPlazas: any[],
-  grupoNombre?: Map<string, string>
+  grupoNombre: Map<string, string> = new Map()
 ): NodoZona[] {
   const zonasNodos = agregarZonaPlazaPersona(ventas, personas, plazaNombre, zonas, zonaPlazas, [], grupoNombre);
   zonasNodos.forEach((z) => (z.esZonaReal = true));
