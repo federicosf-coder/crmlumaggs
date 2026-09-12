@@ -145,6 +145,7 @@ export interface NodoZona extends NodoUnidades {
   id: string;
   nombre: string;
   plazas: NodoPlaza[];
+  esZonaReal?: boolean; // false = plaza suelta sin zona
 }
 
 const nodoVacio = (): NodoUnidades => ({
