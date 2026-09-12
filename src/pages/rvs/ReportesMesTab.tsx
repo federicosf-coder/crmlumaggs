@@ -562,6 +562,75 @@ export function ReportesMesTab() {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader className="pb-2 space-y-3">
+          <CardTitle className="text-base">Zona → Plaza → Persona (unidades)</CardTitle>
+          <FiltroChipsMulti
+            titulo="Zonas"
+            opciones={zonasOpciones}
+            seleccion={zonasSel}
+            onChange={setZonasSel}
+          />
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className={headClass}>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Nombre</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Galsa</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Lumaggs</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Total</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Utilidad</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {arbolZonas.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-6 text-sm text-muted-foreground">
+                      {isLoading ? "Cargando…" : "Sin zonas o sin datos para este mes."}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {arbolZonas.map((z) => (
+                  <>
+                    <TableRow key={`zz-${z.id}`} className="bg-violet-50/60 dark:bg-violet-950/20">
+                      <TableCell className="font-semibold uppercase text-xs tracking-wide">{z.nombre}</TableCell>
+                      <TableCell className="text-right">{uds(z.udsGalsa)}</TableCell>
+                      <TableCell className="text-right">{uds(z.udsLumaggs)}</TableCell>
+                      <TableCell className="text-right font-semibold">{uds(z.udsTotal)}</TableCell>
+                      <TableCell className="text-right font-semibold">{currency(z.utilTotal)}</TableCell>
+                    </TableRow>
+                    {z.plazas.map((p) => (
+                      <>
+                        <TableRow key={`zp-${z.id}-${p.id}`} className="bg-blue-50/60 dark:bg-blue-950/20">
+                          <TableCell className="pl-6 text-xs uppercase tracking-wide font-semibold">
+                            {p.nombre}
+                          </TableCell>
+                          <TableCell className="text-right">{uds(p.udsGalsa)}</TableCell>
+                          <TableCell className="text-right">{uds(p.udsLumaggs)}</TableCell>
+                          <TableCell className="text-right font-semibold">{uds(p.udsTotal)}</TableCell>
+                          <TableCell className="text-right font-semibold">{currency(p.utilTotal)}</TableCell>
+                        </TableRow>
+                        {p.personas.map((per, i) => (
+                          <TableRow key={`zpp-${p.id}-${per.id}`} className={i % 2 ? "bg-muted/30" : undefined}>
+                            <TableCell className="pl-10 font-medium">{per.nombre}</TableCell>
+                            <TableCell className="text-right">{uds(per.udsGalsa)}</TableCell>
+                            <TableCell className="text-right">{uds(per.udsLumaggs)}</TableCell>
+                            <TableCell className="text-right font-semibold">{uds(per.udsTotal)}</TableCell>
+                            <TableCell className="text-right">{currency(per.utilTotal)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    ))}
+                  </>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
       </>
       )}
 
