@@ -432,6 +432,22 @@ export function ReportesMesTab() {
               <Button size="sm" onClick={exportar} disabled={isLoading}>
                 <Download className="h-4 w-4 mr-1" /> Excel unidades + utilidad
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportarZonaExcel}
+                disabled={isLoading || arbolZonas.length === 0}
+              >
+                <Download className="h-4 w-4 mr-1" /> Excel por zona
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportarZonaPdf}
+                disabled={isLoading || arbolZonas.length === 0}
+              >
+                <FileDown className="h-4 w-4 mr-1" /> PDF por zona
+              </Button>
             </>
           )}
         </div>
