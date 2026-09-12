@@ -410,6 +410,72 @@ export function ReportesMesTab() {
     });
   };
 
+  // ── Vista: todas las zonas + plazas independientes ────────────────
+  const arbolTodas = useMemo(() => {
+    if (!data) return [];
+    return agregarTodoConPlazasSueltas(
+      data.ventas,
+      data.personas,
+      plazaNombre,
+      data.plazas,
+      data.zonas,
+      data.zonaPlazas,
+    );
+  }, [data, plazaNombre]);
+
+  const exportarTodasExcel = () => {
+    const aoa: any[][] = [["Nombre", "Nivel", "Uds Galsa", "Uds Lumaggs", "Uds Total"]];
+    for (const z of arbolTodas) {
+      aoa.push([z.nombre, z.esZonaReal ? "Zona" : "Plaza", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
+      for (const p of z.plazas) {
+        if (z.esZonaReal) aoa.push([`  ${p.nombre}`, "Plaza", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
+        for (const per of p.personas) {
+          aoa.push([`    ${per.nombre}`, "Persona", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
+        }
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "Todas las plazas");
+    XLSX.writeFile(wb, `RVS_TodasLasPlazas_${mes}.xlsx`);
+  };
+
+  const exportarTodasPdf = () => {
+    const grupos = arbolTodas.map((z) => ({
+      label: z.nombre,
+      level: 0,
+      udsGalsa: z.udsGalsa,
+      udsLumaggs: z.udsLumaggs,
+      udsTotal: z.udsTotal,
+      children: z.esZonaReal
+        ? z.plazas.map((p) => ({
+            label: p.nombre,
+            level: 1,
+            udsGalsa: p.udsGalsa,
+            udsLumaggs: p.udsLumaggs,
+            udsTotal: p.udsTotal,
+            rows: p.personas.map((per) => ({
+              nombre: per.nombre,
+              udsGalsa: per.udsGalsa,
+              udsLumaggs: per.udsLumaggs,
+              udsTotal: per.udsTotal,
+            })),
+          }))
+        : [],
+      rows: z.esZonaReal
+        ? []
+        : (z.plazas[0]?.personas || []).map((per) => ({
+            nombre: per.nombre,
+            udsGalsa: per.udsGalsa,
+            udsLumaggs: per.udsLumaggs,
+            udsTotal: per.udsTotal,
+          })),
+    }));
+    generateRvsZonaPdf(grupos, {
+      titulo: "Zona Costa + plazas independientes",
+      subtitulo: mesLabel(mes),
+      archivo: `RVS_TodasLasPlazas_${mes}.pdf`,
+    });
+  };
 
   const headClass = "bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40";
 
