@@ -340,6 +340,32 @@ export function ReportesMesTab() {
     );
   }, [data, plazaNombre, zonaIdsSeleccionadas]);
 
+  const totalUdsArbol = useMemo(
+    () => arbolZonas.reduce((s, z) => s + z.udsTotal, 0),
+    [arbolZonas],
+  );
+
+  const totalUdsOficialZonas = useMemo(() => {
+    if (!data || arbolZonas.length === 0) return 0;
+    const zonasIds = new Set(
+      zonaIdsSeleccionadas.length > 0 ? zonaIdsSeleccionadas : data.zonas.map((z: any) => z.id),
+    );
+    const plazaIdsEnZonas = new Set<string>();
+    data.zonaPlazas.forEach((zp: any) => {
+      if (zonasIds.has(zp.zona_id)) plazaIdsEnZonas.add(zp.plaza_id);
+    });
+    return data.ventasPlaza
+      .filter((v: any) => plazaIdsEnZonas.has(v.plaza_id))
+      .reduce((s: number, v: any) => s + Number(v.unidades || 0), 0);
+  }, [data, arbolZonas, zonaIdsSeleccionadas]);
+
+  const coincideConOficial = useMemo(() => {
+    if (totalUdsOficialZonas === 0 && totalUdsArbol === 0) return true;
+    if (totalUdsOficialZonas === 0) return false;
+    const diff = Math.abs(totalUdsArbol - totalUdsOficialZonas);
+    return diff / totalUdsOficialZonas <= 0.01;
+  }, [totalUdsArbol, totalUdsOficialZonas]);
+
   const exportarZonaExcel = () => {
     const aoa: any[][] = [["Nombre", "Nivel", "Uds Galsa", "Uds Lumaggs", "Uds Total"]];
     for (const z of arbolZonas) {
