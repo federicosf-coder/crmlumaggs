@@ -121,6 +121,138 @@ export function ventasPlazaConRespaldo(ventasPlaza: any[], ventas: any[], person
   return ventasPlaza && ventasPlaza.length > 0 ? ventasPlaza : derivarVentasPlaza(ventas, personas);
 }
 
+export interface NodoUnidades {
+  udsGalsa: number;
+  udsLumaggs: number;
+  udsTotal: number;
+  utilGalsa: number;
+  utilLumaggs: number;
+  utilTotal: number;
+}
+
+export interface NodoPersona extends NodoUnidades {
+  id: string;
+  nombre: string;
+}
+
+export interface NodoPlaza extends NodoUnidades {
+  id: string;
+  nombre: string;
+  personas: NodoPersona[];
+}
+
+export interface NodoZona extends NodoUnidades {
+  id: string;
+  nombre: string;
+  plazas: NodoPlaza[];
+}
+
+const nodoVacio = (): NodoUnidades => ({
+  udsGalsa: 0,
+  udsLumaggs: 0,
+  udsTotal: 0,
+  utilGalsa: 0,
+  utilLumaggs: 0,
+  utilTotal: 0,
+});
+
+const acumularUnidades = (n: NodoUnidades, v: any) => {
+  const u = Number(v.unidades || 0);
+  const util = Number(v.utilidad || 0);
+  if (esGalsa(v.marca)) {
+    n.udsGalsa += u;
+    n.utilGalsa += util;
+  } else if (esLumaggs(v.marca)) {
+    n.udsLumaggs += u;
+    n.utilLumaggs += util;
+  }
+  n.udsTotal = n.udsGalsa + n.udsLumaggs;
+  n.utilTotal = n.utilGalsa + n.utilLumaggs;
+};
+
+/**
+ * Arma la jerarquía zona → plaza → persona con subtotales de unidades y utilidad
+ * en los tres niveles. `zonaIdsSeleccionadas` vacío = todas las zonas.
+ */
+export function agregarZonaPlazaPersona(
+  ventas: any[],
+  personas: any[],
+  plazaNombre: Map<string, string>,
+  zonas: any[],
+  zonaPlazas: any[],
+  zonaIdsSeleccionadas: string[] = []
+): NodoZona[] {
+  const personaMap = new Map<string, any>();
+  personas.forEach((p) => personaMap.set(p.id, p));
+
+  // persona -> {plazaId, nodo}
+  const porPersona = new Map<string, { plazaId: string | null; nodo: NodoPersona }>();
+  for (const v of ventas) {
+    const p = personaMap.get(v.persona_id);
+    if (!p) continue;
+    const plazaId = v.plaza_id || p.plaza_id || null;
+    let entry = porPersona.get(v.persona_id);
+    if (!entry) {
+      entry = {
+        plazaId,
+        nodo: {
+          id: v.persona_id,
+          nombre: p.nombre_mostrar || p.nombre_reporte || "Sin nombre",
+          ...nodoVacio(),
+        },
+      };
+      porPersona.set(v.persona_id, entry);
+    }
+    acumularUnidades(entry.nodo, v);
+  }
+
+  const zonasFiltradas = zonas.filter(
+    (z: any) => zonaIdsSeleccionadas.length === 0 || zonaIdsSeleccionadas.includes(z.id)
+  );
+
+  return zonasFiltradas.map((z: any) => {
+    const plazaIds = zonaPlazas
+      .filter((zp: any) => zp.zona_id === z.id)
+      .map((zp: any) => zp.plaza_id);
+
+    const plazas: NodoPlaza[] = plazaIds.map((plazaId: string) => {
+      const personasPlaza = Array.from(porPersona.values())
+        .filter((e) => e.plazaId === plazaId)
+        .map((e) => e.nodo)
+        .sort((a, b) => b.udsTotal - a.udsTotal);
+      const plaza: NodoPlaza = {
+        id: plazaId,
+        nombre: plazaNombre.get(plazaId) || "Sin plaza",
+        personas: personasPlaza,
+        ...nodoVacio(),
+      };
+      for (const p of personasPlaza) {
+        plaza.udsGalsa += p.udsGalsa;
+        plaza.udsLumaggs += p.udsLumaggs;
+        plaza.utilGalsa += p.utilGalsa;
+        plaza.utilLumaggs += p.utilLumaggs;
+      }
+      plaza.udsTotal = plaza.udsGalsa + plaza.udsLumaggs;
+      plaza.utilTotal = plaza.utilGalsa + plaza.utilLumaggs;
+      return plaza;
+    });
+
+    plazas.sort((a, b) => b.udsTotal - a.udsTotal);
+
+    const zona: NodoZona = { id: z.id, nombre: z.nombre, plazas, ...nodoVacio() };
+    for (const pl of plazas) {
+      zona.udsGalsa += pl.udsGalsa;
+      zona.udsLumaggs += pl.udsLumaggs;
+      zona.utilGalsa += pl.utilGalsa;
+      zona.utilLumaggs += pl.utilLumaggs;
+    }
+    zona.udsTotal = zona.udsGalsa + zona.udsLumaggs;
+    zona.utilTotal = zona.utilGalsa + zona.utilLumaggs;
+    return zona;
+  });
+}
+
+
 /** Agrega ventas de rvs_ventas_mes_plaza por plaza y calcula filas de zona */
 export function agregarPorPlaza(
   ventasPlaza: any[],
