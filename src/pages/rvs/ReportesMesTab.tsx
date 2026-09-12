@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ventasPlazaConRespaldo, agregarZonaPlazaPersona } from "./rvsAgregados";
+import { ventasPlazaConRespaldo, agregarZonaPlazaPersona, agregarTodoConPlazasSueltas } from "./rvsAgregados";
 import { FiltroChipsMulti } from "./components/FiltroChipsMulti";
 import { generateRvsZonaPdf } from "@/lib/generateRvsZonaPdf";
 import { ComparativoView } from "./ComparativoView";
