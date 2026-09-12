@@ -315,6 +315,76 @@ export function ReportesMesTab() {
     return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], "es"));
   }, [agruparPlaza, porPersona]);
 
+  // ── Vista por zona → plaza → persona ──────────────────────────────
+  const [zonasSel, setZonasSel] = useState<string[]>([]); // [] = todas
+  const zonasOpciones = useMemo(
+    () => (data?.zonas || []).map((z: any) => z.nombre as string),
+    [data],
+  );
+  const zonaIdsSeleccionadas = useMemo(() => {
+    if (zonasSel.length === 0) return [] as string[];
+    return (data?.zonas || [])
+      .filter((z: any) => zonasSel.includes(z.nombre))
+      .map((z: any) => z.id as string);
+  }, [zonasSel, data]);
+
+  const arbolZonas = useMemo(() => {
+    if (!data) return [];
+    return agregarZonaPlazaPersona(
+      data.ventas,
+      data.personas,
+      plazaNombre,
+      data.zonas,
+      data.zonaPlazas,
+      zonaIdsSeleccionadas,
+    );
+  }, [data, plazaNombre, zonaIdsSeleccionadas]);
+
+  const exportarZonaExcel = () => {
+    const aoa: any[][] = [["Nombre", "Nivel", "Uds Galsa", "Uds Lumaggs", "Uds Total"]];
+    for (const z of arbolZonas) {
+      aoa.push([z.nombre, "Zona", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
+      for (const p of z.plazas) {
+        aoa.push([`  ${p.nombre}`, "Plaza", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
+        for (const per of p.personas) {
+          aoa.push([`    ${per.nombre}`, "Persona", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
+        }
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "Por zona");
+    XLSX.writeFile(wb, `RVS_Zonas_${mes}.xlsx`);
+  };
+
+  const exportarZonaPdf = () => {
+    const grupos = arbolZonas.map((z) => ({
+      label: z.nombre,
+      level: 0,
+      udsGalsa: z.udsGalsa,
+      udsLumaggs: z.udsLumaggs,
+      udsTotal: z.udsTotal,
+      children: z.plazas.map((p) => ({
+        label: p.nombre,
+        level: 1,
+        udsGalsa: p.udsGalsa,
+        udsLumaggs: p.udsLumaggs,
+        udsTotal: p.udsTotal,
+        rows: p.personas.map((per) => ({
+          nombre: per.nombre,
+          udsGalsa: per.udsGalsa,
+          udsLumaggs: per.udsLumaggs,
+          udsTotal: per.udsTotal,
+        })),
+      })),
+    }));
+    generateRvsZonaPdf(grupos, {
+      titulo: "Ventas por zona",
+      subtitulo: mesLabel(mes),
+      archivo: `RVS_Zonas_${mes}.pdf`,
+    });
+  };
+
+
   const headClass = "bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40";
 
   const filaPersona = (r: Fila, i: number) => (
