@@ -379,13 +379,18 @@ export function ReportesMesTab() {
   }, [totalUdsArbol, totalUdsOficialZonas]);
 
   const exportarZonaExcel = () => {
-    const aoa: any[][] = [["Nombre", "Nivel", "Uds Galsa", "Uds Lumaggs", "Uds Total"]];
+    const aoa: any[][] = [
+      [`Reporte: ${mesLabel(mes)}`],
+      [`Generado: ${fechaGen()}`],
+      [],
+      ["Nombre", "Nivel", "Empresa", "Uds Galsa", "Uds Lumaggs", "Uds Total"],
+    ];
     for (const z of arbolZonas) {
-      aoa.push([z.nombre, "Zona", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
+      aoa.push([z.nombre, "Zona", "", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
       for (const p of z.plazas) {
-        aoa.push([`  ${p.nombre}`, "Plaza", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
+        aoa.push([`  ${p.nombre}`, "Plaza", "", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
         for (const per of p.personas) {
-          aoa.push([`    ${per.nombre}`, "Persona", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
+          aoa.push([`    ${per.nombre}`, "Persona", per.empresaGrupo || "", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
         }
       }
     }
@@ -409,6 +414,7 @@ export function ReportesMesTab() {
         udsTotal: p.udsTotal,
         rows: p.personas.map((per) => ({
           nombre: per.nombre,
+          empresa: per.empresaGrupo || "",
           udsGalsa: per.udsGalsa,
           udsLumaggs: per.udsLumaggs,
           udsTotal: per.udsTotal,
@@ -417,7 +423,7 @@ export function ReportesMesTab() {
     }));
     generateRvsZonaPdf(grupos, {
       titulo: "Ventas por zona",
-      subtitulo: mesLabel(mes),
+      subtitulo: `${mesLabel(mes)} · Generado ${fechaGen()}`,
       archivo: `RVS_Zonas_${mes}.pdf`,
     });
   };
@@ -437,13 +443,18 @@ export function ReportesMesTab() {
   }, [data, plazaNombre, grupoNombre]);
 
   const exportarTodasExcel = () => {
-    const aoa: any[][] = [["Nombre", "Nivel", "Uds Galsa", "Uds Lumaggs", "Uds Total"]];
+    const aoa: any[][] = [
+      [`Reporte: ${mesLabel(mes)}`],
+      [`Generado: ${fechaGen()}`],
+      [],
+      ["Nombre", "Nivel", "Empresa", "Uds Galsa", "Uds Lumaggs", "Uds Total"],
+    ];
     for (const z of arbolTodas) {
-      aoa.push([z.nombre, z.esZonaReal ? "Zona" : "Plaza", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
+      aoa.push([z.nombre, z.esZonaReal ? "Zona" : "Plaza", "", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
       for (const p of z.plazas) {
-        if (z.esZonaReal) aoa.push([`  ${p.nombre}`, "Plaza", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
+        if (z.esZonaReal) aoa.push([`  ${p.nombre}`, "Plaza", "", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
         for (const per of p.personas) {
-          aoa.push([`    ${per.nombre}`, "Persona", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
+          aoa.push([`    ${per.nombre}`, "Persona", per.empresaGrupo || "", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
         }
       }
     }
