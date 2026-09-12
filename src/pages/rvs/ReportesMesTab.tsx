@@ -113,9 +113,6 @@ export function ReportesMesTab() {
     return m;
   }, [data]);
 
-  const fechaGen = () =>
-    new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
-
   type Fila = {
     nombre: string;
     plaza: string;
@@ -380,8 +377,7 @@ export function ReportesMesTab() {
 
   const exportarZonaExcel = () => {
     const aoa: any[][] = [
-      [`Reporte: ${mesLabel(mes)}`],
-      [`Generado: ${fechaGen()}`],
+      [`Mes: ${mesLabel(mes)} · Generado: ${new Date().toLocaleDateString("es-MX")}`],
       [],
       ["Nombre", "Nivel", "Empresa", "Uds Galsa", "Uds Lumaggs", "Uds Total"],
     ];
@@ -423,7 +419,7 @@ export function ReportesMesTab() {
     }));
     generateRvsZonaPdf(grupos, {
       titulo: "Ventas por zona",
-      subtitulo: `${mesLabel(mes)} · Generado ${fechaGen()}`,
+      subtitulo: `Mes: ${mesLabel(mes)} · Generado: ${new Date().toLocaleDateString("es-MX")}`,
       archivo: `RVS_Zonas_${mes}.pdf`,
     });
   };
@@ -444,8 +440,7 @@ export function ReportesMesTab() {
 
   const exportarTodasExcel = () => {
     const aoa: any[][] = [
-      [`Reporte: ${mesLabel(mes)}`],
-      [`Generado: ${fechaGen()}`],
+      [`Mes: ${mesLabel(mes)} · Generado: ${new Date().toLocaleDateString("es-MX")}`],
       [],
       ["Nombre", "Nivel", "Empresa", "Uds Galsa", "Uds Lumaggs", "Uds Total"],
     ];
@@ -498,7 +493,7 @@ export function ReportesMesTab() {
     }));
     generateRvsZonaPdf(grupos, {
       titulo: "Zona Costa + plazas independientes",
-      subtitulo: `${mesLabel(mes)} · Generado ${fechaGen()}`,
+      subtitulo: `Mes: ${mesLabel(mes)} · Generado: ${new Date().toLocaleDateString("es-MX")}`,
       archivo: `RVS_TodasLasPlazas_${mes}.pdf`,
     });
   };
