@@ -145,6 +145,7 @@ export interface NodoZona extends NodoUnidades {
   id: string;
   nombre: string;
   plazas: NodoPlaza[];
+  esZonaReal?: boolean; // false = plaza suelta sin zona
 }
 
 const nodoVacio = (): NodoUnidades => ({
@@ -252,6 +253,90 @@ export function agregarZonaPlazaPersona(
   });
 }
 
+
+/**
+ * Igual que agregarZonaPlazaPersona pero incluye SIEMPRE todas las zonas activas
+ * y además genera un nodo top-level (esZonaReal: false) por cada plaza que no
+ * pertenezca a ninguna zona activa, para que salgan independientes.
+ */
+export function agregarTodoConPlazasSueltas(
+  ventas: any[],
+  personas: any[],
+  plazaNombre: Map<string, string>,
+  plazas: any[],
+  zonas: any[],
+  zonaPlazas: any[]
+): NodoZona[] {
+  const zonasNodos = agregarZonaPlazaPersona(ventas, personas, plazaNombre, zonas, zonaPlazas, []);
+  zonasNodos.forEach((z) => (z.esZonaReal = true));
+
+  const plazaIdsEnZonas = new Set(
+    zonaPlazas
+      .filter((zp: any) => zonas.some((z: any) => z.id === zp.zona_id))
+      .map((zp: any) => zp.plaza_id)
+  );
+
+  const personaMap = new Map<string, any>();
+  personas.forEach((p) => personaMap.set(p.id, p));
+  const porPersona = new Map<string, { plazaId: string | null; nodo: NodoPersona }>();
+  for (const v of ventas) {
+    const p = personaMap.get(v.persona_id);
+    if (!p) continue;
+    const plazaId = v.plaza_id || p.plaza_id || null;
+    let entry = porPersona.get(v.persona_id);
+    if (!entry) {
+      entry = {
+        plazaId,
+        nodo: {
+          id: v.persona_id,
+          nombre: p.nombre_mostrar || p.nombre_reporte || "Sin nombre",
+          ...nodoVacio(),
+        },
+      };
+      porPersona.set(v.persona_id, entry);
+    }
+    acumularUnidades(entry.nodo, v);
+  }
+
+  const sueltas: NodoZona[] = plazas
+    .filter((pl: any) => !plazaIdsEnZonas.has(pl.id))
+    .map((pl: any) => {
+      const personasPlaza = Array.from(porPersona.values())
+        .filter((e) => e.plazaId === pl.id)
+        .map((e) => e.nodo)
+        .sort((a, b) => b.udsTotal - a.udsTotal);
+      const plazaNodo: NodoPlaza = {
+        id: pl.id,
+        nombre: plazaNombre.get(pl.id) || pl.nombre || "Sin plaza",
+        personas: personasPlaza,
+        ...nodoVacio(),
+      };
+      for (const p of personasPlaza) {
+        plazaNodo.udsGalsa += p.udsGalsa;
+        plazaNodo.udsLumaggs += p.udsLumaggs;
+        plazaNodo.utilGalsa += p.utilGalsa;
+        plazaNodo.utilLumaggs += p.utilLumaggs;
+      }
+      plazaNodo.udsTotal = plazaNodo.udsGalsa + plazaNodo.udsLumaggs;
+      plazaNodo.utilTotal = plazaNodo.utilGalsa + plazaNodo.utilLumaggs;
+      return {
+        id: `suelta:${pl.id}`,
+        nombre: plazaNodo.nombre,
+        plazas: [plazaNodo],
+        udsGalsa: plazaNodo.udsGalsa,
+        udsLumaggs: plazaNodo.udsLumaggs,
+        udsTotal: plazaNodo.udsTotal,
+        utilGalsa: plazaNodo.utilGalsa,
+        utilLumaggs: plazaNodo.utilLumaggs,
+        utilTotal: plazaNodo.utilTotal,
+        esZonaReal: false,
+      };
+    });
+
+  zonasNodos.sort((a, b) => b.udsTotal - a.udsTotal);
+  sueltas.sort((a, b) => b.udsTotal - a.udsTotal);
+  return [...zonasNodos, ...sueltas];
+}
 
 /** Agrega ventas de rvs_ventas_mes_plaza por plaza y calcula filas de zona */
 export function agregarPorPlaza(

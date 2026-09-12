@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ventasPlazaConRespaldo, agregarZonaPlazaPersona } from "./rvsAgregados";
+import { ventasPlazaConRespaldo, agregarZonaPlazaPersona, agregarTodoConPlazasSueltas } from "./rvsAgregados";
 import { FiltroChipsMulti } from "./components/FiltroChipsMulti";
 import { generateRvsZonaPdf } from "@/lib/generateRvsZonaPdf";
 import { ComparativoView } from "./ComparativoView";
@@ -410,6 +410,72 @@ export function ReportesMesTab() {
     });
   };
 
+  // ── Vista: todas las zonas + plazas independientes ────────────────
+  const arbolTodas = useMemo(() => {
+    if (!data) return [];
+    return agregarTodoConPlazasSueltas(
+      data.ventas,
+      data.personas,
+      plazaNombre,
+      data.plazas,
+      data.zonas,
+      data.zonaPlazas,
+    );
+  }, [data, plazaNombre]);
+
+  const exportarTodasExcel = () => {
+    const aoa: any[][] = [["Nombre", "Nivel", "Uds Galsa", "Uds Lumaggs", "Uds Total"]];
+    for (const z of arbolTodas) {
+      aoa.push([z.nombre, z.esZonaReal ? "Zona" : "Plaza", z.udsGalsa, z.udsLumaggs, z.udsTotal]);
+      for (const p of z.plazas) {
+        if (z.esZonaReal) aoa.push([`  ${p.nombre}`, "Plaza", p.udsGalsa, p.udsLumaggs, p.udsTotal]);
+        for (const per of p.personas) {
+          aoa.push([`    ${per.nombre}`, "Persona", per.udsGalsa, per.udsLumaggs, per.udsTotal]);
+        }
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "Todas las plazas");
+    XLSX.writeFile(wb, `RVS_TodasLasPlazas_${mes}.xlsx`);
+  };
+
+  const exportarTodasPdf = () => {
+    const grupos = arbolTodas.map((z) => ({
+      label: z.nombre,
+      level: 0,
+      udsGalsa: z.udsGalsa,
+      udsLumaggs: z.udsLumaggs,
+      udsTotal: z.udsTotal,
+      children: z.esZonaReal
+        ? z.plazas.map((p) => ({
+            label: p.nombre,
+            level: 1,
+            udsGalsa: p.udsGalsa,
+            udsLumaggs: p.udsLumaggs,
+            udsTotal: p.udsTotal,
+            rows: p.personas.map((per) => ({
+              nombre: per.nombre,
+              udsGalsa: per.udsGalsa,
+              udsLumaggs: per.udsLumaggs,
+              udsTotal: per.udsTotal,
+            })),
+          }))
+        : [],
+      rows: z.esZonaReal
+        ? []
+        : (z.plazas[0]?.personas || []).map((per) => ({
+            nombre: per.nombre,
+            udsGalsa: per.udsGalsa,
+            udsLumaggs: per.udsLumaggs,
+            udsTotal: per.udsTotal,
+          })),
+    }));
+    generateRvsZonaPdf(grupos, {
+      titulo: "Zona Costa + plazas independientes",
+      subtitulo: mesLabel(mes),
+      archivo: `RVS_TodasLasPlazas_${mes}.pdf`,
+    });
+  };
 
   const headClass = "bg-gradient-to-r from-indigo-100 to-sky-100 dark:from-indigo-950/40 dark:to-sky-950/40";
 
@@ -473,6 +539,22 @@ export function ReportesMesTab() {
                 disabled={isLoading || arbolZonas.length === 0}
               >
                 <FileDown className="h-4 w-4 mr-1" /> PDF por zona
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportarTodasExcel}
+                disabled={isLoading || arbolTodas.length === 0}
+              >
+                <Download className="h-4 w-4 mr-1" /> Excel todas las plazas
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportarTodasPdf}
+                disabled={isLoading || arbolTodas.length === 0}
+              >
+                <FileDown className="h-4 w-4 mr-1" /> PDF todas las plazas
               </Button>
             </>
           )}
@@ -657,6 +739,78 @@ export function ReportesMesTab() {
                         </TableRow>
                         {p.personas.map((per, i) => (
                           <TableRow key={`zpp-${p.id}-${per.id}`} className={i % 2 ? "bg-muted/30" : undefined}>
+                            <TableCell className="pl-10 font-medium">{per.nombre}</TableCell>
+                            <TableCell className="text-right">{uds(per.udsGalsa)}</TableCell>
+                            <TableCell className="text-right">{uds(per.udsLumaggs)}</TableCell>
+                            <TableCell className="text-right font-semibold">{uds(per.udsTotal)}</TableCell>
+                            <TableCell className="text-right">{currency(per.utilTotal)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    ))}
+                  </>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Zona Costa + plazas independientes (unidades)</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className={headClass}>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Nombre</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Galsa</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Lumaggs</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Uds Total</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-right">Utilidad</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {arbolTodas.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-6 text-sm text-muted-foreground">
+                      {isLoading ? "Cargando…" : "Sin zonas, plazas o datos para este mes."}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {arbolTodas.map((z) => (
+                  <>
+                    <TableRow key={`tz-${z.id}`} className="bg-violet-50/60 dark:bg-violet-950/20">
+                      <TableCell className="font-semibold uppercase text-xs tracking-wide">
+                        {z.nombre}
+                        {!z.esZonaReal && (
+                          <span className="ml-2 text-[10px] font-normal normal-case text-muted-foreground">
+                            (plaza independiente)
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">{uds(z.udsGalsa)}</TableCell>
+                      <TableCell className="text-right">{uds(z.udsLumaggs)}</TableCell>
+                      <TableCell className="text-right font-semibold">{uds(z.udsTotal)}</TableCell>
+                      <TableCell className="text-right font-semibold">{currency(z.utilTotal)}</TableCell>
+                    </TableRow>
+                    {z.plazas.map((p) => (
+                      <>
+                        {z.esZonaReal && (
+                          <TableRow key={`tp-${z.id}-${p.id}`} className="bg-blue-50/60 dark:bg-blue-950/20">
+                            <TableCell className="pl-6 text-xs uppercase tracking-wide font-semibold">
+                              {p.nombre}
+                            </TableCell>
+                            <TableCell className="text-right">{uds(p.udsGalsa)}</TableCell>
+                            <TableCell className="text-right">{uds(p.udsLumaggs)}</TableCell>
+                            <TableCell className="text-right font-semibold">{uds(p.udsTotal)}</TableCell>
+                            <TableCell className="text-right font-semibold">{currency(p.utilTotal)}</TableCell>
+                          </TableRow>
+                        )}
+                        {p.personas.map((per, i) => (
+                          <TableRow key={`tpp-${p.id}-${per.id}`} className={i % 2 ? "bg-muted/30" : undefined}>
                             <TableCell className="pl-10 font-medium">{per.nombre}</TableCell>
                             <TableCell className="text-right">{uds(per.udsGalsa)}</TableCell>
                             <TableCell className="text-right">{uds(per.udsLumaggs)}</TableCell>
