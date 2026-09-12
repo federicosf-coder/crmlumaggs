@@ -59,7 +59,7 @@ export function ReportesMesTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["rvs_reportes_mes", mes],
     queryFn: async () => {
-      const [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas] = await Promise.all([
+      const [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas, empresasGrupo] = await Promise.all([
         supabase
           .from("rvs_ventas_mes")
           .select("persona_id, marca, venta, unidades, costo, utilidad, plaza_id")
@@ -72,8 +72,9 @@ export function ReportesMesTab() {
         supabase.from("plazas").select("id, nombre"),
         supabase.from("zonas").select("id, nombre, is_active").eq("is_active", true),
         supabase.from("zona_plazas").select("zona_id, plaza_id"),
+        supabase.from("rvs_empresas_grupo").select("id, etiqueta"),
       ]);
-      const err = [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas].find((r) => r.error);
+      const err = [ventas, ventasPlaza, personas, plazas, zonas, zonaPlazas, empresasGrupo].find((r) => r.error);
       if (err?.error) throw err.error;
       return {
         ventas: (ventas.data || []) as any[],
@@ -82,6 +83,7 @@ export function ReportesMesTab() {
         plazas: (plazas.data || []) as any[],
         zonas: (zonas.data || []) as any[],
         zonaPlazas: (zonaPlazas.data || []) as any[],
+        empresasGrupo: (empresasGrupo.data || []) as any[],
       };
     },
   });
@@ -104,6 +106,15 @@ export function ReportesMesTab() {
     (data?.plazas || []).forEach((p: any) => m.set(p.id, p.nombre));
     return m;
   }, [data]);
+
+  const grupoNombre = useMemo(() => {
+    const m = new Map<string, string>();
+    (data?.empresasGrupo || []).forEach((g: any) => m.set(g.id, g.etiqueta));
+    return m;
+  }, [data]);
+
+  const fechaGen = () =>
+    new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
 
   type Fila = {
     nombre: string;
