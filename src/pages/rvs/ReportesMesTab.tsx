@@ -540,6 +540,22 @@ export function ReportesMesTab() {
               >
                 <FileDown className="h-4 w-4 mr-1" /> PDF por zona
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportarTodasExcel}
+                disabled={isLoading || arbolTodas.length === 0}
+              >
+                <Download className="h-4 w-4 mr-1" /> Excel todas las plazas
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportarTodasPdf}
+                disabled={isLoading || arbolTodas.length === 0}
+              >
+                <FileDown className="h-4 w-4 mr-1" /> PDF todas las plazas
+              </Button>
             </>
           )}
         </div>
