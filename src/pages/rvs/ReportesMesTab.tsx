@@ -348,8 +348,9 @@ export function ReportesMesTab() {
       data.zonas,
       data.zonaPlazas,
       zonaIdsSeleccionadas,
+      grupoNombre,
     );
-  }, [data, plazaNombre, zonaIdsSeleccionadas]);
+  }, [data, plazaNombre, zonaIdsSeleccionadas, grupoNombre]);
 
   const totalUdsArbol = useMemo(
     () => arbolZonas.reduce((s, z) => s + z.udsTotal, 0),
@@ -431,8 +432,9 @@ export function ReportesMesTab() {
       data.plazas,
       data.zonas,
       data.zonaPlazas,
+      grupoNombre,
     );
-  }, [data, plazaNombre]);
+  }, [data, plazaNombre, grupoNombre]);
 
   const exportarTodasExcel = () => {
     const aoa: any[][] = [["Nombre", "Nivel", "Uds Galsa", "Uds Lumaggs", "Uds Total"]];
