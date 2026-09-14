@@ -329,7 +329,7 @@ Deno.serve(async (req) => {
           console.warn("[campaign-runner] auto-continue failed:", e);
         }
       }
-      return { sent, failed, remaining: stillPending ?? 0 };
+      return { sent, failed, skipped, remaining: stillPending ?? 0 };
     };
 
     // @ts-ignore - EdgeRuntime está disponible en Supabase Edge Runtime
