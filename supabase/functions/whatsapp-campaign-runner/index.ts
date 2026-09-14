@@ -15,6 +15,8 @@ const MAX_CAMPAIGN_MINUTES = 60;
 // Mantener cada ejecución muy por debajo del límite de 150 s del runtime.
 const BATCH_SIZE = 10;
 const MESSAGE_TIMEOUT_MS = 8_000;
+// Códigos de Meta que indican que el número no existe / no puede recibir el mensaje.
+const AUTO_BLOCK_CODES = [131026, 131052, 1013];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
