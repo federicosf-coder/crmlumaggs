@@ -150,11 +150,36 @@ Deno.serve(async (req) => {
       .limit(BATCH_SIZE);
       if (pendingError) throw new Error(`No se pudieron leer destinatarios: ${pendingError.message}`);
 
+      // Lista negra: números inexistentes / que nos bloquearon. No se les gasta envío.
+      const phones = (pending ?? []).map((r) => String(r.wa_phone ?? "")).filter(Boolean);
+      const blocked = new Set<string>();
+      if (phones.length > 0) {
+        const { data: blockedRows } = await admin
+          .from("whatsapp_numeros_bloqueados")
+          .select("wa_phone")
+          .eq("activo", true)
+          .in("wa_phone", phones);
+        for (const b of blockedRows ?? []) blocked.add(String(b.wa_phone));
+      }
+
       let sent = 0,
-        failed = 0;
+        failed = 0,
+        skipped = 0;
       for (const r of pending ?? []) {
+      if (blocked.has(String(r.wa_phone))) {
+        skipped++;
+        await admin
+          .from("whatsapp_campaign_recipients")
+          .update({
+            status: "skipped",
+            error_message: "Número en lista de bloqueados (no existe o nos bloqueó)",
+            sent_at: new Date().toISOString(),
+          })
+          .eq("id", r.id);
+        continue;
+      }
       try {
-        // Construir components: header IMAGE + body con variables (si hay)
+        // Construir components: header IMAGE/VIDEO/DOCUMENT + body con variables (si hay)
         const components: Record<string, unknown>[] = [];
         if (headerType === "IMAGE" && headerImageUrl) {
           components.push({
