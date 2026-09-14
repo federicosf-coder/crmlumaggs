@@ -241,7 +241,28 @@ Deno.serve(async (req) => {
           })
           .eq("id", r.id);
         if (ok) sent++;
-        else failed++;
+        else {
+          failed++;
+          // Auto-bloquear números inexistentes / no entregables para no gastar envíos futuros.
+          const errCode = Number(d?.error?.code ?? 0);
+          const errDetails = String(d?.error?.error_data?.details ?? d?.error?.message ?? "");
+          const noExiste =
+            AUTO_BLOCK_CODES.includes(errCode) ||
+            /not a (valid )?whatsapp user|no existe|invalid recipient|unregistered/i.test(errDetails);
+          if (noExiste) {
+            await admin
+              .from("whatsapp_numeros_bloqueados")
+              .upsert({
+                wa_phone: String(r.wa_phone),
+                motivo: "no_existe",
+                detalle: errDetails.slice(0, 300) || "Mensaje no entregable",
+                error_code: errCode || null,
+                contact_id: r.contact_id ?? null,
+                activo: true,
+                detectado_at: new Date().toISOString(),
+              }, { onConflict: "wa_phone" });
+          }
+        }
       } catch (e) {
         failed++;
         const timedOut = e instanceof DOMException && e.name === "TimeoutError";
