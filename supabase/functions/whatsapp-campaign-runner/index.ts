@@ -301,6 +301,7 @@ Deno.serve(async (req) => {
       .update({
         sent_count: (campaign.sent_count ?? 0) + sent,
         failed_count: (campaign.failed_count ?? 0) + failed,
+        skipped_count: ((campaign as any).skipped_count ?? 0) + skipped,
         status: finalStatus,
         finished_at: finalStatus === "completed" ? new Date().toISOString() : null,
       })
