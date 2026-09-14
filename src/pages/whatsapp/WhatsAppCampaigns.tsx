@@ -912,6 +912,8 @@ export default function WhatsAppCampaigns() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
+        <NumerosBloqueadosDialog open={blockedOpen} onOpenChange={setBlockedOpen} onChanged={loadBlocked} />
         <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
