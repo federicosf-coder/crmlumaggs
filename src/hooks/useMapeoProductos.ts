@@ -147,9 +147,21 @@ function useStockPorProductoImpl() {
         .from("productos")
         .select("id, codigo, marca:product_option_values!productos_marca_id_fkey(value)")
         .eq("is_active", true);
-      const { data: niveles } = await (supabase as any)
-        .from("inv_niveles_inventario")
-        .select("codigo_producto, empresa_vendedora, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, estatus_inventario");
+      const niveles: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data: page, error } = await (supabase as any)
+          .from("inv_niveles_inventario")
+          .select("codigo_producto, empresa_vendedora, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total, estatus_inventario")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!page || page.length === 0) break;
+        niveles.push(...page);
+        if (page.length < pageSize) break;
+        from += pageSize;
+      }
+
       const productoEmpresaMap = new Map<string, string>();
       for (const p of (productosBrand || []) as any[]) {
         const marcaValue = String(p.marca?.value || "").toLowerCase();
