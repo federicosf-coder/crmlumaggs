@@ -15,6 +15,8 @@ const MAX_CAMPAIGN_MINUTES = 60;
 // Mantener cada ejecución muy por debajo del límite de 150 s del runtime.
 const BATCH_SIZE = 10;
 const MESSAGE_TIMEOUT_MS = 8_000;
+// Códigos de Meta que indican que el número no existe / no puede recibir el mensaje.
+const AUTO_BLOCK_CODES = [131026, 131052, 1013];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -120,11 +122,17 @@ Deno.serve(async (req) => {
     const headerType: string = tplRow.header_type ?? "NONE";
     const headerImageUrl: string | null = campaign.header_image_url ?? null;
     const headerVideoUrl: string | null = (campaign as any).header_video_url ?? null;
+    const headerDocUrl: string | null = (campaign as any).header_document_url ?? null;
+    const headerDocFilename: string =
+      (campaign as any).header_document_filename ?? "documento.pdf";
     if (headerType === "IMAGE" && !headerImageUrl) {
       return json({ error: "La plantilla requiere una imagen de encabezado y la campaña no la tiene." }, 400);
     }
     if (headerType === "VIDEO" && !headerVideoUrl) {
       return json({ error: "La plantilla requiere un video de encabezado y la campaña no la tiene." }, 400);
+    }
+    if (headerType === "DOCUMENT" && !headerDocUrl) {
+      return json({ error: "La plantilla requiere un documento adjunto y la campaña no lo tiene." }, 400);
     }
     const tplVariables: Record<string, string> =
       (campaign.template_variables as Record<string, string> | null) ?? {};
@@ -144,11 +152,36 @@ Deno.serve(async (req) => {
       .limit(BATCH_SIZE);
       if (pendingError) throw new Error(`No se pudieron leer destinatarios: ${pendingError.message}`);
 
+      // Lista negra: números inexistentes / que nos bloquearon. No se les gasta envío.
+      const phones = (pending ?? []).map((r) => String(r.wa_phone ?? "")).filter(Boolean);
+      const blocked = new Set<string>();
+      if (phones.length > 0) {
+        const { data: blockedRows } = await admin
+          .from("whatsapp_numeros_bloqueados")
+          .select("wa_phone")
+          .eq("activo", true)
+          .in("wa_phone", phones);
+        for (const b of blockedRows ?? []) blocked.add(String(b.wa_phone));
+      }
+
       let sent = 0,
-        failed = 0;
+        failed = 0,
+        skipped = 0;
       for (const r of pending ?? []) {
+      if (blocked.has(String(r.wa_phone))) {
+        skipped++;
+        await admin
+          .from("whatsapp_campaign_recipients")
+          .update({
+            status: "skipped",
+            error_message: "Número en lista de bloqueados (no existe o nos bloqueó)",
+            sent_at: new Date().toISOString(),
+          })
+          .eq("id", r.id);
+        continue;
+      }
       try {
-        // Construir components: header IMAGE + body con variables (si hay)
+        // Construir components: header IMAGE/VIDEO/DOCUMENT + body con variables (si hay)
         const components: Record<string, unknown>[] = [];
         if (headerType === "IMAGE" && headerImageUrl) {
           components.push({
@@ -160,6 +193,15 @@ Deno.serve(async (req) => {
           components.push({
             type: "header",
             parameters: [{ type: "video", video: { link: headerVideoUrl } }],
+          });
+        }
+        if (headerType === "DOCUMENT" && headerDocUrl) {
+          components.push({
+            type: "header",
+            parameters: [{
+              type: "document",
+              document: { link: headerDocUrl, filename: headerDocFilename },
+            }],
           });
         }
         if (variableMap.length > 0) {
@@ -201,7 +243,28 @@ Deno.serve(async (req) => {
           })
           .eq("id", r.id);
         if (ok) sent++;
-        else failed++;
+        else {
+          failed++;
+          // Auto-bloquear números inexistentes / no entregables para no gastar envíos futuros.
+          const errCode = Number(d?.error?.code ?? 0);
+          const errDetails = String(d?.error?.error_data?.details ?? d?.error?.message ?? "");
+          const noExiste =
+            AUTO_BLOCK_CODES.includes(errCode) ||
+            /not a (valid )?whatsapp user|no existe|invalid recipient|unregistered/i.test(errDetails);
+          if (noExiste) {
+            await admin
+              .from("whatsapp_numeros_bloqueados")
+              .upsert({
+                wa_phone: String(r.wa_phone),
+                motivo: "no_existe",
+                detalle: errDetails.slice(0, 300) || "Mensaje no entregable",
+                error_code: errCode || null,
+                contact_id: r.contact_id ?? null,
+                activo: true,
+                detectado_at: new Date().toISOString(),
+              }, { onConflict: "wa_phone" });
+          }
+        }
       } catch (e) {
         failed++;
         const timedOut = e instanceof DOMException && e.name === "TimeoutError";
@@ -238,6 +301,7 @@ Deno.serve(async (req) => {
       .update({
         sent_count: (campaign.sent_count ?? 0) + sent,
         failed_count: (campaign.failed_count ?? 0) + failed,
+        skipped_count: ((campaign as any).skipped_count ?? 0) + skipped,
         status: finalStatus,
         finished_at: finalStatus === "completed" ? new Date().toISOString() : null,
       })
@@ -265,7 +329,7 @@ Deno.serve(async (req) => {
           console.warn("[campaign-runner] auto-continue failed:", e);
         }
       }
-      return { sent, failed, remaining: stillPending ?? 0 };
+      return { sent, failed, skipped, remaining: stillPending ?? 0 };
     };
 
     // @ts-ignore - EdgeRuntime está disponible en Supabase Edge Runtime

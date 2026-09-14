@@ -23,12 +23,13 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Megaphone, Play, Plus, AlertTriangle, CheckCircle2, Clock, CalendarIcon, Users, X, Loader2, Pause, Eye, RotateCcw, Trash2, Search, ArrowUpDown } from "lucide-react";
+import { Ban, Megaphone, Play, Plus, AlertTriangle, CheckCircle2, Clock, CalendarIcon, Users, X, Loader2, Pause, Eye, RotateCcw, Trash2, Search, ArrowUpDown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { isToday, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
 import { MarketingPromoUpload, PromoPlaceholderHint } from "@/components/whatsapp/MarketingPromoUpload";
 import { WhatsAppChatPreview } from "@/components/whatsapp/WhatsAppChatPreview";
+import { NumerosBloqueadosDialog } from "@/components/whatsapp/NumerosBloqueadosDialog";
 
 type Campaign = {
   id: string;
@@ -151,6 +152,8 @@ export default function WhatsAppCampaigns() {
   const [creating, setCreating] = useState(false);
   const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
   const [headerVideoUrl, setHeaderVideoUrl] = useState<string | null>(null);
+  const [headerDocUrl, setHeaderDocUrl] = useState<string | null>(null);
+  const [headerDocName, setHeaderDocName] = useState<string | null>(null);
   const [linePhoneId, setLinePhoneId] = useState<string>("");
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [plazaFilter, setPlazaFilter] = useState<string>("all");
@@ -163,6 +166,8 @@ export default function WhatsAppCampaigns() {
   const [excludeRecent, setExcludeRecent] = useState<boolean>(true);
   const [recentContactIds, setRecentContactIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [blockedPhones, setBlockedPhones] = useState<Set<string>>(new Set());
+  const [blockedOpen, setBlockedOpen] = useState(false);
   // Tabla: búsqueda, ordenamiento, acciones
   const [tableSearch, setTableSearch] = useState("");
   const [sortBy, setSortBy] = useState<"recent" | "oldest" | "linea">("recent");
@@ -302,6 +307,8 @@ export default function WhatsAppCampaigns() {
       .order("nombre")
       .then(({ data }) => setPlazas((data || []) as any));
 
+    loadBlocked();
+
     // Cargar contactos con envíos en últimas 48h para filtro de exclusión
     const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     (supabase as any)
@@ -326,6 +333,17 @@ export default function WhatsAppCampaigns() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const loadBlocked = () => {
+    (supabase as any)
+      .from("whatsapp_numeros_bloqueados")
+      .select("wa_phone")
+      .eq("activo", true)
+      .limit(5000)
+      .then(({ data }: any) => {
+        setBlockedPhones(new Set<string>((data || []).map((r: any) => String(r.wa_phone))));
+      });
+  };
+
   const eligible = useMemo(() => {
     return contacts.filter((c) => {
       if (!(c.whatsapp_phone || c.mobile)) return false;
@@ -336,9 +354,11 @@ export default function WhatsAppCampaigns() {
         if (!giroFilter.some((g) => ids.includes(g))) return false;
       }
       if (excludeRecent && recentContactIds.has(c.id)) return false;
+      const digits = (c.whatsapp_phone || c.mobile || "").replace(/\D/g, "");
+      if (digits && blockedPhones.has(digits)) return false;
       return true;
     });
-  }, [contacts, plazaFilter, giroFilter, excludeRecent, recentContactIds]);
+  }, [contacts, plazaFilter, giroFilter, excludeRecent, recentContactIds, blockedPhones]);
 
   // Preselección desde Seguimiento → Productos
   useEffect(() => {
@@ -382,6 +402,8 @@ export default function WhatsAppCampaigns() {
     setSelected(new Set());
     setHeaderImageUrl(null);
     setHeaderVideoUrl(null);
+    setHeaderDocUrl(null);
+    setHeaderDocName(null);
     setVariables({});
     setScheduleMode("now");
     setScheduledAt(undefined);
@@ -395,6 +417,7 @@ export default function WhatsAppCampaigns() {
   );
   const requiresImage = selectedTpl?.header_type === "IMAGE";
   const requiresVideo = selectedTpl?.header_type === "VIDEO";
+  const requiresDocument = selectedTpl?.header_type === "DOCUMENT";
   const isApproved = selectedTpl?.status === "APPROVED";
   const variableKeys: string[] = Array.isArray(selectedTpl?.variable_map)
     ? (selectedTpl!.variable_map as string[])
@@ -447,6 +470,10 @@ export default function WhatsAppCampaigns() {
       toast.error("Esta plantilla requiere un video de encabezado");
       return false;
     }
+    if (requiresDocument && !headerDocUrl) {
+      toast.error("Esta plantilla requiere adjuntar un documento");
+      return false;
+    }
     if (missingVars.length > 0) {
       toast.error(`Faltan variables: ${missingVars.join(", ")}`);
       return false;
@@ -497,6 +524,8 @@ export default function WhatsAppCampaigns() {
         created_by: ures.user?.id,
         header_image_url: headerImageUrl,
         header_video_url: headerVideoUrl,
+        header_document_url: headerDocUrl,
+        header_document_filename: headerDocName,
         business_phone_number_id: linePhoneId,
         template_variables: Object.keys(variables).length > 0 ? variables : null,
       })
@@ -561,6 +590,11 @@ export default function WhatsAppCampaigns() {
             Envíos masivos con plantillas aprobadas. Solo plantillas — Meta no permite texto libre en masivos.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <Button variant="outline" onClick={() => setBlockedOpen(true)}>
+          <Ban className="h-4 w-4 mr-2" /> Números bloqueados
+          {blockedPhones.size > 0 && <Badge variant="secondary" className="ml-2">{blockedPhones.size}</Badge>}
+        </Button>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Nueva campaña</Button>
@@ -641,7 +675,7 @@ export default function WhatsAppCampaigns() {
                 </div>
                 <div>
                   <Label>Plantilla</Label>
-                  <Select value={tplName} onValueChange={(v) => { setTplName(v); setVariables({}); setHeaderImageUrl(null); setHeaderVideoUrl(null); }}>
+                  <Select value={tplName} onValueChange={(v) => { setTplName(v); setVariables({}); setHeaderImageUrl(null); setHeaderVideoUrl(null); setHeaderDocUrl(null); setHeaderDocName(null); }}>
                     <SelectTrigger><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                     <SelectContent>
                       {templates.length === 0 ? (
@@ -702,6 +736,22 @@ export default function WhatsAppCampaigns() {
                     aspectRatio="16/9"
                   />
                   <p className="text-xs text-muted-foreground">MP4 · máx 16 MB.</p>
+                </div>
+              )}
+
+              {requiresDocument && (
+                <div className="space-y-2">
+                  <Label>Documento adjunto</Label>
+                  <MarketingPromoUpload
+                    value={headerDocUrl}
+                    onChange={setHeaderDocUrl}
+                    onFileName={setHeaderDocName}
+                    kind="document"
+                    aspectRatio="3/1"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    PDF, Word o Excel · máx 20 MB. Se envía como archivo dentro del mensaje.
+                  </p>
                 </div>
               )}
 
@@ -862,6 +912,8 @@ export default function WhatsAppCampaigns() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
+        <NumerosBloqueadosDialog open={blockedOpen} onOpenChange={setBlockedOpen} onChanged={loadBlocked} />
         <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>

@@ -1,11 +1,11 @@
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload, X, Image as ImageIcon, Video as VideoIcon } from "lucide-react";
+import { Loader2, Upload, X, Image as ImageIcon, Video as VideoIcon, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Kind = "image" | "video";
+type Kind = "image" | "video" | "document";
 
 interface Props {
   value: string | null;
@@ -16,12 +16,22 @@ interface Props {
   disabled?: boolean;
   /** Tipo de archivo. Por defecto "image". */
   kind?: Kind;
+  /** Se invoca con el nombre original del archivo subido (útil para documentos). */
+  onFileName?: (name: string | null) => void;
 }
 
 const IMAGE_MAX = 5 * 1024 * 1024; // 5 MB
 const VIDEO_MAX = 16 * 1024 * 1024; // 16 MB (límite Meta para video en plantillas)
 const IMAGE_MIME = ["image/jpeg", "image/jpg", "image/png"];
 const VIDEO_MIME = ["video/mp4"];
+const DOC_MAX = 20 * 1024 * 1024; // 20 MB
+const DOC_MIME = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
 
 /**
  * Drag & drop uploader que sube imágenes al bucket público `marketing-promos`
@@ -34,27 +44,36 @@ export function MarketingPromoUpload({
   className,
   disabled,
   kind = "image",
+  onFileName,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const isVideo = kind === "video";
-  const ALLOWED = isVideo ? VIDEO_MIME : IMAGE_MIME;
-  const MAX_BYTES = isVideo ? VIDEO_MAX : IMAGE_MAX;
+  const isDoc = kind === "document";
+  const [fileName, setFileName] = useState<string | null>(null);
+  const ALLOWED = isDoc ? DOC_MIME : isVideo ? VIDEO_MIME : IMAGE_MIME;
+  const MAX_BYTES = isDoc ? DOC_MAX : isVideo ? VIDEO_MAX : IMAGE_MAX;
 
   const upload = useCallback(
     async (file: File) => {
       if (!ALLOWED.includes(file.type)) {
-        toast.error(isVideo ? "Solo MP4" : "Solo JPG o PNG");
+        toast.error(isDoc ? "Solo PDF, Word o Excel" : isVideo ? "Solo MP4" : "Solo JPG o PNG");
         return;
       }
       if (file.size > MAX_BYTES) {
-        toast.error(isVideo ? "El video no puede exceder 16 MB" : "La imagen no puede exceder 5 MB");
+        toast.error(
+          isDoc
+            ? "El documento no puede exceder 20 MB"
+            : isVideo
+            ? "El video no puede exceder 16 MB"
+            : "La imagen no puede exceder 5 MB",
+        );
         return;
       }
       setUploading(true);
       try {
-        const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
+        const ext = file.name.split(".").pop() || (isDoc ? "pdf" : isVideo ? "mp4" : "jpg");
         const path = `${new Date().getFullYear()}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage
           .from("marketing-promos")
@@ -87,12 +106,14 @@ export function MarketingPromoUpload({
           // si HEAD falla por CORS aceptamos la URL — Meta la descargará server-side
         }
         onChange(publicUrl);
-        toast.success("Imagen cargada");
+        setFileName(file.name);
+        onFileName?.(file.name);
+        toast.success(isDoc ? "Documento cargado" : isVideo ? "Video cargado" : "Imagen cargada");
       } finally {
         setUploading(false);
       }
     },
-    [onChange, isVideo, ALLOWED, MAX_BYTES],
+    [onChange, onFileName, isVideo, isDoc, ALLOWED, MAX_BYTES],
   );
 
   const onDrop = (e: React.DragEvent) => {
@@ -105,6 +126,8 @@ export function MarketingPromoUpload({
 
   const remove = () => {
     onChange(null);
+    setFileName(null);
+    onFileName?.(null);
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -126,7 +149,15 @@ export function MarketingPromoUpload({
     >
       {value ? (
         <>
-          {isVideo ? (
+          {isDoc ? (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4 text-center">
+              <FileText className="h-8 w-8 text-primary" />
+              <span className="text-sm font-medium break-all">{fileName || "Documento adjunto"}</span>
+              <a href={value} target="_blank" rel="noreferrer" className="text-xs text-primary underline">
+                Ver documento
+              </a>
+            </div>
+          ) : isVideo ? (
             <video src={value} className="w-full h-full object-cover" controls />
           ) : (
             <img src={value} alt="Promo" className="w-full h-full object-cover" />
@@ -155,12 +186,14 @@ export function MarketingPromoUpload({
             </>
           ) : (
             <>
-              {isVideo ? <VideoIcon className="h-6 w-6" /> : <Upload className="h-6 w-6" />}
+              {isDoc ? <FileText className="h-6 w-6" /> : isVideo ? <VideoIcon className="h-6 w-6" /> : <Upload className="h-6 w-6" />}
               <span className="font-medium">
-                {isVideo ? "Arrastra un video aquí" : "Arrastra una imagen aquí"}
+                {isDoc ? "Arrastra un documento aquí" : isVideo ? "Arrastra un video aquí" : "Arrastra una imagen aquí"}
               </span>
               <span className="text-xs">
-                {isVideo
+                {isDoc
+                  ? "o haz clic para seleccionar (PDF/Word/Excel · máx 20 MB)"
+                  : isVideo
                   ? "o haz clic para seleccionar (MP4 · máx 16 MB)"
                   : "o haz clic para seleccionar (JPG/PNG · máx 5 MB)"}
               </span>
@@ -171,7 +204,7 @@ export function MarketingPromoUpload({
       <input
         ref={inputRef}
         type="file"
-        accept={isVideo ? "video/mp4" : "image/jpeg,image/png"}
+        accept={isDoc ? ".pdf,.doc,.docx,.xls,.xlsx" : isVideo ? "video/mp4" : "image/jpeg,image/png"}
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];

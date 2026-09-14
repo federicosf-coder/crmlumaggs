@@ -9632,6 +9632,8 @@ export type Database = {
           created_by: string | null
           failed_count: number
           finished_at: string | null
+          header_document_filename: string | null
+          header_document_url: string | null
           header_image_url: string | null
           header_video_url: string | null
           id: string
@@ -9654,6 +9656,8 @@ export type Database = {
           created_by?: string | null
           failed_count?: number
           finished_at?: string | null
+          header_document_filename?: string | null
+          header_document_url?: string | null
           header_image_url?: string | null
           header_video_url?: string | null
           id?: string
@@ -9676,6 +9680,8 @@ export type Database = {
           created_by?: string | null
           failed_count?: number
           finished_at?: string | null
+          header_document_filename?: string | null
+          header_document_url?: string | null
           header_image_url?: string | null
           header_video_url?: string | null
           id?: string
@@ -9951,6 +9957,56 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      whatsapp_numeros_bloqueados: {
+        Row: {
+          activo: boolean
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          detalle: string | null
+          detectado_at: string
+          error_code: number | null
+          id: string
+          motivo: string
+          updated_at: string
+          wa_phone: string
+        }
+        Insert: {
+          activo?: boolean
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          detalle?: string | null
+          detectado_at?: string
+          error_code?: number | null
+          id?: string
+          motivo?: string
+          updated_at?: string
+          wa_phone: string
+        }
+        Update: {
+          activo?: boolean
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          detalle?: string | null
+          detectado_at?: string
+          error_code?: number | null
+          id?: string
+          motivo?: string
+          updated_at?: string
+          wa_phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_numeros_bloqueados_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_quick_replies: {
         Row: {
