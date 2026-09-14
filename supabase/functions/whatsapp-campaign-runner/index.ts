@@ -193,6 +193,15 @@ Deno.serve(async (req) => {
             parameters: [{ type: "video", video: { link: headerVideoUrl } }],
           });
         }
+        if (headerType === "DOCUMENT" && headerDocUrl) {
+          components.push({
+            type: "header",
+            parameters: [{
+              type: "document",
+              document: { link: headerDocUrl, filename: headerDocFilename },
+            }],
+          });
+        }
         if (variableMap.length > 0) {
           components.push({
             type: "body",
