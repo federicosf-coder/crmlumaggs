@@ -669,17 +669,39 @@ export default function SeguimientoLanding() {
     [prospectos, clientes]
   );
 
+  // Universo de empresas visibles: prospectos + clientes ya vienen filtrados por
+  // access.accessLevel y por los chips de Ejecutivo/Plaza, así que representan
+  // exactamente lo que este usuario puede ver con los filtros actuales.
+  const visibleCompanyIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [...prospectos, ...clientes]
+            .map((r) => r.company_id)
+            .filter(Boolean)
+        )
+      ) as string[],
+    [prospectos, clientes]
+  );
+  const visibleCompanyIdsKey = useMemo(
+    () => [...visibleCompanyIds].sort().join(","),
+    [visibleCompanyIds]
+  );
+
   const periodoStartIso = periodoStart.toISOString();
   const periodoEndIso = periodoEnd.toISOString();
 
   const { data: actividades = [] } = useQuery({
-    queryKey: ["seg_actividades_periodo", periodoStartIso, periodoEndIso],
+    queryKey: ["seg_actividades_periodo", periodoStartIso, periodoEndIso, visibleCompanyIdsKey],
+    enabled: visibleCompanyIds.length > 0,
     queryFn: async () => {
+      if (visibleCompanyIds.length === 0) return [];
       const { data, error } = await supabase
         .from("crm_activities")
         .select("id, type, title, description, activity_date, company_id, user_id, companies:company_id(id, name, volumen_mensual_estimado)")
         .gte("activity_date", periodoStartIso)
         .lte("activity_date", periodoEndIso)
+        .in("company_id", visibleCompanyIds)
         .not("title", "ilike", "%Solicitud de validación de pago%")
         .not("title", "ilike", "%Aplicación de pago%")
         .not("title", "ilike", "%Cobranza ·%")
@@ -747,14 +769,17 @@ export default function SeguimientoLanding() {
   });
 
   const { data: cotizacionesPeriodo = [] } = useQuery({
-    queryKey: ["seg_cotizaciones_periodo", periodoStartDate, periodoEndDate, empresaSel],
+    queryKey: ["seg_cotizaciones_periodo", periodoStartDate, periodoEndDate, empresaSel, visibleCompanyIdsKey],
+    enabled: visibleCompanyIds.length > 0,
     queryFn: async () => {
+      if (visibleCompanyIds.length === 0) return [];
       const { data, error } = await supabase
         .from("documentos")
         .select("id, numero_cotizacion, fecha_documento, companies:empresa_id(name)")
         .eq("empresa_vendedora", empresaSel)
         .eq("tipo_documento", "cotizacion")
         .eq("is_active", true)
+        .in("empresa_id", visibleCompanyIds)
         .gte("fecha_documento", periodoStartDate)
         .lte("fecha_documento", periodoEndDate)
         .order("fecha_documento", { ascending: false });
@@ -764,8 +789,10 @@ export default function SeguimientoLanding() {
   });
 
   const { data: facturasPeriodo = [] } = useQuery({
-    queryKey: ["seg_facturas_periodo", periodoStartDate, periodoEndDate, empresaSel],
+    queryKey: ["seg_facturas_periodo", periodoStartDate, periodoEndDate, empresaSel, visibleCompanyIdsKey],
+    enabled: visibleCompanyIds.length > 0,
     queryFn: async () => {
+      if (visibleCompanyIds.length === 0) return [];
       const { data, error } = await supabase
         .from("documentos")
         .select("id, numero_factura, fecha_documento, companies:empresa_id(name)")
@@ -773,6 +800,7 @@ export default function SeguimientoLanding() {
         .eq("tipo_documento", "factura")
         .eq("is_active", true)
         .neq("estatus_factura", "cancelada")
+        .in("empresa_id", visibleCompanyIds)
         .gte("fecha_documento", periodoStartDate)
         .lte("fecha_documento", periodoEndDate)
         .order("fecha_documento", { ascending: false });
@@ -782,12 +810,15 @@ export default function SeguimientoLanding() {
   });
 
   const { data: cobranzaPagosPeriodo = [] } = useQuery({
-    queryKey: ["seg_cobranza_pagos_periodo", periodoStartDate, periodoEndDate, empresaSel],
+    queryKey: ["seg_cobranza_pagos_periodo", periodoStartDate, periodoEndDate, empresaSel, visibleCompanyIdsKey],
+    enabled: visibleCompanyIds.length > 0,
     queryFn: async () => {
+      if (visibleCompanyIds.length === 0) return [];
       const { data, error } = await supabase
         .from("cobranza_pagos")
         .select("id, monto_total, fecha_pago, empresa_id, companies:empresa_id(name)")
         .eq("empresa_vendedora", empresaSel)
+        .in("empresa_id", visibleCompanyIds)
         .gte("fecha_pago", periodoStartDate)
         .lte("fecha_pago", periodoEndDate)
         .order("fecha_pago", { ascending: false });
