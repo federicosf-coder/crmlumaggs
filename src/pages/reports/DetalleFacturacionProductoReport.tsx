@@ -10,7 +10,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { es as esLocale } from "date-fns/locale";
 import {
@@ -40,11 +40,25 @@ const PILL: Record<Empresa, { active: string; idle: string }> = {
 
 const ESTATUS_LABEL: Record<string, string> = {
   vigente: "Vigente",
-  pendiente: "Vigente",
+  pendiente: "Pendiente",
   pagada: "Pagada",
+  parcial: "Parcial",
   vencida: "Vencida",
   cancelada: "Cancelada",
 };
+
+const ESTATUS_KEYS = ["vigente", "pendiente", "pagada", "parcial", "vencida", "cancelada"];
+
+type SortKey =
+  | "fecha"
+  | "numeroFactura"
+  | "producto"
+  | "presentacion"
+  | "cantidad"
+  | "unidadesEquivalentes"
+  | "precioUnitario"
+  | "importe"
+  | "estatus";
 
 interface Linea {
   key: string;
@@ -65,6 +79,10 @@ export default function DetalleFacturacionProductoReport() {
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const [customStart, setCustomStart] = useState<Date | undefined>(startOfMonth(new Date()));
   const [customEnd, setCustomEnd] = useState<Date | undefined>(endOfToday());
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [estatusSel, setEstatusSel] = useState<string[]>(["vigente", "pendiente", "pagada", "parcial", "vencida"]);
+  const incluirCanceladas = estatusSel.includes("cancelada");
 
   const { periodoStart, periodoEnd } = useMemo(() => {
     switch (periodo) {
@@ -132,9 +150,44 @@ export default function DetalleFacturacionProductoReport() {
     },
   });
 
+  const lineasFiltradas = useMemo(
+    () => lineas.filter((l) => !ESTATUS_KEYS.includes(l.estatus) || estatusSel.includes(l.estatus)),
+    [lineas, estatusSel]
+  );
+
+  const lineasOrdenadas = useMemo(() => {
+    if (!sortKey) return lineasFiltradas;
+    const mult = sortDir === "asc" ? 1 : -1;
+    const sorted = [...lineasFiltradas];
+    sorted.sort((a, b) => {
+      if (sortKey === "numeroFactura") {
+        return mult * a.numeroFactura.localeCompare(b.numeroFactura, "es-MX", { numeric: true });
+      }
+      if (sortKey === "estatus") {
+        const ea = ESTATUS_LABEL[a.estatus] ?? a.estatus ?? "";
+        const eb = ESTATUS_LABEL[b.estatus] ?? b.estatus ?? "";
+        return mult * ea.localeCompare(eb, "es");
+      }
+      const va = a[sortKey] as string | number;
+      const vb = b[sortKey] as string | number;
+      if (typeof va === "number" && typeof vb === "number") return mult * (va - vb);
+      return mult * String(va).localeCompare(String(vb), "es");
+    });
+    return sorted;
+  }, [lineasFiltradas, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
   const totales = useMemo(() => {
     const t = { cantidad: 0, unidades: 0, importe: 0, cCantidad: 0, cUnidades: 0, cImporte: 0, cLineas: 0 };
-    for (const l of lineas) {
+    for (const l of lineasFiltradas) {
       t.cantidad += l.cantidad;
       t.unidades += l.unidadesEquivalentes;
       t.importe += l.importe;
@@ -146,9 +199,23 @@ export default function DetalleFacturacionProductoReport() {
       }
     }
     return t;
-  }, [lineas]);
+  }, [lineasFiltradas]);
 
   const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
+
+  const SortHead = ({ label, k, right }: { label: string; k: SortKey; right?: boolean }) => (
+    <TableHead className={right ? "text-right" : undefined}>
+      <button
+        type="button"
+        onClick={() => toggleSort(k)}
+        className="inline-flex items-center gap-1 uppercase tracking-wide font-medium hover:text-foreground"
+      >
+        {label}
+        {sortKey === k &&
+          (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+      </button>
+    </TableHead>
+  );
 
   return (
     <>
@@ -237,31 +304,58 @@ export default function DetalleFacturacionProductoReport() {
           Periodo: {format(periodoStart, "d MMM yyyy", { locale: esLocale })} — {format(periodoEnd, "d MMM yyyy", { locale: esLocale })}
         </p>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Estatus de factura:</span>
+          {ESTATUS_KEYS.map((k) => {
+            const active = estatusSel.includes(k);
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() =>
+                  setEstatusSel((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]))
+                }
+                className={cn(
+                  "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all",
+                  active ? pill.active : pill.idle
+                )}
+                aria-pressed={active}
+              >
+                {ESTATUS_LABEL[k]}
+              </button>
+            );
+          })}
+        </div>
+
         <Card>
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-8 text-center text-muted-foreground text-sm">Cargando...</div>
             ) : lineas.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground text-sm">Sin facturación en este periodo.</div>
+            ) : lineasFiltradas.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm">Sin líneas con los estatus seleccionados.</div>
             ) : (
               <>
                 <div className="max-h-[calc(100vh-22rem)] overflow-auto">
                   <Table>
                     <TableHeader className="sticky top-0 z-20 [&_th]:bg-background">
                       <TableRow>
-                        <TableHead>Número de Factura</TableHead>
-                        <TableHead>Producto</TableHead>
-                        <TableHead>Presentación</TableHead>
-                        <TableHead className="text-right">Cantidad Facturada</TableHead>
-                        <TableHead className="text-right">Unidades Equivalentes</TableHead>
-                        <TableHead className="text-right">Precio Unitario</TableHead>
-                        <TableHead className="text-right">Importe</TableHead>
-                        <TableHead>Estatus de Factura</TableHead>
+                        <SortHead label="Fecha de Factura" k="fecha" />
+                        <SortHead label="Número de Factura" k="numeroFactura" />
+                        <SortHead label="Producto" k="producto" />
+                        <SortHead label="Presentación" k="presentacion" />
+                        <SortHead label="Cantidad Facturada" k="cantidad" right />
+                        <SortHead label="Unidades Equivalentes" k="unidadesEquivalentes" right />
+                        <SortHead label="Precio Unitario" k="precioUnitario" right />
+                        <SortHead label="Importe" k="importe" right />
+                        <SortHead label="Estatus de Factura" k="estatus" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {lineas.map((l) => (
+                      {lineasOrdenadas.map((l) => (
                         <TableRow key={l.key} className={cn(l.cancelada && "bg-destructive/5 text-muted-foreground line-through decoration-destructive/40")}>
+                          <TableCell className="text-sm whitespace-nowrap">{l.fecha ? format(new Date(`${l.fecha}T12:00:00`), "d MMM yyyy", { locale: esLocale }) : "—"}</TableCell>
                           <TableCell className="font-medium whitespace-nowrap">{l.numeroFactura}</TableCell>
                           <TableCell className="text-sm">{l.producto}</TableCell>
                           <TableCell className="text-sm">{l.presentacion}</TableCell>
@@ -277,8 +371,8 @@ export default function DetalleFacturacionProductoReport() {
                         </TableRow>
                       ))}
                       <TableRow className="bg-muted/60 font-semibold sticky bottom-0">
-                        <TableCell colSpan={3} className="text-xs uppercase tracking-wide">
-                          Totales ({lineas.length} líneas)
+                        <TableCell colSpan={4} className="text-xs uppercase tracking-wide">
+                          Totales ({lineasFiltradas.length} líneas)
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{fmt(totales.cantidad)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmt(totales.unidades)}</TableCell>
@@ -289,24 +383,26 @@ export default function DetalleFacturacionProductoReport() {
                     </TableBody>
                   </Table>
                 </div>
-                <div className="border-t p-3 text-xs font-light space-y-1">
-                  {totales.cLineas > 0 ? (
-                    <>
-                      <p className="text-destructive">
-                        Incluye {totales.cLineas} línea{totales.cLineas === 1 ? "" : "s"} de facturas canceladas:{" "}
-                        {fmt(totales.cCantidad)} de cantidad, {fmt(totales.cUnidades)} unidades equivalentes y{" "}
-                        {formatCurrency(totales.cImporte)} de importe.
-                      </p>
-                      <p className="text-muted-foreground">
-                        Total sin canceladas: {fmt(totales.cantidad - totales.cCantidad)} de cantidad,{" "}
-                        {fmt(totales.unidades - totales.cUnidades)} unidades equivalentes y{" "}
-                        {formatCurrency(totales.importe - totales.cImporte)} de importe.
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-muted-foreground">No hay líneas de facturas canceladas en este periodo.</p>
-                  )}
-                </div>
+                {incluirCanceladas && (
+                  <div className="border-t p-3 text-xs font-light space-y-1">
+                    {totales.cLineas > 0 ? (
+                      <>
+                        <p className="text-destructive">
+                          Incluye {totales.cLineas} línea{totales.cLineas === 1 ? "" : "s"} de facturas canceladas:{" "}
+                          {fmt(totales.cCantidad)} de cantidad, {fmt(totales.cUnidades)} unidades equivalentes y{" "}
+                          {formatCurrency(totales.cImporte)} de importe.
+                        </p>
+                        <p className="text-muted-foreground">
+                          Total sin canceladas: {fmt(totales.cantidad - totales.cCantidad)} de cantidad,{" "}
+                          {fmt(totales.unidades - totales.cUnidades)} unidades equivalentes y{" "}
+                          {formatCurrency(totales.importe - totales.cImporte)} de importe.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground">No hay líneas de facturas canceladas en este periodo.</p>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </CardContent>
