@@ -1003,6 +1003,29 @@ export default function DocumentsList() {
         </div>
       )}
 
+      {/* Cotización revision filter buttons */}
+      {tipoFilter === "cotizacion" && (
+        <div className="flex gap-1.5 flex-wrap">
+          {[
+            { value: "all", label: "Todas" },
+            { value: "no", label: "Sin revisión" },
+            { value: "si", label: "Con revisión" },
+          ].map((opt) => {
+            const isActive = revisionFilter === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setRevisionFilter(opt.value as "all" | "si" | "no")}
+                className={`inline-flex items-center h-7 px-3 rounded-full border text-xs font-medium transition-all ${isActive ? "bg-slate-800 text-white border-slate-800" : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"}`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Kanban view */}
       {viewMode === "kanban" ? (
         <div>
