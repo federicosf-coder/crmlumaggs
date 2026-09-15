@@ -408,6 +408,8 @@ export default function DocumentsList() {
       if (fechaDesde) q = q.gte("fecha_documento", fechaDesde);
       if (fechaHasta) q = q.lte("fecha_documento", fechaHasta);
       if (tipoFilter === "cotizacion" && estatusCotFilter !== "all") q = q.eq("estatus_cotizacion", estatusCotFilter as any);
+      if (tipoFilter === "cotizacion" && revisionFilter === "si") q = q.not("cotizacion_original_id", "is", null);
+      if (tipoFilter === "cotizacion" && revisionFilter === "no") q = q.is("cotizacion_original_id", null);
       if (tipoFilter === "pedido" && estatusPedFilter !== "all") q = q.eq("estatus_pedido", estatusPedFilter as any);
       if (tipoFilter === "factura" && estatusFacFilter !== "all") {
         if (estatusFacFilter === "vigente") {
