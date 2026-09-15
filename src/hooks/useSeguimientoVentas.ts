@@ -6,7 +6,7 @@ export type EmpresaVendedora = "lumaggs_chevron" | "galsa_phillips66";
 export interface SeguimientoEstatus {
   id: string;
   ambito: "con_venta" | "sin_venta";
-  familia: "riesgo" | "ritmo" | "avance" | "gestion";
+  familia: "riesgo" | "ritmo" | "avance" | "gestion" | "etapa_prospecto";
   nombre: string;
   color: string;
   es_urgente: boolean;
@@ -51,6 +51,8 @@ export interface SeguimientoVentasRow {
   motivo_perdida_id?: string | null;
   fecha_perdida?: string | null;
   nota_perdida?: string | null;
+  fecha_conversion: string | null;
+  es_nuevo_cliente: boolean;
 }
 
 export function useSeguimientoEstatusCatalogo() {

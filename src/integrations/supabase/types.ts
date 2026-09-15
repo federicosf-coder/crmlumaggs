@@ -8639,11 +8639,16 @@ export type Database = {
           dias_ultima_compra: number | null
           dias_ultima_cotizacion: number | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          es_nuevo_cliente: boolean
           estatus_gestion_id: string | null
           estatus_manual: boolean
           estatus_manual_id: string | null
           estatus_riesgo_id: string | null
           estatus_ritmo_id: string | null
+          etapa_prospecto_id: string | null
+          etapa_prospecto_manual: boolean
+          etapa_prospecto_manual_id: string | null
+          fecha_conversion: string | null
           fecha_perdida: string | null
           fecha_ultima_compra: string | null
           id: string
@@ -8675,11 +8680,16 @@ export type Database = {
           dias_ultima_compra?: number | null
           dias_ultima_cotizacion?: number | null
           empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
+          es_nuevo_cliente?: boolean
           estatus_gestion_id?: string | null
           estatus_manual?: boolean
           estatus_manual_id?: string | null
           estatus_riesgo_id?: string | null
           estatus_ritmo_id?: string | null
+          etapa_prospecto_id?: string | null
+          etapa_prospecto_manual?: boolean
+          etapa_prospecto_manual_id?: string | null
+          fecha_conversion?: string | null
           fecha_perdida?: string | null
           fecha_ultima_compra?: string | null
           id?: string
@@ -8711,11 +8721,16 @@ export type Database = {
           dias_ultima_compra?: number | null
           dias_ultima_cotizacion?: number | null
           empresa_vendedora?: Database["public"]["Enums"]["empresa_vendedora"]
+          es_nuevo_cliente?: boolean
           estatus_gestion_id?: string | null
           estatus_manual?: boolean
           estatus_manual_id?: string | null
           estatus_riesgo_id?: string | null
           estatus_ritmo_id?: string | null
+          etapa_prospecto_id?: string | null
+          etapa_prospecto_manual?: boolean
+          etapa_prospecto_manual_id?: string | null
+          fecha_conversion?: string | null
           fecha_perdida?: string | null
           fecha_ultima_compra?: string | null
           id?: string
@@ -8765,6 +8780,20 @@ export type Database = {
           {
             foreignKeyName: "seguimiento_ventas_estatus_ritmo_id_fkey"
             columns: ["estatus_ritmo_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_estatus_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_ventas_etapa_prospecto_id_fkey"
+            columns: ["etapa_prospecto_id"]
+            isOneToOne: false
+            referencedRelation: "seguimiento_estatus_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_ventas_etapa_prospecto_manual_id_fkey"
+            columns: ["etapa_prospecto_manual_id"]
             isOneToOne: false
             referencedRelation: "seguimiento_estatus_catalogo"
             referencedColumns: ["id"]

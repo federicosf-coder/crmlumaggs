@@ -18,7 +18,14 @@ import {
 import { useVentasCharts } from "@/hooks/useVentasCharts";
 import { useVentasMensual, reporteMes } from "@/hooks/useVentasMensual";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { EmpresaVendedora } from "@/hooks/useSeguimientoVentas";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
+import {
+  useSeguimientoVentas,
+  useSeguimientoEstatusCatalogo,
+} from "@/hooks/useSeguimientoVentas";
+import type { EmpresaVendedora, SeguimientoVentasRow } from "@/hooks/useSeguimientoVentas";
 
 const PALETTES: Record<EmpresaVendedora, { bar: string; line?: string; bars: string[]; ring: string; text: string }> = {
   lumaggs_chevron: {
@@ -216,8 +223,212 @@ function VentasChartsSection({ empresa, label }: { empresa: EmpresaVendedora; la
   );
 }
 
+const PILL: Record<EmpresaVendedora, { active: string; idle: string }> = {
+  lumaggs_chevron: {
+    active: "bg-blue-600 text-white border-blue-600",
+    idle: "bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100",
+  },
+  galsa_phillips66: {
+    active: "bg-red-600 text-white border-red-600",
+    idle: "bg-red-50 text-red-700 border-red-300 hover:bg-red-100",
+  },
+};
+
+function toggleInArray(arr: string[], v: string) {
+  return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
+}
+
+const CHIP_COLORS = [
+  "#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed",
+  "#0891b2", "#db2777", "#ea580c", "#65a30d", "#9333ea",
+];
+
 export default function SeguimientoLanding() {
   const navigate = useNavigate();
+  const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>("lumaggs_chevron");
+  const [kanbanTab, setKanbanTab] = useState<"sin_venta" | "con_venta">("sin_venta");
+  const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
+  const [fPlaza, setFPlaza] = useState<string[]>([]);
+
+  const pill = PILL[empresaSel];
+  const access = useModuleAccess("seguimiento_ventas");
+  const { data: catalogo = [] } = useSeguimientoEstatusCatalogo();
+  const { data: prospectosRaw = [] } = useSeguimientoVentas({ empresaVendedora: empresaSel, tieneVenta: false });
+  const { data: clientesRaw = [] } = useSeguimientoVentas({ empresaVendedora: empresaSel, tieneVenta: true });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles_min"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("is_active", true);
+      if (error) throw error;
+      return (data || []) as { user_id: string; full_name: string | null }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+  const profileMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of profiles) m.set(p.user_id, p.full_name || "—");
+    return m;
+  }, [profiles]);
+
+  const { data: plazasData = [] } = useQuery({
+    queryKey: ["plazas_min"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre");
+      if (error) throw error;
+      return (data || []) as { id: string; nombre: string }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+  const { data: companyPlazas = [] } = useQuery({
+    queryKey: ["company_plazas_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("company_plazas").select("company_id, plaza_id");
+      if (error) throw error;
+      return (data || []) as { company_id: string; plaza_id: string }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+  const plazaNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of plazasData) m.set(p.id, p.nombre);
+    return m;
+  }, [plazasData]);
+  const companyPlazaMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const cp of companyPlazas) {
+      const arr = m.get(cp.company_id) || [];
+      arr.push(cp.plaza_id);
+      m.set(cp.company_id, arr);
+    }
+    return m;
+  }, [companyPlazas]);
+
+  const applyAccess = useMemo(() => {
+    return (rows: SeguimientoVentasRow[]) => {
+      if (access.accessLevel === "ninguno") return [];
+      if (access.accessLevel === "propio") return rows.filter((r) => r.owner_id && r.owner_id === access.userId);
+      if (access.accessLevel === "equipo") {
+        const allowed = new Set(access.teamMemberIds);
+        return rows.filter((r) => r.owner_id && allowed.has(r.owner_id));
+      }
+      return rows;
+    };
+  }, [access.accessLevel, access.userId, access.teamMemberIds]);
+
+  const prospectosAcc = useMemo(() => applyAccess(prospectosRaw), [applyAccess, prospectosRaw]);
+  const clientesAcc = useMemo(() => applyAccess(clientesRaw), [applyAccess, clientesRaw]);
+
+  const ejecutivoOptions = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of [...prospectosAcc, ...clientesAcc]) if (r.owner_id) ids.add(r.owner_id);
+    return Array.from(ids)
+      .map((id, i) => ({ id, name: profileMap.get(id) || "—", color: CHIP_COLORS[i % CHIP_COLORS.length] }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [prospectosAcc, clientesAcc, profileMap]);
+
+  const plazaOptions = useMemo(() => {
+    const used = new Set<string>();
+    for (const r of [...prospectosAcc, ...clientesAcc]) {
+      for (const pid of companyPlazaMap.get(r.company_id) || []) used.add(pid);
+    }
+    return plazasData
+      .filter((p) => used.has(p.id))
+      .map((p, i) => ({ id: p.id, name: p.nombre, color: CHIP_COLORS[(i + 3) % CHIP_COLORS.length] }));
+  }, [prospectosAcc, clientesAcc, plazasData, companyPlazaMap]);
+
+  const applyChips = useMemo(() => {
+    return (rows: SeguimientoVentasRow[]) => {
+      let base = rows;
+      if (fEjecutivo.length > 0) base = base.filter((r) => (r.owner_id ? fEjecutivo.includes(r.owner_id) : false));
+      if (fPlaza.length > 0) {
+        base = base.filter((r) => (companyPlazaMap.get(r.company_id) || []).some((pid) => fPlaza.includes(pid)));
+      }
+      return base;
+    };
+  }, [fEjecutivo, fPlaza, companyPlazaMap]);
+
+  const prospectos = useMemo(() => applyChips(prospectosAcc), [applyChips, prospectosAcc]);
+  const clientes = useMemo(() => applyChips(clientesAcc), [applyChips, clientesAcc]);
+
+  const dormidoIds = useMemo(
+    () => new Set(catalogo.filter((c) => c.nombre === "Dormido").map((c) => c.id)),
+    [catalogo]
+  );
+  const kpis = useMemo(
+    () => ({
+      prospectos: prospectos.length,
+      clientes: clientes.length,
+      nuevos: clientes.filter((c) => c.es_nuevo_cliente === true).length,
+      dormidos: clientes.filter((c) => c.estatus_riesgo_id && dormidoIds.has(c.estatus_riesgo_id)).length,
+    }),
+    [prospectos, clientes, dormidoIds]
+  );
+
+  const etapasProspecto = useMemo(
+    () => catalogo.filter((c) => c.ambito === "sin_venta" && c.familia === "etapa_prospecto").sort((a, b) => a.orden - b.orden),
+    [catalogo]
+  );
+  const etapasRiesgo = useMemo(
+    () => catalogo.filter((c) => c.ambito === "con_venta" && c.familia === "riesgo").sort((a, b) => a.orden - b.orden),
+    [catalogo]
+  );
+
+  const brandPath = empresaSel === "lumaggs_chevron" ? "/seguimiento/chevron" : "/seguimiento/phillips66";
+  const goTo = (tab: "sin_venta" | "con_venta") => navigate(`${brandPath}?tab=${tab}`);
+
+  const renderChips = (
+    label: string,
+    options: { id: string; name: string; color: string }[],
+    selected: string[],
+    setSelected: (fn: (arr: string[]) => string[]) => void
+  ) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">{label}</span>
+      {options.length === 0 ? (
+        <span className="text-xs text-muted-foreground italic">Sin opciones</span>
+      ) : (
+        options.map((o) => {
+          const sel = selected.includes(o.id);
+          return (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => setSelected((arr) => toggleInArray(arr, o.id))}
+              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
+              style={
+                sel
+                  ? { backgroundColor: o.color, color: "white", borderColor: o.color }
+                  : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
+              }
+              aria-pressed={sel}
+            >
+              {o.name}
+            </button>
+          );
+        })
+      )}
+    </div>
+  );
+
+  const kanbanCols =
+    kanbanTab === "sin_venta"
+      ? etapasProspecto.map((e) => ({
+          id: e.id,
+          nombre: e.nombre,
+          color: e.color,
+          count: prospectos.filter((r) => (r as any).etapa_prospecto_id === e.id).length,
+        }))
+      : etapasRiesgo.map((e) => ({
+          id: e.id,
+          nombre: e.nombre,
+          color: e.color,
+          count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
+        }));
+
   return (
     <div className="space-y-6">
       <PageBanner
@@ -229,41 +440,116 @@ export default function SeguimientoLanding() {
           </div>
         }
       />
-      <section>
-        <Card
-          className="cursor-pointer hover:shadow-md transition-all border-2 border-blue-200 hover:border-blue-400 bg-gradient-to-r from-blue-50/80 via-white to-sky-50/60"
-          onClick={() => navigate("/seguimiento/chevron")}
+
+      {/* Toggle de marca */}
+      <div className="inline-flex rounded-full border overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setEmpresaSel("lumaggs_chevron")}
+          className={`px-4 py-1.5 text-xs font-semibold border-r transition-all ${
+            empresaSel === "lumaggs_chevron" ? PILL.lumaggs_chevron.active : PILL.lumaggs_chevron.idle
+          }`}
         >
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-              <span className="text-blue-600 font-bold">C</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-blue-900 leading-tight">Chevron</h2>
-              <p className="text-xs text-blue-600/80 font-medium">Lumaggs</p>
-            </div>
-          </CardContent>
-        </Card>
-        <VentasChartsSection empresa="lumaggs_chevron" label="Chevron" />
-        <VentasMensualSection empresa="lumaggs_chevron" label="Chevron" />
-      </section>
-      <section>
-        <Card
-          className="cursor-pointer hover:shadow-md transition-all border-2 border-red-200 hover:border-red-400 bg-gradient-to-r from-red-50/80 via-white to-rose-50/60"
-          onClick={() => navigate("/seguimiento/phillips66")}
+          Chevron
+        </button>
+        <button
+          type="button"
+          onClick={() => setEmpresaSel("galsa_phillips66")}
+          className={`px-4 py-1.5 text-xs font-semibold transition-all ${
+            empresaSel === "galsa_phillips66" ? PILL.galsa_phillips66.active : PILL.galsa_phillips66.idle
+          }`}
         >
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-              <span className="text-red-600 font-bold">P66</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-red-900 leading-tight">Phillips 66</h2>
-              <p className="text-xs text-red-600/80 font-medium">Galsa</p>
-            </div>
-          </CardContent>
-        </Card>
-        <VentasChartsSection empresa="galsa_phillips66" label="Phillips 66" />
-        <VentasMensualSection empresa="galsa_phillips66" label="Phillips 66" />
+          Phillips 66
+        </button>
+      </div>
+
+      {/* Filtros */}
+      <Card>
+        <CardContent className="p-4 space-y-2">
+          {renderChips("Ejecutivo", ejecutivoOptions, fEjecutivo, setFEjecutivo)}
+          {renderChips("Plaza", plazaOptions, fPlaza, setFPlaza)}
+        </CardContent>
+      </Card>
+
+      {/* KPIs */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "Prospectos activos", value: kpis.prospectos },
+          { label: "Clientes activos", value: kpis.clientes },
+          { label: "Nuevos (120 días)", value: kpis.nuevos },
+          { label: "Dormidos", value: kpis.dormidos },
+        ].map((k) => (
+          <Card key={k.label}>
+            <CardContent className="p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{k.label}</p>
+              <p className="text-2xl font-bold mt-1">{k.value.toLocaleString("es-MX")}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Kanban */}
+      <div className="space-y-3">
+        <div className="inline-flex rounded-full border overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setKanbanTab("sin_venta")}
+            className={`px-4 py-1.5 text-xs font-semibold border-r transition-all ${
+              kanbanTab === "sin_venta" ? pill.active : pill.idle
+            }`}
+          >
+            Prospectos
+          </button>
+          <button
+            type="button"
+            onClick={() => setKanbanTab("con_venta")}
+            className={`px-4 py-1.5 text-xs font-semibold transition-all ${
+              kanbanTab === "con_venta" ? pill.active : pill.idle
+            }`}
+          >
+            Clientes
+          </button>
+        </div>
+        <h3 className="text-sm font-semibold">
+          {kanbanTab === "sin_venta" ? "Pipeline Prospectos" : "Pipeline Clientes"}
+        </h3>
+        {kanbanCols.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
+        ) : (
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+            {kanbanCols.map((c) => (
+              <Card key={c.id}>
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                    <span className="text-xs font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
+                  </div>
+                  <p className="text-3xl font-bold" style={{ color: c.color }}>
+                    {c.count.toLocaleString("es-MX")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => goTo(kanbanTab)}
+                    className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                  >
+                    Ver empresas
+                  </button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <section>
+        <VentasChartsSection
+          empresa={empresaSel}
+          label={empresaSel === "lumaggs_chevron" ? "Chevron" : "Phillips 66"}
+        />
+        <VentasMensualSection
+          empresa={empresaSel}
+          label={empresaSel === "lumaggs_chevron" ? "Chevron" : "Phillips 66"}
+        />
       </section>
     </div>
   );

@@ -343,9 +343,13 @@ export default function SeguimientoVentas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos">(
-    () => persisted.tab ?? "con_venta"
-  );
+  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos">(() => {
+    try {
+      const urlTab = new URLSearchParams(window.location.search).get("tab");
+      if (urlTab === "sin_venta" || urlTab === "con_venta") return urlTab;
+    } catch { /* noop */ }
+    return persisted.tab ?? "con_venta";
+  });
   const [search, setSearch] = useState(() => persisted.search ?? "");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
   const [sort, setSort] = useState<SortState | null>(() => persisted.sort ?? null);
