@@ -685,6 +685,78 @@ export default function SeguimientoLanding() {
     },
   });
 
+  const { data: cotizacionesPeriodo = [] } = useQuery({
+    queryKey: ["seg_cotizaciones_periodo", periodoStartDate, periodoEndDate, empresaSel],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documentos")
+        .select("id, numero_cotizacion, fecha_documento, companies:empresa_id(name)")
+        .eq("empresa_vendedora", empresaSel)
+        .eq("tipo_documento", "cotizacion")
+        .eq("is_active", true)
+        .gte("fecha_documento", periodoStartDate)
+        .lte("fecha_documento", periodoEndDate)
+        .order("fecha_documento", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const { data: facturasPeriodo = [] } = useQuery({
+    queryKey: ["seg_facturas_periodo", periodoStartDate, periodoEndDate, empresaSel],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documentos")
+        .select("id, numero_factura, fecha_documento, companies:empresa_id(name)")
+        .eq("empresa_vendedora", empresaSel)
+        .eq("tipo_documento", "factura")
+        .eq("is_active", true)
+        .neq("estatus_factura", "cancelada")
+        .gte("fecha_documento", periodoStartDate)
+        .lte("fecha_documento", periodoEndDate)
+        .order("fecha_documento", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const periodoDocIds = useMemo(
+    () =>
+      Array.from(
+        new Set([...cotizacionesPeriodo, ...facturasPeriodo].map((d: any) => d.id).filter(Boolean))
+      ) as string[],
+    [cotizacionesPeriodo, facturasPeriodo]
+  );
+
+  const { data: docUnidadesMap = new Map<string, number>() } = useQuery({
+    queryKey: ["seg_docs_unidades_periodo", periodoStartDate, periodoEndDate, empresaSel, periodoDocIds],
+    enabled: periodoDocIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documento_productos")
+        .select(
+          "cantidad, documentos!inner(id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
+        )
+        .in("documentos.tipo_documento", ["cotizacion", "factura"])
+        .eq("documentos.is_active", true)
+        .eq("documentos.empresa_vendedora", empresaSel)
+        .in("documentos.id", periodoDocIds)
+        .gte("documentos.fecha_documento", periodoStartDate)
+        .lte("documentos.fecha_documento", periodoEndDate);
+      if (error) throw error;
+      const m = new Map<string, number>();
+      for (const r of (data || []) as any[]) {
+        const doc = r.documentos;
+        if (!doc?.id) continue;
+        if (doc.tipo_documento === "factura" && doc.estatus_factura === "cancelada") continue;
+        const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
+        const uds = Number(r.cantidad || 0) * ue;
+        m.set(doc.id, (m.get(doc.id) || 0) + uds);
+      }
+      return m;
+    },
+  });
+
   return (
     <div className="space-y-6">
       <PageBanner
