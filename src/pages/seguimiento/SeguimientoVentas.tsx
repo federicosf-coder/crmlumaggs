@@ -2440,19 +2440,21 @@ export default function SeguimientoVentas() {
                   </SortableContext>
                   {viewIgnorados && !isPerdidos && <TableHead>Razón</TableHead>}
                   {viewIgnorados && !isPerdidos && <TableHead>Fecha ignorado</TableHead>}
+                  {isIgnorados && <TableHead>Motivo</TableHead>}
+                  {isIgnorados && <TableHead>Fecha ignorado</TableHead>}
                   <TableHead className="w-14 text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {(isIgnorados ? ignRowsLoading : isLoading) ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2)} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2) + (isIgnorados ? 2 : 0)} className="text-center text-muted-foreground py-8">
                       Cargando…
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2)} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2) + (isIgnorados ? 2 : 0)} className="text-center text-muted-foreground py-8">
                       Sin registros.
                     </TableCell>
                   </TableRow>
@@ -2491,6 +2493,27 @@ export default function SeguimientoVentas() {
                             const at = clientesIgnoradosMap.get(r.company_id)?.ignorado_at;
                             return at ? formatDate(at) : "—";
                           })()}
+                        </TableCell>
+                      )}
+                      {isIgnorados && (
+                        <TableCell className="font-light text-xs">
+                          {(() => {
+                            const m = r.motivo_ignorado_id ? motivosIgnoradoMap.get(r.motivo_ignorado_id) : null;
+                            if (!m) return <span className="italic text-muted-foreground">—</span>;
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                                style={m.color ? { backgroundColor: `${m.color}14`, color: m.color, borderColor: `${m.color}55` } : undefined}
+                              >
+                                {m.nombre}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
+                      )}
+                      {isIgnorados && (
+                        <TableCell className="font-light text-xs">
+                          {r.fecha_ignorado ? formatDate(r.fecha_ignorado) : "—"}
                         </TableCell>
                       )}
                       <TableCell className="w-14 text-center" onClick={(e) => e.stopPropagation()}>
