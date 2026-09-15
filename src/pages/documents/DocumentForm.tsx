@@ -1217,6 +1217,44 @@ export default function DocumentForm() {
               </>
             )}
           </fieldset>
+          {td === "cotizacion" && (
+            <>
+              <div>
+                <Label>Número Cotización</Label>
+                <Input value={form.numero_cotizacion || "(Se asignará automáticamente)"} disabled className="bg-muted" />
+              </div>
+              <div>
+                <Label>Estatus Cotización</Label>
+                <Select value={form.estatus_cotizacion} onValueChange={v => set("estatus_cotizacion", v)} disabled={viewMode}>
+                  <SelectTrigger className="text-left"><SelectValue /></SelectTrigger>
+                  <SelectContent>{ESTATUS_COT.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                </Select>
+                {form.estatus_cotizacion !== "aceptada" && form.estatus_cotizacion !== "rechazada" && (
+                  <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleUpdateEstatusCotizacion("aceptada")}
+                      disabled={saving}
+                    >
+                      Marcar como Aceptada
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="border-red-300 text-red-700 hover:bg-red-50"
+                      onClick={() => handleUpdateEstatusCotizacion("rechazada")}
+                      disabled={saving}
+                    >
+                      Marcar como Rechazada
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
           {td === "factura" && (
             <>
               <div>
