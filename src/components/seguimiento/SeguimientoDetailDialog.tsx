@@ -93,6 +93,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
   const [newContactOpen, setNewContactOpen] = useState(false);
   const [showAllContacts, setShowAllContacts] = useState(false);
   const [perderDialogOpen, setPerderDialogOpen] = useState(false);
+  const [ignorarDialogOpen, setIgnorarDialogOpen] = useState(false);
   const [registrarPerdidaOpen, setRegistrarPerdidaOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<{ phone: string; contact: any | null } | null>(null);
@@ -235,6 +236,19 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
     },
   });
 
+  // ---- Motivos de ignorado ----
+  const { data: motivosIgnorado } = useQuery({
+    queryKey: ["motivos_ignorado_activos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("motivos_ignorado")
+        .select("id, nombre, color, activo, orden")
+        .eq("activo", true)
+        .order("orden");
+      return (data || []) as any[];
+    },
+  });
+
   // ---- Bitácora de pérdidas de este registro ----
   const { data: perdidasLog } = useQuery({
     queryKey: ["seguimiento_perdidas_log", row?.id],
@@ -369,6 +383,8 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
 
   const motivoPerdidaActual = (motivosPerdida || []).find((m) => m.id === row.motivo_perdida_id) || null;
   const isPerdido = !!row.perdido;
+  const motivoIgnoradoActual = (motivosIgnorado || []).find((m) => m.id === row.motivo_ignorado_id) || null;
+  const isIgnorado = !!row.ignorado;
 
   // ---- Acciones de Pérdida ----
   const handleNuevaCotizacion = () => {
@@ -398,6 +414,16 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
     if (error) { toast({ title: "Error al reactivar", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Registro reactivado" });
     invalidatePerdidas();
+  };
+
+  const handleReactivarIgnorado = async () => {
+    const { error } = await supabase
+      .from("seguimiento_ventas")
+      .update({ ignorado: false, fecha_ignorado: null, motivo_ignorado_id: null, nota_ignorado: null })
+      .eq("id", row.id);
+    if (error) { toast({ title: "Error al reactivar", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Registro reactivado" });
+    qc.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
   };
 
   return (
@@ -488,9 +514,28 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                    className="h-7 text-xs bg-white/80 border-rose-300 text-rose-700 hover:bg-rose-50"
                    onClick={() => setPerderDialogOpen(true)}
                  >
-                   <XCircle className="h-3 w-3 mr-1" /> Marcar como perdido
-                 </Button>
-               )}
+                    <XCircle className="h-3 w-3 mr-1" /> Marcar como perdido
+                  </Button>
+                )}
+                {isIgnorado && (
+                  <Badge className="text-xs bg-slate-600 hover:bg-slate-600/90 text-white border-transparent">
+                    Ignorado{motivoIgnoradoActual ? ` · ${motivoIgnoradoActual.nombre}` : ""}
+                  </Badge>
+                )}
+                {isIgnorado ? (
+                  <Button variant="outline" size="sm" className="h-7 text-xs bg-white/80" onClick={handleReactivarIgnorado}>
+                    <RotateCcw className="h-3 w-3 mr-1" /> Reactivar
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs bg-white/80 border-slate-300 text-slate-700 hover:bg-slate-50"
+                    onClick={() => setIgnorarDialogOpen(true)}
+                  >
+                    Marcar como ignorado
+                  </Button>
+                )}
                <Button
                  variant="outline"
                  size="sm"
@@ -880,6 +925,14 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
         onSaved={invalidatePerdidas}
       />
 
+      <MarcarIgnoradoDialog
+        open={ignorarDialogOpen}
+        onOpenChange={setIgnorarDialogOpen}
+        row={row}
+        motivos={motivosIgnorado || []}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["seguimiento_ventas"] })}
+      />
+
       <RegistrarPerdidaDialog
         open={registrarPerdidaOpen}
         onOpenChange={setRegistrarPerdidaOpen}
@@ -1135,6 +1188,121 @@ function MarcarPerdidoDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving} className="bg-rose-600 hover:bg-rose-600/90">
             {saving ? "Guardando…" : "Marcar como perdido"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ===== Dialog: Marcar como ignorado =====
+function MarcarIgnoradoDialog({
+  open,
+  onOpenChange,
+  row,
+  motivos,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  row: SeguimientoVentasRow;
+  motivos: any[];
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [motivoId, setMotivoId] = useState<string>("");
+  const [nuevoMotivo, setNuevoMotivo] = useState<string>("");
+  const [fecha, setFecha] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [nota, setNota] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!motivoId) { toast({ title: "Selecciona un motivo", variant: "destructive" }); return; }
+    if (motivoId === "__nuevo__" && !nuevoMotivo.trim()) {
+      toast({ title: "Escribe el nombre del motivo nuevo", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      let motivoFinalId = motivoId;
+      if (motivoId === "__nuevo__") {
+        const maxOrden = motivos.reduce((m, x) => Math.max(m, Number(x.orden || 0)), 0);
+        const { data: nuevo, error: insErr } = await supabase
+          .from("motivos_ignorado")
+          .insert({ nombre: nuevoMotivo.trim(), orden: maxOrden + 1 })
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        motivoFinalId = nuevo.id;
+        qc.invalidateQueries({ queryKey: ["motivos_ignorado_activos"] });
+      }
+      const { error: upErr } = await supabase
+        .from("seguimiento_ventas")
+        .update({
+          ignorado: true,
+          motivo_ignorado_id: motivoFinalId,
+          fecha_ignorado: fecha,
+          nota_ignorado: nota || null,
+        })
+        .eq("id", row.id);
+      if (upErr) throw upErr;
+      toast({ title: "Registro marcado como ignorado" });
+      onSaved();
+      onOpenChange(false);
+      setMotivoId(""); setNuevoMotivo(""); setNota("");
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-base">Marcar como ignorado</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Motivo</Label>
+            <Select value={motivoId} onValueChange={setMotivoId}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Selecciona un motivo" /></SelectTrigger>
+              <SelectContent>
+                {motivos.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: m.color || "#999" }} />
+                      {m.nombre}
+                    </span>
+                  </SelectItem>
+                ))}
+                <SelectItem value="__nuevo__">+ Agregar motivo nuevo</SelectItem>
+              </SelectContent>
+            </Select>
+            {motivoId === "__nuevo__" && (
+              <Input
+                value={nuevoMotivo}
+                onChange={(e) => setNuevoMotivo(e.target.value)}
+                placeholder="Nombre del motivo nuevo"
+                className="mt-2"
+              />
+            )}
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Fecha</Label>
+            <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Nota</Label>
+            <Textarea value={nota} onChange={(e) => setNota(e.target.value)} rows={3} className="mt-1" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-slate-600 hover:bg-slate-600/90">
+            {saving ? "Guardando…" : "Marcar como ignorado"}
           </Button>
         </DialogFooter>
       </DialogContent>
