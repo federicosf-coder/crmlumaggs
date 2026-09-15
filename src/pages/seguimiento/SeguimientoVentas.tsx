@@ -1535,6 +1535,16 @@ export default function SeguimientoVentas() {
             Clientes Perdidos
           </button>
           <button
+            onClick={() => setTab("ignorados")}
+            className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors ${
+              tab === "ignorados"
+                ? "bg-gradient-to-br from-slate-500 to-slate-600 text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Ignorados
+          </button>
+          <button
             onClick={() => setTab("recuperacion")}
             className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors ${
               tab === "recuperacion"
