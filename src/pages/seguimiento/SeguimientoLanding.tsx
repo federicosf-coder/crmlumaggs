@@ -274,6 +274,11 @@ export default function SeguimientoLanding() {
   const [deletingActivity, setDeletingActivity] = useState(false);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => filtrosGuardados.fEjecutivo ?? []);
   const [fPlaza, setFPlaza] = useState<string[]>(() => filtrosGuardados.fPlaza ?? []);
+  const [ejOpen, setEjOpen] = useState(false);
+  const [ejSearch, setEjSearch] = useState("");
+  const qpFiltros =
+    (fEjecutivo.length > 0 ? `&ejecutivo=${fEjecutivo.join(",")}` : "") +
+    (fPlaza.length > 0 ? `&plaza=${fPlaza.join(",")}` : "");
   const [filtrosAbiertos, setFiltrosAbiertos] = useState<boolean>(false);
   const [periodo, setPeriodo] = useState<Periodo>(() => filtrosGuardados.periodo ?? "hoy");
   const [customStart, setCustomStart] = useState<Date | undefined>(() =>
