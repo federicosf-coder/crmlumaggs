@@ -152,9 +152,62 @@ export default function DetalleFacturacionProductoReport() {
     },
   });
 
+  const { data: companyPlazasRows = [] } = useQuery({
+    queryKey: ["reporte_detalle_fp_company_plazas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("company_plazas").select("company_id, plaza_id");
+      if (error) throw error;
+      return (data || []) as { company_id: string; plaza_id: string }[];
+    },
+  });
+
+  const { data: plazasRows = [] } = useQuery({
+    queryKey: ["reporte_detalle_fp_plazas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("plazas").select("id, nombre").eq("activo", true).order("nombre");
+      if (error) throw error;
+      return (data || []) as { id: string; nombre: string }[];
+    },
+  });
+
+  const companyPlazaMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const cp of companyPlazasRows) {
+      const arr = m.get(cp.company_id) ?? [];
+      if (!arr.includes(cp.plaza_id)) arr.push(cp.plaza_id);
+      m.set(cp.company_id, arr);
+    }
+    return m;
+  }, [companyPlazasRows]);
+
+  const plazaNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of plazasRows) m.set(p.id, p.nombre);
+    return m;
+  }, [plazasRows]);
+
+  const plazaOptions = useMemo(() => {
+    const ids = new Set<string>();
+    for (const l of lineas) {
+      if (!l.companyId) continue;
+      for (const pid of companyPlazaMap.get(l.companyId) ?? []) ids.add(pid);
+    }
+    return Array.from(ids)
+      .map((pid) => ({ id: pid, nombre: plazaNameMap.get(pid) ?? pid }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [lineas, companyPlazaMap, plazaNameMap]);
+
   const lineasFiltradas = useMemo(
-    () => lineas.filter((l) => !ESTATUS_KEYS.includes(l.estatus) || estatusSel.includes(l.estatus)),
-    [lineas, estatusSel]
+    () =>
+      lineas.filter((l) => {
+        if (ESTATUS_KEYS.includes(l.estatus) && !estatusSel.includes(l.estatus)) return false;
+        if (plazaSel.length > 0) {
+          const plazas = l.companyId ? companyPlazaMap.get(l.companyId) ?? [] : [];
+          if (!plazas.some((pid) => plazaSel.includes(pid))) return false;
+        }
+        return true;
+      }),
+    [lineas, estatusSel, plazaSel, companyPlazaMap]
   );
 
   const lineasOrdenadas = useMemo(() => {
