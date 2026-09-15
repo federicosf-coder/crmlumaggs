@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
 import type { TaskTypeKey } from "@/lib/taskTypes";
-import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
+import { QuickActivityDialog } from "@/components/seguimiento/QuickActivityDialog";
 import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +44,7 @@ import {
 import { useVentasCharts } from "@/hooks/useVentasCharts";
 import { useVentasMensual, reporteMes } from "@/hooks/useVentasMensual";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import {
@@ -210,6 +210,7 @@ const CHIP_COLORS = [
 
 export default function SeguimientoLanding() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>("lumaggs_chevron");
   const [activityOpen, setActivityOpen] = useState(false);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
@@ -482,6 +483,9 @@ export default function SeguimientoLanding() {
         .select("id, type, title, description, activity_date, company_id, companies:company_id(id, name, volumen_mensual_estimado)")
         .gte("activity_date", periodoStartIso)
         .lte("activity_date", periodoEndIso)
+        .not("title", "ilike", "%Solicitud de validación de pago%")
+        .not("title", "ilike", "%Aplicación de pago%")
+        .not("title", "ilike", "%Cobranza ·%")
         .order("activity_date", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
@@ -508,6 +512,38 @@ export default function SeguimientoLanding() {
       const m = new Map<string, any>();
       for (const t of data || []) {
         if (t.company_id && !m.has(t.company_id)) m.set(t.company_id, t);
+      }
+      return m;
+    },
+  });
+
+  const periodoStartDate = format(periodoStart, "yyyy-MM-dd");
+  const periodoEndDate = format(periodoEnd, "yyyy-MM-dd");
+
+  const { data: ventasPeriodoMap = new Map<string, number>() } = useQuery({
+    queryKey: ["seg_ventas_periodo", periodoStartDate, periodoEndDate, empresaSel, actividadCompanyIds],
+    enabled: actividadCompanyIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documento_productos")
+        .select(
+          "cantidad, documentos!inner(id, empresa_id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
+        )
+        .eq("documentos.tipo_documento", "factura")
+        .eq("documentos.is_active", true)
+        .eq("documentos.empresa_vendedora", empresaSel)
+        .in("documentos.empresa_id", actividadCompanyIds)
+        .gte("documentos.fecha_documento", periodoStartDate)
+        .lte("documentos.fecha_documento", periodoEndDate);
+      if (error) throw error;
+      const m = new Map<string, number>();
+      for (const r of (data || []) as any[]) {
+        const doc = r.documentos;
+        if (!doc?.empresa_id) continue;
+        if (doc.estatus_factura === "cancelada") continue;
+        const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
+        const uds = Number(r.cantidad || 0) * ue;
+        m.set(doc.empresa_id, (m.get(doc.empresa_id) || 0) + uds);
       }
       return m;
     },
@@ -618,10 +654,14 @@ export default function SeguimientoLanding() {
         )}
       </div>
 
-      <CreateCrmActivityTaskDialog
+      <QuickActivityDialog
         open={activityOpen}
         onOpenChange={setActivityOpen}
-        defaultBrands={[empresaSel]}
+        defaultBrand={empresaSel}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["seg_actividades_periodo"], exact: false });
+          queryClient.invalidateQueries({ queryKey: ["seg_actividades_siguiente_paso"], exact: false });
+        }}
       />
 
 
@@ -849,6 +889,8 @@ export default function SeguimientoLanding() {
                   <TableRow>
                     <TableHead>Empresa</TableHead>
                     <TableHead>Potencial / Promedio</TableHead>
+                    <TableHead>Ventas en el periodo</TableHead>
+                    <TableHead>Acumulado en el mes</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descripción</TableHead>
                   </TableRow>
@@ -863,6 +905,8 @@ export default function SeguimientoLanding() {
                       : a.companies?.volumen_mensual_estimado;
                     const etiqueta = usaPromedio ? "Promedio mensual" : "Volumen estimado";
                     const tarea = a.company_id ? siguientePasoMap.get(a.company_id) : undefined;
+                    const ventasPeriodo = a.company_id ? ventasPeriodoMap.get(a.company_id) : undefined;
+                    const acumMes = seg?.acum_mes;
                     return (
                       <TableRow key={a.id}>
                         <TableCell className="align-top">
@@ -880,9 +924,15 @@ export default function SeguimientoLanding() {
                         </TableCell>
                         <TableCell className="align-top">
                           <p className="font-medium">
-                            {valor ? formatCurrency(Number(valor)) : "—"}
+                            {valor ? `${Math.round(Number(valor)).toLocaleString("es-MX")} uds` : "—"}
                           </p>
                           <p className="text-[11px] text-muted-foreground">{etiqueta}</p>
+                        </TableCell>
+                        <TableCell className="align-top text-sm font-medium">
+                          {ventasPeriodo ? `${Math.round(ventasPeriodo).toLocaleString("es-MX")} uds` : "—"}
+                        </TableCell>
+                        <TableCell className="align-top text-sm font-medium">
+                          {acumMes ? `${Math.round(Number(acumMes)).toLocaleString("es-MX")} uds` : "—"}
                         </TableCell>
                         <TableCell className="align-top text-sm">
                           {TASK_TYPE_LABEL[a.type as TaskTypeKey] || a.type || "—"}
