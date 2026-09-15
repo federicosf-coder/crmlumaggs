@@ -410,6 +410,8 @@ export default function DetalleFacturacionProductoReport() {
             })}
           </div>
         )}
+
+        <Card>
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-8 text-center text-muted-foreground text-sm">Cargando...</div>
