@@ -531,9 +531,12 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                   {visibleContacts.map((c: any) => {
-                    const name = `${c.first_name || ""} ${c.last_name || ""}`.trim();
+                    const name = c.es_contacto_empresa
+                      ? "Empresa"
+                      : `${c.first_name || ""} ${c.last_name || ""}`.trim();
                     const wa = c.whatsapp_phone || c.mobile || c.phone;
                     const tel = c.mobile || c.phone || c.whatsapp_phone;
+                    const displayPhone = firstValidPhone(c.mobile, c.phone, c.whatsapp_phone);
                     return (
                       <div key={c.id} className="rounded-md border bg-background px-2 py-1.5 flex items-center justify-between gap-2">
                         <div className="min-w-0">
@@ -561,8 +564,8 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                             <ExternalLink className="h-3 w-3 opacity-60 shrink-0" />
                           </button>
                           <div className="flex flex-wrap gap-x-2 gap-y-0 text-[10px] text-muted-foreground leading-tight">
-                            {c.job_title && <span className="truncate">{c.job_title}</span>}
-                            {(c.mobile || c.phone) && <span className="inline-flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{c.mobile || c.phone}</span>}
+                            {!c.es_contacto_empresa && c.job_title && <span className="truncate">{c.job_title}</span>}
+                            {displayPhone && <span className="inline-flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{displayPhone}</span>}
                             {c.email && <span className="inline-flex items-center gap-0.5 truncate"><Mail className="h-2.5 w-2.5" />{c.email}</span>}
                           </div>
                         </div>
