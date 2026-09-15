@@ -529,74 +529,84 @@ export default function SeguimientoLanding() {
       </div>
 
       {/* Kanban */}
-      <div className="space-y-3">
-        <div className="inline-flex rounded-full border overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setKanbanTab("sin_venta")}
-            className={`px-4 py-1.5 text-xs font-semibold border-r transition-all ${
-              kanbanTab === "sin_venta" ? pill.active : pill.idle
-            }`}
-          >
-            Prospectos
-          </button>
-          <button
-            type="button"
-            onClick={() => setKanbanTab("con_venta")}
-            className={`px-4 py-1.5 text-xs font-semibold transition-all ${
-              kanbanTab === "con_venta" ? pill.active : pill.idle
-            }`}
-          >
-            Clientes
-          </button>
-        </div>
-        <h3 className="text-sm font-semibold">
-          {kanbanTab === "sin_venta" ? "Pipeline Prospectos" : "Pipeline Clientes"}
-        </h3>
-        {kanbanCols.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
-        ) : (
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
-            {kanbanCols.map((c) => (
-              <Card key={c.id}>
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                    <span className="text-xs font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
-                  </div>
-                  <p className="text-3xl font-bold" style={{ color: c.color }}>
-                    {c.count.toLocaleString("es-MX")}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => goTo(kanbanTab)}
-                    className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
-                  >
-                    Ver empresas
-                  </button>
-                  {kanbanTab === "sin_venta" && c.nombre === "Propuesta" && (
-                    <div className="flex flex-col items-start gap-1 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/documents?tipo=cotizacion&empresa=${empresaSel}&revision=no`)}
-                        className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
-                      >
-                        Esperando respuesta ({prospectos.filter((r) => (r as any).avance_cotizacion === "esperando").length})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/documents?tipo=cotizacion&empresa=${empresaSel}&revision=si`)}
-                        className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
-                      >
-                        En negociación ({prospectos.filter((r) => (r as any).avance_cotizacion === "negociacion").length})
-                      </button>
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold">Pipeline Prospectos</h3>
+          {kanbanProspectoCols.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
+          ) : (
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+              {kanbanProspectoCols.map((c) => (
+                <Card key={c.id}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                      <span className="text-xs font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                    <p className="text-3xl font-bold" style={{ color: c.color }}>
+                      {c.count.toLocaleString("es-MX")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`${brandPath}?tab=sin_venta`)}
+                      className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                    >
+                      Ver empresas
+                    </button>
+                    {c.nombre === "Propuesta" && (
+                      <div className="flex flex-col items-start gap-1 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/documents?tipo=cotizacion&empresa=${empresaSel}&revision=no`)}
+                          className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                        >
+                          Esperando respuesta ({prospectos.filter((r) => (r as any).avance_cotizacion === "esperando").length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/documents?tipo=cotizacion&empresa=${empresaSel}&revision=si`)}
+                          className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                        >
+                          En negociación ({prospectos.filter((r) => (r as any).avance_cotizacion === "negociacion").length})
+                        </button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold">Pipeline Clientes</h3>
+          {kanbanClienteCols.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
+          ) : (
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+              {kanbanClienteCols.map((c) => (
+                <Card key={c.id}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                      <span className="text-xs font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
+                    </div>
+                    <p className="text-3xl font-bold" style={{ color: c.color }}>
+                      {c.count.toLocaleString("es-MX")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`${brandPath}?tab=con_venta`)}
+                      className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                    >
+                      Ver empresas
+                    </button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <section>
