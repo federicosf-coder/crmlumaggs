@@ -56,6 +56,11 @@ export interface SeguimientoVentasRow {
   motivo_perdida_id?: string | null;
   fecha_perdida?: string | null;
   nota_perdida?: string | null;
+  ignorado: boolean;
+  motivo_ignorado_id: string | null;
+  fecha_ignorado: string | null;
+  nota_ignorado: string | null;
+  total_historico: number | null;
   fecha_conversion: string | null;
   es_nuevo_cliente: boolean;
 }

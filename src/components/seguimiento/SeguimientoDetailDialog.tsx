@@ -93,6 +93,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
   const [newContactOpen, setNewContactOpen] = useState(false);
   const [showAllContacts, setShowAllContacts] = useState(false);
   const [perderDialogOpen, setPerderDialogOpen] = useState(false);
+  const [ignorarDialogOpen, setIgnorarDialogOpen] = useState(false);
   const [registrarPerdidaOpen, setRegistrarPerdidaOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<{ phone: string; contact: any | null } | null>(null);
@@ -229,6 +230,19 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
       const { data } = await supabase
         .from("motivos_perdida")
         .select("id, nombre, tipo, color, activo, orden")
+        .eq("activo", true)
+        .order("orden");
+      return (data || []) as any[];
+    },
+  });
+
+  // ---- Motivos de ignorado ----
+  const { data: motivosIgnorado } = useQuery({
+    queryKey: ["motivos_ignorado_activos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("motivos_ignorado")
+        .select("id, nombre, color, activo, orden")
         .eq("activo", true)
         .order("orden");
       return (data || []) as any[];
