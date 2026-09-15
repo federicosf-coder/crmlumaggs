@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageBanner } from "@/components/PageBanner";
 import { cn } from "@/lib/utils";
-import { Truck, FileText, ListChecks, TrendingUp, PieChart, Search, CreditCard, ShieldCheck } from "lucide-react";
+import { Truck, FileText, ListChecks, TrendingUp, PieChart, Search, CreditCard, ShieldCheck, Package } from "lucide-react";
 
 const CATEGORIAS = ["Todos", "Ventas", "Crédito", "Operación"] as const;
 
@@ -51,6 +51,13 @@ const REPORTS = [
     description: "Participación de cada tipo de crédito en la facturación 2026, evolución mensual y detalle por cliente.",
     url: "/reports/credito-cescemex",
     icon: CreditCard,
+    category: "Ventas",
+  },
+  {
+    title: "Detalle de Facturación por Producto",
+    description: "Una fila por línea de producto facturada en el periodo, con unidades equivalentes, importe y estatus.",
+    url: "/reports/detalle-facturacion-producto",
+    icon: Package,
     category: "Ventas",
   },
   {
