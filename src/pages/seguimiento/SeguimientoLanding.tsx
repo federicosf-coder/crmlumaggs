@@ -507,8 +507,6 @@ export default function SeguimientoLanding() {
     ]
   );
 
-  const hoyDate = new Date();
-  const avanceMesPct = (getDate(hoyDate) / getDaysInMonth(hoyDate)) * 100;
   const alcanzadoPct =
     importeMesAnterior > 0 ? Math.min(100, (importeMes / importeMesAnterior) * 100) : null;
 
