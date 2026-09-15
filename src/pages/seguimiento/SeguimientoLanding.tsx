@@ -755,7 +755,6 @@ export default function SeguimientoLanding() {
               ))}
             </div>
           )}
-          )}
         </div>
       </div>
 
