@@ -2428,7 +2428,7 @@ export default function SeguimientoVentas() {
                       {orderedColumns.map((col) => (
                         <TableCell
                           key={col.id}
-                          className={`${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""} ${col.cellClassName || ""} ${col.id === "empresa" ? "sticky left-0 z-10 bg-inherit" : ""}`}
+                          className={`${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""} ${col.cellClassName || ""} ${col.id === "empresa" ? "sticky left-0 z-20 bg-background group-odd:bg-[hsl(var(--muted)/0.2)] group-hover:bg-blue-50 shadow-[inset_-1px_0_0_hsl(var(--border))]" : ""}`}
                         >
                           {col.render(r)}
                         </TableCell>
