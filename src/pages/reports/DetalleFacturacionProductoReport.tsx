@@ -72,6 +72,7 @@ interface Linea {
   importe: number;
   estatus: string;
   cancelada: boolean;
+  companyId: string | null;
 }
 
 export default function DetalleFacturacionProductoReport() {
@@ -82,6 +83,7 @@ export default function DetalleFacturacionProductoReport() {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [estatusSel, setEstatusSel] = useState<string[]>(["vigente", "pendiente", "pagada", "parcial", "vencida"]);
+  const [plazaSel, setPlazaSel] = useState<string[]>([]);
   const incluirCanceladas = estatusSel.includes("cancelada");
 
   const { periodoStart, periodoEnd } = useMemo(() => {
@@ -113,7 +115,7 @@ export default function DetalleFacturacionProductoReport() {
       const { data, error } = await supabase
         .from("documento_productos")
         .select(
-          "id, cantidad, precio_unitario, subtotal, documentos!inner(id, numero_factura, fecha_documento, estatus_factura, tipo_documento, is_active, empresa_vendedora), productos!inner(nombre_producto, presentaciones(nombre, unidades_equivalentes))"
+          "id, cantidad, precio_unitario, subtotal, documentos!inner(id, numero_factura, fecha_documento, estatus_factura, tipo_documento, is_active, empresa_vendedora, empresa_id), productos!inner(nombre_producto, presentaciones(nombre, unidades_equivalentes))"
         )
         .eq("documentos.tipo_documento", "factura")
         .eq("documentos.is_active", true)
@@ -139,6 +141,7 @@ export default function DetalleFacturacionProductoReport() {
           importe: Number(r.subtotal || 0),
           estatus,
           cancelada: estatus === "cancelada",
+          companyId: doc?.empresa_id ?? null,
         };
       });
       rows.sort((a, b) => {
@@ -150,9 +153,62 @@ export default function DetalleFacturacionProductoReport() {
     },
   });
 
+  const { data: companyPlazasRows = [] } = useQuery({
+    queryKey: ["reporte_detalle_fp_company_plazas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("company_plazas").select("company_id, plaza_id");
+      if (error) throw error;
+      return (data || []) as { company_id: string; plaza_id: string }[];
+    },
+  });
+
+  const { data: plazasRows = [] } = useQuery({
+    queryKey: ["reporte_detalle_fp_plazas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre");
+      if (error) throw error;
+      return (data || []) as { id: string; nombre: string }[];
+    },
+  });
+
+  const companyPlazaMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const cp of companyPlazasRows) {
+      const arr = m.get(cp.company_id) ?? [];
+      if (!arr.includes(cp.plaza_id)) arr.push(cp.plaza_id);
+      m.set(cp.company_id, arr);
+    }
+    return m;
+  }, [companyPlazasRows]);
+
+  const plazaNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of plazasRows) m.set(p.id, p.nombre);
+    return m;
+  }, [plazasRows]);
+
+  const plazaOptions = useMemo(() => {
+    const ids = new Set<string>();
+    for (const l of lineas) {
+      if (!l.companyId) continue;
+      for (const pid of companyPlazaMap.get(l.companyId) ?? []) ids.add(pid);
+    }
+    return Array.from(ids)
+      .map((pid) => ({ id: pid, nombre: plazaNameMap.get(pid) ?? pid }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [lineas, companyPlazaMap, plazaNameMap]);
+
   const lineasFiltradas = useMemo(
-    () => lineas.filter((l) => !ESTATUS_KEYS.includes(l.estatus) || estatusSel.includes(l.estatus)),
-    [lineas, estatusSel]
+    () =>
+      lineas.filter((l) => {
+        if (ESTATUS_KEYS.includes(l.estatus) && !estatusSel.includes(l.estatus)) return false;
+        if (plazaSel.length > 0) {
+          const plazas = l.companyId ? companyPlazaMap.get(l.companyId) ?? [] : [];
+          if (!plazas.some((pid) => plazaSel.includes(pid))) return false;
+        }
+        return true;
+      }),
+    [lineas, estatusSel, plazaSel, companyPlazaMap]
   );
 
   const lineasOrdenadas = useMemo(() => {
@@ -326,6 +382,34 @@ export default function DetalleFacturacionProductoReport() {
             );
           })}
         </div>
+
+        {plazaOptions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Plaza:</span>
+            {plazaSel.length === 0 && (
+              <span className="text-[11px] font-light text-muted-foreground">(todas)</span>
+            )}
+            {plazaOptions.map((p) => {
+              const active = plazaSel.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() =>
+                    setPlazaSel((s) => (s.includes(p.id) ? s.filter((x) => x !== p.id) : [...s, p.id]))
+                  }
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all",
+                    active ? pill.active : pill.idle
+                  )}
+                  aria-pressed={active}
+                >
+                  {p.nombre}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <Card>
           <CardContent className="p-0">
