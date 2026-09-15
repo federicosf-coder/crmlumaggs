@@ -329,6 +329,7 @@ export default function SeguimientoVentas() {
     brand === "phillips66" ? "galsa_phillips66" : "lumaggs_chevron";
   const brandTitle = brand === "phillips66" ? "Seguimiento — Phillips 66" : "Seguimiento — Chevron";
   const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
+  const palette = PALETTE[empresaVendedora];
 
   // ─── Persistencia de filtros (sessionStorage) ───
   const filtrosKey = `seguimiento_filtros_${brand || "default"}`;
