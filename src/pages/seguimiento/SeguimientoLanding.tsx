@@ -696,20 +696,20 @@ export default function SeguimientoLanding() {
   const periodoEndIso = periodoEnd.toISOString();
 
   const { data: actividades = [] } = useQuery({
-    queryKey: ["seg_actividades_periodo", periodoStartIso, periodoEndIso, visibleCompanyIdsKey],
-    enabled: visibleCompanyIds.length > 0,
+    queryKey: ["seg_actividades_periodo", periodoStartIso, periodoEndIso, sinRestriccion, visibleCompanyIdsKey],
+    enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
-      if (visibleCompanyIds.length === 0) return [];
-      const { data, error } = await supabase
+      if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
+      let q = supabase
         .from("crm_activities")
         .select("id, type, title, description, activity_date, company_id, user_id, companies:company_id(id, name, volumen_mensual_estimado)")
         .gte("activity_date", periodoStartIso)
         .lte("activity_date", periodoEndIso)
-        .in("company_id", visibleCompanyIds)
         .not("title", "ilike", "%Solicitud de validación de pago%")
         .not("title", "ilike", "%Aplicación de pago%")
-        .not("title", "ilike", "%Cobranza ·%")
-        .order("activity_date", { ascending: false });
+        .not("title", "ilike", "%Cobranza ·%");
+      if (!sinRestriccion) q = q.in("company_id", visibleCompanyIds);
+      const { data, error } = await q.order("activity_date", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
     },
@@ -773,59 +773,59 @@ export default function SeguimientoLanding() {
   });
 
   const { data: cotizacionesPeriodo = [] } = useQuery({
-    queryKey: ["seg_cotizaciones_periodo", periodoStartDate, periodoEndDate, empresaSel, visibleCompanyIdsKey],
-    enabled: visibleCompanyIds.length > 0,
+    queryKey: ["seg_cotizaciones_periodo", periodoStartDate, periodoEndDate, empresaSel, sinRestriccion, visibleCompanyIdsKey],
+    enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
-      if (visibleCompanyIds.length === 0) return [];
-      const { data, error } = await supabase
+      if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
+      let q = supabase
         .from("documentos")
         .select("id, numero_cotizacion, fecha_documento, companies:empresa_id(name)")
         .eq("empresa_vendedora", empresaSel)
         .eq("tipo_documento", "cotizacion")
         .eq("is_active", true)
-        .in("empresa_id", visibleCompanyIds)
         .gte("fecha_documento", periodoStartDate)
-        .lte("fecha_documento", periodoEndDate)
-        .order("fecha_documento", { ascending: false });
+        .lte("fecha_documento", periodoEndDate);
+      if (!sinRestriccion) q = q.in("empresa_id", visibleCompanyIds);
+      const { data, error } = await q.order("fecha_documento", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
     },
   });
 
   const { data: facturasPeriodo = [] } = useQuery({
-    queryKey: ["seg_facturas_periodo", periodoStartDate, periodoEndDate, empresaSel, visibleCompanyIdsKey],
-    enabled: visibleCompanyIds.length > 0,
+    queryKey: ["seg_facturas_periodo", periodoStartDate, periodoEndDate, empresaSel, sinRestriccion, visibleCompanyIdsKey],
+    enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
-      if (visibleCompanyIds.length === 0) return [];
-      const { data, error } = await supabase
+      if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
+      let q = supabase
         .from("documentos")
         .select("id, numero_factura, fecha_documento, companies:empresa_id(name)")
         .eq("empresa_vendedora", empresaSel)
         .eq("tipo_documento", "factura")
         .eq("is_active", true)
         .neq("estatus_factura", "cancelada")
-        .in("empresa_id", visibleCompanyIds)
         .gte("fecha_documento", periodoStartDate)
-        .lte("fecha_documento", periodoEndDate)
-        .order("fecha_documento", { ascending: false });
+        .lte("fecha_documento", periodoEndDate);
+      if (!sinRestriccion) q = q.in("empresa_id", visibleCompanyIds);
+      const { data, error } = await q.order("fecha_documento", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
     },
   });
 
   const { data: cobranzaPagosPeriodo = [] } = useQuery({
-    queryKey: ["seg_cobranza_pagos_periodo", periodoStartDate, periodoEndDate, empresaSel, visibleCompanyIdsKey],
-    enabled: visibleCompanyIds.length > 0,
+    queryKey: ["seg_cobranza_pagos_periodo", periodoStartDate, periodoEndDate, empresaSel, sinRestriccion, visibleCompanyIdsKey],
+    enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
-      if (visibleCompanyIds.length === 0) return [];
-      const { data, error } = await supabase
+      if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
+      let q = supabase
         .from("cobranza_pagos")
         .select("id, monto_total, fecha_pago, empresa_id, companies:empresa_id(name)")
         .eq("empresa_vendedora", empresaSel)
-        .in("empresa_id", visibleCompanyIds)
         .gte("fecha_pago", periodoStartDate)
-        .lte("fecha_pago", periodoEndDate)
-        .order("fecha_pago", { ascending: false });
+        .lte("fecha_pago", periodoEndDate);
+      if (!sinRestriccion) q = q.in("empresa_id", visibleCompanyIds);
+      const { data, error } = await q.order("fecha_pago", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
     },
