@@ -2363,8 +2363,9 @@ export default function SeguimientoVentas() {
             </Button>
           </div>
           <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleColumnDragEnd}>
-            <Table>
-              <TableHeader>
+            <div className="[&>div]:max-h-[calc(100vh-18rem)] [&>div]:overflow-auto">
+            <Table className="border-separate border-spacing-0">
+              <TableHeader className="sticky top-0 z-30 [&_th]:bg-background [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
                 <TableRow>
                   <TableHead className="w-10">
                     <Checkbox
@@ -2386,7 +2387,7 @@ export default function SeguimientoVentas() {
                         sort={sort}
                         onSort={handleSort}
                         align={col.align}
-                        className={col.id === "empresa" ? "sticky left-0 z-20 bg-background" : undefined}
+                        className={col.id === "empresa" ? "sticky left-0 z-40 !bg-background" : undefined}
                       />
                     ))}
                   </SortableContext>
@@ -2410,7 +2411,7 @@ export default function SeguimientoVentas() {
                   </TableRow>
                 ) : (
                   filtered.map((r) => (
-                    <TableRow key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
+                    <TableRow key={r.id} onClick={() => setSelected(r)} className="cursor-pointer group">
                       <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedIds.has(r.id)}
@@ -2427,7 +2428,7 @@ export default function SeguimientoVentas() {
                       {orderedColumns.map((col) => (
                         <TableCell
                           key={col.id}
-                          className={`${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""} ${col.cellClassName || ""} ${col.id === "empresa" ? "sticky left-0 z-10 bg-inherit" : ""}`}
+                          className={`${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""} ${col.cellClassName || ""} ${col.id === "empresa" ? "sticky left-0 z-20 bg-background group-odd:bg-[hsl(var(--muted)/0.2)] group-hover:bg-blue-50 shadow-[inset_-1px_0_0_hsl(var(--border))]" : ""}`}
                         >
                           {col.render(r)}
                         </TableCell>
@@ -2462,6 +2463,7 @@ export default function SeguimientoVentas() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </DndContext>
         </Card>
       </div>
