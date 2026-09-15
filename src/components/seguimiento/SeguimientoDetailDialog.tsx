@@ -925,6 +925,14 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
         onSaved={invalidatePerdidas}
       />
 
+      <MarcarIgnoradoDialog
+        open={ignorarDialogOpen}
+        onOpenChange={setIgnorarDialogOpen}
+        row={row}
+        motivos={motivosIgnorado || []}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["seguimiento_ventas"] })}
+      />
+
       <RegistrarPerdidaDialog
         open={registrarPerdidaOpen}
         onOpenChange={setRegistrarPerdidaOpen}
