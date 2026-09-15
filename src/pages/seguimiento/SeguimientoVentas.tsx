@@ -414,6 +414,18 @@ export default function SeguimientoVentas() {
   const isRecuperacion = tab === "recuperacion";
   const isProductos = tab === "productos";
   const showLista = !isRecuperacion && !isProductos;
+  // Al cambiar entre pestañas con catálogo de estatus distinto, limpia filtros específicos
+  const tabGroupRef = useRef<"venta" | "otro">(tab === "con_venta" || tab === "perdidos" || tab === "ignorados" ? "venta" : "otro");
+  useEffect(() => {
+    const group = tab === "con_venta" || tab === "perdidos" || tab === "ignorados" ? "venta" : "otro";
+    if (group !== tabGroupRef.current) {
+      tabGroupRef.current = group;
+      setFEstatus([]);
+      setFAvance([]);
+      setFPotencial([]);
+    }
+  }, [tab]);
+
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -616,7 +628,7 @@ export default function SeguimientoVentas() {
         filtrosKey,
         JSON.stringify({
           tab, search, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza,
-          fRegistroFrom, fRegistroTo, sort,
+          sort,
           recSearch, recRangos, recProducto, recEjecutivo, recSort, recViewIgnorados,
           prodSearch,
         })
@@ -624,7 +636,7 @@ export default function SeguimientoVentas() {
     } catch {}
   }, [
     filtrosKey, tab, search, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza,
-    fRegistroFrom, fRegistroTo, sort,
+    sort,
     recSearch, recRangos, recProducto, recEjecutivo, recSort, recViewIgnorados,
     prodSearch,
   ]);
