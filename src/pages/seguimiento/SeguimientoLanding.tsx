@@ -685,6 +685,78 @@ export default function SeguimientoLanding() {
     },
   });
 
+  const { data: cotizacionesPeriodo = [] } = useQuery({
+    queryKey: ["seg_cotizaciones_periodo", periodoStartDate, periodoEndDate, empresaSel],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documentos")
+        .select("id, numero_cotizacion, fecha_documento, companies:empresa_id(name)")
+        .eq("empresa_vendedora", empresaSel)
+        .eq("tipo_documento", "cotizacion")
+        .eq("is_active", true)
+        .gte("fecha_documento", periodoStartDate)
+        .lte("fecha_documento", periodoEndDate)
+        .order("fecha_documento", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const { data: facturasPeriodo = [] } = useQuery({
+    queryKey: ["seg_facturas_periodo", periodoStartDate, periodoEndDate, empresaSel],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documentos")
+        .select("id, numero_factura, fecha_documento, companies:empresa_id(name)")
+        .eq("empresa_vendedora", empresaSel)
+        .eq("tipo_documento", "factura")
+        .eq("is_active", true)
+        .neq("estatus_factura", "cancelada")
+        .gte("fecha_documento", periodoStartDate)
+        .lte("fecha_documento", periodoEndDate)
+        .order("fecha_documento", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const periodoDocIds = useMemo(
+    () =>
+      Array.from(
+        new Set([...cotizacionesPeriodo, ...facturasPeriodo].map((d: any) => d.id).filter(Boolean))
+      ) as string[],
+    [cotizacionesPeriodo, facturasPeriodo]
+  );
+
+  const { data: docUnidadesMap = new Map<string, number>() } = useQuery({
+    queryKey: ["seg_docs_unidades_periodo", periodoStartDate, periodoEndDate, empresaSel, periodoDocIds],
+    enabled: periodoDocIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documento_productos")
+        .select(
+          "cantidad, documentos!inner(id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
+        )
+        .in("documentos.tipo_documento", ["cotizacion", "factura"])
+        .eq("documentos.is_active", true)
+        .eq("documentos.empresa_vendedora", empresaSel)
+        .in("documentos.id", periodoDocIds)
+        .gte("documentos.fecha_documento", periodoStartDate)
+        .lte("documentos.fecha_documento", periodoEndDate);
+      if (error) throw error;
+      const m = new Map<string, number>();
+      for (const r of (data || []) as any[]) {
+        const doc = r.documentos;
+        if (!doc?.id) continue;
+        if (doc.tipo_documento === "factura" && doc.estatus_factura === "cancelada") continue;
+        const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
+        const uds = Number(r.cantidad || 0) * ue;
+        m.set(doc.id, (m.get(doc.id) || 0) + uds);
+      }
+      return m;
+    },
+  });
+
   return (
     <div className="space-y-6">
       <PageBanner
@@ -1139,6 +1211,108 @@ export default function SeguimientoLanding() {
                       </TableRow>
                     );
                   })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold">Cotizaciones del periodo</h3>
+        {cotizacionesPeriodo.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin cotizaciones en este periodo.</p>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Nombre Comercial</TableHead>
+                    <TableHead>Unidades equivalentes</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cotizacionesPeriodo.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="text-sm">
+                        {c.fecha_documento ? format(new Date(c.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">{c.numero_cotizacion || "—"}</TableCell>
+                      <TableCell className="text-sm">{c.companies?.name || "—"}</TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {(() => {
+                          const uds = docUnidadesMap.get(c.id);
+                          return uds !== undefined
+                            ? `${Math.round(uds).toLocaleString("es-MX")} uds`
+                            : "—";
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/documents/${c.id}`)}
+                          className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                        >
+                          Ver / Editar
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold">Facturas del periodo</h3>
+        {facturasPeriodo.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin facturas en este periodo.</p>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Nombre Comercial</TableHead>
+                    <TableHead>Unidades equivalentes</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {facturasPeriodo.map((f) => (
+                    <TableRow key={f.id}>
+                      <TableCell className="text-sm">
+                        {f.fecha_documento ? format(new Date(f.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">{f.numero_factura || "—"}</TableCell>
+                      <TableCell className="text-sm">{f.companies?.name || "—"}</TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {(() => {
+                          const uds = docUnidadesMap.get(f.id);
+                          return uds !== undefined
+                            ? `${Math.round(uds).toLocaleString("es-MX")} uds`
+                            : "—";
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/documents/${f.id}`)}
+                          className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                        >
+                          Ver / Editar
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
