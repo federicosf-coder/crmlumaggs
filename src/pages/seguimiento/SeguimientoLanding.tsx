@@ -743,6 +743,104 @@ export default function SeguimientoLanding() {
   const periodoStartDate = format(periodoStart, "yyyy-MM-dd");
   const periodoEndDate = format(periodoEnd, "yyyy-MM-dd");
 
+  // Periodo equivalente inmediatamente anterior (misma duración, justo antes)
+  const { comparStart, comparEnd } = useMemo(() => {
+    const diffDays = differenceInCalendarDays(periodoEnd, periodoStart) + 1;
+    const cEnd = subDays(periodoStart, 1);
+    const cStart = subDays(cEnd, diffDays - 1);
+    return { comparStart: cStart, comparEnd: cEnd };
+  }, [periodoStart, periodoEnd]);
+
+  const comparStartDate = format(comparStart, "yyyy-MM-dd");
+  const comparEndDate = format(comparEnd, "yyyy-MM-dd");
+
+  const fetchVentasRango = async (desde: string, hasta: string) => {
+    if (!sinRestriccion && visibleCompanyIds.length === 0) return { unidades: 0, importe: 0 };
+
+    let qImporte = supabase
+      .from("documentos")
+      .select("total")
+      .eq("empresa_vendedora", empresaSel)
+      .eq("tipo_documento", "factura")
+      .eq("is_active", true)
+      .neq("estatus_factura", "cancelada")
+      .gte("fecha_documento", desde)
+      .lte("fecha_documento", hasta);
+    if (!sinRestriccion) qImporte = qImporte.in("empresa_id", visibleCompanyIds);
+
+    let qUnidades = supabase
+      .from("documento_productos")
+      .select(
+        "cantidad, documentos!inner(id, empresa_id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
+      )
+      .eq("documentos.tipo_documento", "factura")
+      .eq("documentos.is_active", true)
+      .eq("documentos.empresa_vendedora", empresaSel)
+      .neq("documentos.estatus_factura", "cancelada")
+      .gte("documentos.fecha_documento", desde)
+      .lte("documentos.fecha_documento", hasta);
+    if (!sinRestriccion) qUnidades = qUnidades.in("documentos.empresa_id", visibleCompanyIds);
+
+    const [resImporte, resUnidades] = await Promise.all([qImporte, qUnidades]);
+    if (resImporte.error) throw resImporte.error;
+    if (resUnidades.error) throw resUnidades.error;
+
+    const importe = ((resImporte.data || []) as any[]).reduce((s, d) => s + Number(d.total || 0), 0);
+    let unidades = 0;
+    for (const r of (resUnidades.data || []) as any[]) {
+      if (r.documentos?.estatus_factura === "cancelada") continue;
+      const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
+      unidades += Number(r.cantidad || 0) * ue;
+    }
+    return { unidades, importe };
+  };
+
+  const { data: ventasPeriodoActual = { unidades: 0, importe: 0 } } = useQuery({
+    queryKey: [
+      "seg_ventas_totales_periodo",
+      periodoStartDate,
+      periodoEndDate,
+      empresaSel,
+      sinRestriccion,
+      visibleCompanyIdsKey,
+    ],
+    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    queryFn: () => fetchVentasRango(periodoStartDate, periodoEndDate),
+  });
+
+  const { data: ventasPeriodoAnterior = { unidades: 0, importe: 0 } } = useQuery({
+    queryKey: [
+      "seg_ventas_totales_periodo_anterior",
+      comparStartDate,
+      comparEndDate,
+      empresaSel,
+      sinRestriccion,
+      visibleCompanyIdsKey,
+    ],
+    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    queryFn: () => fetchVentasRango(comparStartDate, comparEndDate),
+  });
+
+  const pctUnidadesComp =
+    ventasPeriodoAnterior.unidades > 0
+      ? Math.min(150, (ventasPeriodoActual.unidades / ventasPeriodoAnterior.unidades) * 100)
+      : null;
+  const pctImporteComp =
+    ventasPeriodoAnterior.importe > 0
+      ? Math.min(150, (ventasPeriodoActual.importe / ventasPeriodoAnterior.importe) * 100)
+      : null;
+  const pctVariacionImporte =
+    ventasPeriodoAnterior.importe > 0
+      ? ((ventasPeriodoActual.importe - ventasPeriodoAnterior.importe) / ventasPeriodoAnterior.importe) * 100
+      : null;
+
+  const rangoLabel = (a: Date, b: Date) =>
+    format(a, "d MMM yyyy", { locale: esLocale }) === format(b, "d MMM yyyy", { locale: esLocale })
+      ? format(a, "d MMM yyyy", { locale: esLocale })
+      : `${format(a, "d MMM", { locale: esLocale })} – ${format(b, "d MMM yyyy", { locale: esLocale })}`;
+  const rangoActualLabel = rangoLabel(periodoStart, periodoEnd);
+  const rangoAnteriorLabel = rangoLabel(comparStart, comparEnd);
+
   const { data: ventasPeriodoMap = new Map<string, number>() } = useQuery({
     queryKey: ["seg_ventas_periodo", periodoStartDate, periodoEndDate, empresaSel, actividadCompanyIds],
     enabled: actividadCompanyIds.length > 0,
