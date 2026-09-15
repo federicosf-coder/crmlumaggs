@@ -2363,8 +2363,9 @@ export default function SeguimientoVentas() {
             </Button>
           </div>
           <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleColumnDragEnd}>
-            <Table>
-              <TableHeader>
+            <div className="[&>div]:max-h-[calc(100vh-18rem)] [&>div]:overflow-auto">
+            <Table className="border-separate border-spacing-0">
+              <TableHeader className="sticky top-0 z-30 [&_th]:bg-background [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
                 <TableRow>
                   <TableHead className="w-10">
                     <Checkbox
