@@ -662,8 +662,9 @@ export default function SeguimientoLanding() {
   const periodoStartIso = periodoStart.toISOString();
   const periodoEndIso = periodoEnd.toISOString();
 
+  const fEjecutivoKey = fEjecutivo.slice().sort().join(",");
   const { data: actividades = [] } = useQuery({
-    queryKey: ["seg_actividades_periodo", periodoStartIso, periodoEndIso, sinRestriccion, visibleCompanyIdsKey],
+    queryKey: ["seg_actividades_periodo", periodoStartIso, periodoEndIso, sinRestriccion, visibleCompanyIdsKey, fEjecutivoKey],
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
       if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
@@ -676,6 +677,7 @@ export default function SeguimientoLanding() {
         .not("title", "ilike", "%Aplicación de pago%")
         .not("title", "ilike", "%Cobranza ·%");
       if (!sinRestriccion) q = q.in("company_id", visibleCompanyIds);
+      if (fEjecutivo.length > 0) q = q.in("user_id", fEjecutivo);
       const { data, error } = await q.order("activity_date", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
