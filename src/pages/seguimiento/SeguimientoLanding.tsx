@@ -467,7 +467,24 @@ export default function SeguimientoLanding() {
   }, [fEjecutivo, fPlaza, companyPlazaMap]);
 
   const prospectos = useMemo(() => applyChips(prospectosAcc), [applyChips, prospectosAcc]);
-  const clientes = useMemo(() => applyChips(clientesAcc), [applyChips, clientesAcc]);
+  const clientes = useMemo(
+    () => applyChips(clientesAcc).filter((c) => !c.ignorado),
+    [applyChips, clientesAcc]
+  );
+
+  const clientesIgnorados = useMemo(
+    () => clientesAcc.filter((c) => c.ignorado === true),
+    [clientesAcc]
+  );
+  const ignoradosKpis = useMemo(() => {
+    const n = clientesIgnorados.length;
+    const totalHistorico = clientesIgnorados.reduce((s, c) => s + (c.total_historico || 0), 0);
+    const promedioMensual =
+      n > 0
+        ? Math.round(clientesIgnorados.reduce((s, c) => s + (c.promedio_historico_mensual || 0), 0) / n)
+        : 0;
+    return { cantidad: n, totalHistorico, promedioMensual };
+  }, [clientesIgnorados]);
 
   const dormidoIds = useMemo(
     () => new Set(catalogo.filter((c) => c.nombre === "Dormido").map((c) => c.id)),
