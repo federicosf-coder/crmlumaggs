@@ -389,7 +389,7 @@ export default function DocumentsList() {
   // seleccionar manualmente una plaza si lo desea.
 
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, revisionFilter, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
     queryFn: async () => {
       if (!access.canView) return [];
       let q = supabase
