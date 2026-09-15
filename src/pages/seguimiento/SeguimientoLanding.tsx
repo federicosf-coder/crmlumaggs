@@ -417,20 +417,26 @@ export default function SeguimientoLanding() {
     </div>
   );
 
-  const kanbanCols =
-    kanbanTab === "sin_venta"
-      ? etapasProspecto.map((e) => ({
-          id: e.id,
-          nombre: e.nombre,
-          color: e.color,
-          count: prospectos.filter((r) => (r as any).etapa_prospecto_id === e.id).length,
-        }))
-      : etapasRiesgo.map((e) => ({
-          id: e.id,
-          nombre: e.nombre,
-          color: e.color,
-          count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
-        }));
+  const kanbanProspectoCols = useMemo(
+    () =>
+      etapasProspecto.map((e) => ({
+        id: e.id,
+        nombre: e.nombre,
+        color: e.color,
+        count: prospectos.filter((r) => (r as any).etapa_prospecto_id === e.id).length,
+      })),
+    [etapasProspecto, prospectos]
+  );
+  const kanbanClienteCols = useMemo(
+    () =>
+      etapasRiesgo.map((e) => ({
+        id: e.id,
+        nombre: e.nombre,
+        color: e.color,
+        count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
+      })),
+    [etapasRiesgo, clientes]
+  );
 
   return (
     <div className="space-y-6">
