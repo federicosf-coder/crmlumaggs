@@ -264,6 +264,7 @@ function DraggableSortableHead({
   sort,
   onSort,
   align = "left",
+  className,
 }: {
   id: string;
   label: string;
@@ -271,6 +272,7 @@ function DraggableSortableHead({
   sort: SortState | null;
   onSort: (key: string) => void;
   align?: "left" | "right" | "center";
+  className?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style: React.CSSProperties = {
@@ -284,7 +286,7 @@ function DraggableSortableHead({
     <TableHead
       ref={setNodeRef}
       style={style}
-      className={`${alignClass} select-none hover:bg-muted/40 transition-colors group whitespace-nowrap ${isDragging ? "bg-violet-50" : ""}`}
+      className={`${alignClass} select-none hover:bg-muted/40 transition-colors group whitespace-nowrap ${isDragging ? "bg-violet-50" : ""} ${className || ""}`}
     >
       <span className="inline-flex items-center gap-1">
         <button
@@ -2384,6 +2386,7 @@ export default function SeguimientoVentas() {
                         sort={sort}
                         onSort={handleSort}
                         align={col.align}
+                        className={col.id === "empresa" ? "sticky left-0 z-20 bg-background" : undefined}
                       />
                     ))}
                   </SortableContext>
@@ -2424,7 +2427,7 @@ export default function SeguimientoVentas() {
                       {orderedColumns.map((col) => (
                         <TableCell
                           key={col.id}
-                          className={`${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""} ${col.cellClassName || ""}`}
+                          className={`${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""} ${col.cellClassName || ""} ${col.id === "empresa" ? "sticky left-0 z-10 bg-inherit" : ""}`}
                         >
                           {col.render(r)}
                         </TableCell>
