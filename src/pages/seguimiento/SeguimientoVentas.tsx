@@ -1283,13 +1283,17 @@ export default function SeguimientoVentas() {
       ? accessFiltered.filter((r) => (r.companies?.name || "").toLowerCase().includes(term))
       : accessFiltered;
 
-    // Clientes ignorados (no aplica en Perdidos)
-    if (!isPerdidos) {
+    // Clientes ignorados (lista antigua; no aplica en Perdidos ni en la pestaña Ignorados)
+    if (!isPerdidos && !isIgnorados) {
       base = base.filter((r) => {
         const ign = clientesIgnoradosMap.has(r.company_id);
         return viewIgnorados ? ign : !ign;
       });
     }
+
+    // Estatus "Ignorado" (columna ignorado en seguimiento_ventas):
+    // fuera de la pestaña Ignorados se excluyen por completo; dentro solo se muestran ellos.
+    base = base.filter((r) => (isIgnorados ? !!r.ignorado : !r.ignorado));
 
     if (fEstatus.length > 0) {
       base = base.filter((r) => {
