@@ -382,7 +382,6 @@ export default function SeguimientoLanding() {
   );
 
   const brandPath = empresaSel === "lumaggs_chevron" ? "/seguimiento/chevron" : "/seguimiento/phillips66";
-  const goTo = (tab: "sin_venta" | "con_venta") => navigate(`${brandPath}?tab=${tab}`);
 
   const renderChips = (
     label: string,
