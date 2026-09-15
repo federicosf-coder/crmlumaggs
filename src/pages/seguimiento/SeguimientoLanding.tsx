@@ -56,6 +56,7 @@ import { useVentasMensual, reporteMes } from "@/hooks/useVentasMensual";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+// qpFiltros se define dentro del componente
 import * as XLSX from "xlsx";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import {
