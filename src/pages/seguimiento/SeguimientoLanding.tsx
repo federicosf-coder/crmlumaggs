@@ -467,7 +467,24 @@ export default function SeguimientoLanding() {
   }, [fEjecutivo, fPlaza, companyPlazaMap]);
 
   const prospectos = useMemo(() => applyChips(prospectosAcc), [applyChips, prospectosAcc]);
-  const clientes = useMemo(() => applyChips(clientesAcc), [applyChips, clientesAcc]);
+  const clientes = useMemo(
+    () => applyChips(clientesAcc).filter((c) => !c.ignorado),
+    [applyChips, clientesAcc]
+  );
+
+  const clientesIgnorados = useMemo(
+    () => clientesAcc.filter((c) => c.ignorado === true),
+    [clientesAcc]
+  );
+  const ignoradosKpis = useMemo(() => {
+    const n = clientesIgnorados.length;
+    const totalHistorico = clientesIgnorados.reduce((s, c) => s + (c.total_historico || 0), 0);
+    const promedioMensual =
+      n > 0
+        ? Math.round(clientesIgnorados.reduce((s, c) => s + (c.promedio_historico_mensual || 0), 0) / n)
+        : 0;
+    return { cantidad: n, totalHistorico, promedioMensual };
+  }, [clientesIgnorados]);
 
   const dormidoIds = useMemo(
     () => new Set(catalogo.filter((c) => c.nombre === "Dormido").map((c) => c.id)),
@@ -1243,6 +1260,26 @@ export default function SeguimientoLanding() {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">Clientes ignorados</h3>
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+          {[
+            { label: "Cantidad", value: ignoradosKpis.cantidad.toLocaleString("es-MX") },
+            { label: "Total histórico", value: formatCurrency(ignoradosKpis.totalHistorico) },
+            { label: "Promedio mensual", value: `${ignoradosKpis.promedioMensual.toLocaleString("es-MX")} uds` },
+          ].map((k) => (
+            <Card key={k.label}>
+              <CardContent className="px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  {k.label}
+                </p>
+                <p className="text-xl font-bold">{k.value}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
 
