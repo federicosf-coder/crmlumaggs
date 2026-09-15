@@ -251,10 +251,10 @@ export default function DocumentsList() {
   const [estatusCotFilter, setEstatusCotFilter] = useState<string>("all");
   const [estatusPedFilter, setEstatusPedFilter] = useState<string>(searchParams.get("estatus") || "all");
   const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
-  const [revisionFilter, setRevisionFilter] = useState<"all" | "si" | "no">(() => {
+  const [revisionFilter, setRevisionFilter] = useState<string>(() => {
     const r = searchParams.get("revision");
     return r === "si" || r === "no" ? r : "all";
-  })();
+  });
   useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter, revisionFilter]);
   const clearFilters = () => {
     setTipoPagoFilter("all");
