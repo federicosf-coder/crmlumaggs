@@ -821,7 +821,7 @@ export default function SeguimientoLanding() {
   const pctImporteComp =
     ventasMesAnteriorMismoDia.importe > 0
       ? Math.min(150, (ventasMesActual.importe / ventasMesAnteriorMismoDia.importe) * 100)
-      : nullobserv;
+      : null;
   const pctVariacionImporte =
     ventasMesAnteriorMismoDia.importe > 0
       ? ((ventasMesActual.importe - ventasMesAnteriorMismoDia.importe) / ventasMesAnteriorMismoDia.importe) * 100
