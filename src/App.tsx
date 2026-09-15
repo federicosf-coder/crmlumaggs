@@ -48,6 +48,7 @@ import EntregaDetalle from "@/pages/documents/EntregaDetalle";
 import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
 import SeguimientoLanding from "@/pages/seguimiento/SeguimientoLanding";
 import SeguimientoVentas from "@/pages/seguimiento/SeguimientoVentas";
+import ReporteDiario from "@/pages/seguimiento/ReporteDiario";
 import NotFound from "@/pages/NotFound";
 import Alertas from "@/pages/Alertas";
 
