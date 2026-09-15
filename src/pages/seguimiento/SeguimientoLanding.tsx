@@ -4,11 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
 import type { TaskTypeKey } from "@/lib/taskTypes";
 import { QuickActivityDialog } from "@/components/seguimiento/QuickActivityDialog";
-import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon, ChevronDown, ChevronUp, Check, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
