@@ -376,6 +376,20 @@ export default function SeguimientoVentas() {
     } catch { /* noop */ }
     return persisted.fRegistroTo ?? "";
   });
+  const [fConversionFrom, setFConversionFrom] = useState<string>(() => {
+    try {
+      const urlFrom = new URLSearchParams(window.location.search).get("conversion_from");
+      if (urlFrom) return urlFrom;
+    } catch { /* noop */ }
+    return "";
+  });
+  const [fConversionTo, setFConversionTo] = useState<string>(() => {
+    try {
+      const urlTo = new URLSearchParams(window.location.search).get("conversion_to");
+      if (urlTo) return urlTo;
+    } catch { /* noop */ }
+    return "";
+  });
 
   const isPerdidos = tab === "perdidos";
   const isIgnorados = tab === "ignorados";
@@ -1370,6 +1384,20 @@ export default function SeguimientoVentas() {
         return ca ? new Date(ca).getTime() <= toTs : false;
       });
     }
+    if (tab === "con_venta" && fConversionFrom) {
+      const fromTs = new Date(fConversionFrom + "T00:00:00").getTime();
+      base = base.filter((r) => {
+        const fc = r.fecha_conversion;
+        return fc ? new Date(fc).getTime() >= fromTs : false;
+      });
+    }
+    if (tab === "con_venta" && fConversionTo) {
+      const toTs = new Date(fConversionTo + "T23:59:59").getTime();
+      base = base.filter((r) => {
+        const fc = r.fecha_conversion;
+        return fc ? new Date(fc).getTime() <= toTs : false;
+      });
+    }
 
     if (!sort) {
       // Default: urgencia primero, luego recencia
@@ -1473,7 +1501,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, isPerdidos, viewIgnorados, clientesIgnoradosMap, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, fRegistroFrom, fRegistroTo, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
+  }, [rows, search, catalogMap, tieneVenta, isPerdidos, viewIgnorados, clientesIgnoradosMap, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, fRegistroFrom, fRegistroTo, fConversionFrom, fConversionTo, tab, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
