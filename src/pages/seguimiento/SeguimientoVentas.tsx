@@ -1652,9 +1652,9 @@ export default function SeguimientoVentas() {
       {showLista && (
       <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
         <CollapsibleContent>
-          <Card className="border-violet-200/60">
-            <div className="bg-gradient-to-r from-violet-50 to-blue-50 px-4 py-2.5 border-b flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-violet-900">
+          <Card className={palette.cardBorder}>
+            <div className={`bg-gradient-to-r ${palette.headerFrom} ${palette.headerTo} px-4 py-2.5 border-b flex items-center justify-between`}>
+              <div className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-widest ${palette.headerText}`}>
                 <Filter className="h-3.5 w-3.5" /> Filtros rápidos
                 {activeFiltersCount > 0 && (
                   <Badge variant="secondary" className="h-5 px-1.5 normal-case tracking-normal">
