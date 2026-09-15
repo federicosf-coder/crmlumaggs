@@ -38,6 +38,8 @@ import {
   endOfMonth,
   startOfYear,
   endOfYear,
+  subDays,
+  differenceInCalendarDays,
 } from "date-fns";
 import {
   BarChart,
@@ -500,50 +502,15 @@ export default function SeguimientoLanding() {
     () => new Set(catalogo.filter((c) => c.nombre === "Dormido").map((c) => c.id)),
     [catalogo]
   );
-  const sumaMes = clientes.reduce((s, c) => s + (c.acum_mes || 0), 0);
-  const sumaMesAnterior = clientes.reduce((s, c) => s + (c.acum_mes_anterior || 0), 0);
-  const sumaMesAnteriorMismoDia = clientes.reduce(
-    (s, c) => s + (c.acum_mes_anterior_mismo_dia || 0),
-    0
-  );
-  const importeMes = clientes.reduce((s, c) => s + (c.importe_mes || 0), 0);
-  const importeMesAnterior = clientes.reduce((s, c) => s + (c.importe_mes_anterior || 0), 0);
-  const importeMesAnteriorMismoDia = clientes.reduce(
-    (s, c) => s + (c.importe_mes_anterior_mismo_dia || 0),
-    0
-  );
   const kpis = useMemo(
     () => ({
       prospectos: prospectos.length,
       clientes: clientes.length,
       nuevos: clientes.filter((c) => c.es_nuevo_cliente === true).length,
       dormidos: clientes.filter((c) => c.estatus_riesgo_id && dormidoIds.has(c.estatus_riesgo_id)).length,
-      sumaMes,
-      sumaMesAnterior,
-      sumaMesAnteriorMismoDia,
-      importeMes,
-      importeMesAnterior,
-      importeMesAnteriorMismoDia,
-      pct:
-        importeMesAnteriorMismoDia > 0
-          ? ((importeMes - importeMesAnteriorMismoDia) / importeMesAnteriorMismoDia) * 100
-          : null,
     }),
-    [
-      prospectos,
-      clientes,
-      dormidoIds,
-      sumaMes,
-      sumaMesAnterior,
-      sumaMesAnteriorMismoDia,
-      importeMes,
-      importeMesAnterior,
-      importeMesAnteriorMismoDia,
-    ]
+    [prospectos, clientes, dormidoIds]
   );
-
-  const alcanzadoPct =
-    importeMesAnterior > 0 ? Math.min(100, (importeMes / importeMesAnterior) * 100) : null;
 
   const prospectosNuevosPeriodo = useMemo(
     () =>
@@ -742,6 +709,104 @@ export default function SeguimientoLanding() {
 
   const periodoStartDate = format(periodoStart, "yyyy-MM-dd");
   const periodoEndDate = format(periodoEnd, "yyyy-MM-dd");
+
+  // Periodo equivalente inmediatamente anterior (misma duración, justo antes)
+  const { comparStart, comparEnd } = useMemo(() => {
+    const diffDays = differenceInCalendarDays(periodoEnd, periodoStart) + 1;
+    const cEnd = subDays(periodoStart, 1);
+    const cStart = subDays(cEnd, diffDays - 1);
+    return { comparStart: cStart, comparEnd: cEnd };
+  }, [periodoStart, periodoEnd]);
+
+  const comparStartDate = format(comparStart, "yyyy-MM-dd");
+  const comparEndDate = format(comparEnd, "yyyy-MM-dd");
+
+  const fetchVentasRango = async (desde: string, hasta: string) => {
+    if (!sinRestriccion && visibleCompanyIds.length === 0) return { unidades: 0, importe: 0 };
+
+    let qImporte = supabase
+      .from("documentos")
+      .select("total")
+      .eq("empresa_vendedora", empresaSel)
+      .eq("tipo_documento", "factura")
+      .eq("is_active", true)
+      .neq("estatus_factura", "cancelada")
+      .gte("fecha_documento", desde)
+      .lte("fecha_documento", hasta);
+    if (!sinRestriccion) qImporte = qImporte.in("empresa_id", visibleCompanyIds);
+
+    let qUnidades = supabase
+      .from("documento_productos")
+      .select(
+        "cantidad, documentos!inner(id, empresa_id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
+      )
+      .eq("documentos.tipo_documento", "factura")
+      .eq("documentos.is_active", true)
+      .eq("documentos.empresa_vendedora", empresaSel)
+      .neq("documentos.estatus_factura", "cancelada")
+      .gte("documentos.fecha_documento", desde)
+      .lte("documentos.fecha_documento", hasta);
+    if (!sinRestriccion) qUnidades = qUnidades.in("documentos.empresa_id", visibleCompanyIds);
+
+    const [resImporte, resUnidades] = await Promise.all([qImporte, qUnidades]);
+    if (resImporte.error) throw resImporte.error;
+    if (resUnidades.error) throw resUnidades.error;
+
+    const importe = ((resImporte.data || []) as any[]).reduce((s, d) => s + Number(d.total || 0), 0);
+    let unidades = 0;
+    for (const r of (resUnidades.data || []) as any[]) {
+      if (r.documentos?.estatus_factura === "cancelada") continue;
+      const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
+      unidades += Number(r.cantidad || 0) * ue;
+    }
+    return { unidades, importe };
+  };
+
+  const { data: ventasPeriodoActual = { unidades: 0, importe: 0 } } = useQuery({
+    queryKey: [
+      "seg_ventas_totales_periodo",
+      periodoStartDate,
+      periodoEndDate,
+      empresaSel,
+      sinRestriccion,
+      visibleCompanyIdsKey,
+    ],
+    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    queryFn: () => fetchVentasRango(periodoStartDate, periodoEndDate),
+  });
+
+  const { data: ventasPeriodoAnterior = { unidades: 0, importe: 0 } } = useQuery({
+    queryKey: [
+      "seg_ventas_totales_periodo_anterior",
+      comparStartDate,
+      comparEndDate,
+      empresaSel,
+      sinRestriccion,
+      visibleCompanyIdsKey,
+    ],
+    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    queryFn: () => fetchVentasRango(comparStartDate, comparEndDate),
+  });
+
+  const pctUnidadesComp =
+    ventasPeriodoAnterior.unidades > 0
+      ? Math.min(150, (ventasPeriodoActual.unidades / ventasPeriodoAnterior.unidades) * 100)
+      : null;
+  const pctImporteComp =
+    ventasPeriodoAnterior.importe > 0
+      ? Math.min(150, (ventasPeriodoActual.importe / ventasPeriodoAnterior.importe) * 100)
+      : null;
+  const pctVariacionImporte =
+    ventasPeriodoAnterior.importe > 0
+      ? ((ventasPeriodoActual.importe - ventasPeriodoAnterior.importe) / ventasPeriodoAnterior.importe) * 100
+      : null;
+
+  const rangoLabel = (a: Date, b: Date) =>
+    format(a, "d MMM yyyy", { locale: esLocale }) === format(b, "d MMM yyyy", { locale: esLocale })
+      ? format(a, "d MMM yyyy", { locale: esLocale })
+      : `${format(a, "d MMM", { locale: esLocale })} – ${format(b, "d MMM yyyy", { locale: esLocale })}`;
+  const rangoActualLabel = rangoLabel(periodoStart, periodoEnd);
+  const rangoAnteriorLabel = rangoLabel(comparStart, comparEnd);
 
   const { data: ventasPeriodoMap = new Map<string, number>() } = useQuery({
     queryKey: ["seg_ventas_periodo", periodoStartDate, periodoEndDate, empresaSel, actividadCompanyIds],
@@ -1192,73 +1257,60 @@ export default function SeguimientoLanding() {
         </CardContent>
       </Card>
 
-      {/* Ventas del mes */}
+      {/* Ventas del periodo */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         <Card>
           <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Este mes (a la fecha)
+              Este periodo
             </p>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <p className="text-3xl font-bold">
-                {kpis.sumaMes.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+                {ventasPeriodoActual.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
               </p>
-              {kpis.pct !== null && (
+              {pctVariacionImporte !== null && (
                 <span
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
-                    kpis.pct >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    pctVariacionImporte >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                   )}
                 >
-                  {kpis.pct >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                  {Math.abs(kpis.pct).toFixed(1)}%
+                  {pctVariacionImporte >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  {Math.abs(pctVariacionImporte).toFixed(1)}%
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(kpis.importeMes)}</p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasPeriodoActual.importe)}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoActualLabel}</p>
             <div className="mt-auto pt-3 space-y-2">
-              {(() => {
-                const pctUnidades =
-                  kpis.sumaMesAnteriorMismoDia > 0
-                    ? Math.min(150, (kpis.sumaMes / kpis.sumaMesAnteriorMismoDia) * 100)
-                    : null;
-                const pctImporte =
-                  kpis.importeMesAnteriorMismoDia > 0
-                    ? Math.min(150, (kpis.importeMes / kpis.importeMesAnteriorMismoDia) * 100)
-                    : null;
-                return (
-                  <>
-                    {pctUnidades !== null && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Unidades</span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctUnidades))}
-                            style={{ width: `${Math.min(100, pctUnidades)}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-muted-foreground w-9 text-right">
-                          {pctUnidades.toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                    {pctImporte !== null && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe</span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctImporte))}
-                            style={{ width: `${Math.min(100, pctImporte)}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-muted-foreground w-9 text-right">
-                          {pctImporte.toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
+              {pctUnidadesComp !== null && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground w-16 shrink-0">Unidades</span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctUnidadesComp))}
+                      style={{ width: `${Math.min(100, pctUnidadesComp)}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] text-muted-foreground w-9 text-right">
+                    {pctUnidadesComp.toFixed(0)}%
+                  </span>
+                </div>
+              )}
+              {pctImporteComp !== null && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe</span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctImporteComp))}
+                      style={{ width: `${Math.min(100, pctImporteComp)}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] text-muted-foreground w-9 text-right">
+                    {pctImporteComp.toFixed(0)}%
+                  </span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1266,50 +1318,13 @@ export default function SeguimientoLanding() {
         <Card>
           <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Mes anterior (total)
+              Periodo anterior
             </p>
             <p className="text-3xl font-bold mt-2 text-muted-foreground">
-              {kpis.sumaMesAnterior.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+              {ventasPeriodoAnterior.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
             </p>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(kpis.importeMesAnterior)}</p>
-            <div className="mt-auto pt-3 space-y-2">
-              {(() => {
-                const pctUnidadesAnt =
-                  kpis.sumaMesAnterior > 0 ? Math.min(100, (kpis.sumaMes / kpis.sumaMesAnterior) * 100) : null;
-                return (
-                  <>
-                    {pctUnidadesAnt !== null && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Unidades</span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctUnidadesAnt))}
-                            style={{ width: `${Math.min(100, pctUnidadesAnt)}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-muted-foreground w-9 text-right">
-                          {pctUnidadesAnt.toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                    {alcanzadoPct !== null && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe</span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(alcanzadoPct))}
-                            style={{ width: `${Math.min(100, alcanzadoPct)}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-muted-foreground w-9 text-right">
-                          {alcanzadoPct.toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasPeriodoAnterior.importe)}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoAnteriorLabel}</p>
           </CardContent>
         </Card>
       </div>
