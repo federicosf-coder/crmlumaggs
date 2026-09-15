@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
 import type { TaskTypeKey } from "@/lib/taskTypes";
 import { QuickActivityDialog } from "@/components/seguimiento/QuickActivityDialog";
@@ -202,6 +203,27 @@ const PILL: Record<EmpresaVendedora, { active: string; idle: string }> = {
 function toggleInArray(arr: string[], v: string) {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
+
+const PLAZA_TIJUANA = "86162f44-2b70-4f06-b6ae-51bc79103c75";
+const PLAZA_ENSENADA = "1508a15f-5048-4f89-a665-ca51566e4200";
+const PLAZA_MEXICALI = "3e9284e9-d3e2-4ed2-843a-bd4c27cb003f";
+const PLAZA_MORELOS = "12a112e3-656a-4033-926b-3de65c9c33d1";
+const PLAZA_SAN_LUIS = "2408d959-f3e4-47d5-a1f8-8ac635818844";
+const PLAZA_GROUPS: { name: string; plazaIds: string[] }[] = [
+  { name: "Zona Costa", plazaIds: [PLAZA_TIJUANA, PLAZA_ENSENADA] },
+  { name: "Tijuana", plazaIds: [PLAZA_TIJUANA] },
+  { name: "Ensenada", plazaIds: [PLAZA_ENSENADA] },
+  { name: "Mexicali", plazaIds: [PLAZA_MEXICALI] },
+  { name: "Morelos", plazaIds: [PLAZA_MORELOS] },
+  { name: "San Luis", plazaIds: [PLAZA_SAN_LUIS] },
+];
+const KNOWN_PLAZA_IDS = new Set([
+  PLAZA_TIJUANA,
+  PLAZA_ENSENADA,
+  PLAZA_MEXICALI,
+  PLAZA_MORELOS,
+  PLAZA_SAN_LUIS,
+]);
 
 const CHIP_COLORS = [
   "#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed",
