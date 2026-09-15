@@ -1301,6 +1301,19 @@ export default function SeguimientoLanding() {
                     {k.label}
                   </p>
                   <p className="text-xl font-bold">{k.value.toLocaleString("es-MX")}</p>
+                  {k.label === "Convertidos a clientes en periodo" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `${brandPath}?tab=con_venta&conversion_from=${format(periodoStart, "yyyy-MM-dd")}&conversion_to=${format(periodoEnd, "yyyy-MM-dd")}`
+                        )
+                      }
+                      className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                    >
+                      Ver empresas
+                    </button>
+                  )}
                 </CardContent>
               </Card>
             ))}
