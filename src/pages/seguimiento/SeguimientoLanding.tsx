@@ -883,63 +883,90 @@ export default function SeguimientoLanding() {
 
       {/* Filtros */}
       <Card>
-        <CardContent className="p-4 space-y-2">
-          <div className="flex flex-wrap items-start gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16 pt-1">Ejecutivo</span>
-            <div className="flex-1 min-w-[240px]">
-              {ejecutivoGroups.length === 0 ? (
-                <span className="text-xs text-muted-foreground italic">Sin opciones</span>
-              ) : (
-                <Accordion type="single" collapsible className="w-full">
-                  {ejecutivoGroups.map((g) => (
-                    <AccordionItem key={g.name} value={g.name} className="border-b-0">
-                      <AccordionTrigger className="py-1.5 text-xs font-semibold hover:no-underline">
-                        {g.name} <span className="text-muted-foreground font-normal">({g.options.length})</span>
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFEjecutivo((arr) => Array.from(new Set([...arr, ...g.options.map((o) => o.id)])))
-                            }
-                            className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
-                          >
-                            Seleccionar todos
-                          </button>
-                          {g.options.map((o) => {
-                            const sel = fEjecutivo.includes(o.id);
-                            return (
-                              <button
-                                key={o.id}
-                                type="button"
-                                onClick={() => setFEjecutivo((arr) => toggleInArray(arr, o.id))}
-                                className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
-                                style={
-                                  sel
-                                    ? { backgroundColor: o.color, color: "white", borderColor: o.color }
-                                    : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
-                                }
-                                aria-pressed={sel}
-                              >
-                                {o.name}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              )}
-              {fEjecutivo.length > 0 && (
-                <span className="text-[11px] text-muted-foreground">
-                  ({fEjecutivo.length} seleccionados)
-                </span>
-              )}
-            </div>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFiltrosAbiertos((v) => !v)}
+              className="inline-flex items-center gap-1 text-sm font-bold text-foreground hover:text-muted-foreground transition-colors"
+              aria-expanded={filtrosAbiertos}
+            >
+              Filtros
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border">
+                {filtrosAbiertos ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </span>
+            </button>
+            {!filtrosAbiertos && fEjecutivo.length > 0 && (
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {fEjecutivo.length} ejecutivo{fEjecutivo.length === 1 ? "" : "s"}
+              </span>
+            )}
+            {!filtrosAbiertos && fPlaza.length > 0 && (
+              <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {fPlaza.length} plaza{fPlaza.length === 1 ? "" : "s"}
+              </span>
+            )}
           </div>
-          {renderChips("Plaza", plazaOptions, fPlaza, setFPlaza)}
+          {filtrosAbiertos && (
+            <div className="space-y-2 mt-2">
+              <div className="flex flex-wrap items-start gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16 pt-1">Ejecutivo</span>
+                <div className="flex-1 min-w-[240px]">
+                  {ejecutivoGroups.length === 0 ? (
+                    <span className="text-xs text-muted-foreground italic">Sin opciones</span>
+                  ) : (
+                    <Accordion type="single" collapsible className="w-full">
+                      {ejecutivoGroups.map((g) => (
+                        <AccordionItem key={g.name} value={g.name} className="border-b-0">
+                          <AccordionTrigger className="py-1.5 text-xs font-semibold hover:no-underline">
+                            {g.name} <span className="text-muted-foreground font-normal">({g.options.length})</span>
+                          </AccordionTrigger>
+                          <AccordionContent className="pb-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setFEjecutivo((arr) => Array.from(new Set([...arr, ...g.options.map((o) => o.id)])))
+                                }
+                                className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                              >
+                                Seleccionar todos
+                              </button>
+                              {g.options.map((o) => {
+                                const sel = fEjecutivo.includes(o.id);
+                                return (
+                                  <button
+                                    key={o.id}
+                                    type="button"
+                                    onClick={() => setFEjecutivo((arr) => toggleInArray(arr, o.id))}
+                                    className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
+                                    style={
+                                      sel
+                                        ? { backgroundColor: o.color, color: "white", borderColor: o.color }
+                                        : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
+                                    }
+                                    aria-pressed={sel}
+                                  >
+                                    {o.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  )}
+                  {fEjecutivo.length > 0 && (
+                    <span className="text-[11px] text-muted-foreground">
+                      ({fEjecutivo.length} seleccionados)
+                    </span>
+                  )}
+                </div>
+              </div>
+              {renderChips("Plaza", plazaOptions, fPlaza, setFPlaza)}
+            </div>
+          )}
         </CardContent>
       </Card>
 
