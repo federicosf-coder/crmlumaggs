@@ -1345,13 +1345,18 @@ export default function SeguimientoLanding() {
         <Card>
           <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Periodo anterior
+              Mes anterior (total)
             </p>
             <p className="text-3xl font-bold mt-2 text-muted-foreground">
-              {ventasPeriodoAnterior.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+              {ventasMesAnteriorCompleto.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
             </p>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasPeriodoAnterior.importe)}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoAnteriorLabel}</p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesAnteriorCompleto.importe)}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoMesAnteriorCompletoLabel}</p>
+            <p className="text-[11px] text-muted-foreground/70 mt-1">
+              Al mismo día del mes ({rangoMesAnteriorMismoDiaLabel}):{" "}
+              {ventasMesAnteriorMismoDia.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds ·{" "}
+              {formatCurrency(ventasMesAnteriorMismoDia.importe)}
+            </p>
           </CardContent>
         </Card>
       </div>
