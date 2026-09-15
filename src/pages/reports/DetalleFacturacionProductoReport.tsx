@@ -83,6 +83,7 @@ export default function DetalleFacturacionProductoReport() {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [estatusSel, setEstatusSel] = useState<string[]>(["vigente", "pendiente", "pagada", "parcial", "vencida"]);
+  const [plazaSel, setPlazaSel] = useState<string[]>([]);
   const incluirCanceladas = estatusSel.includes("cancelada");
 
   const { periodoStart, periodoEnd } = useMemo(() => {
@@ -164,7 +165,7 @@ export default function DetalleFacturacionProductoReport() {
   const { data: plazasRows = [] } = useQuery({
     queryKey: ["reporte_detalle_fp_plazas"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("plazas").select("id, nombre").eq("activo", true).order("nombre");
+      const { data, error } = await supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre");
       if (error) throw error;
       return (data || []) as { id: string; nombre: string }[];
     },
