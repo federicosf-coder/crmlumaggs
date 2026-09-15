@@ -2386,6 +2386,7 @@ export default function SeguimientoVentas() {
                         sort={sort}
                         onSort={handleSort}
                         align={col.align}
+                        className={col.id === "empresa" ? "sticky left-0 z-20 bg-background" : undefined}
                       />
                     ))}
                   </SortableContext>
@@ -2426,7 +2427,7 @@ export default function SeguimientoVentas() {
                       {orderedColumns.map((col) => (
                         <TableCell
                           key={col.id}
-                          className={`${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""} ${col.cellClassName || ""}`}
+                          className={`${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""} ${col.cellClassName || ""} ${col.id === "empresa" ? "sticky left-0 z-10 bg-inherit" : ""}`}
                         >
                           {col.render(r)}
                         </TableCell>
