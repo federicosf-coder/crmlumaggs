@@ -8631,6 +8631,7 @@ export type Database = {
           acum_anio: number
           acum_mes: number
           acum_mes_anterior: number
+          acum_mes_anterior_mismo_dia: number | null
           avance_cotizacion: string | null
           ciclo_dias: number | null
           company_id: string
@@ -8653,6 +8654,9 @@ export type Database = {
           fecha_perdida: string | null
           fecha_ultima_compra: string | null
           id: string
+          importe_mes: number | null
+          importe_mes_anterior: number | null
+          importe_mes_anterior_mismo_dia: number | null
           motivo_perdida_id: string | null
           nota_perdida: string | null
           owner_id: string | null
@@ -8673,6 +8677,7 @@ export type Database = {
           acum_anio?: number
           acum_mes?: number
           acum_mes_anterior?: number
+          acum_mes_anterior_mismo_dia?: number | null
           avance_cotizacion?: string | null
           ciclo_dias?: number | null
           company_id: string
@@ -8695,6 +8700,9 @@ export type Database = {
           fecha_perdida?: string | null
           fecha_ultima_compra?: string | null
           id?: string
+          importe_mes?: number | null
+          importe_mes_anterior?: number | null
+          importe_mes_anterior_mismo_dia?: number | null
           motivo_perdida_id?: string | null
           nota_perdida?: string | null
           owner_id?: string | null
@@ -8715,6 +8723,7 @@ export type Database = {
           acum_anio?: number
           acum_mes?: number
           acum_mes_anterior?: number
+          acum_mes_anterior_mismo_dia?: number | null
           avance_cotizacion?: string | null
           ciclo_dias?: number | null
           company_id?: string
@@ -8737,6 +8746,9 @@ export type Database = {
           fecha_perdida?: string | null
           fecha_ultima_compra?: string | null
           id?: string
+          importe_mes?: number | null
+          importe_mes_anterior?: number | null
+          importe_mes_anterior_mismo_dia?: number | null
           motivo_perdida_id?: string | null
           nota_perdida?: string | null
           owner_id?: string | null

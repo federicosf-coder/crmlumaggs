@@ -26,6 +26,11 @@ export interface SeguimientoVentasRow {
   promedio_historico_mensual: number;
   acum_mes: number;
   acum_mes_anterior: number;
+  acum_mes_anterior_mismo_dia?: number | null;
+  importe_mes?: number | null;
+  importe_mes_anterior?: number | null;
+  importe_mes_anterior_mismo_dia?: number | null;
+
   acum_anio: number;
   fecha_ultima_compra: string | null;
   dias_ultima_compra: number | null;

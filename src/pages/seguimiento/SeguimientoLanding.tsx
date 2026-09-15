@@ -4,8 +4,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
-import { TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatCurrency } from "@/lib/formatters";
+import { format } from "date-fns";
+import { es as esLocale } from "date-fns/locale";
+import {
+  startOfYesterday,
+  endOfYesterday,
+  startOfToday,
+  endOfToday,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  getDate,
+  getDaysInMonth,
+} from "date-fns";
 import {
   BarChart,
   Bar,
@@ -184,6 +204,34 @@ export default function SeguimientoLanding() {
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
   const [mostrarEjecutivos, setMostrarEjecutivos] = useState(false);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
+  const [periodo, setPeriodo] = useState<"ayer" | "hoy" | "semana" | "mes" | "año" | "custom">("hoy");
+  const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
+
+  const { periodoStart, periodoEnd } = useMemo(() => {
+    switch (periodo) {
+      case "ayer":
+        return { periodoStart: startOfYesterday(), periodoEnd: endOfYesterday() };
+      case "semana":
+        return {
+          periodoStart: startOfWeek(new Date(), { weekStartsOn: 1 }),
+          periodoEnd: endOfWeek(new Date(), { weekStartsOn: 1 }),
+        };
+      case "mes":
+        return { periodoStart: startOfMonth(new Date()), periodoEnd: endOfMonth(new Date()) };
+      case "año":
+        return { periodoStart: startOfYear(new Date()), periodoEnd: endOfYear(new Date()) };
+      case "custom":
+        return {
+          periodoStart: customStart ?? startOfToday(),
+          periodoEnd: customEnd ?? endOfToday(),
+        };
+      default:
+        return { periodoStart: startOfToday(), periodoEnd: endOfToday() };
+    }
+  }, [periodo, customStart, customEnd]);
+  void periodoStart;
+  void periodoEnd;
 
   const pill = PILL[empresaSel];
   const access = useModuleAccess("seguimiento_ventas");
@@ -295,6 +343,12 @@ export default function SeguimientoLanding() {
   );
   const sumaMes = clientes.reduce((s, c) => s + (c.acum_mes || 0), 0);
   const sumaMesAnterior = clientes.reduce((s, c) => s + (c.acum_mes_anterior || 0), 0);
+  const importeMes = clientes.reduce((s, c) => s + (c.importe_mes || 0), 0);
+  const importeMesAnterior = clientes.reduce((s, c) => s + (c.importe_mes_anterior || 0), 0);
+  const importeMesAnteriorMismoDia = clientes.reduce(
+    (s, c) => s + (c.importe_mes_anterior_mismo_dia || 0),
+    0
+  );
   const kpis = useMemo(
     () => ({
       prospectos: prospectos.length,
@@ -303,10 +357,31 @@ export default function SeguimientoLanding() {
       dormidos: clientes.filter((c) => c.estatus_riesgo_id && dormidoIds.has(c.estatus_riesgo_id)).length,
       sumaMes,
       sumaMesAnterior,
-      pct: sumaMesAnterior > 0 ? ((sumaMes - sumaMesAnterior) / sumaMesAnterior) * 100 : null,
+      importeMes,
+      importeMesAnterior,
+      importeMesAnteriorMismoDia,
+      pct:
+        importeMesAnteriorMismoDia > 0
+          ? ((importeMes - importeMesAnteriorMismoDia) / importeMesAnteriorMismoDia) * 100
+          : null,
     }),
-    [prospectos, clientes, dormidoIds, sumaMes, sumaMesAnterior]
+    [
+      prospectos,
+      clientes,
+      dormidoIds,
+      sumaMes,
+      sumaMesAnterior,
+      importeMes,
+      importeMesAnterior,
+      importeMesAnteriorMismoDia,
+    ]
   );
+
+  const hoyDate = new Date();
+  const avanceMesPct = (getDate(hoyDate) / getDaysInMonth(hoyDate)) * 100;
+  const alcanzadoPct =
+    importeMesAnterior > 0 ? Math.min(100, (importeMes / importeMesAnterior) * 100) : null;
+
 
   const etapasProspecto = useMemo(
     () => catalogo.filter((c) => c.ambito === "sin_venta" && c.familia === "etapa_prospecto").sort((a, b) => a.orden - b.orden),
@@ -353,26 +428,35 @@ export default function SeguimientoLanding() {
     </div>
   );
 
-  const kanbanProspectoCols = useMemo(
-    () =>
-      etapasProspecto.map((e) => ({
-        id: e.id,
-        nombre: e.nombre,
-        color: e.color,
-        count: prospectos.filter((r) => (r as any).etapa_prospecto_id === e.id).length,
-      })),
-    [etapasProspecto, prospectos]
-  );
-  const kanbanClienteCols = useMemo(
-    () =>
-      etapasRiesgo.map((e) => ({
-        id: e.id,
-        nombre: e.nombre,
-        color: e.color,
-        count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
-      })),
-    [etapasRiesgo, clientes]
-  );
+  const kanbanProspectoCols = useMemo(() => {
+    const cols = etapasProspecto.map((e) => ({
+      id: e.id,
+      nombre: e.nombre,
+      color: e.color,
+      count: prospectos.filter((r) => (r as any).etapa_prospecto_id === e.id).length,
+    }));
+    const clasificados = cols.reduce((s, c) => s + c.count, 0);
+    const sinClasificar = prospectos.length - clasificados;
+    if (sinClasificar > 0) {
+      cols.push({ id: "sin-clasificar", nombre: "Sin clasificar", color: "#94a3b8", count: sinClasificar });
+    }
+    return cols;
+  }, [etapasProspecto, prospectos]);
+  const kanbanClienteCols = useMemo(() => {
+    const cols = etapasRiesgo.map((e) => ({
+      id: e.id,
+      nombre: e.nombre,
+      color: e.color,
+      count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
+    }));
+    const clasificados = cols.reduce((s, c) => s + c.count, 0);
+    const sinClasificar = clientes.length - clasificados;
+    if (sinClasificar > 0) {
+      cols.push({ id: "sin-clasificar", nombre: "Sin clasificar", color: "#94a3b8", count: sinClasificar });
+    }
+    return cols;
+  }, [etapasRiesgo, clientes]);
+
 
   return (
     <div className="space-y-6">
@@ -416,6 +500,69 @@ export default function SeguimientoLanding() {
         </Button>
       </div>
 
+      {/* Selector de periodo */}
+      <div className="flex flex-wrap items-center gap-2">
+        {([
+          { id: "ayer", label: "Ayer" },
+          { id: "hoy", label: "Hoy" },
+          { id: "semana", label: "Esta Semana" },
+          { id: "mes", label: "Este Mes" },
+          { id: "año", label: "Este Año" },
+          { id: "custom", label: "Especificar periodo" },
+        ] as const).map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setPeriodo(p.id)}
+            className={cn(
+              "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all",
+              periodo === p.id ? pill.active : pill.idle
+            )}
+            aria-pressed={periodo === p.id}
+          >
+            {p.label}
+          </button>
+        ))}
+        {periodo === "custom" && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs font-normal">
+                  <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                  {customStart ? format(customStart, "d MMM yyyy", { locale: esLocale }) : "Inicio"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={customStart}
+                  onSelect={setCustomStart}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs font-normal">
+                  <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                  {customEnd ? format(customEnd, "d MMM yyyy", { locale: esLocale }) : "Fin"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={customEnd}
+                  onSelect={setCustomEnd}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+      </div>
+
       <CreateCrmActivityTaskDialog
         open={activityOpen}
         onOpenChange={setActivityOpen}
@@ -446,24 +593,15 @@ export default function SeguimientoLanding() {
         </CardContent>
       </Card>
 
-      {/* KPIs */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
-        <Card className="col-span-2">
-          <CardContent className="p-4">
+      {/* Ventas del mes */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+        <Card>
+          <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Ventas del mes vs. mes anterior
+              Este mes (a la fecha)
             </p>
-            <div className="flex flex-wrap items-end gap-4 mt-2">
-              <div>
-                <p className="text-[10px] text-muted-foreground">Este mes</p>
-                <p className="text-2xl font-bold">{kpis.sumaMes.toLocaleString("es-MX")}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Mes anterior</p>
-                <p className="text-2xl font-bold text-muted-foreground">
-                  {kpis.sumaMesAnterior.toLocaleString("es-MX")}
-                </p>
-              </div>
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <p className="text-3xl font-bold">{formatCurrency(kpis.importeMes)}</p>
               {kpis.pct !== null && (
                 <span
                   className={cn(
@@ -476,27 +614,57 @@ export default function SeguimientoLanding() {
                 </span>
               )}
             </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {kpis.sumaMes.toLocaleString("es-MX")} uds
+            </p>
+            <div className="mt-auto pt-3 space-y-1">
+              <Progress value={avanceMesPct} className="h-1.5" />
+              <p className="text-[11px] text-muted-foreground">
+                {avanceMesPct.toFixed(0)}% del mes transcurrido · vs. mismo día mes anterior
+              </p>
+            </div>
           </CardContent>
         </Card>
-        {[
-          { label: "Prospectos activos", value: kpis.prospectos },
-          { label: "Clientes activos", value: kpis.clientes },
-          { label: "Nuevos (120 días)", value: kpis.nuevos },
-          { label: "Dormidos", value: kpis.dormidos },
-        ].map((k) => (
-          <Card key={k.label}>
-            <CardContent className="p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{k.label}</p>
-              <p className="text-2xl font-bold mt-1">{k.value.toLocaleString("es-MX")}</p>
-            </CardContent>
-          </Card>
-        ))}
+
+        <Card>
+          <CardContent className="p-4 flex flex-col h-full">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Mes anterior (total)
+            </p>
+            <p className="text-3xl font-bold mt-2 text-muted-foreground">
+              {formatCurrency(kpis.importeMesAnterior)}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {kpis.sumaMesAnterior.toLocaleString("es-MX")} uds
+            </p>
+            <div className="mt-auto pt-3 space-y-1">
+              {alcanzadoPct !== null && (
+                <>
+                  <Progress value={alcanzadoPct} className="h-1.5" />
+                  <p className="text-[11px] text-muted-foreground">
+                    {alcanzadoPct.toFixed(0)}% del mes pasado alcanzado
+                  </p>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Kanban */}
       <div className="space-y-6">
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold">Pipeline Prospectos</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-sm font-semibold">Pipeline Prospectos</h3>
+            <Card className="min-w-[180px]">
+              <CardContent className="px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Prospectos activos
+                </p>
+                <p className="text-xl font-bold">{prospectos.length.toLocaleString("es-MX")}</p>
+              </CardContent>
+            </Card>
+          </div>
           {kanbanProspectoCols.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
           ) : (
@@ -544,25 +712,41 @@ export default function SeguimientoLanding() {
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold">Pipeline Clientes</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-sm font-semibold">Pipeline Clientes</h3>
+            {[
+              { label: "Clientes activos", value: kpis.clientes },
+              { label: "Nuevos (120 días)", value: kpis.nuevos },
+              { label: "Dormidos", value: kpis.dormidos },
+            ].map((k) => (
+              <Card key={k.label} className="min-w-[160px]">
+                <CardContent className="px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {k.label}
+                  </p>
+                  <p className="text-xl font-bold">{k.value.toLocaleString("es-MX")}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
           {kanbanClienteCols.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
           ) : (
-            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+            <div className="grid gap-2 grid-cols-2 md:grid-cols-4 xl:grid-cols-6">
               {kanbanClienteCols.map((c) => (
                 <Card key={c.id}>
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                      <span className="text-xs font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
+                  <CardContent className="px-3 py-2 space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
                     </div>
-                    <p className="text-3xl font-bold" style={{ color: c.color }}>
+                    <p className="text-2xl font-bold leading-tight" style={{ color: c.color }}>
                       {c.count.toLocaleString("es-MX")}
                     </p>
                     <button
                       type="button"
                       onClick={() => navigate(`${brandPath}?tab=con_venta`)}
-                      className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                      className="text-[10px] font-semibold underline text-muted-foreground hover:text-foreground"
                     >
                       Ver empresas
                     </button>
