@@ -1249,9 +1249,16 @@ export default function SeguimientoLanding() {
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">Actividades del periodo</h3>
-          <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
-            Registrar actividad
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
+              Registrar actividad
+            </Button>
+            {actividades.length > 0 && (
+              <Button size="sm" variant="outline" onClick={exportarActividades}>
+                Exportar a Excel
+              </Button>
+            )}
+          </div>
         </div>
         {actividades.length === 0 ? (
           <p className="text-sm text-muted-foreground">Sin actividades en este periodo.</p>
