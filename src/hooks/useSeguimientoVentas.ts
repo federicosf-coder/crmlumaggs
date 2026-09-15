@@ -51,7 +51,7 @@ export interface SeguimientoVentasRow {
   estatus_manual_id: string | null;
   owner_id: string | null;
   ultima_actualizacion: string;
-  companies?: { id: string; name: string; created_at?: string | null } | null;
+  companies?: { id: string; name: string; created_at?: string | null; volumen_mensual_estimado?: number | null } | null;
   perdido?: boolean | null;
   motivo_perdida_id?: string | null;
   fecha_perdida?: string | null;
@@ -61,6 +61,7 @@ export interface SeguimientoVentasRow {
   fecha_ignorado: string | null;
   nota_ignorado: string | null;
   total_historico: number | null;
+  total_historico_unidades: number | null;
   fecha_conversion: string | null;
   es_nuevo_cliente: boolean;
 }
