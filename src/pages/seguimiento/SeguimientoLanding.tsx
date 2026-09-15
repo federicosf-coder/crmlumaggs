@@ -54,13 +54,6 @@ function VentasMensualSection({ empresa, label }: { empresa: EmpresaVendedora; l
   const { data, isLoading } = useVentasMensual(empresa);
   const palette = PALETTES[empresa];
   const [mes, setMes] = useState<string>(currentYm());
-  const [plaza, setPlaza] = useState<string>("");
-
-  const plazaSel = useMemo(() => {
-    const list = data?.plazasDisponibles || [];
-    if (plaza && list.includes(plaza)) return plaza;
-    return list.find((p) => p.toLowerCase().includes("tijuana")) || list[0] || "";
-  }, [plaza, data]);
 
   const mesData = useMemo(() => {
     const r = reporteMes(data, mes);
@@ -71,8 +64,6 @@ function VentasMensualSection({ empresa, label }: { empresa: EmpresaVendedora; l
     return <div className="text-sm text-muted-foreground py-6 text-center">Cargando reportes mensuales de {label}…</div>;
   }
   if (!data) return null;
-
-  const plazaSerie = (plazaSel && data.porMesPorPlaza[plazaSel]) || [];
 
   return (
     <div className="mt-4 space-y-4">
