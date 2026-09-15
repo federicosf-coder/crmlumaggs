@@ -775,51 +775,65 @@ export default function SeguimientoLanding() {
     return { unidades, importe };
   };
 
-  const { data: ventasPeriodoActual = { unidades: 0, importe: 0 } } = useQuery({
+  const { data: ventasMesActual = { unidades: 0, importe: 0 } } = useQuery({
     queryKey: [
-      "seg_ventas_totales_periodo",
-      periodoStartDate,
-      periodoEndDate,
+      "seg_ventas_mes_actual",
+      mesActualStartDate,
+      mesActualEndDate,
       empresaSel,
       sinRestriccion,
       visibleCompanyIdsKey,
     ],
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
-    queryFn: () => fetchVentasRango(periodoStartDate, periodoEndDate),
+    queryFn: () => fetchVentasRango(mesActualStartDate, mesActualEndDate),
   });
 
-  const { data: ventasPeriodoAnterior = { unidades: 0, importe: 0 } } = useQuery({
+  const { data: ventasMesAnteriorCompleto = { unidades: 0, importe: 0 } } = useQuery({
     queryKey: [
-      "seg_ventas_totales_periodo_anterior",
-      comparStartDate,
-      comparEndDate,
+      "seg_ventas_mes_anterior_completo",
+      mesAnteriorCompletoStartDate,
+      mesAnteriorCompletoEndDate,
       empresaSel,
       sinRestriccion,
       visibleCompanyIdsKey,
     ],
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
-    queryFn: () => fetchVentasRango(comparStartDate, comparEndDate),
+    queryFn: () => fetchVentasRango(mesAnteriorCompletoStartDate, mesAnteriorCompletoEndDate),
+  });
+
+  const { data: ventasMesAnteriorMismoDia = { unidades: 0, importe: 0 } } = useQuery({
+    queryKey: [
+      "seg_ventas_mes_anterior_mismo_dia",
+      mesAnteriorCompletoStartDate,
+      mesAnteriorMismoDiaEndDate,
+      empresaSel,
+      sinRestriccion,
+      visibleCompanyIdsKey,
+    ],
+    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    queryFn: () => fetchVentasRango(mesAnteriorCompletoStartDate, mesAnteriorMismoDiaEndDate),
   });
 
   const pctUnidadesComp =
-    ventasPeriodoAnterior.unidades > 0
-      ? Math.min(150, (ventasPeriodoActual.unidades / ventasPeriodoAnterior.unidades) * 100)
+    ventasMesAnteriorMismoDia.unidades > 0
+      ? Math.min(150, (ventasMesActual.unidades / ventasMesAnteriorMismoDia.unidades) * 100)
       : null;
   const pctImporteComp =
-    ventasPeriodoAnterior.importe > 0
-      ? Math.min(150, (ventasPeriodoActual.importe / ventasPeriodoAnterior.importe) * 100)
-      : null;
+    ventasMesAnteriorMismoDia.importe > 0
+      ? Math.min(150, (ventasMesActual.importe / ventasMesAnteriorMismoDia.importe) * 100)
+      : nullobserv;
   const pctVariacionImporte =
-    ventasPeriodoAnterior.importe > 0
-      ? ((ventasPeriodoActual.importe - ventasPeriodoAnterior.importe) / ventasPeriodoAnterior.importe) * 100
+    ventasMesAnteriorMismoDia.importe > 0
+      ? ((ventasMesActual.importe - ventasMesAnteriorMismoDia.importe) / ventasMesAnteriorMismoDia.importe) * 100
       : null;
 
   const rangoLabel = (a: Date, b: Date) =>
     format(a, "d MMM yyyy", { locale: esLocale }) === format(b, "d MMM yyyy", { locale: esLocale })
       ? format(a, "d MMM yyyy", { locale: esLocale })
       : `${format(a, "d MMM", { locale: esLocale })} – ${format(b, "d MMM yyyy", { locale: esLocale })}`;
-  const rangoActualLabel = rangoLabel(periodoStart, periodoEnd);
-  const rangoAnteriorLabel = rangoLabel(comparStart, comparEnd);
+  const rangoMesActualLabel = `${format(mesActualStart, "d", { locale: esLocale })}–${format(mesActualEnd, "d MMM yyyy", { locale: esLocale })}`;
+  const rangoMesAnteriorCompletoLabel = `${format(mesAnteriorCompletoStart, "d", { locale: esLocale })}–${format(mesAnteriorCompletoEnd, "d MMM yyyy", { locale: esLocale })}`;
+  const rangoMesAnteriorMismoDiaLabel = `${format(mesAnteriorCompletoStart, "d", { locale: esLocale })}–${format(mesAnteriorMismoDiaEnd, "d MMM yyyy", { locale: esLocale })}`;
 
   const { data: ventasPeriodoMap = new Map<string, number>() } = useQuery({
     queryKey: ["seg_ventas_periodo", periodoStartDate, periodoEndDate, empresaSel, actividadCompanyIds],
