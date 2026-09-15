@@ -2061,6 +2061,7 @@ export type Database = {
           department: string | null
           email: string | null
           email2: string | null
+          es_contacto_empresa: boolean
           first_name: string
           id: string
           influencia_id: string | null
@@ -2096,6 +2097,7 @@ export type Database = {
           department?: string | null
           email?: string | null
           email2?: string | null
+          es_contacto_empresa?: boolean
           first_name: string
           id?: string
           influencia_id?: string | null
@@ -2131,6 +2133,7 @@ export type Database = {
           department?: string | null
           email?: string | null
           email2?: string | null
+          es_contacto_empresa?: boolean
           first_name?: string
           id?: string
           influencia_id?: string | null
