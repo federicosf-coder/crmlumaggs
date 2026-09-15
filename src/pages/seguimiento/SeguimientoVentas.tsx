@@ -355,26 +355,43 @@ export default function SeguimientoVentas() {
   const [search, setSearch] = useState(() => persisted.search ?? "");
   const [selected, setSelected] = useState<SeguimientoVentasRow | null>(null);
   const [sort, setSort] = useState<SortState | null>(() => persisted.sort ?? null);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      return ["registro_from", "registro_to", "conversion_from", "conversion_to", "ejecutivo", "plaza"].some((k) => !!p.get(k));
+    } catch { return false; }
+  });
   const [fEstatus, setFEstatus] = useState<string[]>(() => persisted.fEstatus ?? []);
   const [fAvance, setFAvance] = useState<string[]>(() => persisted.fAvance ?? []);
   const [fDias, setFDias] = useState<string[]>(() => persisted.fDias ?? []);
   const [fPotencial, setFPotencial] = useState<string[]>(() => persisted.fPotencial ?? []);
-  const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => persisted.fEjecutivo ?? []);
-  const [fPlaza, setFPlaza] = useState<string[]>(() => persisted.fPlaza ?? []);
+  const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => {
+    try {
+      const urlVal = new URLSearchParams(window.location.search).get("ejecutivo");
+      if (urlVal) return urlVal.split(",").map((s) => s.trim()).filter(Boolean);
+    } catch { /* noop */ }
+    return persisted.fEjecutivo ?? [];
+  });
+  const [fPlaza, setFPlaza] = useState<string[]>(() => {
+    try {
+      const urlVal = new URLSearchParams(window.location.search).get("plaza");
+      if (urlVal) return urlVal.split(",").map((s) => s.trim()).filter(Boolean);
+    } catch { /* noop */ }
+    return persisted.fPlaza ?? [];
+  });
   const [fRegistroFrom, setFRegistroFrom] = useState<string>(() => {
     try {
       const urlFrom = new URLSearchParams(window.location.search).get("registro_from");
       if (urlFrom) return urlFrom;
     } catch { /* noop */ }
-    return persisted.fRegistroFrom ?? "";
+    return "";
   });
   const [fRegistroTo, setFRegistroTo] = useState<string>(() => {
     try {
       const urlTo = new URLSearchParams(window.location.search).get("registro_to");
       if (urlTo) return urlTo;
     } catch { /* noop */ }
-    return persisted.fRegistroTo ?? "";
+    return "";
   });
   const [fConversionFrom, setFConversionFrom] = useState<string>(() => {
     try {
