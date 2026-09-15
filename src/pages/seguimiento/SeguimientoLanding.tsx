@@ -924,9 +924,15 @@ export default function SeguimientoLanding() {
                         </TableCell>
                         <TableCell className="align-top">
                           <p className="font-medium">
-                            {valor ? formatCurrency(Number(valor)) : "—"}
+                            {valor ? `${Math.round(Number(valor)).toLocaleString("es-MX")} uds` : "—"}
                           </p>
                           <p className="text-[11px] text-muted-foreground">{etiqueta}</p>
+                        </TableCell>
+                        <TableCell className="align-top text-sm font-medium">
+                          {ventasPeriodo ? `${Math.round(ventasPeriodo).toLocaleString("es-MX")} uds` : "—"}
+                        </TableCell>
+                        <TableCell className="align-top text-sm font-medium">
+                          {acumMes ? `${Math.round(Number(acumMes)).toLocaleString("es-MX")} uds` : "—"}
                         </TableCell>
                         <TableCell className="align-top text-sm">
                           {TASK_TYPE_LABEL[a.type as TaskTypeKey] || a.type || "—"}
