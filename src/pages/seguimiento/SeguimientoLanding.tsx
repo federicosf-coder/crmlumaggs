@@ -517,6 +517,38 @@ export default function SeguimientoLanding() {
     },
   });
 
+  const periodoStartDate = format(periodoStart, "yyyy-MM-dd");
+  const periodoEndDate = format(periodoEnd, "yyyy-MM-dd");
+
+  const { data: ventasPeriodoMap = new Map<string, number>() } = useQuery({
+    queryKey: ["seg_ventas_periodo", periodoStartDate, periodoEndDate, empresaSel, actividadCompanyIds],
+    enabled: actividadCompanyIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documento_productos")
+        .select(
+          "cantidad, documentos!inner(id, empresa_id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
+        )
+        .eq("documentos.tipo_documento", "factura")
+        .eq("documentos.is_active", true)
+        .eq("documentos.empresa_vendedora", empresaSel)
+        .in("documentos.empresa_id", actividadCompanyIds)
+        .gte("documentos.fecha_documento", periodoStartDate)
+        .lte("documentos.fecha_documento", periodoEndDate);
+      if (error) throw error;
+      const m = new Map<string, number>();
+      for (const r of (data || []) as any[]) {
+        const doc = r.documentos;
+        if (!doc?.empresa_id) continue;
+        if (doc.estatus_factura === "cancelada") continue;
+        const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
+        const uds = Number(r.cantidad || 0) * ue;
+        m.set(doc.empresa_id, (m.get(doc.empresa_id) || 0) + uds);
+      }
+      return m;
+    },
+  });
+
   return (
     <div className="space-y-6">
       <PageBanner
