@@ -1040,9 +1040,6 @@ export default function SeguimientoLanding() {
                         </span>
                       </div>
                     )}
-                    <p className="text-[11px] text-muted-foreground">
-                      {avanceMesPct.toFixed(0)}% del mes transcurrido · vs. mismo día mes anterior
-                    </p>
                   </>
                 );
               })()}
