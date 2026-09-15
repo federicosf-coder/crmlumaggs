@@ -1217,6 +1217,108 @@ export default function SeguimientoLanding() {
           </Card>
         )}
       </section>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold">Cotizaciones del periodo</h3>
+        {cotizacionesPeriodo.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin cotizaciones en este periodo.</p>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Nombre Comercial</TableHead>
+                    <TableHead>Unidades equivalentes</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cotizacionesPeriodo.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="text-sm">
+                        {c.fecha_documento ? format(new Date(c.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">{c.numero_cotizacion || "—"}</TableCell>
+                      <TableCell className="text-sm">{c.companies?.name || "—"}</TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {(() => {
+                          const uds = docUnidadesMap.get(c.id);
+                          return uds !== undefined
+                            ? `${Math.round(uds).toLocaleString("es-MX")} uds`
+                            : "—";
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/documents/${c.id}`)}
+                          className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                        >
+                          Ver / Editar
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold">Facturas del periodo</h3>
+        {facturasPeriodo.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin facturas en este periodo.</p>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Nombre Comercial</TableHead>
+                    <TableHead>Unidades equivalentes</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {facturasPeriodo.map((f) => (
+                    <TableRow key={f.id}>
+                      <TableCell className="text-sm">
+                        {f.fecha_documento ? format(new Date(f.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">{f.numero_factura || "—"}</TableCell>
+                      <TableCell className="text-sm">{f.companies?.name || "—"}</TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {(() => {
+                          const uds = docUnidadesMap.get(f.id);
+                          return uds !== undefined
+                            ? `${Math.round(uds).toLocaleString("es-MX")} uds`
+                            : "—";
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/documents/${f.id}`)}
+                          className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                        >
+                          Ver / Editar
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </section>
     </div>
   );
 }
