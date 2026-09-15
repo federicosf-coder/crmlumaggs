@@ -72,6 +72,7 @@ interface Linea {
   importe: number;
   estatus: string;
   cancelada: boolean;
+  companyId: string | null;
 }
 
 export default function DetalleFacturacionProductoReport() {
@@ -113,7 +114,7 @@ export default function DetalleFacturacionProductoReport() {
       const { data, error } = await supabase
         .from("documento_productos")
         .select(
-          "id, cantidad, precio_unitario, subtotal, documentos!inner(id, numero_factura, fecha_documento, estatus_factura, tipo_documento, is_active, empresa_vendedora), productos!inner(nombre_producto, presentaciones(nombre, unidades_equivalentes))"
+          "id, cantidad, precio_unitario, subtotal, documentos!inner(id, numero_factura, fecha_documento, estatus_factura, tipo_documento, is_active, empresa_vendedora, empresa_id), productos!inner(nombre_producto, presentaciones(nombre, unidades_equivalentes))"
         )
         .eq("documentos.tipo_documento", "factura")
         .eq("documentos.is_active", true)
