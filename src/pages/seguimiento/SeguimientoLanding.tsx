@@ -534,6 +534,24 @@ export default function SeguimientoLanding() {
                   >
                     Ver empresas
                   </button>
+                  {kanbanTab === "sin_venta" && c.nombre === "Propuesta" && (
+                    <div className="flex flex-col items-start gap-1 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/documents?tipo=cotizacion&empresa=${empresaSel}&revision=no`)}
+                        className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                      >
+                        Esperando respuesta ({prospectos.filter((r) => (r as any).avance_cotizacion === "esperando").length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/documents?tipo=cotizacion&empresa=${empresaSel}&revision=si`)}
+                        className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                      >
+                        En negociación ({prospectos.filter((r) => (r as any).avance_cotizacion === "negociacion").length})
+                      </button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
