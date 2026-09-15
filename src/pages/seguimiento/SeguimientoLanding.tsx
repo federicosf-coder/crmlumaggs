@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   BarChart,
   Bar,
@@ -53,13 +54,6 @@ function VentasMensualSection({ empresa, label }: { empresa: EmpresaVendedora; l
   const { data, isLoading } = useVentasMensual(empresa);
   const palette = PALETTES[empresa];
   const [mes, setMes] = useState<string>(currentYm());
-  const [plaza, setPlaza] = useState<string>("");
-
-  const plazaSel = useMemo(() => {
-    const list = data?.plazasDisponibles || [];
-    if (plaza && list.includes(plaza)) return plaza;
-    return list.find((p) => p.toLowerCase().includes("tijuana")) || list[0] || "";
-  }, [plaza, data]);
 
   const mesData = useMemo(() => {
     const r = reporteMes(data, mes);
@@ -70,8 +64,6 @@ function VentasMensualSection({ empresa, label }: { empresa: EmpresaVendedora; l
     return <div className="text-sm text-muted-foreground py-6 text-center">Cargando reportes mensuales de {label}…</div>;
   }
   if (!data) return null;
-
-  const plazaSerie = (plazaSel && data.porMesPorPlaza[plazaSel]) || [];
 
   return (
     <div className="mt-4 space-y-4">
@@ -102,55 +94,24 @@ function VentasMensualSection({ empresa, label }: { empresa: EmpresaVendedora; l
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className={`border ${palette.ring}`}>
-          <CardContent className="p-4">
-            <h3 className={`text-sm font-semibold mb-3 ${palette.text}`}>Total mensual</h3>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={data.porMesTotal} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="unidades" name="Unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="unidades" name="Tendencia" stroke={palette.line || palette.bar} strokeWidth={2} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={`border ${palette.ring}`}>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <h3 className={`text-sm font-semibold ${palette.text}`}>Mensual por plaza</h3>
-              <Select value={plazaSel} onValueChange={setPlaza}>
-                <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder="Plaza" /></SelectTrigger>
-                <SelectContent>
-                  {data.plazasDisponibles.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={plazaSerie} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="unidades" name="Unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="unidades" name="Tendencia" stroke={palette.line || palette.bar} strokeWidth={2} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className={`border ${palette.ring}`}>
+        <CardContent className="p-4">
+          <h3 className={`text-sm font-semibold mb-3 ${palette.text}`}>Total mensual</h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={data.porMesTotal} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="unidades" name="Unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
+                <Line type="monotone" dataKey="unidades" name="Tendencia" stroke={palette.line || palette.bar} strokeWidth={2} dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -172,18 +133,8 @@ function VentasChartsSection({ empresa, label }: { empresa: EmpresaVendedora; la
 
   const plazaData = [{ plaza: "Total", unidades: data.total }, ...data.porPlaza];
 
-  // Build stacked dataset: rows = plazas, keys = ejecutivos
-  const ejecutivosSet = new Set<string>();
-  data.porPlazaEjecutivo.forEach(p => p.ejecutivos.forEach(e => ejecutivosSet.add(e.nombre)));
-  const ejecutivos = Array.from(ejecutivosSet);
-  const stackedData = data.porPlazaEjecutivo.map(p => {
-    const row: Record<string, any> = { plaza: p.plaza };
-    p.ejecutivos.forEach(e => { row[e.nombre] = e.unidades; });
-    return row;
-  });
-
   return (
-    <div className="grid gap-4 lg:grid-cols-2 mt-4">
+    <div className="mt-4">
       <Card className={`border ${palette.ring}`}>
         <CardContent className="p-4">
           <h3 className={`text-sm font-semibold mb-3 ${palette.text}`}>Unidades vendidas — Total y por plaza</h3>
@@ -195,25 +146,6 @@ function VentasChartsSection({ empresa, label }: { empresa: EmpresaVendedora; la
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
                 <Bar dataKey="unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-      <Card className={`border ${palette.ring}`}>
-        <CardContent className="p-4">
-          <h3 className={`text-sm font-semibold mb-3 ${palette.text}`}>Unidades por plaza y ejecutivo</h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stackedData} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="plaza" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                {ejecutivos.map((nombre, i) => (
-                  <Bar key={nombre} dataKey={nombre} stackId="a" fill={palette.bars[i % palette.bars.length]} />
-                ))}
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -246,7 +178,6 @@ const CHIP_COLORS = [
 export default function SeguimientoLanding() {
   const navigate = useNavigate();
   const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>("lumaggs_chevron");
-  const [kanbanTab, setKanbanTab] = useState<"sin_venta" | "con_venta">("sin_venta");
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
 
@@ -358,14 +289,19 @@ export default function SeguimientoLanding() {
     () => new Set(catalogo.filter((c) => c.nombre === "Dormido").map((c) => c.id)),
     [catalogo]
   );
+  const sumaMes = clientes.reduce((s, c) => s + (c.acum_mes || 0), 0);
+  const sumaMesAnterior = clientes.reduce((s, c) => s + (c.acum_mes_anterior || 0), 0);
   const kpis = useMemo(
     () => ({
       prospectos: prospectos.length,
       clientes: clientes.length,
       nuevos: clientes.filter((c) => c.es_nuevo_cliente === true).length,
       dormidos: clientes.filter((c) => c.estatus_riesgo_id && dormidoIds.has(c.estatus_riesgo_id)).length,
+      sumaMes,
+      sumaMesAnterior,
+      pct: sumaMesAnterior > 0 ? ((sumaMes - sumaMesAnterior) / sumaMesAnterior) * 100 : null,
     }),
-    [prospectos, clientes, dormidoIds]
+    [prospectos, clientes, dormidoIds, sumaMes, sumaMesAnterior]
   );
 
   const etapasProspecto = useMemo(
@@ -378,7 +314,6 @@ export default function SeguimientoLanding() {
   );
 
   const brandPath = empresaSel === "lumaggs_chevron" ? "/seguimiento/chevron" : "/seguimiento/phillips66";
-  const goTo = (tab: "sin_venta" | "con_venta") => navigate(`${brandPath}?tab=${tab}`);
 
   const renderChips = (
     label: string,
@@ -414,20 +349,26 @@ export default function SeguimientoLanding() {
     </div>
   );
 
-  const kanbanCols =
-    kanbanTab === "sin_venta"
-      ? etapasProspecto.map((e) => ({
-          id: e.id,
-          nombre: e.nombre,
-          color: e.color,
-          count: prospectos.filter((r) => (r as any).etapa_prospecto_id === e.id).length,
-        }))
-      : etapasRiesgo.map((e) => ({
-          id: e.id,
-          nombre: e.nombre,
-          color: e.color,
-          count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
-        }));
+  const kanbanProspectoCols = useMemo(
+    () =>
+      etapasProspecto.map((e) => ({
+        id: e.id,
+        nombre: e.nombre,
+        color: e.color,
+        count: prospectos.filter((r) => (r as any).etapa_prospecto_id === e.id).length,
+      })),
+    [etapasProspecto, prospectos]
+  );
+  const kanbanClienteCols = useMemo(
+    () =>
+      etapasRiesgo.map((e) => ({
+        id: e.id,
+        nombre: e.nombre,
+        color: e.color,
+        count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
+      })),
+    [etapasRiesgo, clientes]
+  );
 
   return (
     <div className="space-y-6">
@@ -472,7 +413,37 @@ export default function SeguimientoLanding() {
       </Card>
 
       {/* KPIs */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+        <Card className="col-span-2">
+          <CardContent className="p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Ventas del mes vs. mes anterior
+            </p>
+            <div className="flex flex-wrap items-end gap-4 mt-2">
+              <div>
+                <p className="text-[10px] text-muted-foreground">Este mes</p>
+                <p className="text-2xl font-bold">{kpis.sumaMes.toLocaleString("es-MX")}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Mes anterior</p>
+                <p className="text-2xl font-bold text-muted-foreground">
+                  {kpis.sumaMesAnterior.toLocaleString("es-MX")}
+                </p>
+              </div>
+              {kpis.pct !== null && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
+                    kpis.pct >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                  )}
+                >
+                  {kpis.pct >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  {Math.abs(kpis.pct).toFixed(1)}%
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
         {[
           { label: "Prospectos activos", value: kpis.prospectos },
           { label: "Clientes activos", value: kpis.clientes },
@@ -489,74 +460,84 @@ export default function SeguimientoLanding() {
       </div>
 
       {/* Kanban */}
-      <div className="space-y-3">
-        <div className="inline-flex rounded-full border overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setKanbanTab("sin_venta")}
-            className={`px-4 py-1.5 text-xs font-semibold border-r transition-all ${
-              kanbanTab === "sin_venta" ? pill.active : pill.idle
-            }`}
-          >
-            Prospectos
-          </button>
-          <button
-            type="button"
-            onClick={() => setKanbanTab("con_venta")}
-            className={`px-4 py-1.5 text-xs font-semibold transition-all ${
-              kanbanTab === "con_venta" ? pill.active : pill.idle
-            }`}
-          >
-            Clientes
-          </button>
-        </div>
-        <h3 className="text-sm font-semibold">
-          {kanbanTab === "sin_venta" ? "Pipeline Prospectos" : "Pipeline Clientes"}
-        </h3>
-        {kanbanCols.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
-        ) : (
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
-            {kanbanCols.map((c) => (
-              <Card key={c.id}>
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                    <span className="text-xs font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
-                  </div>
-                  <p className="text-3xl font-bold" style={{ color: c.color }}>
-                    {c.count.toLocaleString("es-MX")}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => goTo(kanbanTab)}
-                    className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
-                  >
-                    Ver empresas
-                  </button>
-                  {kanbanTab === "sin_venta" && c.nombre === "Propuesta" && (
-                    <div className="flex flex-col items-start gap-1 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/documents?tipo=cotizacion&empresa=${empresaSel}&revision=no`)}
-                        className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
-                      >
-                        Esperando respuesta ({prospectos.filter((r) => (r as any).avance_cotizacion === "esperando").length})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/documents?tipo=cotizacion&empresa=${empresaSel}&revision=si`)}
-                        className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
-                      >
-                        En negociación ({prospectos.filter((r) => (r as any).avance_cotizacion === "negociacion").length})
-                      </button>
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold">Pipeline Prospectos</h3>
+          {kanbanProspectoCols.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
+          ) : (
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+              {kanbanProspectoCols.map((c) => (
+                <Card key={c.id}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                      <span className="text-xs font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                    <p className="text-3xl font-bold" style={{ color: c.color }}>
+                      {c.count.toLocaleString("es-MX")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`${brandPath}?tab=sin_venta`)}
+                      className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                    >
+                      Ver empresas
+                    </button>
+                    {c.nombre === "Propuesta" && (
+                      <div className="flex flex-col items-start gap-1 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/documents?tipo=cotizacion&empresa=${empresaSel}&revision=no`)}
+                          className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                        >
+                          Esperando respuesta ({prospectos.filter((r) => (r as any).avance_cotizacion === "esperando").length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/documents?tipo=cotizacion&empresa=${empresaSel}&revision=si`)}
+                          className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                        >
+                          En negociación ({prospectos.filter((r) => (r as any).avance_cotizacion === "negociacion").length})
+                        </button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold">Pipeline Clientes</h3>
+          {kanbanClienteCols.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
+          ) : (
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+              {kanbanClienteCols.map((c) => (
+                <Card key={c.id}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                      <span className="text-xs font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
+                    </div>
+                    <p className="text-3xl font-bold" style={{ color: c.color }}>
+                      {c.count.toLocaleString("es-MX")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`${brandPath}?tab=con_venta`)}
+                      className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                    >
+                      Ver empresas
+                    </button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <section>
