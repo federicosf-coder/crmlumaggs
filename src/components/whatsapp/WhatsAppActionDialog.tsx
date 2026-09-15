@@ -31,10 +31,16 @@ interface Props {
   onSent?: () => void;
   /** Optional: id from public.templates to load saved attachments. */
   templateId?: string | null;
+  /**
+   * When true, the dialog does NOT insert its own activity in crm_activities
+   * (finishLog skips logWhatsAppActivity). Use when the parent already logs
+   * the activity itself (e.g. SeguimientoDetailDialog via logSeguimientoActivity).
+   */
+  skipActivityLog?: boolean;
 }
 
 export function WhatsAppActionDialog({
-  open, onOpenChange, phone, variables, templateType, defaultMessage, context, onSent, templateId,
+  open, onOpenChange, phone, variables, templateType, defaultMessage, context, onSent, templateId, skipActivityLog,
 }: Props) {
   const { user } = useAuth();
   const [selectedTplId, setSelectedTplId] = useState<string>("custom");
