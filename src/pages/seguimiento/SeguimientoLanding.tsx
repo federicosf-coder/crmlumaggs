@@ -483,6 +483,9 @@ export default function SeguimientoLanding() {
         .select("id, type, title, description, activity_date, company_id, companies:company_id(id, name, volumen_mensual_estimado)")
         .gte("activity_date", periodoStartIso)
         .lte("activity_date", periodoEndIso)
+        .not("title", "ilike", "%Solicitud de validación de pago%")
+        .not("title", "ilike", "%Aplicación de pago%")
+        .not("title", "ilike", "%Cobranza ·%")
         .order("activity_date", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
