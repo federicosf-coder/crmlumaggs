@@ -45,6 +45,7 @@ import { useVentasMensual, reporteMes } from "@/hooks/useVentasMensual";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import * as XLSX from "xlsx";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import {
   useSeguimientoVentas,
@@ -767,6 +768,33 @@ export default function SeguimientoLanding() {
     },
   });
 
+  const exportarActividades = () => {
+    const rows = actividades.map((a) => {
+      const seg = a.company_id ? segMap.get(a.company_id) : undefined;
+      const esCliente = !!seg?.tiene_venta;
+      const usaPromedio = esCliente && seg?.es_nuevo_cliente === false;
+      const valor = usaPromedio ? seg?.promedio_historico_mensual : a.companies?.volumen_mensual_estimado;
+      const etiqueta = usaPromedio ? "Promedio mensual" : "Volumen estimado";
+      const tarea = a.company_id ? siguientePasoMap.get(a.company_id) : undefined;
+      const ventasPeriodo = a.company_id ? ventasPeriodoMap.get(a.company_id) : undefined;
+      const acumMes = seg?.acum_mes;
+      return {
+        Empresa: a.companies?.name || "",
+        Tipo: esCliente ? "Cliente" : "Prospecto",
+        "Potencial o Promedio": valor ? Math.round(Number(valor)) : "",
+        Etiqueta: etiqueta,
+        "Ventas en el periodo (uds)": ventasPeriodo ? Math.round(ventasPeriodo) : "",
+        "Acumulado en el mes (uds)": acumMes ? Math.round(Number(acumMes)) : "",
+        "Tipo de actividad": TASK_TYPE_LABEL[a.type as TaskTypeKey] || a.type || "",
+        "Descripción": a.description || a.title || "",
+        "Siguiente paso": tarea?.title || "",
+      };
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Actividades");
+    XLSX.writeFile(wb, `actividades_periodo_${periodoStartDate}_a_${periodoEndDate}.xlsx`);
+  };
+
   return (
     <div className="space-y-6">
       <PageBanner
@@ -1221,9 +1249,16 @@ export default function SeguimientoLanding() {
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">Actividades del periodo</h3>
-          <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
-            Registrar actividad
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
+              Registrar actividad
+            </Button>
+            {actividades.length > 0 && (
+              <Button size="sm" variant="outline" onClick={exportarActividades}>
+                Exportar a Excel
+              </Button>
+            )}
+          </div>
         </div>
         {actividades.length === 0 ? (
           <p className="text-sm text-muted-foreground">Sin actividades en este periodo.</p>
