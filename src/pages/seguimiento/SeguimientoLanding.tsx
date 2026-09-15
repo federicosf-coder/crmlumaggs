@@ -9,7 +9,7 @@ import type { TaskTypeKey } from "@/lib/taskTypes";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
 import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Progress } from "@/components/ui/progress";
+
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatCurrency } from "@/lib/formatters";
@@ -73,6 +73,14 @@ const PALETTES: Record<EmpresaVendedora, { bar: string; line?: string; bars: str
 function currentYm() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function colorAvance(pct: number): string {
+  if (pct < 20) return "bg-red-500";
+  if (pct < 40) return "bg-orange-500";
+  if (pct < 60) return "bg-yellow-500";
+  if (pct < 90) return "bg-green-500";
+  return "bg-blue-500";
 }
 
 function VentasMensualSection({ empresa, label }: { empresa: EmpresaVendedora; label: string }) {
@@ -648,7 +656,9 @@ export default function SeguimientoLanding() {
               Este mes (a la fecha)
             </p>
             <div className="flex flex-wrap items-center gap-3 mt-2">
-              <p className="text-3xl font-bold">{formatCurrency(kpis.importeMes)}</p>
+              <p className="text-3xl font-bold">
+                {kpis.sumaMes.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+              </p>
               {kpis.pct !== null && (
                 <span
                   className={cn(
@@ -661,11 +671,21 @@ export default function SeguimientoLanding() {
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {kpis.sumaMes.toLocaleString("es-MX")} uds
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(kpis.importeMes)}</p>
             <div className="mt-auto pt-3 space-y-1">
-              <Progress value={avanceMesPct} className="h-1.5" />
+              {kpis.importeMesAnteriorMismoDia > 0 && (
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500",
+                      colorAvance(Math.min(150, (kpis.importeMes / kpis.importeMesAnteriorMismoDia) * 100))
+                    )}
+                    style={{
+                      width: `${Math.min(100, Math.min(150, (kpis.importeMes / kpis.importeMesAnteriorMismoDia) * 100))}%`,
+                    }}
+                  />
+                </div>
+              )}
               <p className="text-[11px] text-muted-foreground">
                 {avanceMesPct.toFixed(0)}% del mes transcurrido · vs. mismo día mes anterior
               </p>
@@ -679,15 +699,21 @@ export default function SeguimientoLanding() {
               Mes anterior (total)
             </p>
             <p className="text-3xl font-bold mt-2 text-muted-foreground">
-              {formatCurrency(kpis.importeMesAnterior)}
+              {kpis.sumaMesAnterior.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {kpis.sumaMesAnterior.toLocaleString("es-MX")} uds
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(kpis.importeMesAnterior)}</p>
             <div className="mt-auto pt-3 space-y-1">
               {alcanzadoPct !== null && (
                 <>
-                  <Progress value={alcanzadoPct} className="h-1.5" />
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        colorAvance(alcanzadoPct)
+                      )}
+                      style={{ width: `${alcanzadoPct}%` }}
+                    />
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
                     {alcanzadoPct.toFixed(0)}% del mes pasado alcanzado
                   </p>
@@ -697,6 +723,7 @@ export default function SeguimientoLanding() {
           </CardContent>
         </Card>
       </div>
+
 
       {/* Kanban */}
       <div className="space-y-6">
