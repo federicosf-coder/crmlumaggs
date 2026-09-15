@@ -96,7 +96,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
     queryFn: async () => {
       const { data } = await supabase
         .from("contacts")
-        .select("id, first_name, last_name, job_title, email, phone, mobile, whatsapp_phone")
+        .select("id, first_name, last_name, job_title, email, phone, mobile, whatsapp_phone, es_contacto_empresa")
         .eq("company_id", row!.company_id)
         .eq("is_active", true)
         .order("first_name");
