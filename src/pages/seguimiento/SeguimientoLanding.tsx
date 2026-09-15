@@ -24,6 +24,10 @@ import {
   startOfWeek,
   endOfWeek,
   startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+} from "date-fns";
 import {
   BarChart,
   Bar,
