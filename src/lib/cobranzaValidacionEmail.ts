@@ -277,6 +277,14 @@ export async function buildValidacionEmailFlow(
       ? tplCc.filter((e) => !blocked.includes(e.toLowerCase()))
       : legacyFiltered.filter((e) => !toEmails.includes(e));
 
+  // Copia fija para Crédito Directo y Crédito Cescemex
+  if (flow === "credito" || flow === "credito_cescemex") {
+    const extraCc = "r.galvang@dagal.com.mx";
+    if (!blocked.includes(extraCc) && !ccEmailsFinal.includes(extraCc)) {
+      ccEmailsFinal.push(extraCc);
+    }
+  }
+
   const { data: sentLogs } = await (supabase as any)
     .from("email_send_log")
     .select("recipient_email,status")
