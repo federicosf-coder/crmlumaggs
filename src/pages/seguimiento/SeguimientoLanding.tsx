@@ -482,7 +482,37 @@ export default function SeguimientoLanding() {
       </Card>
 
       {/* KPIs */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+        <Card className="col-span-2">
+          <CardContent className="p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Ventas del mes vs. mes anterior
+            </p>
+            <div className="flex flex-wrap items-end gap-4 mt-2">
+              <div>
+                <p className="text-[10px] text-muted-foreground">Este mes</p>
+                <p className="text-2xl font-bold">{kpis.sumaMes.toLocaleString("es-MX")}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Mes anterior</p>
+                <p className="text-2xl font-bold text-muted-foreground">
+                  {kpis.sumaMesAnterior.toLocaleString("es-MX")}
+                </p>
+              </div>
+              {kpis.pct !== null && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
+                    kpis.pct >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                  )}
+                >
+                  {kpis.pct >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  {Math.abs(kpis.pct).toFixed(1)}%
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
         {[
           { label: "Prospectos activos", value: kpis.prospectos },
           { label: "Clientes activos", value: kpis.clientes },
