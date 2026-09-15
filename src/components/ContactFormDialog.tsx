@@ -282,6 +282,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
         interes_ids: [] as string[],
         contacto_cobranza: !!editData.contacto_cobranza,
         contacto_credito: !!editData.contacto_credito,
+        es_contacto_empresa: !!editData.es_contacto_empresa,
       };
       setForm(seeded);
       autosave.seed(seeded);
