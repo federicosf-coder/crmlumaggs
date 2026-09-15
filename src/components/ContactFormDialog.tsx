@@ -399,7 +399,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.first_name.trim() || !form.last_name.trim()) return;
+    if (!form.es_contacto_empresa && (!form.first_name.trim() || !form.last_name.trim())) return;
     const commError = validateComm(form);
     if (commError) { toast.error(commError); return; }
     setSaving(true);
@@ -427,6 +427,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
       plaza_id: form.plaza_id || null,
       contacto_cobranza: !!form.contacto_cobranza,
       contacto_credito: !!form.contacto_credito,
+      es_contacto_empresa: !!form.es_contacto_empresa,
     };
 
     let contactId: string;
