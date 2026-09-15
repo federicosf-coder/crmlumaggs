@@ -204,6 +204,34 @@ export default function SeguimientoLanding() {
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
   const [mostrarEjecutivos, setMostrarEjecutivos] = useState(false);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
+  const [periodo, setPeriodo] = useState<"ayer" | "hoy" | "semana" | "mes" | "año" | "custom">("hoy");
+  const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
+
+  const { periodoStart, periodoEnd } = useMemo(() => {
+    switch (periodo) {
+      case "ayer":
+        return { periodoStart: startOfYesterday(), periodoEnd: endOfYesterday() };
+      case "semana":
+        return {
+          periodoStart: startOfWeek(new Date(), { weekStartsOn: 1 }),
+          periodoEnd: endOfWeek(new Date(), { weekStartsOn: 1 }),
+        };
+      case "mes":
+        return { periodoStart: startOfMonth(new Date()), periodoEnd: endOfMonth(new Date()) };
+      case "año":
+        return { periodoStart: startOfYear(new Date()), periodoEnd: endOfYear(new Date()) };
+      case "custom":
+        return {
+          periodoStart: customStart ?? startOfToday(),
+          periodoEnd: customEnd ?? endOfToday(),
+        };
+      default:
+        return { periodoStart: startOfToday(), periodoEnd: endOfToday() };
+    }
+  }, [periodo, customStart, customEnd]);
+  void periodoStart;
+  void periodoEnd;
 
   const pill = PILL[empresaSel];
   const access = useModuleAccess("seguimiento_ventas");
@@ -472,6 +500,69 @@ export default function SeguimientoLanding() {
         </Button>
       </div>
 
+      {/* Selector de periodo */}
+      <div className="flex flex-wrap items-center gap-2">
+        {([
+          { id: "ayer", label: "Ayer" },
+          { id: "hoy", label: "Hoy" },
+          { id: "semana", label: "Esta Semana" },
+          { id: "mes", label: "Este Mes" },
+          { id: "año", label: "Este Año" },
+          { id: "custom", label: "Especificar periodo" },
+        ] as const).map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setPeriodo(p.id)}
+            className={cn(
+              "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all",
+              periodo === p.id ? pill.active : pill.idle
+            )}
+            aria-pressed={periodo === p.id}
+          >
+            {p.label}
+          </button>
+        ))}
+        {periodo === "custom" && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs font-normal">
+                  <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                  {customStart ? format(customStart, "d MMM yyyy", { locale: esLocale }) : "Inicio"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={customStart}
+                  onSelect={setCustomStart}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs font-normal">
+                  <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                  {customEnd ? format(customEnd, "d MMM yyyy", { locale: esLocale }) : "Fin"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={customEnd}
+                  onSelect={setCustomEnd}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+      </div>
+
       <CreateCrmActivityTaskDialog
         open={activityOpen}
         onOpenChange={setActivityOpen}
@@ -502,24 +593,15 @@ export default function SeguimientoLanding() {
         </CardContent>
       </Card>
 
-      {/* KPIs */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
-        <Card className="col-span-2">
-          <CardContent className="p-4">
+      {/* Ventas del mes */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+        <Card>
+          <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Ventas del mes vs. mes anterior
+              Este mes (a la fecha)
             </p>
-            <div className="flex flex-wrap items-end gap-4 mt-2">
-              <div>
-                <p className="text-[10px] text-muted-foreground">Este mes</p>
-                <p className="text-2xl font-bold">{kpis.sumaMes.toLocaleString("es-MX")}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Mes anterior</p>
-                <p className="text-2xl font-bold text-muted-foreground">
-                  {kpis.sumaMesAnterior.toLocaleString("es-MX")}
-                </p>
-              </div>
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <p className="text-3xl font-bold">{formatCurrency(kpis.importeMes)}</p>
               {kpis.pct !== null && (
                 <span
                   className={cn(
@@ -532,21 +614,41 @@ export default function SeguimientoLanding() {
                 </span>
               )}
             </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {kpis.sumaMes.toLocaleString("es-MX")} uds
+            </p>
+            <div className="mt-auto pt-3 space-y-1">
+              <Progress value={avanceMesPct} className="h-1.5" />
+              <p className="text-[11px] text-muted-foreground">
+                {avanceMesPct.toFixed(0)}% del mes transcurrido · vs. mismo día mes anterior
+              </p>
+            </div>
           </CardContent>
         </Card>
-        {[
-          { label: "Prospectos activos", value: kpis.prospectos },
-          { label: "Clientes activos", value: kpis.clientes },
-          { label: "Nuevos (120 días)", value: kpis.nuevos },
-          { label: "Dormidos", value: kpis.dormidos },
-        ].map((k) => (
-          <Card key={k.label}>
-            <CardContent className="p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{k.label}</p>
-              <p className="text-2xl font-bold mt-1">{k.value.toLocaleString("es-MX")}</p>
-            </CardContent>
-          </Card>
-        ))}
+
+        <Card>
+          <CardContent className="p-4 flex flex-col h-full">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Mes anterior (total)
+            </p>
+            <p className="text-3xl font-bold mt-2 text-muted-foreground">
+              {formatCurrency(kpis.importeMesAnterior)}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {kpis.sumaMesAnterior.toLocaleString("es-MX")} uds
+            </p>
+            <div className="mt-auto pt-3 space-y-1">
+              {alcanzadoPct !== null && (
+                <>
+                  <Progress value={alcanzadoPct} className="h-1.5" />
+                  <p className="text-[11px] text-muted-foreground">
+                    {alcanzadoPct.toFixed(0)}% del mes pasado alcanzado
+                  </p>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Kanban */}
