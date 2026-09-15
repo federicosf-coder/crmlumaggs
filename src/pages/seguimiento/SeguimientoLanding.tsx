@@ -38,8 +38,8 @@ import {
   endOfMonth,
   startOfYear,
   endOfYear,
-  subDays,
-  differenceInCalendarDays,
+  subMonths,
+  setDate,
 } from "date-fns";
 import {
   BarChart,
@@ -710,16 +710,29 @@ export default function SeguimientoLanding() {
   const periodoStartDate = format(periodoStart, "yyyy-MM-dd");
   const periodoEndDate = format(periodoEnd, "yyyy-MM-dd");
 
-  // Periodo equivalente inmediatamente anterior (misma duración, justo antes)
-  const { comparStart, comparEnd } = useMemo(() => {
-    const diffDays = differenceInCalendarDays(periodoEnd, periodoStart) + 1;
-    const cEnd = subDays(periodoStart, 1);
-    const cStart = subDays(cEnd, diffDays - 1);
-    return { comparStart: cStart, comparEnd: cEnd };
-  }, [periodoStart, periodoEnd]);
+  // Tarjetas de ventas: siempre sobre el MES calendario anclado al día final del periodo (periodoEnd)
+  const { mesActualStart, mesActualEnd, mesAnteriorCompletoStart, mesAnteriorCompletoEnd, mesAnteriorMismoDiaEnd } =
+    useMemo(() => {
+      const mesActualStart = startOfMonth(periodoEnd);
+      const mesActualEnd = periodoEnd;
+      const mesAnteriorCompletoStart = startOfMonth(subMonths(periodoEnd, 1));
+      const mesAnteriorCompletoEnd = endOfMonth(subMonths(periodoEnd, 1));
+      let mismoDia = setDate(mesAnteriorCompletoStart, periodoEnd.getDate());
+      if (mismoDia > mesAnteriorCompletoEnd) mismoDia = mesAnteriorCompletoEnd;
+      return {
+        mesActualStart,
+        mesActualEnd,
+        mesAnteriorCompletoStart,
+        mesAnteriorCompletoEnd,
+        mesAnteriorMismoDiaEnd: mismoDia,
+      };
+    }, [periodoEnd]);
 
-  const comparStartDate = format(comparStart, "yyyy-MM-dd");
-  const comparEndDate = format(comparEnd, "yyyy-MM-dd");
+  const mesActualStartDate = format(mesActualStart, "yyyy-MM-dd");
+  const mesActualEndDate = format(mesActualEnd, "yyyy-MM-dd");
+  const mesAnteriorCompletoStartDate = format(mesAnteriorCompletoStart, "yyyy-MM-dd");
+  const mesAnteriorCompletoEndDate = format(mesAnteriorCompletoEnd, "yyyy-MM-dd");
+  const mesAnteriorMismoDiaEndDate = format(mesAnteriorMismoDiaEnd, "yyyy-MM-dd");
 
   const fetchVentasRango = async (desde: string, hasta: string) => {
     if (!sinRestriccion && visibleCompanyIds.length === 0) return { unidades: 0, importe: 0 };
@@ -762,51 +775,65 @@ export default function SeguimientoLanding() {
     return { unidades, importe };
   };
 
-  const { data: ventasPeriodoActual = { unidades: 0, importe: 0 } } = useQuery({
+  const { data: ventasMesActual = { unidades: 0, importe: 0 } } = useQuery({
     queryKey: [
-      "seg_ventas_totales_periodo",
-      periodoStartDate,
-      periodoEndDate,
+      "seg_ventas_mes_actual",
+      mesActualStartDate,
+      mesActualEndDate,
       empresaSel,
       sinRestriccion,
       visibleCompanyIdsKey,
     ],
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
-    queryFn: () => fetchVentasRango(periodoStartDate, periodoEndDate),
+    queryFn: () => fetchVentasRango(mesActualStartDate, mesActualEndDate),
   });
 
-  const { data: ventasPeriodoAnterior = { unidades: 0, importe: 0 } } = useQuery({
+  const { data: ventasMesAnteriorCompleto = { unidades: 0, importe: 0 } } = useQuery({
     queryKey: [
-      "seg_ventas_totales_periodo_anterior",
-      comparStartDate,
-      comparEndDate,
+      "seg_ventas_mes_anterior_completo",
+      mesAnteriorCompletoStartDate,
+      mesAnteriorCompletoEndDate,
       empresaSel,
       sinRestriccion,
       visibleCompanyIdsKey,
     ],
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
-    queryFn: () => fetchVentasRango(comparStartDate, comparEndDate),
+    queryFn: () => fetchVentasRango(mesAnteriorCompletoStartDate, mesAnteriorCompletoEndDate),
+  });
+
+  const { data: ventasMesAnteriorMismoDia = { unidades: 0, importe: 0 } } = useQuery({
+    queryKey: [
+      "seg_ventas_mes_anterior_mismo_dia",
+      mesAnteriorCompletoStartDate,
+      mesAnteriorMismoDiaEndDate,
+      empresaSel,
+      sinRestriccion,
+      visibleCompanyIdsKey,
+    ],
+    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    queryFn: () => fetchVentasRango(mesAnteriorCompletoStartDate, mesAnteriorMismoDiaEndDate),
   });
 
   const pctUnidadesComp =
-    ventasPeriodoAnterior.unidades > 0
-      ? Math.min(150, (ventasPeriodoActual.unidades / ventasPeriodoAnterior.unidades) * 100)
+    ventasMesAnteriorMismoDia.unidades > 0
+      ? Math.min(150, (ventasMesActual.unidades / ventasMesAnteriorMismoDia.unidades) * 100)
       : null;
   const pctImporteComp =
-    ventasPeriodoAnterior.importe > 0
-      ? Math.min(150, (ventasPeriodoActual.importe / ventasPeriodoAnterior.importe) * 100)
+    ventasMesAnteriorMismoDia.importe > 0
+      ? Math.min(150, (ventasMesActual.importe / ventasMesAnteriorMismoDia.importe) * 100)
       : null;
   const pctVariacionImporte =
-    ventasPeriodoAnterior.importe > 0
-      ? ((ventasPeriodoActual.importe - ventasPeriodoAnterior.importe) / ventasPeriodoAnterior.importe) * 100
+    ventasMesAnteriorMismoDia.importe > 0
+      ? ((ventasMesActual.importe - ventasMesAnteriorMismoDia.importe) / ventasMesAnteriorMismoDia.importe) * 100
       : null;
 
   const rangoLabel = (a: Date, b: Date) =>
     format(a, "d MMM yyyy", { locale: esLocale }) === format(b, "d MMM yyyy", { locale: esLocale })
       ? format(a, "d MMM yyyy", { locale: esLocale })
       : `${format(a, "d MMM", { locale: esLocale })} – ${format(b, "d MMM yyyy", { locale: esLocale })}`;
-  const rangoActualLabel = rangoLabel(periodoStart, periodoEnd);
-  const rangoAnteriorLabel = rangoLabel(comparStart, comparEnd);
+  const rangoMesActualLabel = `${format(mesActualStart, "d", { locale: esLocale })}–${format(mesActualEnd, "d MMM yyyy", { locale: esLocale })}`;
+  const rangoMesAnteriorCompletoLabel = `${format(mesAnteriorCompletoStart, "d", { locale: esLocale })}–${format(mesAnteriorCompletoEnd, "d MMM yyyy", { locale: esLocale })}`;
+  const rangoMesAnteriorMismoDiaLabel = `${format(mesAnteriorCompletoStart, "d", { locale: esLocale })}–${format(mesAnteriorMismoDiaEnd, "d MMM yyyy", { locale: esLocale })}`;
 
   const { data: ventasPeriodoMap = new Map<string, number>() } = useQuery({
     queryKey: ["seg_ventas_periodo", periodoStartDate, periodoEndDate, empresaSel, actividadCompanyIds],
@@ -1262,11 +1289,11 @@ export default function SeguimientoLanding() {
         <Card>
           <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Este periodo
+              Este mes (a la fecha)
             </p>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <p className="text-3xl font-bold">
-                {ventasPeriodoActual.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+                {ventasMesActual.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
               </p>
               {pctVariacionImporte !== null && (
                 <span
@@ -1280,8 +1307,8 @@ export default function SeguimientoLanding() {
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasPeriodoActual.importe)}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoActualLabel}</p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesActual.importe)}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoMesActualLabel}</p>
             <div className="mt-auto pt-3 space-y-2">
               {pctUnidadesComp !== null && (
                 <div className="flex items-center gap-2">
@@ -1318,13 +1345,18 @@ export default function SeguimientoLanding() {
         <Card>
           <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Periodo anterior
+              Mes anterior (total)
             </p>
             <p className="text-3xl font-bold mt-2 text-muted-foreground">
-              {ventasPeriodoAnterior.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+              {ventasMesAnteriorCompleto.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
             </p>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasPeriodoAnterior.importe)}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoAnteriorLabel}</p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesAnteriorCompleto.importe)}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoMesAnteriorCompletoLabel}</p>
+            <p className="text-[11px] text-muted-foreground/70 mt-1">
+              Al mismo día del mes ({rangoMesAnteriorMismoDiaLabel}):{" "}
+              {ventasMesAnteriorMismoDia.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds ·{" "}
+              {formatCurrency(ventasMesAnteriorMismoDia.importe)}
+            </p>
           </CardContent>
         </Card>
       </div>
