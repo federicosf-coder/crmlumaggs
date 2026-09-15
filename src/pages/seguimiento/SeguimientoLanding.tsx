@@ -230,8 +230,6 @@ export default function SeguimientoLanding() {
         return { periodoStart: startOfToday(), periodoEnd: endOfToday() };
     }
   }, [periodo, customStart, customEnd]);
-  void periodoStart;
-  void periodoEnd;
 
   const pill = PILL[empresaSel];
   const access = useModuleAccess("seguimiento_ventas");
@@ -457,6 +455,52 @@ export default function SeguimientoLanding() {
     return cols;
   }, [etapasRiesgo, clientes]);
 
+  const segMap = useMemo(
+    () => new Map([...prospectos, ...clientes].map((r) => [r.company_id, r])),
+    [prospectos, clientes]
+  );
+
+  const periodoStartIso = periodoStart.toISOString();
+  const periodoEndIso = periodoEnd.toISOString();
+
+  const { data: actividades = [] } = useQuery({
+    queryKey: ["seg_actividades_periodo", periodoStartIso, periodoEndIso],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_activities")
+        .select("id, type, title, description, activity_date, company_id, companies:company_id(id, name, volumen_mensual_estimado)")
+        .gte("activity_date", periodoStartIso)
+        .lte("activity_date", periodoEndIso)
+        .order("activity_date", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const actividadCompanyIds = useMemo(
+    () => Array.from(new Set(actividades.map((a) => a.company_id).filter(Boolean))) as string[],
+    [actividades]
+  );
+
+  const { data: siguientePasoMap = new Map<string, any>() } = useQuery({
+    queryKey: ["seg_actividades_siguiente_paso", actividadCompanyIds],
+    enabled: actividadCompanyIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_tasks")
+        .select("company_id, title, description, due_date")
+        .eq("completed", false)
+        .not("due_date", "is", null)
+        .in("company_id", actividadCompanyIds)
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      const m = new Map<string, any>();
+      for (const t of data || []) {
+        if (t.company_id && !m.has(t.company_id)) m.set(t.company_id, t);
+      }
+      return m;
+    },
+  });
 
   return (
     <div className="space-y-6">
