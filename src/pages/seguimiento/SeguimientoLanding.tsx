@@ -886,6 +886,25 @@ export default function SeguimientoLanding() {
     XLSX.writeFile(wb, `actividades_periodo_${periodoStartDate}_a_${periodoEndDate}.xlsx`);
   };
 
+  const invalidateActividades = () => {
+    queryClient.invalidateQueries({ queryKey: ["seg_actividades_periodo"], exact: false });
+    queryClient.invalidateQueries({ queryKey: ["seg_actividades_siguiente_paso"], exact: false });
+  };
+
+  const handleDeleteActividad = async () => {
+    if (!deletingActivityId) return;
+    setDeletingActivity(true);
+    const { error } = await supabase.from("crm_activities").delete().eq("id", deletingActivityId);
+    setDeletingActivity(false);
+    if (error) {
+      toast.error("No se pudo eliminar la actividad: " + error.message);
+      return;
+    }
+    toast.success("Actividad eliminada");
+    setDeletingActivityId(null);
+    invalidateActividades();
+  };
+
   return (
     <div className="space-y-6">
       <PageBanner
