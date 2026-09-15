@@ -18,7 +18,14 @@ import {
 import { useVentasCharts } from "@/hooks/useVentasCharts";
 import { useVentasMensual, reporteMes } from "@/hooks/useVentasMensual";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { EmpresaVendedora } from "@/hooks/useSeguimientoVentas";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
+import {
+  useSeguimientoVentas,
+  useSeguimientoEstatusCatalogo,
+} from "@/hooks/useSeguimientoVentas";
+import type { EmpresaVendedora, SeguimientoVentasRow } from "@/hooks/useSeguimientoVentas";
 
 const PALETTES: Record<EmpresaVendedora, { bar: string; line?: string; bars: string[]; ring: string; text: string }> = {
   lumaggs_chevron: {
