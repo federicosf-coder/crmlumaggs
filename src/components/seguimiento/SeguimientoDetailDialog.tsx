@@ -1195,6 +1195,121 @@ function MarcarPerdidoDialog({
   );
 }
 
+// ===== Dialog: Marcar como ignorado =====
+function MarcarIgnoradoDialog({
+  open,
+  onOpenChange,
+  row,
+  motivos,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  row: SeguimientoVentasRow;
+  motivos: any[];
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [motivoId, setMotivoId] = useState<string>("");
+  const [nuevoMotivo, setNuevoMotivo] = useState<string>("");
+  const [fecha, setFecha] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [nota, setNota] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!motivoId) { toast({ title: "Selecciona un motivo", variant: "destructive" }); return; }
+    if (motivoId === "__nuevo__" && !nuevoMotivo.trim()) {
+      toast({ title: "Escribe el nombre del motivo nuevo", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      let motivoFinalId = motivoId;
+      if (motivoId === "__nuevo__") {
+        const maxOrden = motivos.reduce((m, x) => Math.max(m, Number(x.orden || 0)), 0);
+        const { data: nuevo, error: insErr } = await supabase
+          .from("motivos_ignorado")
+          .insert({ nombre: nuevoMotivo.trim(), orden: maxOrden + 1 })
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        motivoFinalId = nuevo.id;
+        qc.invalidateQueries({ queryKey: ["motivos_ignorado_activos"] });
+      }
+      const { error: upErr } = await supabase
+        .from("seguimiento_ventas")
+        .update({
+          ignorado: true,
+          motivo_ignorado_id: motivoFinalId,
+          fecha_ignorado: fecha,
+          nota_ignorado: nota || null,
+        })
+        .eq("id", row.id);
+      if (upErr) throw upErr;
+      toast({ title: "Registro marcado como ignorado" });
+      onSaved();
+      onOpenChange(false);
+      setMotivoId(""); setNuevoMotivo(""); setNota("");
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-base">Marcar como ignorado</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Motivo</Label>
+            <Select value={motivoId} onValueChange={setMotivoId}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Selecciona un motivo" /></SelectTrigger>
+              <SelectContent>
+                {motivos.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: m.color || "#999" }} />
+                      {m.nombre}
+                    </span>
+                  </SelectItem>
+                ))}
+                <SelectItem value="__nuevo__">+ Agregar motivo nuevo</SelectItem>
+              </SelectContent>
+            </Select>
+            {motivoId === "__nuevo__" && (
+              <Input
+                value={nuevoMotivo}
+                onChange={(e) => setNuevoMotivo(e.target.value)}
+                placeholder="Nombre del motivo nuevo"
+                className="mt-2"
+              />
+            )}
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Fecha</Label>
+            <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs uppercase tracking-wide font-light">Nota</Label>
+            <Textarea value={nota} onChange={(e) => setNota(e.target.value)} rows={3} className="mt-1" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-slate-600 hover:bg-slate-600/90">
+            {saving ? "Guardando…" : "Marcar como ignorado"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ===== Dialog: Registrar pérdida (evento total o parcial) =====
 function RegistrarPerdidaDialog({
   open,
