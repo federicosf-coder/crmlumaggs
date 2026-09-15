@@ -895,6 +895,14 @@ export default function SeguimientoLanding() {
                 <p className="text-xl font-bold">{prospectos.length.toLocaleString("es-MX")}</p>
               </CardContent>
             </Card>
+            <Card className="min-w-[180px]">
+              <CardContent className="px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Prospectos nuevos registrados en el periodo
+                </p>
+                <p className="text-xl font-bold">{prospectosNuevosPeriodo.toLocaleString("es-MX")}</p>
+              </CardContent>
+            </Card>
           </div>
           {kanbanProspectoCols.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
@@ -949,6 +957,7 @@ export default function SeguimientoLanding() {
               { label: "Clientes activos", value: kpis.clientes },
               { label: "Nuevos (120 días)", value: kpis.nuevos },
               { label: "Dormidos", value: kpis.dormidos },
+              { label: "Convertidos a clientes en periodo", value: convertidosPeriodo },
             ].map((k) => (
               <Card key={k.label} className="min-w-[160px]">
                 <CardContent className="px-3 py-2">
