@@ -4,11 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
 import type { TaskTypeKey } from "@/lib/taskTypes";
 import { QuickActivityDialog } from "@/components/seguimiento/QuickActivityDialog";
-import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon, ChevronDown, ChevronUp, Check, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -274,6 +274,11 @@ export default function SeguimientoLanding() {
   const [deletingActivity, setDeletingActivity] = useState(false);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => filtrosGuardados.fEjecutivo ?? []);
   const [fPlaza, setFPlaza] = useState<string[]>(() => filtrosGuardados.fPlaza ?? []);
+  const [ejOpen, setEjOpen] = useState(false);
+  const [ejSearch, setEjSearch] = useState("");
+  const qpFiltros =
+    (fEjecutivo.length > 0 ? `&ejecutivo=${fEjecutivo.join(",")}` : "") +
+    (fPlaza.length > 0 ? `&plaza=${fPlaza.join(",")}` : "");
   const [filtrosAbiertos, setFiltrosAbiertos] = useState<boolean>(false);
   const [periodo, setPeriodo] = useState<Periodo>(() => filtrosGuardados.periodo ?? "hoy");
   const [customStart, setCustomStart] = useState<Date | undefined>(() =>
@@ -1077,60 +1082,74 @@ export default function SeguimientoLanding() {
           </div>
           {filtrosAbiertos && (
             <div className="space-y-2 mt-2">
-              <div className="flex flex-wrap items-start gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16 pt-1">Ejecutivo</span>
-                <div className="flex-1 min-w-[240px]">
-                  {ejecutivoGroups.length === 0 ? (
-                    <span className="text-xs text-muted-foreground italic">Sin opciones</span>
-                  ) : (
-                    <Accordion type="single" collapsible className="w-full">
-                      {ejecutivoGroups.map((g) => (
-                        <AccordionItem key={g.name} value={g.name} className="border-b-0">
-                          <AccordionTrigger className="py-1.5 text-xs font-semibold hover:no-underline">
-                            {g.name} <span className="text-muted-foreground font-normal">({g.options.length})</span>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setFEjecutivo((arr) => Array.from(new Set([...arr, ...g.options.map((o) => o.id)])))
-                                }
-                                className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
-                              >
-                                Seleccionar todos
-                              </button>
-                              {g.options.map((o) => {
-                                const sel = fEjecutivo.includes(o.id);
-                                return (
-                                  <button
-                                    key={o.id}
-                                    type="button"
-                                    onClick={() => setFEjecutivo((arr) => toggleInArray(arr, o.id))}
-                                    className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
-                                    style={
-                                      sel
-                                        ? { backgroundColor: o.color, color: "white", borderColor: o.color }
-                                        : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
-                                    }
-                                    aria-pressed={sel}
-                                  >
-                                    {o.name}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
-                  )}
-                  {fEjecutivo.length > 0 && (
-                    <span className="text-[11px] text-muted-foreground">
-                      ({fEjecutivo.length} seleccionados)
-                    </span>
-                  )}
-                </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">Ejecutivo</span>
+                {ejecutivoGroups.length === 0 ? (
+                  <span className="text-xs text-muted-foreground italic">Sin opciones</span>
+                ) : (
+                  <Popover open={ejOpen} onOpenChange={setEjOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {fEjecutivo.length > 0 ? `Ejecutivo (${fEjecutivo.length})` : "Ejecutivo"}
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput placeholder="Buscar ejecutivo..." value={ejSearch} onValueChange={setEjSearch} />
+                        <CommandList>
+                          <CommandEmpty>Sin resultados.</CommandEmpty>
+                          {(() => {
+                            const q = ejSearch.trim().toLowerCase();
+                            const visGroups = ejecutivoGroups
+                              .map((g) => ({ ...g, options: g.options.filter((o) => !q || o.name.toLowerCase().includes(q)) }))
+                              .filter((g) => g.options.length > 0);
+                            const visIds = visGroups.flatMap((g) => g.options.map((o) => o.id));
+                            return (
+                              <>
+                                <CommandGroup>
+                                  <CommandItem onSelect={() => setFEjecutivo((arr) => Array.from(new Set([...arr, ...visIds])))}>
+                                    <span className="text-xs font-semibold">Seleccionar todos los visibles</span>
+                                  </CommandItem>
+                                  {fEjecutivo.length > 0 && (
+                                    <CommandItem onSelect={() => setFEjecutivo([])}>
+                                      <span className="text-xs font-semibold">Limpiar selección</span>
+                                    </CommandItem>
+                                  )}
+                                </CommandGroup>
+                                {visGroups.map((g) => (
+                                  <CommandGroup key={g.name} heading={g.name}>
+                                    {g.options.map((o) => {
+                                      const sel = fEjecutivo.includes(o.id);
+                                      return (
+                                        <CommandItem
+                                          key={o.id}
+                                          value={o.id}
+                                          onSelect={() => setFEjecutivo((arr) => toggleInArray(arr, o.id))}
+                                        >
+                                          <span
+                                            className="mr-2 inline-flex h-4 w-4 items-center justify-center rounded-sm border"
+                                            style={sel ? { backgroundColor: o.color, borderColor: o.color } : {}}
+                                          >
+                                            {sel && <Check className="h-3 w-3" style={{ color: "white" }} />}
+                                          </span>
+                                          <span className="text-xs">{o.name}</span>
+                                        </CommandItem>
+                                      );
+                                    })}
+                                  </CommandGroup>
+                                ))}
+                              </>
+                            );
+                          })()}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
               {renderChips("Plaza", plazaOptions, fPlaza, setFPlaza)}
             </div>
@@ -1284,7 +1303,7 @@ export default function SeguimientoLanding() {
                   type="button"
                   onClick={() =>
                     navigate(
-                      `${brandPath}?tab=sin_venta&registro_from=${format(periodoStart, "yyyy-MM-dd")}&registro_to=${format(periodoEnd, "yyyy-MM-dd")}`
+                      `${brandPath}?tab=sin_venta&registro_from=${format(periodoStart, "yyyy-MM-dd")}&registro_to=${format(periodoEnd, "yyyy-MM-dd")}${qpFiltros}`
                     )
                   }
                   className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
@@ -1310,7 +1329,7 @@ export default function SeguimientoLanding() {
                     </p>
                     <button
                       type="button"
-                      onClick={() => navigate(`${brandPath}?tab=sin_venta`)}
+                      onClick={() => navigate(`${brandPath}?tab=sin_venta${qpFiltros}`)}
                       className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
                     >
                       Ver empresas
@@ -1360,7 +1379,7 @@ export default function SeguimientoLanding() {
                       type="button"
                       onClick={() =>
                         navigate(
-                          `${brandPath}?tab=con_venta&conversion_from=${format(periodoStart, "yyyy-MM-dd")}&conversion_to=${format(periodoEnd, "yyyy-MM-dd")}`
+                          `${brandPath}?tab=con_venta&conversion_from=${format(periodoStart, "yyyy-MM-dd")}&conversion_to=${format(periodoEnd, "yyyy-MM-dd")}${qpFiltros}`
                         )
                       }
                       className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
@@ -1402,7 +1421,7 @@ export default function SeguimientoLanding() {
                     )}
                     <button
                       type="button"
-                      onClick={() => navigate(`${brandPath}?tab=${c.id === "ignorados" ? "ignorados" : "con_venta"}`)}
+                      onClick={() => navigate(`${brandPath}?tab=${c.id === "ignorados" ? "ignorados" : "con_venta"}${qpFiltros}`)}
                       className="text-[10px] font-semibold underline text-muted-foreground hover:text-foreground"
                     >
                       Ver empresas
