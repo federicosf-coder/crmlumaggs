@@ -669,6 +669,25 @@ export default function SeguimientoLanding() {
     [prospectos, clientes]
   );
 
+  // Universo de empresas visibles: prospectos + clientes ya vienen filtrados por
+  // access.accessLevel y por los chips de Ejecutivo/Plaza, así que representan
+  // exactamente lo que este usuario puede ver con los filtros actuales.
+  const visibleCompanyIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [...prospectos, ...clientes]
+            .map((r) => r.company_id)
+            .filter(Boolean)
+        )
+      ) as string[],
+    [prospectos, clientes]
+  );
+  const visibleCompanyIdsKey = useMemo(
+    () => [...visibleCompanyIds].sort().join(","),
+    [visibleCompanyIds]
+  );
+
   const periodoStartIso = periodoStart.toISOString();
   const periodoEndIso = periodoEnd.toISOString();
 
