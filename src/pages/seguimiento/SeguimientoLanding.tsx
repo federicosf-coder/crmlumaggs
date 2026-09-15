@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
+import type { TaskTypeKey } from "@/lib/taskTypes";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
 import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -230,8 +233,6 @@ export default function SeguimientoLanding() {
         return { periodoStart: startOfToday(), periodoEnd: endOfToday() };
     }
   }, [periodo, customStart, customEnd]);
-  void periodoStart;
-  void periodoEnd;
 
   const pill = PILL[empresaSel];
   const access = useModuleAccess("seguimiento_ventas");
@@ -457,6 +458,52 @@ export default function SeguimientoLanding() {
     return cols;
   }, [etapasRiesgo, clientes]);
 
+  const segMap = useMemo(
+    () => new Map([...prospectos, ...clientes].map((r) => [r.company_id, r])),
+    [prospectos, clientes]
+  );
+
+  const periodoStartIso = periodoStart.toISOString();
+  const periodoEndIso = periodoEnd.toISOString();
+
+  const { data: actividades = [] } = useQuery({
+    queryKey: ["seg_actividades_periodo", periodoStartIso, periodoEndIso],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_activities")
+        .select("id, type, title, description, activity_date, company_id, companies:company_id(id, name, volumen_mensual_estimado)")
+        .gte("activity_date", periodoStartIso)
+        .lte("activity_date", periodoEndIso)
+        .order("activity_date", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const actividadCompanyIds = useMemo(
+    () => Array.from(new Set(actividades.map((a) => a.company_id).filter(Boolean))) as string[],
+    [actividades]
+  );
+
+  const { data: siguientePasoMap = new Map<string, any>() } = useQuery({
+    queryKey: ["seg_actividades_siguiente_paso", actividadCompanyIds],
+    enabled: actividadCompanyIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_tasks")
+        .select("company_id, title, description, due_date")
+        .eq("completed", false)
+        .not("due_date", "is", null)
+        .in("company_id", actividadCompanyIds)
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      const m = new Map<string, any>();
+      for (const t of data || []) {
+        if (t.company_id && !m.has(t.company_id)) m.set(t.company_id, t);
+      }
+      return m;
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -758,15 +805,77 @@ export default function SeguimientoLanding() {
         </div>
       </div>
 
-      <section>
-        <VentasChartsSection
-          empresa={empresaSel}
-          label={empresaSel === "lumaggs_chevron" ? "Chevron" : "Phillips 66"}
-        />
-        <VentasMensualSection
-          empresa={empresaSel}
-          label={empresaSel === "lumaggs_chevron" ? "Chevron" : "Phillips 66"}
-        />
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Actividades del periodo</h3>
+          <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
+            Registrar actividad
+          </Button>
+        </div>
+        {actividades.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin actividades en este periodo.</p>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>Potencial / Promedio</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Descripción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {actividades.map((a) => {
+                    const seg = a.company_id ? segMap.get(a.company_id) : undefined;
+                    const esCliente = !!seg?.tiene_venta;
+                    const usaPromedio = esCliente && seg?.es_nuevo_cliente === false;
+                    const valor = usaPromedio
+                      ? seg?.promedio_historico_mensual
+                      : a.companies?.volumen_mensual_estimado;
+                    const etiqueta = usaPromedio ? "Promedio mensual" : "Volumen estimado";
+                    const tarea = a.company_id ? siguientePasoMap.get(a.company_id) : undefined;
+                    return (
+                      <TableRow key={a.id}>
+                        <TableCell className="align-top">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">{a.companies?.name || "—"}</span>
+                            <span
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                esCliente ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {esCliente ? "Cliente" : "Prospecto"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <p className="font-medium">
+                            {valor ? formatCurrency(Number(valor)) : "—"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">{etiqueta}</p>
+                        </TableCell>
+                        <TableCell className="align-top text-sm">
+                          {TASK_TYPE_LABEL[a.type as TaskTypeKey] || a.type || "—"}
+                        </TableCell>
+                        <TableCell className="align-top text-sm">
+                          <p>{a.description || a.title || "—"}</p>
+                          {tarea?.title && (
+                            <p className="text-[11px] italic text-muted-foreground mt-1">
+                              Siguiente paso: {tarea.title}
+                            </p>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </section>
     </div>
   );
