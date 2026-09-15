@@ -4,8 +4,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
-import { TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatCurrency } from "@/lib/formatters";
+import { format } from "date-fns";
+import { es as esLocale } from "date-fns/locale";
+import {
+  startOfYesterday,
+  endOfYesterday,
+  startOfToday,
+  endOfToday,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  getDate,
+  getDaysInMonth,
+} from "date-fns";
 import {
   BarChart,
   Bar,
@@ -295,6 +315,12 @@ export default function SeguimientoLanding() {
   );
   const sumaMes = clientes.reduce((s, c) => s + (c.acum_mes || 0), 0);
   const sumaMesAnterior = clientes.reduce((s, c) => s + (c.acum_mes_anterior || 0), 0);
+  const importeMes = clientes.reduce((s, c) => s + (c.importe_mes || 0), 0);
+  const importeMesAnterior = clientes.reduce((s, c) => s + (c.importe_mes_anterior || 0), 0);
+  const importeMesAnteriorMismoDia = clientes.reduce(
+    (s, c) => s + (c.importe_mes_anterior_mismo_dia || 0),
+    0
+  );
   const kpis = useMemo(
     () => ({
       prospectos: prospectos.length,
@@ -303,10 +329,31 @@ export default function SeguimientoLanding() {
       dormidos: clientes.filter((c) => c.estatus_riesgo_id && dormidoIds.has(c.estatus_riesgo_id)).length,
       sumaMes,
       sumaMesAnterior,
-      pct: sumaMesAnterior > 0 ? ((sumaMes - sumaMesAnterior) / sumaMesAnterior) * 100 : null,
+      importeMes,
+      importeMesAnterior,
+      importeMesAnteriorMismoDia,
+      pct:
+        importeMesAnteriorMismoDia > 0
+          ? ((importeMes - importeMesAnteriorMismoDia) / importeMesAnteriorMismoDia) * 100
+          : null,
     }),
-    [prospectos, clientes, dormidoIds, sumaMes, sumaMesAnterior]
+    [
+      prospectos,
+      clientes,
+      dormidoIds,
+      sumaMes,
+      sumaMesAnterior,
+      importeMes,
+      importeMesAnterior,
+      importeMesAnteriorMismoDia,
+    ]
   );
+
+  const hoyDate = new Date();
+  const avanceMesPct = (getDate(hoyDate) / getDaysInMonth(hoyDate)) * 100;
+  const alcanzadoPct =
+    importeMesAnterior > 0 ? Math.min(100, (importeMes / importeMesAnterior) * 100) : null;
+
 
   const etapasProspecto = useMemo(
     () => catalogo.filter((c) => c.ambito === "sin_venta" && c.familia === "etapa_prospecto").sort((a, b) => a.orden - b.orden),
@@ -353,26 +400,35 @@ export default function SeguimientoLanding() {
     </div>
   );
 
-  const kanbanProspectoCols = useMemo(
-    () =>
-      etapasProspecto.map((e) => ({
-        id: e.id,
-        nombre: e.nombre,
-        color: e.color,
-        count: prospectos.filter((r) => (r as any).etapa_prospecto_id === e.id).length,
-      })),
-    [etapasProspecto, prospectos]
-  );
-  const kanbanClienteCols = useMemo(
-    () =>
-      etapasRiesgo.map((e) => ({
-        id: e.id,
-        nombre: e.nombre,
-        color: e.color,
-        count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
-      })),
-    [etapasRiesgo, clientes]
-  );
+  const kanbanProspectoCols = useMemo(() => {
+    const cols = etapasProspecto.map((e) => ({
+      id: e.id,
+      nombre: e.nombre,
+      color: e.color,
+      count: prospectos.filter((r) => (r as any).etapa_prospecto_id === e.id).length,
+    }));
+    const clasificados = cols.reduce((s, c) => s + c.count, 0);
+    const sinClasificar = prospectos.length - clasificados;
+    if (sinClasificar > 0) {
+      cols.push({ id: "sin-clasificar", nombre: "Sin clasificar", color: "#94a3b8", count: sinClasificar });
+    }
+    return cols;
+  }, [etapasProspecto, prospectos]);
+  const kanbanClienteCols = useMemo(() => {
+    const cols = etapasRiesgo.map((e) => ({
+      id: e.id,
+      nombre: e.nombre,
+      color: e.color,
+      count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
+    }));
+    const clasificados = cols.reduce((s, c) => s + c.count, 0);
+    const sinClasificar = clientes.length - clasificados;
+    if (sinClasificar > 0) {
+      cols.push({ id: "sin-clasificar", nombre: "Sin clasificar", color: "#94a3b8", count: sinClasificar });
+    }
+    return cols;
+  }, [etapasRiesgo, clientes]);
+
 
   return (
     <div className="space-y-6">
