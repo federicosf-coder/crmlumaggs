@@ -476,15 +476,6 @@ export default function SeguimientoLanding() {
     () => clientesAcc.filter((c) => c.ignorado === true),
     [clientesAcc]
   );
-  const ignoradosKpis = useMemo(() => {
-    const n = clientesIgnorados.length;
-    const totalHistorico = clientesIgnorados.reduce((s, c) => s + (c.total_historico || 0), 0);
-    const promedioMensual =
-      n > 0
-        ? Math.round(clientesIgnorados.reduce((s, c) => s + (c.promedio_historico_mensual || 0), 0) / n)
-        : 0;
-    return { cantidad: n, totalHistorico, promedioMensual };
-  }, [clientesIgnorados]);
 
   const dormidoIds = useMemo(
     () => new Set(catalogo.filter((c) => c.nombre === "Dormido").map((c) => c.id)),
@@ -617,19 +608,42 @@ export default function SeguimientoLanding() {
     return cols;
   }, [etapasProspecto, prospectos]);
   const kanbanClienteCols = useMemo(() => {
-    const cols = etapasRiesgo.map((e) => ({
-      id: e.id,
-      nombre: e.nombre,
-      color: e.color,
-      count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
-    }));
-    const clasificados = cols.reduce((s, c) => s + c.count, 0);
-    const sinClasificar = clientes.length - clasificados;
-    if (sinClasificar > 0) {
-      cols.push({ id: "sin-clasificar", nombre: "Sin clasificar", color: "#94a3b8", count: sinClasificar });
+    const udsPromEsperado = (r: any) =>
+      r.es_nuevo_cliente
+        ? (r.companies?.volumen_mensual_estimado || 0)
+        : (r.promedio_historico_mensual || 0);
+    const cols: { id: string; nombre: string; color: string; count: number; unidades: number; totalHistoricoUnidades?: number }[] =
+      etapasRiesgo.map((e) => {
+        const rows = clientes.filter((r) => r.estatus_riesgo_id === e.id);
+        return {
+          id: e.id,
+          nombre: e.nombre,
+          color: e.color,
+          count: rows.length,
+          unidades: rows.reduce((s, r) => s + udsPromEsperado(r), 0),
+        };
+      });
+    const etapaIds = new Set(etapasRiesgo.map((e) => e.id));
+    const sinClasificarRows = clientes.filter((r) => !etapaIds.has(r.estatus_riesgo_id as string));
+    if (sinClasificarRows.length > 0) {
+      cols.push({
+        id: "sin-clasificar",
+        nombre: "Sin clasificar",
+        color: "#94a3b8",
+        count: sinClasificarRows.length,
+        unidades: sinClasificarRows.reduce((s, r) => s + udsPromEsperado(r), 0),
+      });
     }
+    cols.push({
+      id: "ignorados",
+      nombre: "Ignorados",
+      color: "#64748b",
+      count: clientesIgnorados.length,
+      unidades: clientesIgnorados.reduce((s, r) => s + udsPromEsperado(r), 0),
+      totalHistoricoUnidades: clientesIgnorados.reduce((s, r) => s + (r.total_historico_unidades || 0), 0),
+    });
     return cols;
-  }, [etapasRiesgo, clientes]);
+  }, [etapasRiesgo, clientes, clientesIgnorados]);
 
   const segMap = useMemo(
     () => new Map([...prospectos, ...clientes].map((r) => [r.company_id, r])),
