@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
 import type { TaskTypeKey } from "@/lib/taskTypes";
-import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
+import { QuickActivityDialog } from "@/components/seguimiento/QuickActivityDialog";
 import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +44,7 @@ import {
 import { useVentasCharts } from "@/hooks/useVentasCharts";
 import { useVentasMensual, reporteMes } from "@/hooks/useVentasMensual";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import {
@@ -618,10 +618,14 @@ export default function SeguimientoLanding() {
         )}
       </div>
 
-      <CreateCrmActivityTaskDialog
+      <QuickActivityDialog
         open={activityOpen}
         onOpenChange={setActivityOpen}
-        defaultBrands={[empresaSel]}
+        defaultBrand={empresaSel}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["seg_actividades_periodo"], exact: false });
+          queryClient.invalidateQueries({ queryKey: ["seg_actividades_siguiente_paso"], exact: false });
+        }}
       />
 
 
