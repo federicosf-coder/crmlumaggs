@@ -654,7 +654,17 @@ export default function SeguimientoLanding() {
       {/* Kanban */}
       <div className="space-y-6">
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold">Pipeline Prospectos</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-sm font-semibold">Pipeline Prospectos</h3>
+            <Card className="min-w-[180px]">
+              <CardContent className="px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Prospectos activos
+                </p>
+                <p className="text-xl font-bold">{prospectos.length.toLocaleString("es-MX")}</p>
+              </CardContent>
+            </Card>
+          </div>
           {kanbanProspectoCols.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
           ) : (
