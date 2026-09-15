@@ -236,7 +236,6 @@ export default function SeguimientoLanding() {
   const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>("lumaggs_chevron");
   const [activityOpen, setActivityOpen] = useState(false);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
-  const [mostrarEjecutivos, setMostrarEjecutivos] = useState(false);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
   const [periodo, setPeriodo] = useState<"ayer" | "hoy" | "semana" | "mes" | "año" | "custom">("hoy");
   const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
@@ -276,10 +275,10 @@ export default function SeguimientoLanding() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, plaza_id")
         .eq("is_active", true);
       if (error) throw error;
-      return (data || []) as { user_id: string; full_name: string | null }[];
+      return (data || []) as { user_id: string; full_name: string | null; plaza_id: string | null }[];
     },
     staleTime: 5 * 60_000,
   });
@@ -288,6 +287,26 @@ export default function SeguimientoLanding() {
     for (const p of profiles) m.set(p.user_id, p.full_name || "—");
     return m;
   }, [profiles]);
+  const profilePlazaMap = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const p of profiles) m.set(p.user_id, p.plaza_id ?? null);
+    return m;
+  }, [profiles]);
+
+  const { data: companyCreatedMap = new Map<string, string>() } = useQuery({
+    queryKey: ["companies_created_min"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("companies")
+        .select("id, created_at")
+        .eq("is_active", true);
+      if (error) throw error;
+      const m = new Map<string, string>();
+      for (const c of data || []) if (c.id && c.created_at) m.set(c.id, c.created_at);
+      return m;
+    },
+    staleTime: 5 * 60_000,
+  });
 
   const { data: plazasData = [] } = useQuery({
     queryKey: ["plazas_min"],
