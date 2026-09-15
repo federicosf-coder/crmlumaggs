@@ -2411,7 +2411,7 @@ export default function SeguimientoVentas() {
                   </TableRow>
                 ) : (
                   filtered.map((r) => (
-                    <TableRow key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
+                    <TableRow key={r.id} onClick={() => setSelected(r)} className="cursor-pointer group">
                       <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedIds.has(r.id)}
