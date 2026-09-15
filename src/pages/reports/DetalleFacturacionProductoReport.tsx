@@ -140,6 +140,7 @@ export default function DetalleFacturacionProductoReport() {
           importe: Number(r.subtotal || 0),
           estatus,
           cancelada: estatus === "cancelada",
+          companyId: doc?.empresa_id ?? null,
         };
       });
       rows.sort((a, b) => {
