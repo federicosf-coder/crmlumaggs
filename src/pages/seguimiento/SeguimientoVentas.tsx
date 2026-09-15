@@ -1436,6 +1436,30 @@ export default function SeguimientoVentas() {
         }
       />
 
+      {/* Selector de marca */}
+      <div className="flex items-center gap-2">
+        <div className="inline-flex rounded-full border bg-muted/30 p-1">
+          <button
+            type="button"
+            onClick={() => navigate("/seguimiento/chevron")}
+            className={`px-4 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full border transition-colors ${
+              brand === "chevron" ? palette.pillActive : palette.pillIdle
+            }`}
+          >
+            Chevron
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/seguimiento/phillips66")}
+            className={`px-4 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full border transition-colors ${
+              brand === "phillips66" ? palette.pillActive : palette.pillIdle
+            }`}
+          >
+            Phillips 66
+          </button>
+        </div>
+      </div>
+
       {/* Controles */}
       <div className="flex flex-col gap-3 items-start">
         <div className="inline-flex rounded-lg border bg-muted/30 p-1 self-start">
