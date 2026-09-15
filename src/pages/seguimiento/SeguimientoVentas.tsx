@@ -345,7 +345,7 @@ export default function SeguimientoVentas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos">(() => {
+  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos" | "ignorados">(() => {
     try {
       const urlTab = new URLSearchParams(window.location.search).get("tab");
       if (urlTab === "sin_venta" || urlTab === "con_venta") return urlTab;
@@ -366,7 +366,8 @@ export default function SeguimientoVentas() {
   const [fRegistroTo, setFRegistroTo] = useState<string>(() => persisted.fRegistroTo ?? "");
 
   const isPerdidos = tab === "perdidos";
-  const tieneVenta = tab === "con_venta" || tab === "perdidos";
+  const isIgnorados = tab === "ignorados";
+  const tieneVenta = tab === "con_venta" || tab === "perdidos" || tab === "ignorados";
   const isRecuperacion = tab === "recuperacion";
   const isProductos = tab === "productos";
   const showLista = !isRecuperacion && !isProductos;
@@ -420,6 +421,37 @@ export default function SeguimientoVentas() {
 
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta, perdidos: isPerdidos });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
+
+  // ─────────── Clientes Ignorados (columna ignorado en seguimiento_ventas) ───────────
+  const { data: ignRows = [], isLoading: ignRowsLoading } = useQuery({
+    queryKey: ["seguimiento_ventas_ignorados_tab", empresaVendedora],
+    enabled: isIgnorados,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("seguimiento_ventas")
+        .select("*, companies:company_id(id, name, created_at)")
+        .eq("empresa_vendedora", empresaVendedora)
+        .eq("ignorado", true)
+        .limit(5000);
+      if (error) throw error;
+      return (data || []) as unknown as SeguimientoVentasRow[];
+    },
+  });
+
+  const { data: motivosIgnorado = [] } = useQuery({
+    queryKey: ["motivos_ignorado"],
+    enabled: isIgnorados,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("motivos_ignorado")
+        .select("id, nombre, color")
+        .eq("activo", true)
+        .order("orden");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+  const motivosIgnoradoMap = useMemo(() => new Map(motivosIgnorado.map((m: any) => [m.id, m])), [motivosIgnorado]);
 
   // ─────────── Recuperación de Productos ───────────
   const [recSearch, setRecSearch] = useState(() => persisted.recSearch ?? "");
@@ -1236,27 +1268,32 @@ export default function SeguimientoVentas() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
+    const sourceRows: SeguimientoVentasRow[] = isIgnorados ? ignRows : rows;
     // Filtro por permisos: aplica antes de cualquier otro filtro
-    let accessFiltered: SeguimientoVentasRow[] = rows;
+    let accessFiltered: SeguimientoVentasRow[] = sourceRows;
     if (access.accessLevel === "ninguno") {
       accessFiltered = [];
     } else if (access.accessLevel === "propio") {
-      accessFiltered = rows.filter((r) => r.owner_id && r.owner_id === access.userId);
+      accessFiltered = sourceRows.filter((r) => r.owner_id && r.owner_id === access.userId);
     } else if (access.accessLevel === "equipo") {
       const allowed = new Set(access.teamMemberIds);
-      accessFiltered = rows.filter((r) => r.owner_id && allowed.has(r.owner_id));
+      accessFiltered = sourceRows.filter((r) => r.owner_id && allowed.has(r.owner_id));
     }
     let base = term
       ? accessFiltered.filter((r) => (r.companies?.name || "").toLowerCase().includes(term))
       : accessFiltered;
 
-    // Clientes ignorados (no aplica en Perdidos)
-    if (!isPerdidos) {
+    // Clientes ignorados (lista antigua; no aplica en Perdidos ni en la pestaña Ignorados)
+    if (!isPerdidos && !isIgnorados) {
       base = base.filter((r) => {
         const ign = clientesIgnoradosMap.has(r.company_id);
         return viewIgnorados ? ign : !ign;
       });
     }
+
+    // Estatus "Ignorado" (columna ignorado en seguimiento_ventas):
+    // fuera de la pestaña Ignorados se excluyen por completo; dentro solo se muestran ellos.
+    base = base.filter((r) => (isIgnorados ? !!r.ignorado : !r.ignorado));
 
     if (fEstatus.length > 0) {
       base = base.filter((r) => {
@@ -1496,6 +1533,16 @@ export default function SeguimientoVentas() {
             }`}
           >
             Clientes Perdidos
+          </button>
+          <button
+            onClick={() => setTab("ignorados")}
+            className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors ${
+              tab === "ignorados"
+                ? "bg-gradient-to-br from-slate-500 to-slate-600 text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Ignorados
           </button>
           <button
             onClick={() => setTab("recuperacion")}
@@ -2256,7 +2303,7 @@ export default function SeguimientoVentas() {
 
       {showLista && (
       <div className="grid gap-3 md:hidden">
-        {isLoading ? (
+        {(isIgnorados ? ignRowsLoading : isLoading) ? (
           <p className="text-center text-sm text-muted-foreground py-8">Cargando…</p>
         ) : filtered.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-8">Sin registros.</p>
@@ -2393,19 +2440,21 @@ export default function SeguimientoVentas() {
                   </SortableContext>
                   {viewIgnorados && !isPerdidos && <TableHead>Razón</TableHead>}
                   {viewIgnorados && !isPerdidos && <TableHead>Fecha ignorado</TableHead>}
+                  {isIgnorados && <TableHead>Motivo</TableHead>}
+                  {isIgnorados && <TableHead>Fecha ignorado</TableHead>}
                   <TableHead className="w-14 text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {(isIgnorados ? ignRowsLoading : isLoading) ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2)} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2) + (isIgnorados ? 2 : 0)} className="text-center text-muted-foreground py-8">
                       Cargando…
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2)} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={orderedColumns.length + (viewIgnorados && !isPerdidos ? 4 : 2) + (isIgnorados ? 2 : 0)} className="text-center text-muted-foreground py-8">
                       Sin registros.
                     </TableCell>
                   </TableRow>
@@ -2444,6 +2493,27 @@ export default function SeguimientoVentas() {
                             const at = clientesIgnoradosMap.get(r.company_id)?.ignorado_at;
                             return at ? formatDate(at) : "—";
                           })()}
+                        </TableCell>
+                      )}
+                      {isIgnorados && (
+                        <TableCell className="font-light text-xs">
+                          {(() => {
+                            const m = r.motivo_ignorado_id ? motivosIgnoradoMap.get(r.motivo_ignorado_id) : null;
+                            if (!m) return <span className="italic text-muted-foreground">—</span>;
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                                style={m.color ? { backgroundColor: `${m.color}14`, color: m.color, borderColor: `${m.color}55` } : undefined}
+                              >
+                                {m.nombre}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
+                      )}
+                      {isIgnorados && (
+                        <TableCell className="font-light text-xs">
+                          {r.fecha_ignorado ? formatDate(r.fecha_ignorado) : "—"}
                         </TableCell>
                       )}
                       <TableCell className="w-14 text-center" onClick={(e) => e.stopPropagation()}>
