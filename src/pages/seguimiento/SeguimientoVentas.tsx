@@ -286,7 +286,7 @@ function DraggableSortableHead({
     <TableHead
       ref={setNodeRef}
       style={style}
-      className={`${alignClass} select-none hover:bg-muted/40 transition-colors group whitespace-nowrap ${isDragging ? "bg-violet-50" : ""}`}
+      className={`${alignClass} select-none hover:bg-muted/40 transition-colors group whitespace-nowrap ${isDragging ? "bg-violet-50" : ""} ${className || ""}`}
     >
       <span className="inline-flex items-center gap-1">
         <button
