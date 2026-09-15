@@ -710,16 +710,29 @@ export default function SeguimientoLanding() {
   const periodoStartDate = format(periodoStart, "yyyy-MM-dd");
   const periodoEndDate = format(periodoEnd, "yyyy-MM-dd");
 
-  // Periodo equivalente inmediatamente anterior (misma duración, justo antes)
-  const { comparStart, comparEnd } = useMemo(() => {
-    const diffDays = differenceInCalendarDays(periodoEnd, periodoStart) + 1;
-    const cEnd = subDays(periodoStart, 1);
-    const cStart = subDays(cEnd, diffDays - 1);
-    return { comparStart: cStart, comparEnd: cEnd };
-  }, [periodoStart, periodoEnd]);
+  // Tarjetas de ventas: siempre sobre el MES calendario anclado al día final del periodo (periodoEnd)
+  const { mesActualStart, mesActualEnd, mesAnteriorCompletoStart, mesAnteriorCompletoEnd, mesAnteriorMismoDiaEnd } =
+    useMemo(() => {
+      const mesActualStart = startOfMonth(periodoEnd);
+      const mesActualEnd = periodoEnd;
+      const mesAnteriorCompletoStart = startOfMonth(subMonths(periodoEnd, 1));
+      const mesAnteriorCompletoEnd = endOfMonth(subMonths(periodoEnd, 1));
+      let mismoDia = setDate(mesAnteriorCompletoStart, periodoEnd.getDate());
+      if (mismoDia > mesAnteriorCompletoEnd) mismoDia = mesAnteriorCompletoEnd;
+      return {
+        mesActualStart,
+        mesActualEnd,
+        mesAnteriorCompletoStart,
+        mesAnteriorCompletoEnd,
+        mesAnteriorMismoDiaEnd: mismoDia,
+      };
+    }, [periodoEnd]);
 
-  const comparStartDate = format(comparStart, "yyyy-MM-dd");
-  const comparEndDate = format(comparEnd, "yyyy-MM-dd");
+  const mesActualStartDate = format(mesActualStart, "yyyy-MM-dd");
+  const mesActualEndDate = format(mesActualEnd, "yyyy-MM-dd");
+  const mesAnteriorCompletoStartDate = format(mesAnteriorCompletoStart, "yyyy-MM-dd");
+  const mesAnteriorCompletoEndDate = format(mesAnteriorCompletoEnd, "yyyy-MM-dd");
+  const mesAnteriorMismoDiaEndDate = format(mesAnteriorMismoDiaEnd, "yyyy-MM-dd");
 
   const fetchVentasRango = async (desde: string, hasta: string) => {
     if (!sinRestriccion && visibleCompanyIds.length === 0) return { unidades: 0, importe: 0 };
