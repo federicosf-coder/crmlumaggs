@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
@@ -230,16 +230,74 @@ const CHIP_COLORS = [
   "#0891b2", "#db2777", "#ea580c", "#65a30d", "#9333ea",
 ];
 
+const FILTROS_KEY = "seguimiento_filtros_v1";
+
+type Periodo = "ayer" | "hoy" | "semana" | "mes" | "año" | "custom";
+
+function loadFiltrosGuardados(): Partial<{
+  empresaSel: EmpresaVendedora;
+  periodo: Periodo;
+  customStart: string;
+  customEnd: string;
+  fEjecutivo: string[];
+  fPlaza: string[];
+}> {
+  try {
+    const raw = localStorage.getItem(FILTROS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+const filtrosGuardados = loadFiltrosGuardados();
+
 export default function SeguimientoLanding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>("lumaggs_chevron");
+  const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>(() => filtrosGuardados.empresaSel ?? "lumaggs_chevron");
   const [activityOpen, setActivityOpen] = useState(false);
-  const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
-  const [fPlaza, setFPlaza] = useState<string[]>([]);
-  const [periodo, setPeriodo] = useState<"ayer" | "hoy" | "semana" | "mes" | "año" | "custom">("hoy");
-  const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
-  const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
+  const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => filtrosGuardados.fEjecutivo ?? []);
+  const [fPlaza, setFPlaza] = useState<string[]>(() => filtrosGuardados.fPlaza ?? []);
+  const [periodo, setPeriodo] = useState<Periodo>(() => filtrosGuardados.periodo ?? "hoy");
+  const [customStart, setCustomStart] = useState<Date | undefined>(() =>
+    filtrosGuardados.customStart ? new Date(filtrosGuardados.customStart) : undefined
+  );
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(() =>
+    filtrosGuardados.customEnd ? new Date(filtrosGuardados.customEnd) : undefined
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        FILTROS_KEY,
+        JSON.stringify({
+          empresaSel,
+          periodo,
+          customStart: customStart ? customStart.toISOString() : undefined,
+          customEnd: customEnd ? customEnd.toISOString() : undefined,
+          fEjecutivo,
+          fPlaza,
+        })
+      );
+    } catch {
+      // ignore
+    }
+  }, [empresaSel, periodo, customStart, customEnd, fEjecutivo, fPlaza]);
+
+  const restablecerFiltros = () => {
+    try {
+      localStorage.removeItem(FILTROS_KEY);
+    } catch {
+      // ignore
+    }
+    setEmpresaSel("lumaggs_chevron");
+    setPeriodo("hoy");
+    setCustomStart(undefined);
+    setCustomEnd(undefined);
+    setFEjecutivo([]);
+    setFPlaza([]);
+  };
 
   const { periodoStart, periodoEnd } = useMemo(() => {
     switch (periodo) {
@@ -692,6 +750,13 @@ export default function SeguimientoLanding() {
             {p.label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={restablecerFiltros}
+          className="text-[11px] font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
+        >
+          Restablecer filtros
+        </button>
         {periodo === "custom" && (
           <div className="flex flex-wrap items-center gap-2">
             <Popover>
