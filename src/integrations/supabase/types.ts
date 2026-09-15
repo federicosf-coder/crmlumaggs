@@ -8702,6 +8702,7 @@ export type Database = {
           ritmo_pct: number | null
           tiene_venta: boolean
           total_historico: number | null
+          total_historico_unidades: number | null
           ultima_actividad_fecha: string | null
           ultima_actualizacion: string
           ultima_cotizacion_fecha: string | null
@@ -8754,6 +8755,7 @@ export type Database = {
           ritmo_pct?: number | null
           tiene_venta?: boolean
           total_historico?: number | null
+          total_historico_unidades?: number | null
           ultima_actividad_fecha?: string | null
           ultima_actualizacion?: string
           ultima_cotizacion_fecha?: string | null
@@ -8806,6 +8808,7 @@ export type Database = {
           ritmo_pct?: number | null
           tiene_venta?: boolean
           total_historico?: number | null
+          total_historico_unidades?: number | null
           ultima_actividad_fecha?: string | null
           ultima_actualizacion?: string
           ultima_cotizacion_fecha?: string | null
