@@ -173,18 +173,8 @@ function VentasChartsSection({ empresa, label }: { empresa: EmpresaVendedora; la
 
   const plazaData = [{ plaza: "Total", unidades: data.total }, ...data.porPlaza];
 
-  // Build stacked dataset: rows = plazas, keys = ejecutivos
-  const ejecutivosSet = new Set<string>();
-  data.porPlazaEjecutivo.forEach(p => p.ejecutivos.forEach(e => ejecutivosSet.add(e.nombre)));
-  const ejecutivos = Array.from(ejecutivosSet);
-  const stackedData = data.porPlazaEjecutivo.map(p => {
-    const row: Record<string, any> = { plaza: p.plaza };
-    p.ejecutivos.forEach(e => { row[e.nombre] = e.unidades; });
-    return row;
-  });
-
   return (
-    <div className="grid gap-4 lg:grid-cols-2 mt-4">
+    <div className="mt-4">
       <Card className={`border ${palette.ring}`}>
         <CardContent className="p-4">
           <h3 className={`text-sm font-semibold mb-3 ${palette.text}`}>Unidades vendidas — Total y por plaza</h3>
@@ -196,25 +186,6 @@ function VentasChartsSection({ empresa, label }: { empresa: EmpresaVendedora; la
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
                 <Bar dataKey="unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-      <Card className={`border ${palette.ring}`}>
-        <CardContent className="p-4">
-          <h3 className={`text-sm font-semibold mb-3 ${palette.text}`}>Unidades por plaza y ejecutivo</h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stackedData} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="plaza" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                {ejecutivos.map((nombre, i) => (
-                  <Bar key={nombre} dataKey={nombre} stackId="a" fill={palette.bars[i % palette.bars.length]} />
-                ))}
               </BarChart>
             </ResponsiveContainer>
           </div>
