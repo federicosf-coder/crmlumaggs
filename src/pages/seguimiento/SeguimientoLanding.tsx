@@ -75,6 +75,14 @@ function currentYm() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function colorAvance(pct: number): string {
+  if (pct < 20) return "bg-red-500";
+  if (pct < 40) return "bg-orange-500";
+  if (pct < 60) return "bg-yellow-500";
+  if (pct < 90) return "bg-green-500";
+  return "bg-blue-500";
+}
+
 function VentasMensualSection({ empresa, label }: { empresa: EmpresaVendedora; label: string }) {
   const { data, isLoading } = useVentasMensual(empresa);
   const palette = PALETTES[empresa];
