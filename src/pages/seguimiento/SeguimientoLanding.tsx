@@ -1019,13 +1019,34 @@ export default function SeguimientoLanding() {
 
       <QuickActivityDialog
         open={activityOpen}
-        onOpenChange={setActivityOpen}
+        onOpenChange={(o) => {
+          setActivityOpen(o);
+          if (!o) setEditingActivity(null);
+        }}
         defaultBrand={empresaSel}
+        editActivity={editingActivity}
         onSaved={() => {
-          queryClient.invalidateQueries({ queryKey: ["seg_actividades_periodo"], exact: false });
-          queryClient.invalidateQueries({ queryKey: ["seg_actividades_siguiente_paso"], exact: false });
+          setEditingActivity(null);
+          invalidateActividades();
         }}
       />
+
+      <AlertDialog open={!!deletingActivityId} onOpenChange={(o) => { if (!o) setDeletingActivityId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar actividad</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. ¿Deseas eliminar esta actividad?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteActividad} disabled={deletingActivity}>
+              {deletingActivity ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
 
       {/* Filtros */}
@@ -1399,7 +1420,7 @@ export default function SeguimientoLanding() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">Actividades del periodo</h3>
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
+            <Button size="sm" variant="outline" onClick={() => { setEditingActivity(null); setActivityOpen(true); }}>
               Registrar actividad
             </Button>
             {actividades.length > 0 && (
