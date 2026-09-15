@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
+import type { TaskTypeKey } from "@/lib/taskTypes";
 import { CreateCrmActivityTaskDialog } from "@/components/crm/CreateCrmActivityTaskDialog";
 import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -802,15 +805,77 @@ export default function SeguimientoLanding() {
         </div>
       </div>
 
-      <section>
-        <VentasChartsSection
-          empresa={empresaSel}
-          label={empresaSel === "lumaggs_chevron" ? "Chevron" : "Phillips 66"}
-        />
-        <VentasMensualSection
-          empresa={empresaSel}
-          label={empresaSel === "lumaggs_chevron" ? "Chevron" : "Phillips 66"}
-        />
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Actividades del periodo</h3>
+          <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
+            Registrar actividad
+          </Button>
+        </div>
+        {actividades.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin actividades en este periodo.</p>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>Potencial / Promedio</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Descripción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {actividades.map((a) => {
+                    const seg = a.company_id ? segMap.get(a.company_id) : undefined;
+                    const esCliente = !!seg?.tiene_venta;
+                    const usaPromedio = esCliente && seg?.es_nuevo_cliente === false;
+                    const valor = usaPromedio
+                      ? seg?.promedio_historico_mensual
+                      : a.companies?.volumen_mensual_estimado;
+                    const etiqueta = usaPromedio ? "Promedio mensual" : "Volumen estimado";
+                    const tarea = a.company_id ? siguientePasoMap.get(a.company_id) : undefined;
+                    return (
+                      <TableRow key={a.id}>
+                        <TableCell className="align-top">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">{a.companies?.name || "—"}</span>
+                            <span
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                esCliente ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {esCliente ? "Cliente" : "Prospecto"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <p className="font-medium">
+                            {valor ? formatCurrency(Number(valor)) : "—"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">{etiqueta}</p>
+                        </TableCell>
+                        <TableCell className="align-top text-sm">
+                          {TASK_TYPE_LABEL[a.type as TaskTypeKey] || a.type || "—"}
+                        </TableCell>
+                        <TableCell className="align-top text-sm">
+                          <p>{a.description || a.title || "—"}</p>
+                          {tarea?.title && (
+                            <p className="text-[11px] italic text-muted-foreground mt-1">
+                              Siguiente paso: {tarea.title}
+                            </p>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </section>
     </div>
   );
