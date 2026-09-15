@@ -501,9 +501,19 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
           <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="px-6 py-4 space-y-4">
               {/* Identidad */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="es_contacto_empresa"
+                  checked={form.es_contacto_empresa}
+                  onCheckedChange={(checked) => setBoolAndSaveNow("es_contacto_empresa", checked === true)}
+                />
+                <Label htmlFor="es_contacto_empresa" className="text-sm font-normal cursor-pointer">
+                  Es un contacto general de la empresa (no una persona)
+                </Label>
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Nombre *</Label><Input value={form.first_name} onChange={e => setAndSchedule("first_name", toProperCase(e.target.value))} onBlur={e => autosave.saveNow("first_name", toProperCase(e.target.value))} required /></div>
-                <div className="space-y-2"><Label>Apellido *</Label><Input value={form.last_name} onChange={e => setAndSchedule("last_name", toProperCase(e.target.value))} onBlur={e => autosave.saveNow("last_name", toProperCase(e.target.value))} required /></div>
+                <div className="space-y-2"><Label>Nombre {form.es_contacto_empresa && "(opcional)"}</Label><Input value={form.first_name} onChange={e => setAndSchedule("first_name", toProperCase(e.target.value))} onBlur={e => autosave.saveNow("first_name", toProperCase(e.target.value))} required={!form.es_contacto_empresa} /></div>
+                <div className="space-y-2"><Label>Apellido {form.es_contacto_empresa && "(opcional)"}</Label><Input value={form.last_name} onChange={e => setAndSchedule("last_name", toProperCase(e.target.value))} onBlur={e => autosave.saveNow("last_name", toProperCase(e.target.value))} required={!form.es_contacto_empresa} /></div>
                 <div className="space-y-2"><Label>Puesto</Label><Input value={form.job_title} onChange={e => setAndSchedule("job_title", e.target.value)} onBlur={e => autosave.saveNow("job_title", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Departamento</Label><Input value={form.department} onChange={e => setAndSchedule("department", e.target.value)} onBlur={e => autosave.saveNow("department", e.target.value)} /></div>
               </div>
