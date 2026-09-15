@@ -1197,21 +1197,6 @@ export default function DocumentForm() {
             </div>
 
             {/* Show only fields relevant to the selected document type */}
-            {td === "cotizacion" && (
-              <>
-                <div>
-                  <Label>Número Cotización</Label>
-                  <Input value={form.numero_cotizacion || "(Se asignará automáticamente)"} disabled className="bg-muted" />
-                </div>
-                <div>
-                  <Label>Estatus Cotización</Label>
-                  <Select value={form.estatus_cotizacion} onValueChange={v => set("estatus_cotizacion", v)}>
-                    <SelectTrigger className="text-left"><SelectValue /></SelectTrigger>
-                    <SelectContent>{ESTATUS_COT.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
             {td === "pedido" && (
               <>
                 <div>
