@@ -103,6 +103,38 @@ function colorForIndex(i: number) {
   return EJECUTIVO_PALETTE[i % EJECUTIVO_PALETTE.length];
 }
 
+const PALETTE: Record<
+  EmpresaVendedora,
+  {
+    pillActive: string;
+    pillIdle: string;
+    headerFrom: string;
+    headerTo: string;
+    headerText: string;
+    tabActive: string;
+    cardBorder: string;
+  }
+> = {
+  lumaggs_chevron: {
+    pillActive: "bg-blue-600 text-white border-blue-600",
+    pillIdle: "bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100",
+    headerFrom: "from-blue-50",
+    headerTo: "to-sky-50",
+    headerText: "text-blue-900",
+    tabActive: "bg-blue-600 text-white shadow-sm",
+    cardBorder: "border-blue-200/60",
+  },
+  galsa_phillips66: {
+    pillActive: "bg-red-600 text-white border-red-600",
+    pillIdle: "bg-red-50 text-red-700 border-red-300 hover:bg-red-100",
+    headerFrom: "from-red-50",
+    headerTo: "to-rose-50",
+    headerText: "text-red-900",
+    tabActive: "bg-red-600 text-white shadow-sm",
+    cardBorder: "border-red-200/60",
+  },
+};
+
 interface MSOption { id: string; label: string; color?: string; urgent?: boolean }
 
 function MultiSelectFilter({
