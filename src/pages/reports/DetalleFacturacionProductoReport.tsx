@@ -10,7 +10,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { es as esLocale } from "date-fns/locale";
 import {
@@ -40,11 +40,25 @@ const PILL: Record<Empresa, { active: string; idle: string }> = {
 
 const ESTATUS_LABEL: Record<string, string> = {
   vigente: "Vigente",
-  pendiente: "Vigente",
+  pendiente: "Pendiente",
   pagada: "Pagada",
+  parcial: "Parcial",
   vencida: "Vencida",
   cancelada: "Cancelada",
 };
+
+const ESTATUS_KEYS = ["vigente", "pendiente", "pagada", "parcial", "vencida", "cancelada"];
+
+type SortKey =
+  | "fecha"
+  | "numeroFactura"
+  | "producto"
+  | "presentacion"
+  | "cantidad"
+  | "unidadesEquivalentes"
+  | "precioUnitario"
+  | "importe"
+  | "estatus";
 
 interface Linea {
   key: string;
@@ -65,6 +79,10 @@ export default function DetalleFacturacionProductoReport() {
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const [customStart, setCustomStart] = useState<Date | undefined>(startOfMonth(new Date()));
   const [customEnd, setCustomEnd] = useState<Date | undefined>(endOfToday());
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [estatusSel, setEstatusSel] = useState<string[]>(["vigente", "pendiente", "pagada", "parcial", "vencida"]);
+  const incluirCanceladas = estatusSel.includes("cancelada");
 
   const { periodoStart, periodoEnd } = useMemo(() => {
     switch (periodo) {
