@@ -8,7 +8,18 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
 import type { TaskTypeKey } from "@/lib/taskTypes";
 import { QuickActivityDialog } from "@/components/seguimiento/QuickActivityDialog";
-import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 import { Calendar } from "@/components/ui/calendar";
@@ -258,6 +269,9 @@ export default function SeguimientoLanding() {
   const queryClient = useQueryClient();
   const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>(() => filtrosGuardados.empresaSel ?? "lumaggs_chevron");
   const [activityOpen, setActivityOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<{ id: string; company_id: string; type: string; description: string | null } | null>(null);
+  const [deletingActivityId, setDeletingActivityId] = useState<string | null>(null);
+  const [deletingActivity, setDeletingActivity] = useState(false);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => filtrosGuardados.fEjecutivo ?? []);
   const [fPlaza, setFPlaza] = useState<string[]>(() => filtrosGuardados.fPlaza ?? []);
   const [filtrosAbiertos, setFiltrosAbiertos] = useState<boolean>(false);
@@ -658,7 +672,7 @@ export default function SeguimientoLanding() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("crm_activities")
-        .select("id, type, title, description, activity_date, company_id, companies:company_id(id, name, volumen_mensual_estimado)")
+        .select("id, type, title, description, activity_date, company_id, user_id, companies:company_id(id, name, volumen_mensual_estimado)")
         .gte("activity_date", periodoStartIso)
         .lte("activity_date", periodoEndIso)
         .not("title", "ilike", "%Solicitud de validación de pago%")
