@@ -476,15 +476,6 @@ export default function SeguimientoLanding() {
     () => clientesAcc.filter((c) => c.ignorado === true),
     [clientesAcc]
   );
-  const ignoradosKpis = useMemo(() => {
-    const n = clientesIgnorados.length;
-    const totalHistorico = clientesIgnorados.reduce((s, c) => s + (c.total_historico || 0), 0);
-    const promedioMensual =
-      n > 0
-        ? Math.round(clientesIgnorados.reduce((s, c) => s + (c.promedio_historico_mensual || 0), 0) / n)
-        : 0;
-    return { cantidad: n, totalHistorico, promedioMensual };
-  }, [clientesIgnorados]);
 
   const dormidoIds = useMemo(
     () => new Set(catalogo.filter((c) => c.nombre === "Dormido").map((c) => c.id)),
@@ -617,19 +608,42 @@ export default function SeguimientoLanding() {
     return cols;
   }, [etapasProspecto, prospectos]);
   const kanbanClienteCols = useMemo(() => {
-    const cols = etapasRiesgo.map((e) => ({
-      id: e.id,
-      nombre: e.nombre,
-      color: e.color,
-      count: clientes.filter((r) => r.estatus_riesgo_id === e.id).length,
-    }));
-    const clasificados = cols.reduce((s, c) => s + c.count, 0);
-    const sinClasificar = clientes.length - clasificados;
-    if (sinClasificar > 0) {
-      cols.push({ id: "sin-clasificar", nombre: "Sin clasificar", color: "#94a3b8", count: sinClasificar });
+    const udsPromEsperado = (r: any) =>
+      r.es_nuevo_cliente
+        ? (r.companies?.volumen_mensual_estimado || 0)
+        : (r.promedio_historico_mensual || 0);
+    const cols: { id: string; nombre: string; color: string; count: number; unidades: number; totalHistoricoUnidades?: number }[] =
+      etapasRiesgo.map((e) => {
+        const rows = clientes.filter((r) => r.estatus_riesgo_id === e.id);
+        return {
+          id: e.id,
+          nombre: e.nombre,
+          color: e.color,
+          count: rows.length,
+          unidades: rows.reduce((s, r) => s + udsPromEsperado(r), 0),
+        };
+      });
+    const etapaIds = new Set(etapasRiesgo.map((e) => e.id));
+    const sinClasificarRows = clientes.filter((r) => !etapaIds.has(r.estatus_riesgo_id as string));
+    if (sinClasificarRows.length > 0) {
+      cols.push({
+        id: "sin-clasificar",
+        nombre: "Sin clasificar",
+        color: "#94a3b8",
+        count: sinClasificarRows.length,
+        unidades: sinClasificarRows.reduce((s, r) => s + udsPromEsperado(r), 0),
+      });
     }
+    cols.push({
+      id: "ignorados",
+      nombre: "Ignorados",
+      color: "#64748b",
+      count: clientesIgnorados.length,
+      unidades: clientesIgnorados.reduce((s, r) => s + udsPromEsperado(r), 0),
+      totalHistoricoUnidades: clientesIgnorados.reduce((s, r) => s + (r.total_historico_unidades || 0), 0),
+    });
     return cols;
-  }, [etapasRiesgo, clientes]);
+  }, [etapasRiesgo, clientes, clientesIgnorados]);
 
   const segMap = useMemo(
     () => new Map([...prospectos, ...clientes].map((r) => [r.company_id, r])),
@@ -1259,9 +1273,23 @@ export default function SeguimientoLanding() {
                     <p className="text-2xl font-bold leading-tight" style={{ color: c.color }}>
                       {c.count.toLocaleString("es-MX")}
                     </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Unidades prom./esperado:{" "}
+                      <span className="font-semibold text-foreground">
+                        {Math.round(c.unidades).toLocaleString("es-MX")} uds
+                      </span>
+                    </p>
+                    {c.id === "ignorados" && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Total histórico:{" "}
+                        <span className="font-semibold text-foreground">
+                          {Math.round(c.totalHistoricoUnidades || 0).toLocaleString("es-MX")} uds
+                        </span>
+                      </p>
+                    )}
                     <button
                       type="button"
-                      onClick={() => navigate(`${brandPath}?tab=con_venta`)}
+                      onClick={() => navigate(`${brandPath}?tab=${c.id === "ignorados" ? "ignorados" : "con_venta"}`)}
                       className="text-[10px] font-semibold underline text-muted-foreground hover:text-foreground"
                     >
                       Ver empresas
@@ -1274,25 +1302,6 @@ export default function SeguimientoLanding() {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold">Clientes ignorados</h3>
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-          {[
-            { label: "Cantidad", value: ignoradosKpis.cantidad.toLocaleString("es-MX") },
-            { label: "Total histórico", value: formatCurrency(ignoradosKpis.totalHistorico) },
-            { label: "Promedio mensual", value: `${ignoradosKpis.promedioMensual.toLocaleString("es-MX")} uds` },
-          ].map((k) => (
-            <Card key={k.label}>
-              <CardContent className="px-3 py-2">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {k.label}
-                </p>
-                <p className="text-xl font-bold">{k.value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
