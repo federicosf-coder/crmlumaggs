@@ -251,7 +251,11 @@ export default function DocumentsList() {
   const [estatusCotFilter, setEstatusCotFilter] = useState<string>("all");
   const [estatusPedFilter, setEstatusPedFilter] = useState<string>(searchParams.get("estatus") || "all");
   const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
-  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter]);
+  const [revisionFilter, setRevisionFilter] = useState<"all" | "si" | "no">(() => {
+    const r = searchParams.get("revision");
+    return r === "si" || r === "no" ? r : "all";
+  })();
+  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter, revisionFilter]);
   const clearFilters = () => {
     setTipoPagoFilter("all");
     setFechaDesde("");
@@ -259,14 +263,30 @@ export default function DocumentsList() {
     setEstatusCotFilter("all");
     setEstatusPedFilter("all");
     setEstatusFacFilter("all");
+    setRevisionFilter("all");
   };
   const activeFiltersCount =
     (tipoPagoFilter !== "all" ? 1 : 0) +
     (fechaDesde ? 1 : 0) +
     (fechaHasta ? 1 : 0) +
     (tipoFilter === "cotizacion" && estatusCotFilter !== "all" ? 1 : 0) +
+    (tipoFilter === "cotizacion" && revisionFilter !== "all" ? 1 : 0) +
     (tipoFilter === "pedido" && estatusPedFilter !== "all" ? 1 : 0) +
     (tipoFilter === "factura" && estatusFacFilter !== "all" ? 1 : 0);
+
+  // Sync cotizacion revision filter with URL ?revision
+  useEffect(() => {
+    if (tipoFilter !== "cotizacion") return;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (revisionFilter && revisionFilter !== "all") {
+        next.set("revision", revisionFilter);
+      } else {
+        next.delete("revision");
+      }
+      return next;
+    }, { replace: true });
+  }, [revisionFilter, tipoFilter, setSearchParams]);
 
   // Sync pedido status filter with URL ?estatus
   useEffect(() => {
