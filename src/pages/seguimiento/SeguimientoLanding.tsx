@@ -357,14 +357,19 @@ export default function SeguimientoLanding() {
     () => new Set(catalogo.filter((c) => c.nombre === "Dormido").map((c) => c.id)),
     [catalogo]
   );
+  const sumaMes = clientes.reduce((s, c) => s + (c.acum_mes || 0), 0);
+  const sumaMesAnterior = clientes.reduce((s, c) => s + (c.acum_mes_anterior || 0), 0);
   const kpis = useMemo(
     () => ({
       prospectos: prospectos.length,
       clientes: clientes.length,
       nuevos: clientes.filter((c) => c.es_nuevo_cliente === true).length,
       dormidos: clientes.filter((c) => c.estatus_riesgo_id && dormidoIds.has(c.estatus_riesgo_id)).length,
+      sumaMes,
+      sumaMesAnterior,
+      pct: sumaMesAnterior > 0 ? ((sumaMes - sumaMesAnterior) / sumaMesAnterior) * 100 : null,
     }),
-    [prospectos, clientes, dormidoIds]
+    [prospectos, clientes, dormidoIds, sumaMes, sumaMesAnterior]
   );
 
   const etapasProspecto = useMemo(
