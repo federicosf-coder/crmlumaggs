@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,14 +18,23 @@ interface QuickActivityDialogProps {
   onOpenChange: (open: boolean) => void;
   defaultBrand: "lumaggs_chevron" | "galsa_phillips66";
   onSaved?: () => void;
+  editActivity?: { id: string; company_id: string; type: string; description: string | null } | null;
 }
 
-export function QuickActivityDialog({ open, onOpenChange, onSaved }: QuickActivityDialogProps) {
+export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity }: QuickActivityDialogProps) {
   const { session } = useAuth();
   const [companyId, setCompanyId] = useState<string>("");
   const [type, setType] = useState<TaskTypeKey>("call");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && editActivity) {
+      setCompanyId(editActivity.company_id);
+      setType((editActivity.type as TaskTypeKey) || "call");
+      setDescription(editActivity.description || "");
+    }
+  }, [open, editActivity]);
 
   const { data: companies } = useQuery({
     queryKey: ["companies-picker"],
