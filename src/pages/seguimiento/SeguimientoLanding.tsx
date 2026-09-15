@@ -1289,11 +1289,11 @@ export default function SeguimientoLanding() {
         <Card>
           <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Este periodo
+              Este mes (a la fecha)
             </p>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <p className="text-3xl font-bold">
-                {ventasPeriodoActual.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+                {ventasMesActual.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
               </p>
               {pctVariacionImporte !== null && (
                 <span
@@ -1307,8 +1307,8 @@ export default function SeguimientoLanding() {
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasPeriodoActual.importe)}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoActualLabel}</p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesActual.importe)}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoMesActualLabel}</p>
             <div className="mt-auto pt-3 space-y-2">
               {pctUnidadesComp !== null && (
                 <div className="flex items-center gap-2">
