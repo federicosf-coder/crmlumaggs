@@ -1000,23 +1000,52 @@ export default function SeguimientoLanding() {
               )}
             </div>
             <p className="text-sm text-muted-foreground mt-1">{formatCurrency(kpis.importeMes)}</p>
-            <div className="mt-auto pt-3 space-y-1">
-              {kpis.importeMesAnteriorMismoDia > 0 && (
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500",
-                      colorAvance(Math.min(150, (kpis.importeMes / kpis.importeMesAnteriorMismoDia) * 100))
+            <div className="mt-auto pt-3 space-y-2">
+              {(() => {
+                const pctUnidades =
+                  kpis.sumaMesAnteriorMismoDia > 0
+                    ? Math.min(150, (kpis.sumaMes / kpis.sumaMesAnteriorMismoDia) * 100)
+                    : null;
+                const pctImporte =
+                  kpis.importeMesAnteriorMismoDia > 0
+                    ? Math.min(150, (kpis.importeMes / kpis.importeMesAnteriorMismoDia) * 100)
+                    : null;
+                return (
+                  <>
+                    {pctUnidades !== null && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Unidades</span>
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctUnidades))}
+                            style={{ width: `${Math.min(100, pctUnidades)}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] text-muted-foreground w-9 text-right">
+                          {pctUnidades.toFixed(0)}%
+                        </span>
+                      </div>
                     )}
-                    style={{
-                      width: `${Math.min(100, Math.min(150, (kpis.importeMes / kpis.importeMesAnteriorMismoDia) * 100))}%`,
-                    }}
-                  />
-                </div>
-              )}
-              <p className="text-[11px] text-muted-foreground">
-                {avanceMesPct.toFixed(0)}% del mes transcurrido · vs. mismo día mes anterior
-              </p>
+                    {pctImporte !== null && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe</span>
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctImporte))}
+                            style={{ width: `${Math.min(100, pctImporte)}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] text-muted-foreground w-9 text-right">
+                          {pctImporte.toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      {avanceMesPct.toFixed(0)}% del mes transcurrido · vs. mismo día mes anterior
+                    </p>
+                  </>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -1030,23 +1059,43 @@ export default function SeguimientoLanding() {
               {kpis.sumaMesAnterior.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
             </p>
             <p className="text-sm text-muted-foreground mt-1">{formatCurrency(kpis.importeMesAnterior)}</p>
-            <div className="mt-auto pt-3 space-y-1">
-              {alcanzadoPct !== null && (
-                <>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        colorAvance(alcanzadoPct)
-                      )}
-                      style={{ width: `${alcanzadoPct}%` }}
-                    />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    {alcanzadoPct.toFixed(0)}% del mes pasado alcanzado
-                  </p>
-                </>
-              )}
+            <div className="mt-auto pt-3 space-y-2">
+              {(() => {
+                const pctUnidadesAnt =
+                  kpis.sumaMesAnterior > 0 ? Math.min(100, (kpis.sumaMes / kpis.sumaMesAnterior) * 100) : null;
+                return (
+                  <>
+                    {pctUnidadesAnt !== null && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Unidades</span>
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctUnidadesAnt))}
+                            style={{ width: `${Math.min(100, pctUnidadesAnt)}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] text-muted-foreground w-9 text-right">
+                          {pctUnidadesAnt.toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                    {alcanzadoPct !== null && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe</span>
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(alcanzadoPct))}
+                            style={{ width: `${Math.min(100, alcanzadoPct)}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] text-muted-foreground w-9 text-right">
+                          {alcanzadoPct.toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
