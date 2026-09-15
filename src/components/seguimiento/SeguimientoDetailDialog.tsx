@@ -914,6 +914,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
             void logSeguimientoActivity("whatsapp", whatsappTarget.contact, whatsappTarget.phone);
           }
         }}
+        skipActivityLog
       />
 
       <MarcarPerdidoDialog

@@ -31,10 +31,16 @@ interface Props {
   onSent?: () => void;
   /** Optional: id from public.templates to load saved attachments. */
   templateId?: string | null;
+  /**
+   * When true, the dialog does NOT insert its own activity in crm_activities
+   * (finishLog skips logWhatsAppActivity). Use when the parent already logs
+   * the activity itself (e.g. SeguimientoDetailDialog via logSeguimientoActivity).
+   */
+  skipActivityLog?: boolean;
 }
 
 export function WhatsAppActionDialog({
-  open, onOpenChange, phone, variables, templateType, defaultMessage, context, onSent, templateId,
+  open, onOpenChange, phone, variables, templateType, defaultMessage, context, onSent, templateId, skipActivityLog,
 }: Props) {
   const { user } = useAuth();
   const [selectedTplId, setSelectedTplId] = useState<string>("custom");
@@ -152,21 +158,23 @@ export function WhatsAppActionDialog({
     extras?: { channel?: "api" | "wa_me"; wa_message_id?: string | null },
   ) => {
     if (!user) return;
-    try {
-      await logWhatsAppActivity({
-        user_id: user.id,
-        message: messageWithLinks,
-        ...context,
-        result,
-        title: `WhatsApp · ${variables.empresa_nombre || ""}`.trim(),
-        destinatario_phone: normalized ?? null,
-        message_type: selectedTplId !== "custom" ? "plantilla" : "texto",
-        channel: extras?.channel ?? null,
-        wa_message_id: extras?.wa_message_id ?? null,
-      });
-    } catch (e) {
-      console.warn("[whatsapp] log activity failed", e);
-      toast.warning("No se pudo registrar la actividad, pero el envío continúa.");
+    if (!skipActivityLog) {
+      try {
+        await logWhatsAppActivity({
+          user_id: user.id,
+          message: messageWithLinks,
+          ...context,
+          result,
+          title: `WhatsApp · ${variables.empresa_nombre || ""}`.trim(),
+          destinatario_phone: normalized ?? null,
+          message_type: selectedTplId !== "custom" ? "plantilla" : "texto",
+          channel: extras?.channel ?? null,
+          wa_message_id: extras?.wa_message_id ?? null,
+        });
+      } catch (e) {
+        console.warn("[whatsapp] log activity failed", e);
+        toast.warning("No se pudo registrar la actividad, pero el envío continúa.");
+      }
     }
     onSent?.();
   };
