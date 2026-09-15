@@ -1273,9 +1273,23 @@ export default function SeguimientoLanding() {
                     <p className="text-2xl font-bold leading-tight" style={{ color: c.color }}>
                       {c.count.toLocaleString("es-MX")}
                     </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Unidades prom./esperado:{" "}
+                      <span className="font-semibold text-foreground">
+                        {Math.round(c.unidades).toLocaleString("es-MX")} uds
+                      </span>
+                    </p>
+                    {c.id === "ignorados" && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Total histórico:{" "}
+                        <span className="font-semibold text-foreground">
+                          {Math.round(c.totalHistoricoUnidades || 0).toLocaleString("es-MX")} uds
+                        </span>
+                      </p>
+                    )}
                     <button
                       type="button"
-                      onClick={() => navigate(`${brandPath}?tab=con_venta`)}
+                      onClick={() => navigate(`${brandPath}?tab=${c.id === "ignorados" ? "ignorados" : "con_venta"}`)}
                       className="text-[10px] font-semibold underline text-muted-foreground hover:text-foreground"
                     >
                       Ver empresas
