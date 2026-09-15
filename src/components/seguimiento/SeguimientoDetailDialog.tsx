@@ -383,6 +383,8 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
 
   const motivoPerdidaActual = (motivosPerdida || []).find((m) => m.id === row.motivo_perdida_id) || null;
   const isPerdido = !!row.perdido;
+  const motivoIgnoradoActual = (motivosIgnorado || []).find((m) => m.id === row.motivo_ignorado_id) || null;
+  const isIgnorado = !!row.ignorado;
 
   // ---- Acciones de Pérdida ----
   const handleNuevaCotizacion = () => {
@@ -412,6 +414,16 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
     if (error) { toast({ title: "Error al reactivar", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Registro reactivado" });
     invalidatePerdidas();
+  };
+
+  const handleReactivarIgnorado = async () => {
+    const { error } = await supabase
+      .from("seguimiento_ventas")
+      .update({ ignorado: false, fecha_ignorado: null, motivo_ignorado_id: null, nota_ignorado: null })
+      .eq("id", row.id);
+    if (error) { toast({ title: "Error al reactivar", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Registro reactivado" });
+    qc.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
   };
 
   return (
@@ -502,9 +514,28 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                    className="h-7 text-xs bg-white/80 border-rose-300 text-rose-700 hover:bg-rose-50"
                    onClick={() => setPerderDialogOpen(true)}
                  >
-                   <XCircle className="h-3 w-3 mr-1" /> Marcar como perdido
-                 </Button>
-               )}
+                    <XCircle className="h-3 w-3 mr-1" /> Marcar como perdido
+                  </Button>
+                )}
+                {isIgnorado && (
+                  <Badge className="text-xs bg-slate-600 hover:bg-slate-600/90 text-white border-transparent">
+                    Ignorado{motivoIgnoradoActual ? ` · ${motivoIgnoradoActual.nombre}` : ""}
+                  </Badge>
+                )}
+                {isIgnorado ? (
+                  <Button variant="outline" size="sm" className="h-7 text-xs bg-white/80" onClick={handleReactivarIgnorado}>
+                    <RotateCcw className="h-3 w-3 mr-1" /> Reactivar
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs bg-white/80 border-slate-300 text-slate-700 hover:bg-slate-50"
+                    onClick={() => setIgnorarDialogOpen(true)}
+                  >
+                    Marcar como ignorado
+                  </Button>
+                )}
                <Button
                  variant="outline"
                  size="sm"
