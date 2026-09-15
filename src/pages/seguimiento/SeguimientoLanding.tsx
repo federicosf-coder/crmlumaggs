@@ -207,6 +207,8 @@ const PLAZA_ENSENADA = "1508a15f-5048-4f89-a665-ca51566e4200";
 const PLAZA_MEXICALI = "3e9284e9-d3e2-4ed2-843a-bd4c27cb003f";
 const PLAZA_MORELOS = "12a112e3-656a-4033-926b-3de65c9c33d1";
 const PLAZA_SAN_LUIS = "2408d959-f3e4-47d5-a1f8-8ac635818844";
+const PLAZA_SAN_QUINTIN = "c31388e5-1b3d-4853-a34a-8fe80b7e3953";
+const ZONA_COSTA_PLAZA_IDS = [PLAZA_TIJUANA, PLAZA_ENSENADA, PLAZA_SAN_QUINTIN];
 const PLAZA_GROUPS: { name: string; plazaIds: string[] }[] = [
   { name: "Zona Costa", plazaIds: [PLAZA_TIJUANA, PLAZA_ENSENADA] },
   { name: "Tijuana", plazaIds: [PLAZA_TIJUANA] },
@@ -442,9 +444,13 @@ export default function SeguimientoLanding() {
     for (const r of [...prospectosAcc, ...clientesAcc]) {
       for (const pid of companyPlazaMap.get(r.company_id) || []) used.add(pid);
     }
-    return plazasData
+    const real = plazasData
       .filter((p) => used.has(p.id))
       .map((p, i) => ({ id: p.id, name: p.nombre, color: CHIP_COLORS[(i + 3) % CHIP_COLORS.length] }));
+    const hayZonaCosta = ZONA_COSTA_PLAZA_IDS.some((pid) => used.has(pid));
+    return hayZonaCosta
+      ? [{ id: "zona_costa", name: "Zona Costa", color: CHIP_COLORS[0] }, ...real]
+      : real;
   }, [prospectosAcc, clientesAcc, plazasData, companyPlazaMap]);
 
   const applyChips = useMemo(() => {
@@ -452,7 +458,8 @@ export default function SeguimientoLanding() {
       let base = rows;
       if (fEjecutivo.length > 0) base = base.filter((r) => (r.owner_id ? fEjecutivo.includes(r.owner_id) : false));
       if (fPlaza.length > 0) {
-        base = base.filter((r) => (companyPlazaMap.get(r.company_id) || []).some((pid) => fPlaza.includes(pid)));
+        const fPlazaEf = fPlaza.flatMap((id) => (id === "zona_costa" ? ZONA_COSTA_PLAZA_IDS : [id]));
+        base = base.filter((r) => (companyPlazaMap.get(r.company_id) || []).some((pid) => fPlazaEf.includes(pid)));
       }
       return base;
     };
