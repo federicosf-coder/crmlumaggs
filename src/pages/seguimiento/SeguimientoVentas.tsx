@@ -1268,15 +1268,16 @@ export default function SeguimientoVentas() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
+    const sourceRows: SeguimientoVentasRow[] = isIgnorados ? ignRows : rows;
     // Filtro por permisos: aplica antes de cualquier otro filtro
-    let accessFiltered: SeguimientoVentasRow[] = rows;
+    let accessFiltered: SeguimientoVentasRow[] = sourceRows;
     if (access.accessLevel === "ninguno") {
       accessFiltered = [];
     } else if (access.accessLevel === "propio") {
-      accessFiltered = rows.filter((r) => r.owner_id && r.owner_id === access.userId);
+      accessFiltered = sourceRows.filter((r) => r.owner_id && r.owner_id === access.userId);
     } else if (access.accessLevel === "equipo") {
       const allowed = new Set(access.teamMemberIds);
-      accessFiltered = rows.filter((r) => r.owner_id && allowed.has(r.owner_id));
+      accessFiltered = sourceRows.filter((r) => r.owner_id && allowed.has(r.owner_id));
     }
     let base = term
       ? accessFiltered.filter((r) => (r.companies?.name || "").toLowerCase().includes(term))
