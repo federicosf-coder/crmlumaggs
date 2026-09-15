@@ -182,6 +182,7 @@ export default function SeguimientoLanding() {
   const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>("lumaggs_chevron");
   const [activityOpen, setActivityOpen] = useState(false);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
+  const [mostrarEjecutivos, setMostrarEjecutivos] = useState(false);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
 
   const pill = PILL[empresaSel];
