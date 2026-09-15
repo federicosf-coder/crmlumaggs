@@ -500,50 +500,15 @@ export default function SeguimientoLanding() {
     () => new Set(catalogo.filter((c) => c.nombre === "Dormido").map((c) => c.id)),
     [catalogo]
   );
-  const sumaMes = clientes.reduce((s, c) => s + (c.acum_mes || 0), 0);
-  const sumaMesAnterior = clientes.reduce((s, c) => s + (c.acum_mes_anterior || 0), 0);
-  const sumaMesAnteriorMismoDia = clientes.reduce(
-    (s, c) => s + (c.acum_mes_anterior_mismo_dia || 0),
-    0
-  );
-  const importeMes = clientes.reduce((s, c) => s + (c.importe_mes || 0), 0);
-  const importeMesAnterior = clientes.reduce((s, c) => s + (c.importe_mes_anterior || 0), 0);
-  const importeMesAnteriorMismoDia = clientes.reduce(
-    (s, c) => s + (c.importe_mes_anterior_mismo_dia || 0),
-    0
-  );
   const kpis = useMemo(
     () => ({
       prospectos: prospectos.length,
       clientes: clientes.length,
       nuevos: clientes.filter((c) => c.es_nuevo_cliente === true).length,
       dormidos: clientes.filter((c) => c.estatus_riesgo_id && dormidoIds.has(c.estatus_riesgo_id)).length,
-      sumaMes,
-      sumaMesAnterior,
-      sumaMesAnteriorMismoDia,
-      importeMes,
-      importeMesAnterior,
-      importeMesAnteriorMismoDia,
-      pct:
-        importeMesAnteriorMismoDia > 0
-          ? ((importeMes - importeMesAnteriorMismoDia) / importeMesAnteriorMismoDia) * 100
-          : null,
     }),
-    [
-      prospectos,
-      clientes,
-      dormidoIds,
-      sumaMes,
-      sumaMesAnterior,
-      sumaMesAnteriorMismoDia,
-      importeMes,
-      importeMesAnterior,
-      importeMesAnteriorMismoDia,
-    ]
+    [prospectos, clientes, dormidoIds]
   );
-
-  const alcanzadoPct =
-    importeMesAnterior > 0 ? Math.min(100, (importeMes / importeMesAnterior) * 100) : null;
 
   const prospectosNuevosPeriodo = useMemo(
     () =>
