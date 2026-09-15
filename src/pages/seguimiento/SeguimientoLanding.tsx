@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
 import type { TaskTypeKey } from "@/lib/taskTypes";
 import { QuickActivityDialog } from "@/components/seguimiento/QuickActivityDialog";
@@ -203,6 +204,27 @@ function toggleInArray(arr: string[], v: string) {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
 
+const PLAZA_TIJUANA = "86162f44-2b70-4f06-b6ae-51bc79103c75";
+const PLAZA_ENSENADA = "1508a15f-5048-4f89-a665-ca51566e4200";
+const PLAZA_MEXICALI = "3e9284e9-d3e2-4ed2-843a-bd4c27cb003f";
+const PLAZA_MORELOS = "12a112e3-656a-4033-926b-3de65c9c33d1";
+const PLAZA_SAN_LUIS = "2408d959-f3e4-47d5-a1f8-8ac635818844";
+const PLAZA_GROUPS: { name: string; plazaIds: string[] }[] = [
+  { name: "Zona Costa", plazaIds: [PLAZA_TIJUANA, PLAZA_ENSENADA] },
+  { name: "Tijuana", plazaIds: [PLAZA_TIJUANA] },
+  { name: "Ensenada", plazaIds: [PLAZA_ENSENADA] },
+  { name: "Mexicali", plazaIds: [PLAZA_MEXICALI] },
+  { name: "Morelos", plazaIds: [PLAZA_MORELOS] },
+  { name: "San Luis", plazaIds: [PLAZA_SAN_LUIS] },
+];
+const KNOWN_PLAZA_IDS = new Set([
+  PLAZA_TIJUANA,
+  PLAZA_ENSENADA,
+  PLAZA_MEXICALI,
+  PLAZA_MORELOS,
+  PLAZA_SAN_LUIS,
+]);
+
 const CHIP_COLORS = [
   "#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed",
   "#0891b2", "#db2777", "#ea580c", "#65a30d", "#9333ea",
@@ -214,7 +236,6 @@ export default function SeguimientoLanding() {
   const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>("lumaggs_chevron");
   const [activityOpen, setActivityOpen] = useState(false);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
-  const [mostrarEjecutivos, setMostrarEjecutivos] = useState(false);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
   const [periodo, setPeriodo] = useState<"ayer" | "hoy" | "semana" | "mes" | "año" | "custom">("hoy");
   const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
@@ -254,10 +275,10 @@ export default function SeguimientoLanding() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, plaza_id")
         .eq("is_active", true);
       if (error) throw error;
-      return (data || []) as { user_id: string; full_name: string | null }[];
+      return (data || []) as { user_id: string; full_name: string | null; plaza_id: string | null }[];
     },
     staleTime: 5 * 60_000,
   });
@@ -266,6 +287,26 @@ export default function SeguimientoLanding() {
     for (const p of profiles) m.set(p.user_id, p.full_name || "—");
     return m;
   }, [profiles]);
+  const profilePlazaMap = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const p of profiles) m.set(p.user_id, p.plaza_id ?? null);
+    return m;
+  }, [profiles]);
+
+  const { data: companyCreatedMap = new Map<string, string>() } = useQuery({
+    queryKey: ["companies_created_min"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("companies")
+        .select("id, created_at")
+        .eq("is_active", true);
+      if (error) throw error;
+      const m = new Map<string, string>();
+      for (const c of data || []) if (c.id && c.created_at) m.set(c.id, c.created_at);
+      return m;
+    },
+    staleTime: 5 * 60_000,
+  });
 
   const { data: plazasData = [] } = useQuery({
     queryKey: ["plazas_min"],
@@ -322,6 +363,22 @@ export default function SeguimientoLanding() {
       .map((id, i) => ({ id, name: profileMap.get(id) || "—", color: CHIP_COLORS[i % CHIP_COLORS.length] }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [prospectosAcc, clientesAcc, profileMap]);
+
+  const ejecutivoGroups = useMemo(() => {
+    const groups = PLAZA_GROUPS.map((g) => ({
+      name: g.name,
+      options: ejecutivoOptions.filter((o) => {
+        const pid = profilePlazaMap.get(o.id) ?? null;
+        return pid !== null && g.plazaIds.includes(pid);
+      }),
+    }));
+    const otras = ejecutivoOptions.filter((o) => {
+      const pid = profilePlazaMap.get(o.id) ?? null;
+      return pid === null || !KNOWN_PLAZA_IDS.has(pid);
+    });
+    if (otras.length > 0) groups.push({ name: "Otras plazas", options: otras });
+    return groups.filter((g) => g.options.length > 0);
+  }, [ejecutivoOptions, profilePlazaMap]);
 
   const plazaOptions = useMemo(() => {
     const used = new Set<string>();
@@ -391,6 +448,27 @@ export default function SeguimientoLanding() {
   const avanceMesPct = (getDate(hoyDate) / getDaysInMonth(hoyDate)) * 100;
   const alcanzadoPct =
     importeMesAnterior > 0 ? Math.min(100, (importeMes / importeMesAnterior) * 100) : null;
+
+  const prospectosNuevosPeriodo = useMemo(
+    () =>
+      prospectos.filter((p) => {
+        const c = companyCreatedMap.get(p.company_id);
+        if (!c) return false;
+        const d = new Date(c);
+        return d >= periodoStart && d <= periodoEnd;
+      }).length,
+    [prospectos, companyCreatedMap, periodoStart, periodoEnd]
+  );
+
+  const convertidosPeriodo = useMemo(
+    () =>
+      clientes.filter((c) => {
+        if (!c.fecha_conversion) return false;
+        const d = new Date(c.fecha_conversion);
+        return d >= periodoStart && d <= periodoEnd;
+      }).length,
+    [clientes, periodoStart, periodoEnd]
+  );
 
 
   const etapasProspecto = useMemo(
@@ -668,22 +746,61 @@ export default function SeguimientoLanding() {
       {/* Filtros */}
       <Card>
         <CardContent className="p-4 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">Ejecutivo</span>
-            <button
-              type="button"
-              onClick={() => setMostrarEjecutivos((v) => !v)}
-              className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
-            >
-              {mostrarEjecutivos ? "Ocultar" : "Mostrar"}
-            </button>
-            {!mostrarEjecutivos && fEjecutivo.length > 0 && (
-              <span className="text-[11px] text-muted-foreground">
-                ({fEjecutivo.length} seleccionados)
-              </span>
-            )}
+          <div className="flex flex-wrap items-start gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16 pt-1">Ejecutivo</span>
+            <div className="flex-1 min-w-[240px]">
+              {ejecutivoGroups.length === 0 ? (
+                <span className="text-xs text-muted-foreground italic">Sin opciones</span>
+              ) : (
+                <Accordion type="single" collapsible className="w-full">
+                  {ejecutivoGroups.map((g) => (
+                    <AccordionItem key={g.name} value={g.name} className="border-b-0">
+                      <AccordionTrigger className="py-1.5 text-xs font-semibold hover:no-underline">
+                        {g.name} <span className="text-muted-foreground font-normal">({g.options.length})</span>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFEjecutivo((arr) => Array.from(new Set([...arr, ...g.options.map((o) => o.id)])))
+                            }
+                            className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                          >
+                            Seleccionar todos
+                          </button>
+                          {g.options.map((o) => {
+                            const sel = fEjecutivo.includes(o.id);
+                            return (
+                              <button
+                                key={o.id}
+                                type="button"
+                                onClick={() => setFEjecutivo((arr) => toggleInArray(arr, o.id))}
+                                className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
+                                style={
+                                  sel
+                                    ? { backgroundColor: o.color, color: "white", borderColor: o.color }
+                                    : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
+                                }
+                                aria-pressed={sel}
+                              >
+                                {o.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
+              {fEjecutivo.length > 0 && (
+                <span className="text-[11px] text-muted-foreground">
+                  ({fEjecutivo.length} seleccionados)
+                </span>
+              )}
+            </div>
           </div>
-          {mostrarEjecutivos && renderChips("Ejecutivo", ejecutivoOptions, fEjecutivo, setFEjecutivo)}
           {renderChips("Plaza", plazaOptions, fPlaza, setFPlaza)}
         </CardContent>
       </Card>
@@ -778,6 +895,14 @@ export default function SeguimientoLanding() {
                 <p className="text-xl font-bold">{prospectos.length.toLocaleString("es-MX")}</p>
               </CardContent>
             </Card>
+            <Card className="min-w-[180px]">
+              <CardContent className="px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Prospectos nuevos registrados en el periodo
+                </p>
+                <p className="text-xl font-bold">{prospectosNuevosPeriodo.toLocaleString("es-MX")}</p>
+              </CardContent>
+            </Card>
           </div>
           {kanbanProspectoCols.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
@@ -832,6 +957,7 @@ export default function SeguimientoLanding() {
               { label: "Clientes activos", value: kpis.clientes },
               { label: "Nuevos (120 días)", value: kpis.nuevos },
               { label: "Dormidos", value: kpis.dormidos },
+              { label: "Convertidos a clientes en periodo", value: convertidosPeriodo },
             ].map((k) => (
               <Card key={k.label} className="min-w-[160px]">
                 <CardContent className="px-3 py-2">
