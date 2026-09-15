@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   BarChart,
   Bar,
