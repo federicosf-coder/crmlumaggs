@@ -889,6 +889,8 @@ export default function SeguimientoLanding() {
                   <TableRow>
                     <TableHead>Empresa</TableHead>
                     <TableHead>Potencial / Promedio</TableHead>
+                    <TableHead>Ventas en el periodo</TableHead>
+                    <TableHead>Acumulado en el mes</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descripción</TableHead>
                   </TableRow>
