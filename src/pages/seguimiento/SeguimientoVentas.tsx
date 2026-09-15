@@ -264,6 +264,7 @@ function DraggableSortableHead({
   sort,
   onSort,
   align = "left",
+  className,
 }: {
   id: string;
   label: string;
@@ -271,6 +272,7 @@ function DraggableSortableHead({
   sort: SortState | null;
   onSort: (key: string) => void;
   align?: "left" | "right" | "center";
+  className?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style: React.CSSProperties = {
