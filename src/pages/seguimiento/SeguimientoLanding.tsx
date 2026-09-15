@@ -8,7 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
 import type { TaskTypeKey } from "@/lib/taskTypes";
 import { QuickActivityDialog } from "@/components/seguimiento/QuickActivityDialog";
-import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { Calendar } from "@/components/ui/calendar";
@@ -259,6 +259,7 @@ export default function SeguimientoLanding() {
   const [activityOpen, setActivityOpen] = useState(false);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => filtrosGuardados.fEjecutivo ?? []);
   const [fPlaza, setFPlaza] = useState<string[]>(() => filtrosGuardados.fPlaza ?? []);
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState<boolean>(false);
   const [periodo, setPeriodo] = useState<Periodo>(() => filtrosGuardados.periodo ?? "hoy");
   const [customStart, setCustomStart] = useState<Date | undefined>(() =>
     filtrosGuardados.customStart ? new Date(filtrosGuardados.customStart) : undefined
