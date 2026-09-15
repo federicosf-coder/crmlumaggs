@@ -246,7 +246,6 @@ const CHIP_COLORS = [
 export default function SeguimientoLanding() {
   const navigate = useNavigate();
   const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>("lumaggs_chevron");
-  const [kanbanTab, setKanbanTab] = useState<"sin_venta" | "con_venta">("sin_venta");
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
   const [fPlaza, setFPlaza] = useState<string[]>([]);
 
