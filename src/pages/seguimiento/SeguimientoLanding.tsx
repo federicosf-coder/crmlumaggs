@@ -750,6 +750,13 @@ export default function SeguimientoLanding() {
             {p.label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={restablecerFiltros}
+          className="text-[11px] font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
+        >
+          Restablecer filtros
+        </button>
         {periodo === "custom" && (
           <div className="flex flex-wrap items-center gap-2">
             <Popover>
