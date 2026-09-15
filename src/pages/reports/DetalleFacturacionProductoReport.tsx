@@ -383,7 +383,33 @@ export default function DetalleFacturacionProductoReport() {
           })}
         </div>
 
-        <Card>
+        {plazaOptions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Plaza:</span>
+            {plazaSel.length === 0 && (
+              <span className="text-[11px] font-light text-muted-foreground">(todas)</span>
+            )}
+            {plazaOptions.map((p) => {
+              const active = plazaSel.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() =>
+                    setPlazaSel((s) => (s.includes(p.id) ? s.filter((x) => x !== p.id) : [...s, p.id]))
+                  }
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all",
+                    active ? pill.active : pill.idle
+                  )}
+                  aria-pressed={active}
+                >
+                  {p.nombre}
+                </button>
+              );
+            })}
+          </div>
+        )}
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-8 text-center text-muted-foreground text-sm">Cargando...</div>
