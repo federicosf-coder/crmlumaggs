@@ -8631,6 +8631,7 @@ export type Database = {
           acum_anio: number
           acum_mes: number
           acum_mes_anterior: number
+          avance_cotizacion: string | null
           ciclo_dias: number | null
           company_id: string
           cotizaciones_total: number
@@ -8672,6 +8673,7 @@ export type Database = {
           acum_anio?: number
           acum_mes?: number
           acum_mes_anterior?: number
+          avance_cotizacion?: string | null
           ciclo_dias?: number | null
           company_id: string
           cotizaciones_total?: number
@@ -8713,6 +8715,7 @@ export type Database = {
           acum_anio?: number
           acum_mes?: number
           acum_mes_anterior?: number
+          avance_cotizacion?: string | null
           ciclo_dias?: number | null
           company_id?: string
           cotizaciones_total?: number

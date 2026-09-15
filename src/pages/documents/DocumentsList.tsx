@@ -251,7 +251,11 @@ export default function DocumentsList() {
   const [estatusCotFilter, setEstatusCotFilter] = useState<string>("all");
   const [estatusPedFilter, setEstatusPedFilter] = useState<string>(searchParams.get("estatus") || "all");
   const [estatusFacFilter, setEstatusFacFilter] = useState<string>("all");
-  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter]);
+  const [revisionFilter, setRevisionFilter] = useState<string>(() => {
+    const r = searchParams.get("revision");
+    return r === "si" || r === "no" ? r : "all";
+  });
+  useEffect(() => { setCurrentPage(1); }, [tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, search, pageSize, estatusPedFilter, revisionFilter]);
   const clearFilters = () => {
     setTipoPagoFilter("all");
     setFechaDesde("");
@@ -259,14 +263,30 @@ export default function DocumentsList() {
     setEstatusCotFilter("all");
     setEstatusPedFilter("all");
     setEstatusFacFilter("all");
+    setRevisionFilter("all");
   };
   const activeFiltersCount =
     (tipoPagoFilter !== "all" ? 1 : 0) +
     (fechaDesde ? 1 : 0) +
     (fechaHasta ? 1 : 0) +
     (tipoFilter === "cotizacion" && estatusCotFilter !== "all" ? 1 : 0) +
+    (tipoFilter === "cotizacion" && revisionFilter !== "all" ? 1 : 0) +
     (tipoFilter === "pedido" && estatusPedFilter !== "all" ? 1 : 0) +
     (tipoFilter === "factura" && estatusFacFilter !== "all" ? 1 : 0);
+
+  // Sync cotizacion revision filter with URL ?revision
+  useEffect(() => {
+    if (tipoFilter !== "cotizacion") return;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (revisionFilter && revisionFilter !== "all") {
+        next.set("revision", revisionFilter);
+      } else {
+        next.delete("revision");
+      }
+      return next;
+    }, { replace: true });
+  }, [revisionFilter, tipoFilter, setSearchParams]);
 
   // Sync pedido status filter with URL ?estatus
   useEffect(() => {
@@ -369,7 +389,7 @@ export default function DocumentsList() {
   // seleccionar manualmente una plaza si lo desea.
 
   const { data: docs = [], isLoading, refetch } = useQuery({
-    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
+    queryKey: ["documentos", search, tipoFilter, empresaFilter, ejecutivoFilter, plazaFilter, tipoPagoFilter, fechaDesde, fechaHasta, estatusCotFilter, estatusPedFilter, estatusFacFilter, revisionFilter, access.accessLevel, access.teamMemberIds, assignedCompanyIds],
     queryFn: async () => {
       if (!access.canView) return [];
       let q = supabase
@@ -388,6 +408,8 @@ export default function DocumentsList() {
       if (fechaDesde) q = q.gte("fecha_documento", fechaDesde);
       if (fechaHasta) q = q.lte("fecha_documento", fechaHasta);
       if (tipoFilter === "cotizacion" && estatusCotFilter !== "all") q = q.eq("estatus_cotizacion", estatusCotFilter as any);
+      if (tipoFilter === "cotizacion" && revisionFilter === "si") q = q.not("cotizacion_original_id", "is", null);
+      if (tipoFilter === "cotizacion" && revisionFilter === "no") q = q.is("cotizacion_original_id", null);
       if (tipoFilter === "pedido" && estatusPedFilter !== "all") q = q.eq("estatus_pedido", estatusPedFilter as any);
       if (tipoFilter === "factura" && estatusFacFilter !== "all") {
         if (estatusFacFilter === "vigente") {
@@ -975,6 +997,29 @@ export default function DocumentsList() {
                 className={`inline-flex items-center h-7 px-3 rounded-full border text-xs font-medium transition-all ${isActive ? c.active : c.idle}`}
               >
                 {p.nombre}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Cotización revision filter buttons */}
+      {tipoFilter === "cotizacion" && (
+        <div className="flex gap-1.5 flex-wrap">
+          {[
+            { value: "all", label: "Todas" },
+            { value: "no", label: "Sin revisión" },
+            { value: "si", label: "Con revisión" },
+          ].map((opt) => {
+            const isActive = revisionFilter === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setRevisionFilter(opt.value as "all" | "si" | "no")}
+                className={`inline-flex items-center h-7 px-3 rounded-full border text-xs font-medium transition-all ${isActive ? "bg-slate-800 text-white border-slate-800" : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"}`}
+              >
+                {opt.label}
               </button>
             );
           })}
