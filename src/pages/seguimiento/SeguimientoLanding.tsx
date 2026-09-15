@@ -712,25 +712,41 @@ export default function SeguimientoLanding() {
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold">Pipeline Clientes</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-sm font-semibold">Pipeline Clientes</h3>
+            {[
+              { label: "Clientes activos", value: kpis.clientes },
+              { label: "Nuevos (120 días)", value: kpis.nuevos },
+              { label: "Dormidos", value: kpis.dormidos },
+            ].map((k) => (
+              <Card key={k.label} className="min-w-[160px]">
+                <CardContent className="px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {k.label}
+                  </p>
+                  <p className="text-xl font-bold">{k.value.toLocaleString("es-MX")}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
           {kanbanClienteCols.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin etapas configuradas.</p>
           ) : (
-            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+            <div className="grid gap-2 grid-cols-2 md:grid-cols-4 xl:grid-cols-6">
               {kanbanClienteCols.map((c) => (
                 <Card key={c.id}>
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                      <span className="text-xs font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
+                  <CardContent className="px-3 py-2 space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wide truncate">{c.nombre}</span>
                     </div>
-                    <p className="text-3xl font-bold" style={{ color: c.color }}>
+                    <p className="text-2xl font-bold leading-tight" style={{ color: c.color }}>
                       {c.count.toLocaleString("es-MX")}
                     </p>
                     <button
                       type="button"
                       onClick={() => navigate(`${brandPath}?tab=con_venta`)}
-                      className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                      className="text-[10px] font-semibold underline text-muted-foreground hover:text-foreground"
                     >
                       Ver empresas
                     </button>
@@ -738,6 +754,7 @@ export default function SeguimientoLanding() {
                 </Card>
               ))}
             </div>
+          )}
           )}
         </div>
       </div>
