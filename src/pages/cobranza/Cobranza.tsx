@@ -1910,6 +1910,14 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     const filteredEmails = isValidacion
       ? emails.filter((e) => !blocked.includes(e.toLowerCase()))
       : emails;
+
+    // Copia fija para Solicitud de validación — Crédito Directo y Crédito Cescemex
+    if (flow === "credito" || flow === "credito_cescemex") {
+      const extraCc = "r.galvang@dagal.com.mx";
+      if (!blocked.includes(extraCc) && !filteredEmails.includes(extraCc)) {
+        filteredEmails.push(extraCc);
+      }
+    }
     setBlockedEmails(blocked);
 
 
