@@ -7379,6 +7379,36 @@ export type Database = {
           },
         ]
       }
+      motivos_ignorado: {
+        Row: {
+          activo: boolean
+          color: string | null
+          created_at: string
+          id: string
+          nombre: string
+          orden: number
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          color?: string | null
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          color?: string | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       motivos_perdida: {
         Row: {
           activo: boolean
@@ -8651,13 +8681,18 @@ export type Database = {
           etapa_prospecto_manual: boolean
           etapa_prospecto_manual_id: string | null
           fecha_conversion: string | null
+          fecha_ignorado: string | null
           fecha_perdida: string | null
           fecha_ultima_compra: string | null
           id: string
+          ignorado: boolean
+          ignorado_por: string | null
           importe_mes: number | null
           importe_mes_anterior: number | null
           importe_mes_anterior_mismo_dia: number | null
+          motivo_ignorado_id: string | null
           motivo_perdida_id: string | null
+          nota_ignorado: string | null
           nota_perdida: string | null
           owner_id: string | null
           perdido: boolean
@@ -8666,6 +8701,7 @@ export type Database = {
           proxima_tarea_fecha: string | null
           ritmo_pct: number | null
           tiene_venta: boolean
+          total_historico: number | null
           ultima_actividad_fecha: string | null
           ultima_actualizacion: string
           ultima_cotizacion_fecha: string | null
@@ -8697,13 +8733,18 @@ export type Database = {
           etapa_prospecto_manual?: boolean
           etapa_prospecto_manual_id?: string | null
           fecha_conversion?: string | null
+          fecha_ignorado?: string | null
           fecha_perdida?: string | null
           fecha_ultima_compra?: string | null
           id?: string
+          ignorado?: boolean
+          ignorado_por?: string | null
           importe_mes?: number | null
           importe_mes_anterior?: number | null
           importe_mes_anterior_mismo_dia?: number | null
+          motivo_ignorado_id?: string | null
           motivo_perdida_id?: string | null
+          nota_ignorado?: string | null
           nota_perdida?: string | null
           owner_id?: string | null
           perdido?: boolean
@@ -8712,6 +8753,7 @@ export type Database = {
           proxima_tarea_fecha?: string | null
           ritmo_pct?: number | null
           tiene_venta?: boolean
+          total_historico?: number | null
           ultima_actividad_fecha?: string | null
           ultima_actualizacion?: string
           ultima_cotizacion_fecha?: string | null
@@ -8743,13 +8785,18 @@ export type Database = {
           etapa_prospecto_manual?: boolean
           etapa_prospecto_manual_id?: string | null
           fecha_conversion?: string | null
+          fecha_ignorado?: string | null
           fecha_perdida?: string | null
           fecha_ultima_compra?: string | null
           id?: string
+          ignorado?: boolean
+          ignorado_por?: string | null
           importe_mes?: number | null
           importe_mes_anterior?: number | null
           importe_mes_anterior_mismo_dia?: number | null
+          motivo_ignorado_id?: string | null
           motivo_perdida_id?: string | null
+          nota_ignorado?: string | null
           nota_perdida?: string | null
           owner_id?: string | null
           perdido?: boolean
@@ -8758,6 +8805,7 @@ export type Database = {
           proxima_tarea_fecha?: string | null
           ritmo_pct?: number | null
           tiene_venta?: boolean
+          total_historico?: number | null
           ultima_actividad_fecha?: string | null
           ultima_actualizacion?: string
           ultima_cotizacion_fecha?: string | null
@@ -8811,6 +8859,13 @@ export type Database = {
             columns: ["etapa_prospecto_manual_id"]
             isOneToOne: false
             referencedRelation: "seguimiento_estatus_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seguimiento_ventas_motivo_ignorado_id_fkey"
+            columns: ["motivo_ignorado_id"]
+            isOneToOne: false
+            referencedRelation: "motivos_ignorado"
             referencedColumns: ["id"]
           },
           {
