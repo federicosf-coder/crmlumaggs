@@ -94,7 +94,7 @@ export function useSeguimientoVentas(params: {
     queryFn: async () => {
       let q = supabase
         .from("seguimiento_ventas")
-        .select("*, companies:company_id(id, name, created_at)")
+        .select("*, companies:company_id(id, name, created_at, volumen_mensual_estimado)")
         .eq("empresa_vendedora", params.empresaVendedora);
       if (params.perdidos) {
         q = q.eq("perdido", true);
