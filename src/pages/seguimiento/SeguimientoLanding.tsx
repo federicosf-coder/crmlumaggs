@@ -38,8 +38,8 @@ import {
   endOfMonth,
   startOfYear,
   endOfYear,
-  subDays,
-  differenceInCalendarDays,
+  subMonths,
+  setDate,
 } from "date-fns";
 import {
   BarChart,
