@@ -1166,6 +1166,17 @@ export default function SeguimientoLanding() {
                   Prospectos nuevos registrados en el periodo
                 </p>
                 <p className="text-xl font-bold">{prospectosNuevosPeriodo.toLocaleString("es-MX")}</p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      `${brandPath}?tab=sin_venta&registro_from=${format(periodoStart, "yyyy-MM-dd")}&registro_to=${format(periodoEnd, "yyyy-MM-dd")}`
+                    )
+                  }
+                  className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+                >
+                  Ver empresas
+                </button>
               </CardContent>
             </Card>
           </div>

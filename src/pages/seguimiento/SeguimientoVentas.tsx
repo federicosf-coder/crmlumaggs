@@ -362,8 +362,20 @@ export default function SeguimientoVentas() {
   const [fPotencial, setFPotencial] = useState<string[]>(() => persisted.fPotencial ?? []);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => persisted.fEjecutivo ?? []);
   const [fPlaza, setFPlaza] = useState<string[]>(() => persisted.fPlaza ?? []);
-  const [fRegistroFrom, setFRegistroFrom] = useState<string>(() => persisted.fRegistroFrom ?? "");
-  const [fRegistroTo, setFRegistroTo] = useState<string>(() => persisted.fRegistroTo ?? "");
+  const [fRegistroFrom, setFRegistroFrom] = useState<string>(() => {
+    try {
+      const urlFrom = new URLSearchParams(window.location.search).get("registro_from");
+      if (urlFrom) return urlFrom;
+    } catch { /* noop */ }
+    return persisted.fRegistroFrom ?? "";
+  });
+  const [fRegistroTo, setFRegistroTo] = useState<string>(() => {
+    try {
+      const urlTo = new URLSearchParams(window.location.search).get("registro_to");
+      if (urlTo) return urlTo;
+    } catch { /* noop */ }
+    return persisted.fRegistroTo ?? "";
+  });
 
   const isPerdidos = tab === "perdidos";
   const isIgnorados = tab === "ignorados";
