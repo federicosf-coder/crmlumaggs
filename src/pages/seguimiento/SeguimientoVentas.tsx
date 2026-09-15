@@ -2463,6 +2463,7 @@ export default function SeguimientoVentas() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </DndContext>
         </Card>
       </div>
