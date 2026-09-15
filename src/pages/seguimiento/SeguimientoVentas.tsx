@@ -1466,9 +1466,7 @@ export default function SeguimientoVentas() {
           <button
             onClick={() => setTab("con_venta")}
             className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors ${
-              tab === "con_venta"
-                ? "bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+              tab === "con_venta" ? palette.tabActive : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Clientes con Venta
