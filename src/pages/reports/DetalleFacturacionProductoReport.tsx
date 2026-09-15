@@ -150,9 +150,44 @@ export default function DetalleFacturacionProductoReport() {
     },
   });
 
+  const lineasFiltradas = useMemo(
+    () => lineas.filter((l) => !ESTATUS_KEYS.includes(l.estatus) || estatusSel.includes(l.estatus)),
+    [lineas, estatusSel]
+  );
+
+  const lineasOrdenadas = useMemo(() => {
+    if (!sortKey) return lineasFiltradas;
+    const mult = sortDir === "asc" ? 1 : -1;
+    const sorted = [...lineasFiltradas];
+    sorted.sort((a, b) => {
+      if (sortKey === "numeroFactura") {
+        return mult * a.numeroFactura.localeCompare(b.numeroFactura, "es-MX", { numeric: true });
+      }
+      if (sortKey === "estatus") {
+        const ea = ESTATUS_LABEL[a.estatus] ?? a.estatus ?? "";
+        const eb = ESTATUS_LABEL[b.estatus] ?? b.estatus ?? "";
+        return mult * ea.localeCompare(eb, "es");
+      }
+      const va = a[sortKey] as string | number;
+      const vb = b[sortKey] as string | number;
+      if (typeof va === "number" && typeof vb === "number") return mult * (va - vb);
+      return mult * String(va).localeCompare(String(vb), "es");
+    });
+    return sorted;
+  }, [lineasFiltradas, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
   const totales = useMemo(() => {
     const t = { cantidad: 0, unidades: 0, importe: 0, cCantidad: 0, cUnidades: 0, cImporte: 0, cLineas: 0 };
-    for (const l of lineas) {
+    for (const l of lineasFiltradas) {
       t.cantidad += l.cantidad;
       t.unidades += l.unidadesEquivalentes;
       t.importe += l.importe;
@@ -164,9 +199,23 @@ export default function DetalleFacturacionProductoReport() {
       }
     }
     return t;
-  }, [lineas]);
+  }, [lineasFiltradas]);
 
   const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
+
+  const SortHead = ({ label, k, right }: { label: string; k: SortKey; right?: boolean }) => (
+    <TableHead className={right ? "text-right" : undefined}>
+      <button
+        type="button"
+        onClick={() => toggleSort(k)}
+        className="inline-flex items-center gap-1 uppercase tracking-wide font-medium hover:text-foreground"
+      >
+        {label}
+        {sortKey === k &&
+          (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+      </button>
+    </TableHead>
+  );
 
   return (
     <>
