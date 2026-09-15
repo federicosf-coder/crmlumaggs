@@ -345,7 +345,7 @@ export default function SeguimientoVentas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos">(() => {
+  const [tab, setTab] = useState<"con_venta" | "sin_venta" | "perdidos" | "recuperacion" | "productos" | "ignorados">(() => {
     try {
       const urlTab = new URLSearchParams(window.location.search).get("tab");
       if (urlTab === "sin_venta" || urlTab === "con_venta") return urlTab;
@@ -366,7 +366,8 @@ export default function SeguimientoVentas() {
   const [fRegistroTo, setFRegistroTo] = useState<string>(() => persisted.fRegistroTo ?? "");
 
   const isPerdidos = tab === "perdidos";
-  const tieneVenta = tab === "con_venta" || tab === "perdidos";
+  const isIgnorados = tab === "ignorados";
+  const tieneVenta = tab === "con_venta" || tab === "perdidos" || tab === "ignorados";
   const isRecuperacion = tab === "recuperacion";
   const isProductos = tab === "productos";
   const showLista = !isRecuperacion && !isProductos;
@@ -420,6 +421,37 @@ export default function SeguimientoVentas() {
 
   const { data: rows = [], isLoading } = useSeguimientoVentas({ empresaVendedora, tieneVenta, perdidos: isPerdidos });
   const { data: catalog = [] } = useSeguimientoEstatusCatalogo();
+
+  // ─────────── Clientes Ignorados (columna ignorado en seguimiento_ventas) ───────────
+  const { data: ignRows = [], isLoading: ignRowsLoading } = useQuery({
+    queryKey: ["seguimiento_ventas_ignorados_tab", empresaVendedora],
+    enabled: isIgnorados,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("seguimiento_ventas")
+        .select("*, companies:company_id(id, name, created_at)")
+        .eq("empresa_vendedora", empresaVendedora)
+        .eq("ignorado", true)
+        .limit(5000);
+      if (error) throw error;
+      return (data || []) as unknown as SeguimientoVentasRow[];
+    },
+  });
+
+  const { data: motivosIgnorado = [] } = useQuery({
+    queryKey: ["motivos_ignorado"],
+    enabled: isIgnorados,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("motivos_ignorado")
+        .select("id, nombre, color")
+        .eq("activo", true)
+        .order("orden");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+  const motivosIgnoradoMap = useMemo(() => new Map(motivosIgnorado.map((m: any) => [m.id, m])), [motivosIgnorado]);
 
   // ─────────── Recuperación de Productos ───────────
   const [recSearch, setRecSearch] = useState(() => persisted.recSearch ?? "");
