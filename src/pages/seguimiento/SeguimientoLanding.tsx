@@ -426,7 +426,22 @@ export default function SeguimientoLanding() {
       {/* Filtros */}
       <Card>
         <CardContent className="p-4 space-y-2">
-          {renderChips("Ejecutivo", ejecutivoOptions, fEjecutivo, setFEjecutivo)}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">Ejecutivo</span>
+            <button
+              type="button"
+              onClick={() => setMostrarEjecutivos((v) => !v)}
+              className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
+            >
+              {mostrarEjecutivos ? "Ocultar" : "Mostrar"}
+            </button>
+            {!mostrarEjecutivos && fEjecutivo.length > 0 && (
+              <span className="text-[11px] text-muted-foreground">
+                ({fEjecutivo.length} seleccionados)
+              </span>
+            )}
+          </div>
+          {mostrarEjecutivos && renderChips("Ejecutivo", ejecutivoOptions, fEjecutivo, setFEjecutivo)}
           {renderChips("Plaza", plazaOptions, fPlaza, setFPlaza)}
         </CardContent>
       </Card>
