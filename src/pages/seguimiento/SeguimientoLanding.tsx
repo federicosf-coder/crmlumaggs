@@ -364,6 +364,22 @@ export default function SeguimientoLanding() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [prospectosAcc, clientesAcc, profileMap]);
 
+  const ejecutivoGroups = useMemo(() => {
+    const groups = PLAZA_GROUPS.map((g) => ({
+      name: g.name,
+      options: ejecutivoOptions.filter((o) => {
+        const pid = profilePlazaMap.get(o.id) ?? null;
+        return pid !== null && g.plazaIds.includes(pid);
+      }),
+    }));
+    const otras = ejecutivoOptions.filter((o) => {
+      const pid = profilePlazaMap.get(o.id) ?? null;
+      return pid === null || !KNOWN_PLAZA_IDS.has(pid);
+    });
+    if (otras.length > 0) groups.push({ name: "Otras plazas", options: otras });
+    return groups.filter((g) => g.options.length > 0);
+  }, [ejecutivoOptions, profilePlazaMap]);
+
   const plazaOptions = useMemo(() => {
     const used = new Set<string>();
     for (const r of [...prospectosAcc, ...clientesAcc]) {
