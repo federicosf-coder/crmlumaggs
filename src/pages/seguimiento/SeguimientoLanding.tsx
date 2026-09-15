@@ -469,6 +469,10 @@ export default function SeguimientoLanding() {
   );
   const sumaMes = clientes.reduce((s, c) => s + (c.acum_mes || 0), 0);
   const sumaMesAnterior = clientes.reduce((s, c) => s + (c.acum_mes_anterior || 0), 0);
+  const sumaMesAnteriorMismoDia = clientes.reduce(
+    (s, c) => s + (c.acum_mes_anterior_mismo_dia || 0),
+    0
+  );
   const importeMes = clientes.reduce((s, c) => s + (c.importe_mes || 0), 0);
   const importeMesAnterior = clientes.reduce((s, c) => s + (c.importe_mes_anterior || 0), 0);
   const importeMesAnteriorMismoDia = clientes.reduce(
