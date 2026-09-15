@@ -433,6 +433,27 @@ export default function SeguimientoLanding() {
   const alcanzadoPct =
     importeMesAnterior > 0 ? Math.min(100, (importeMes / importeMesAnterior) * 100) : null;
 
+  const prospectosNuevosPeriodo = useMemo(
+    () =>
+      prospectos.filter((p) => {
+        const c = companyCreatedMap.get(p.company_id);
+        if (!c) return false;
+        const d = new Date(c);
+        return d >= periodoStart && d <= periodoEnd;
+      }).length,
+    [prospectos, companyCreatedMap, periodoStart, periodoEnd]
+  );
+
+  const convertidosPeriodo = useMemo(
+    () =>
+      clientes.filter((c) => {
+        if (!c.fecha_conversion) return false;
+        const d = new Date(c.fecha_conversion);
+        return d >= periodoStart && d <= periodoEnd;
+      }).length,
+    [clientes, periodoStart, periodoEnd]
+  );
+
 
   const etapasProspecto = useMemo(
     () => catalogo.filter((c) => c.ambito === "sin_venta" && c.familia === "etapa_prospecto").sort((a, b) => a.orden - b.orden),
