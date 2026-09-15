@@ -847,6 +847,23 @@ export default function DocumentForm() {
     }
   };
 
+  const handleUpdateEstatusCotizacion = async (nuevo: "aceptada" | "rechazada") => {
+    if (!id) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("documentos").update({ estatus_cotizacion: nuevo }).eq("id", id);
+      if (error) throw error;
+      set("estatus_cotizacion", nuevo);
+      qc.invalidateQueries({ queryKey: ["documento", id] });
+      qc.invalidateQueries({ queryKey: ["documentos"] });
+      toast.success(`Cotización marcada como ${nuevo === "aceptada" ? "Aceptada" : "Rechazada"}`);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const td = form.tipo_documento;
   const puedeEditarConPdf = isAdmin || hasRole("customer_service") || (td === "pedido" && hasRole("accounting"));
 
