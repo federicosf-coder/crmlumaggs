@@ -1438,12 +1438,14 @@ export default function SeguimientoLanding() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Realizó</TableHead>
                     <TableHead>Empresa</TableHead>
                     <TableHead>Potencial / Promedio</TableHead>
                     <TableHead>Ventas en el periodo</TableHead>
                     <TableHead>Acumulado en el mes</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descripción</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1460,6 +1462,9 @@ export default function SeguimientoLanding() {
                     const acumMes = seg?.acum_mes;
                     return (
                       <TableRow key={a.id}>
+                        <TableCell className="align-top text-sm">
+                          {a.user_id ? profileMap.get(a.user_id) || "—" : "—"}
+                        </TableCell>
                         <TableCell className="align-top">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium">{a.companies?.name || "—"}</span>
