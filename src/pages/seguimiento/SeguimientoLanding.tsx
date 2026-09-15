@@ -687,6 +687,10 @@ export default function SeguimientoLanding() {
     () => [...visibleCompanyIds].sort().join(","),
     [visibleCompanyIds]
   );
+  // Sin restricción real: acceso "todos" y sin chips de Ejecutivo/Plaza activos.
+  // En ese caso las 4 queries de periodo omiten el .in(...) para no mandar
+  // cientos/ miles de ids en la URL de cada consulta.
+  const sinRestriccion = access.accessLevel === "todos" && fEjecutivo.length === 0 && fPlaza.length === 0;
 
   const periodoStartIso = periodoStart.toISOString();
   const periodoEndIso = periodoEnd.toISOString();
