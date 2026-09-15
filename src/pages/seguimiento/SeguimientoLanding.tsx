@@ -1501,6 +1501,36 @@ export default function SeguimientoLanding() {
                             </p>
                           )}
                         </TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              title="Editar actividad"
+                              onClick={() => {
+                                setEditingActivity({
+                                  id: a.id,
+                                  company_id: a.company_id,
+                                  type: a.type,
+                                  description: a.description ?? null,
+                                });
+                                setActivityOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-red-600 hover:text-red-700"
+                              title="Eliminar actividad"
+                              onClick={() => setDeletingActivityId(a.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
