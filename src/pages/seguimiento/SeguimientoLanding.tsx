@@ -56,7 +56,6 @@ import { useVentasMensual, reporteMes } from "@/hooks/useVentasMensual";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-// qpFiltros se define dentro del componente
 import * as XLSX from "xlsx";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import {
@@ -1304,7 +1303,7 @@ export default function SeguimientoLanding() {
                   type="button"
                   onClick={() =>
                     navigate(
-                      `${brandPath}?tab=sin_venta&registro_from=${format(periodoStart, "yyyy-MM-dd")}&registro_to=${format(periodoEnd, "yyyy-MM-dd")}`
+                      `${brandPath}?tab=sin_venta&registro_from=${format(periodoStart, "yyyy-MM-dd")}&registro_to=${format(periodoEnd, "yyyy-MM-dd")}${qpFiltros}`
                     )
                   }
                   className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
@@ -1330,7 +1329,7 @@ export default function SeguimientoLanding() {
                     </p>
                     <button
                       type="button"
-                      onClick={() => navigate(`${brandPath}?tab=sin_venta`)}
+                      onClick={() => navigate(`${brandPath}?tab=sin_venta${qpFiltros}`)}
                       className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
                     >
                       Ver empresas
@@ -1380,7 +1379,7 @@ export default function SeguimientoLanding() {
                       type="button"
                       onClick={() =>
                         navigate(
-                          `${brandPath}?tab=con_venta&conversion_from=${format(periodoStart, "yyyy-MM-dd")}&conversion_to=${format(periodoEnd, "yyyy-MM-dd")}`
+                          `${brandPath}?tab=con_venta&conversion_from=${format(periodoStart, "yyyy-MM-dd")}&conversion_to=${format(periodoEnd, "yyyy-MM-dd")}${qpFiltros}`
                         )
                       }
                       className="text-[11px] font-semibold underline text-muted-foreground hover:text-foreground"
@@ -1422,7 +1421,7 @@ export default function SeguimientoLanding() {
                     )}
                     <button
                       type="button"
-                      onClick={() => navigate(`${brandPath}?tab=${c.id === "ignorados" ? "ignorados" : "con_venta"}`)}
+                      onClick={() => navigate(`${brandPath}?tab=${c.id === "ignorados" ? "ignorados" : "con_venta"}${qpFiltros}`)}
                       className="text-[10px] font-semibold underline text-muted-foreground hover:text-foreground"
                     >
                       Ver empresas
