@@ -2387,7 +2387,7 @@ export default function SeguimientoVentas() {
                         sort={sort}
                         onSort={handleSort}
                         align={col.align}
-                        className={col.id === "empresa" ? "sticky left-0 z-20 bg-background" : undefined}
+                        className={col.id === "empresa" ? "sticky left-0 z-40 !bg-background" : undefined}
                       />
                     ))}
                   </SortableContext>
