@@ -1192,73 +1192,60 @@ export default function SeguimientoLanding() {
         </CardContent>
       </Card>
 
-      {/* Ventas del mes */}
+      {/* Ventas del periodo */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         <Card>
           <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Este mes (a la fecha)
+              Este periodo
             </p>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               <p className="text-3xl font-bold">
-                {kpis.sumaMes.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+                {ventasPeriodoActual.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
               </p>
-              {kpis.pct !== null && (
+              {pctVariacionImporte !== null && (
                 <span
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
-                    kpis.pct >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    pctVariacionImporte >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                   )}
                 >
-                  {kpis.pct >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                  {Math.abs(kpis.pct).toFixed(1)}%
+                  {pctVariacionImporte >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  {Math.abs(pctVariacionImporte).toFixed(1)}%
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(kpis.importeMes)}</p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasPeriodoActual.importe)}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoActualLabel}</p>
             <div className="mt-auto pt-3 space-y-2">
-              {(() => {
-                const pctUnidades =
-                  kpis.sumaMesAnteriorMismoDia > 0
-                    ? Math.min(150, (kpis.sumaMes / kpis.sumaMesAnteriorMismoDia) * 100)
-                    : null;
-                const pctImporte =
-                  kpis.importeMesAnteriorMismoDia > 0
-                    ? Math.min(150, (kpis.importeMes / kpis.importeMesAnteriorMismoDia) * 100)
-                    : null;
-                return (
-                  <>
-                    {pctUnidades !== null && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Unidades</span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctUnidades))}
-                            style={{ width: `${Math.min(100, pctUnidades)}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-muted-foreground w-9 text-right">
-                          {pctUnidades.toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                    {pctImporte !== null && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe</span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctImporte))}
-                            style={{ width: `${Math.min(100, pctImporte)}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-muted-foreground w-9 text-right">
-                          {pctImporte.toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
+              {pctUnidadesComp !== null && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground w-16 shrink-0">Unidades</span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctUnidadesComp))}
+                      style={{ width: `${Math.min(100, pctUnidadesComp)}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] text-muted-foreground w-9 text-right">
+                    {pctUnidadesComp.toFixed(0)}%
+                  </span>
+                </div>
+              )}
+              {pctImporteComp !== null && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe</span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctImporteComp))}
+                      style={{ width: `${Math.min(100, pctImporteComp)}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] text-muted-foreground w-9 text-right">
+                    {pctImporteComp.toFixed(0)}%
+                  </span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1266,50 +1253,13 @@ export default function SeguimientoLanding() {
         <Card>
           <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Mes anterior (total)
+              Periodo anterior
             </p>
             <p className="text-3xl font-bold mt-2 text-muted-foreground">
-              {kpis.sumaMesAnterior.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+              {ventasPeriodoAnterior.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
             </p>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(kpis.importeMesAnterior)}</p>
-            <div className="mt-auto pt-3 space-y-2">
-              {(() => {
-                const pctUnidadesAnt =
-                  kpis.sumaMesAnterior > 0 ? Math.min(100, (kpis.sumaMes / kpis.sumaMesAnterior) * 100) : null;
-                return (
-                  <>
-                    {pctUnidadesAnt !== null && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Unidades</span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctUnidadesAnt))}
-                            style={{ width: `${Math.min(100, pctUnidadesAnt)}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-muted-foreground w-9 text-right">
-                          {pctUnidadesAnt.toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                    {alcanzadoPct !== null && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe</span>
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn("h-full rounded-full transition-all duration-500", colorAvance(alcanzadoPct))}
-                            style={{ width: `${Math.min(100, alcanzadoPct)}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-muted-foreground w-9 text-right">
-                          {alcanzadoPct.toFixed(0)}%
-                        </span>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasPeriodoAnterior.importe)}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoAnteriorLabel}</p>
           </CardContent>
         </Card>
       </div>
