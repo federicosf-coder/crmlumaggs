@@ -52,6 +52,7 @@ export interface ContactEditData {
   plaza_id?: string | null;
   contacto_cobranza?: boolean | null;
   contacto_credito?: boolean | null;
+  es_contacto_empresa?: boolean | null;
 }
 
 interface Props {
