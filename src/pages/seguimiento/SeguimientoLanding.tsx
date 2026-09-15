@@ -210,6 +210,7 @@ const CHIP_COLORS = [
 
 export default function SeguimientoLanding() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>("lumaggs_chevron");
   const [activityOpen, setActivityOpen] = useState(false);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>([]);
