@@ -71,6 +71,17 @@ function fmtMoney(n: number | null | undefined): string {
   return Number(n).toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
 }
 
+function digitCount(s: string | null | undefined): number {
+  return (String(s || "").match(/\d/g) || []).length;
+}
+
+function firstValidPhone(...phones: (string | null | undefined)[]): string {
+  for (const p of phones) {
+    if (digitCount(p) >= 8) return String(p || "");
+  }
+  return "";
+}
+
 export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog, onOpenChange }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
