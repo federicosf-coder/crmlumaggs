@@ -103,6 +103,38 @@ function colorForIndex(i: number) {
   return EJECUTIVO_PALETTE[i % EJECUTIVO_PALETTE.length];
 }
 
+const PALETTE: Record<
+  EmpresaVendedora,
+  {
+    pillActive: string;
+    pillIdle: string;
+    headerFrom: string;
+    headerTo: string;
+    headerText: string;
+    tabActive: string;
+    cardBorder: string;
+  }
+> = {
+  lumaggs_chevron: {
+    pillActive: "bg-blue-600 text-white border-blue-600",
+    pillIdle: "bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100",
+    headerFrom: "from-blue-50",
+    headerTo: "to-sky-50",
+    headerText: "text-blue-900",
+    tabActive: "bg-blue-600 text-white shadow-sm",
+    cardBorder: "border-blue-200/60",
+  },
+  galsa_phillips66: {
+    pillActive: "bg-red-600 text-white border-red-600",
+    pillIdle: "bg-red-50 text-red-700 border-red-300 hover:bg-red-100",
+    headerFrom: "from-red-50",
+    headerTo: "to-rose-50",
+    headerText: "text-red-900",
+    tabActive: "bg-red-600 text-white shadow-sm",
+    cardBorder: "border-red-200/60",
+  },
+};
+
 interface MSOption { id: string; label: string; color?: string; urgent?: boolean }
 
 function MultiSelectFilter({
@@ -297,6 +329,7 @@ export default function SeguimientoVentas() {
     brand === "phillips66" ? "galsa_phillips66" : "lumaggs_chevron";
   const brandTitle = brand === "phillips66" ? "Seguimiento — Phillips 66" : "Seguimiento — Chevron";
   const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
+  const palette = PALETTE[empresaVendedora];
 
   // ─── Persistencia de filtros (sessionStorage) ───
   const filtrosKey = `seguimiento_filtros_${brand || "default"}`;
@@ -1403,15 +1436,37 @@ export default function SeguimientoVentas() {
         }
       />
 
+      {/* Selector de marca */}
+      <div className="flex items-center gap-2">
+        <div className="inline-flex rounded-full border bg-muted/30 p-1">
+          <button
+            type="button"
+            onClick={() => navigate("/seguimiento/chevron")}
+            className={`px-4 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full border transition-colors ${
+              brand === "chevron" ? palette.pillActive : palette.pillIdle
+            }`}
+          >
+            Chevron
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/seguimiento/phillips66")}
+            className={`px-4 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full border transition-colors ${
+              brand === "phillips66" ? palette.pillActive : palette.pillIdle
+            }`}
+          >
+            Phillips 66
+          </button>
+        </div>
+      </div>
+
       {/* Controles */}
       <div className="flex flex-col gap-3 items-start">
         <div className="inline-flex rounded-lg border bg-muted/30 p-1 self-start">
           <button
             onClick={() => setTab("con_venta")}
             className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors ${
-              tab === "con_venta"
-                ? "bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+              tab === "con_venta" ? palette.tabActive : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Clientes con Venta
@@ -1597,9 +1652,9 @@ export default function SeguimientoVentas() {
       {showLista && (
       <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
         <CollapsibleContent>
-          <Card className="border-violet-200/60">
-            <div className="bg-gradient-to-r from-violet-50 to-blue-50 px-4 py-2.5 border-b flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-violet-900">
+          <Card className={palette.cardBorder}>
+            <div className={`bg-gradient-to-r ${palette.headerFrom} ${palette.headerTo} px-4 py-2.5 border-b flex items-center justify-between`}>
+              <div className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-widest ${palette.headerText}`}>
                 <Filter className="h-3.5 w-3.5" /> Filtros rápidos
                 {activeFiltersCount > 0 && (
                   <Badge variant="secondary" className="h-5 px-1.5 normal-case tracking-normal">
