@@ -383,26 +383,41 @@ export default function SeguimientoLanding() {
       />
 
       {/* Toggle de marca */}
-      <div className="inline-flex rounded-full border overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setEmpresaSel("lumaggs_chevron")}
-          className={`px-4 py-1.5 text-xs font-semibold border-r transition-all ${
-            empresaSel === "lumaggs_chevron" ? PILL.lumaggs_chevron.active : PILL.lumaggs_chevron.idle
-          }`}
-        >
-          Chevron
-        </button>
-        <button
-          type="button"
-          onClick={() => setEmpresaSel("galsa_phillips66")}
-          className={`px-4 py-1.5 text-xs font-semibold transition-all ${
-            empresaSel === "galsa_phillips66" ? PILL.galsa_phillips66.active : PILL.galsa_phillips66.idle
-          }`}
-        >
-          Phillips 66
-        </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-full border overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setEmpresaSel("lumaggs_chevron")}
+            className={`px-4 py-1.5 text-xs font-semibold border-r transition-all ${
+              empresaSel === "lumaggs_chevron" ? PILL.lumaggs_chevron.active : PILL.lumaggs_chevron.idle
+            }`}
+          >
+            Chevron
+          </button>
+          <button
+            type="button"
+            onClick={() => setEmpresaSel("galsa_phillips66")}
+            className={`px-4 py-1.5 text-xs font-semibold transition-all ${
+              empresaSel === "galsa_phillips66" ? PILL.galsa_phillips66.active : PILL.galsa_phillips66.idle
+            }`}
+          >
+            Phillips 66
+          </button>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
+          Registrar actividad
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => navigate("/seguimiento/reporte-diario")}>
+          Reporte diario
+        </Button>
       </div>
+
+      <CreateCrmActivityTaskDialog
+        open={activityOpen}
+        onOpenChange={setActivityOpen}
+        defaultBrands={[empresaSel]}
+      />
+
 
       {/* Filtros */}
       <Card>
