@@ -762,6 +762,52 @@ export default function SeguimientoLanding() {
     },
   });
 
+  const { data: cobranzaPagosPeriodo = [] } = useQuery({
+    queryKey: ["seg_cobranza_pagos_periodo", periodoStartDate, periodoEndDate, empresaSel],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cobranza_pagos")
+        .select("id, monto_total, fecha_pago, empresa_id, companies:empresa_id(name)")
+        .eq("empresa_vendedora", empresaSel)
+        .gte("fecha_pago", periodoStartDate)
+        .lte("fecha_pago", periodoEndDate)
+        .order("fecha_pago", { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const cobranzaPagoIds = useMemo(
+    () => cobranzaPagosPeriodo.map((p: any) => p.id).filter(Boolean) as string[],
+    [cobranzaPagosPeriodo]
+  );
+
+  const { data: cobranzaAplicaciones = [] } = useQuery({
+    queryKey: ["seg_cobranza_aplicaciones_periodo", empresaSel, cobranzaPagoIds],
+    enabled: cobranzaPagoIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cobranza_aplicaciones")
+        .select("pago_id, documento_id, documentos:documento_id(numero_factura)")
+        .in("pago_id", cobranzaPagoIds)
+        .neq("estatus_aplicacion", "cancelada");
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const cobranzaFacturasMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const a of cobranzaAplicaciones) {
+      const num = a.documentos?.numero_factura;
+      if (!a.pago_id || !num) continue;
+      const arr = m.get(a.pago_id) || [];
+      if (!arr.includes(num)) arr.push(num);
+      m.set(a.pago_id, arr);
+    }
+    return m;
+  }, [cobranzaAplicaciones]);
+
   const periodoDocIds = useMemo(
     () =>
       Array.from(
@@ -1485,6 +1531,44 @@ export default function SeguimientoLanding() {
                         >
                           Ver / Editar
                         </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold">Cobranza del periodo</h3>
+        {cobranzaPagosPeriodo.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin cobranza en este periodo.</p>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Nombre Comercial</TableHead>
+                    <TableHead>Importe pagado</TableHead>
+                    <TableHead>Facturas</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cobranzaPagosPeriodo.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="text-sm">
+                        {p.fecha_pago ? format(new Date(p.fecha_pago), "d MMM yyyy", { locale: esLocale }) : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm">{p.companies?.name || "—"}</TableCell>
+                      <TableCell className="text-sm font-medium">{formatCurrency(Number(p.monto_total || 0))}</TableCell>
+                      <TableCell className="text-sm">
+                        {cobranzaFacturasMap.get(p.id)?.length
+                          ? cobranzaFacturasMap.get(p.id)!.join(", ")
+                          : "Sin aplicar"}
                       </TableCell>
                     </TableRow>
                   ))}
