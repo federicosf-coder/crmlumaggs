@@ -8,7 +8,18 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { TASK_TYPE_LABEL } from "@/lib/taskTypes";
 import type { TaskTypeKey } from "@/lib/taskTypes";
 import { QuickActivityDialog } from "@/components/seguimiento/QuickActivityDialog";
-import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, CalendarIcon, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 import { Calendar } from "@/components/ui/calendar";
@@ -258,6 +269,9 @@ export default function SeguimientoLanding() {
   const queryClient = useQueryClient();
   const [empresaSel, setEmpresaSel] = useState<EmpresaVendedora>(() => filtrosGuardados.empresaSel ?? "lumaggs_chevron");
   const [activityOpen, setActivityOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<{ id: string; company_id: string; type: string; description: string | null } | null>(null);
+  const [deletingActivityId, setDeletingActivityId] = useState<string | null>(null);
+  const [deletingActivity, setDeletingActivity] = useState(false);
   const [fEjecutivo, setFEjecutivo] = useState<string[]>(() => filtrosGuardados.fEjecutivo ?? []);
   const [fPlaza, setFPlaza] = useState<string[]>(() => filtrosGuardados.fPlaza ?? []);
   const [filtrosAbiertos, setFiltrosAbiertos] = useState<boolean>(false);
@@ -658,7 +672,7 @@ export default function SeguimientoLanding() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("crm_activities")
-        .select("id, type, title, description, activity_date, company_id, companies:company_id(id, name, volumen_mensual_estimado)")
+        .select("id, type, title, description, activity_date, company_id, user_id, companies:company_id(id, name, volumen_mensual_estimado)")
         .gte("activity_date", periodoStartIso)
         .lte("activity_date", periodoEndIso)
         .not("title", "ilike", "%Solicitud de validación de pago%")
@@ -872,6 +886,25 @@ export default function SeguimientoLanding() {
     XLSX.writeFile(wb, `actividades_periodo_${periodoStartDate}_a_${periodoEndDate}.xlsx`);
   };
 
+  const invalidateActividades = () => {
+    queryClient.invalidateQueries({ queryKey: ["seg_actividades_periodo"], exact: false });
+    queryClient.invalidateQueries({ queryKey: ["seg_actividades_siguiente_paso"], exact: false });
+  };
+
+  const handleDeleteActividad = async () => {
+    if (!deletingActivityId) return;
+    setDeletingActivity(true);
+    const { error } = await supabase.from("crm_activities").delete().eq("id", deletingActivityId);
+    setDeletingActivity(false);
+    if (error) {
+      toast.error("No se pudo eliminar la actividad: " + error.message);
+      return;
+    }
+    toast.success("Actividad eliminada");
+    setDeletingActivityId(null);
+    invalidateActividades();
+  };
+
   return (
     <div className="space-y-6">
       <PageBanner
@@ -986,13 +1019,34 @@ export default function SeguimientoLanding() {
 
       <QuickActivityDialog
         open={activityOpen}
-        onOpenChange={setActivityOpen}
+        onOpenChange={(o) => {
+          setActivityOpen(o);
+          if (!o) setEditingActivity(null);
+        }}
         defaultBrand={empresaSel}
+        editActivity={editingActivity}
         onSaved={() => {
-          queryClient.invalidateQueries({ queryKey: ["seg_actividades_periodo"], exact: false });
-          queryClient.invalidateQueries({ queryKey: ["seg_actividades_siguiente_paso"], exact: false });
+          setEditingActivity(null);
+          invalidateActividades();
         }}
       />
+
+      <AlertDialog open={!!deletingActivityId} onOpenChange={(o) => { if (!o) setDeletingActivityId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar actividad</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. ¿Deseas eliminar esta actividad?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteActividad} disabled={deletingActivity}>
+              {deletingActivity ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
 
       {/* Filtros */}
@@ -1366,7 +1420,7 @@ export default function SeguimientoLanding() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold">Actividades del periodo</h3>
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => setActivityOpen(true)}>
+            <Button size="sm" variant="outline" onClick={() => { setEditingActivity(null); setActivityOpen(true); }}>
               Registrar actividad
             </Button>
             {actividades.length > 0 && (
@@ -1384,12 +1438,14 @@ export default function SeguimientoLanding() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Realizó</TableHead>
                     <TableHead>Empresa</TableHead>
                     <TableHead>Potencial / Promedio</TableHead>
                     <TableHead>Ventas en el periodo</TableHead>
                     <TableHead>Acumulado en el mes</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descripción</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1406,6 +1462,9 @@ export default function SeguimientoLanding() {
                     const acumMes = seg?.acum_mes;
                     return (
                       <TableRow key={a.id}>
+                        <TableCell className="align-top text-sm">
+                          {a.user_id ? profileMap.get(a.user_id) || "—" : "—"}
+                        </TableCell>
                         <TableCell className="align-top">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium">{a.companies?.name || "—"}</span>
@@ -1441,6 +1500,36 @@ export default function SeguimientoLanding() {
                               Siguiente paso: {tarea.title}
                             </p>
                           )}
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              title="Editar actividad"
+                              onClick={() => {
+                                setEditingActivity({
+                                  id: a.id,
+                                  company_id: a.company_id,
+                                  type: a.type,
+                                  description: a.description ?? null,
+                                });
+                                setActivityOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-red-600 hover:text-red-700"
+                              title="Eliminar actividad"
+                              onClick={() => setDeletingActivityId(a.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

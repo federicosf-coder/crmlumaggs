@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,14 +18,23 @@ interface QuickActivityDialogProps {
   onOpenChange: (open: boolean) => void;
   defaultBrand: "lumaggs_chevron" | "galsa_phillips66";
   onSaved?: () => void;
+  editActivity?: { id: string; company_id: string; type: string; description: string | null } | null;
 }
 
-export function QuickActivityDialog({ open, onOpenChange, onSaved }: QuickActivityDialogProps) {
+export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity }: QuickActivityDialogProps) {
   const { session } = useAuth();
   const [companyId, setCompanyId] = useState<string>("");
   const [type, setType] = useState<TaskTypeKey>("call");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && editActivity) {
+      setCompanyId(editActivity.company_id);
+      setType((editActivity.type as TaskTypeKey) || "call");
+      setDescription(editActivity.description || "");
+    }
+  }, [open, editActivity]);
 
   const { data: companies } = useQuery({
     queryKey: ["companies-picker"],
@@ -51,20 +60,38 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved }: QuickActivi
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("crm_activities").insert({
-      company_id: companyId,
-      user_id: session.user.id,
-      type,
-      title: TASK_TYPE_LABEL[type],
-      description: description || null,
-      activity_date: new Date().toISOString(),
-    });
-    setSaving(false);
-    if (error) {
-      toast.error("No se pudo registrar la actividad: " + error.message);
-      return;
+    if (editActivity) {
+      const { error } = await supabase
+        .from("crm_activities")
+        .update({
+          company_id: companyId,
+          type,
+          title: TASK_TYPE_LABEL[type],
+          description: description || null,
+        })
+        .eq("id", editActivity.id);
+      setSaving(false);
+      if (error) {
+        toast.error("No se pudo guardar la actividad: " + error.message);
+        return;
+      }
+      toast.success("Actividad actualizada");
+    } else {
+      const { error } = await supabase.from("crm_activities").insert({
+        company_id: companyId,
+        user_id: session.user.id,
+        type,
+        title: TASK_TYPE_LABEL[type],
+        description: description || null,
+        activity_date: new Date().toISOString(),
+      });
+      setSaving(false);
+      if (error) {
+        toast.error("No se pudo registrar la actividad: " + error.message);
+        return;
+      }
+      toast.success("Actividad registrada");
     }
-    toast.success("Actividad registrada");
     reset();
     onOpenChange(false);
     onSaved?.();
@@ -74,7 +101,7 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved }: QuickActivi
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Registrar actividad</DialogTitle>
+          <DialogTitle>{editActivity ? "Editar actividad" : "Registrar actividad"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -127,7 +154,7 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved }: QuickActivi
 
           <div className="space-y-2">
             <Button className="w-full" size="lg" onClick={handleSave} disabled={saving}>
-              {saving ? "Guardando..." : "Guardar"}
+              {saving ? "Guardando..." : editActivity ? "Guardar cambios" : "Guardar"}
             </Button>
             <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
               Cancelar
