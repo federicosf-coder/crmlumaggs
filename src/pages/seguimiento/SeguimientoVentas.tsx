@@ -2303,7 +2303,7 @@ export default function SeguimientoVentas() {
 
       {showLista && (
       <div className="grid gap-3 md:hidden">
-        {isLoading ? (
+        {(isIgnorados ? ignRowsLoading : isLoading) ? (
           <p className="text-center text-sm text-muted-foreground py-8">Cargando…</p>
         ) : filtered.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-8">Sin registros.</p>
