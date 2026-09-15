@@ -905,6 +905,8 @@ export default function SeguimientoLanding() {
                       : a.companies?.volumen_mensual_estimado;
                     const etiqueta = usaPromedio ? "Promedio mensual" : "Volumen estimado";
                     const tarea = a.company_id ? siguientePasoMap.get(a.company_id) : undefined;
+                    const ventasPeriodo = a.company_id ? ventasPeriodoMap.get(a.company_id) : undefined;
+                    const acumMes = seg?.acum_mes;
                     return (
                       <TableRow key={a.id}>
                         <TableCell className="align-top">
