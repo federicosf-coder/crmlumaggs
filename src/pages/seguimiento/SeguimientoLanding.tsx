@@ -94,55 +94,24 @@ function VentasMensualSection({ empresa, label }: { empresa: EmpresaVendedora; l
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className={`border ${palette.ring}`}>
-          <CardContent className="p-4">
-            <h3 className={`text-sm font-semibold mb-3 ${palette.text}`}>Total mensual</h3>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={data.porMesTotal} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="unidades" name="Unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="unidades" name="Tendencia" stroke={palette.line || palette.bar} strokeWidth={2} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={`border ${palette.ring}`}>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <h3 className={`text-sm font-semibold ${palette.text}`}>Mensual por plaza</h3>
-              <Select value={plazaSel} onValueChange={setPlaza}>
-                <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder="Plaza" /></SelectTrigger>
-                <SelectContent>
-                  {data.plazasDisponibles.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={plazaSerie} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="unidades" name="Unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="unidades" name="Tendencia" stroke={palette.line || palette.bar} strokeWidth={2} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className={`border ${palette.ring}`}>
+        <CardContent className="p-4">
+          <h3 className={`text-sm font-semibold mb-3 ${palette.text}`}>Total mensual</h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={data.porMesTotal} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: any) => Number(v).toLocaleString("es-MX")} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="unidades" name="Unidades" fill={palette.bar} radius={[4, 4, 0, 0]} />
+                <Line type="monotone" dataKey="unidades" name="Tendencia" stroke={palette.line || palette.bar} strokeWidth={2} dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
