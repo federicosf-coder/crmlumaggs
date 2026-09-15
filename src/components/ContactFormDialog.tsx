@@ -232,6 +232,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
     interes_ids: [] as string[],
     contacto_cobranza: false,
     contacto_credito: false,
+    es_contacto_empresa: false,
   };
 
   const [form, setForm] = useState<any>(emptyForm);
