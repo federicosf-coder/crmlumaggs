@@ -225,6 +225,66 @@ export default function ReporteDiario() {
     },
   });
 
+  // Acumulado del mes (día 1 del mes hasta la fecha seleccionada), por marca
+  const { data: acumMes } = useQuery({
+    queryKey: ["reporte-diario-acum-mes", params?.fecha, params?.ids],
+    enabled: !!params && (params?.ids.length || 0) > 0,
+    queryFn: async () => {
+      const day = params!.fecha;
+      const ids = params!.ids;
+      const mesStart = `${day.slice(0, 8)}01`;
+
+      const { data: docsMes, error: docsErr } = await supabase
+        .from("documentos")
+        .select("id, empresa_vendedora, total")
+        .eq("tipo_documento", "factura")
+        .eq("is_active", true)
+        .neq("estatus_factura", "cancelada")
+        .gte("fecha_documento", mesStart)
+        .lte("fecha_documento", day)
+        .in("ejecutivo_venta_id", ids);
+      if (docsErr) throw docsErr;
+
+      const rows = (docsMes || []) as any[];
+      const docIds = rows.map((d) => d.id);
+
+      const unidadesMap = new Map<string, number>();
+      if (docIds.length > 0) {
+        const { data: lineas, error: linErr } = await supabase
+          .from("documento_productos")
+          .select(
+            "documento_id, cantidad, documentos!inner(id), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
+          )
+          .in("documento_id", docIds);
+        if (linErr) throw linErr;
+        for (const l of (lineas || []) as any[]) {
+          const ue = Number(l.productos?.presentaciones?.unidades_equivalentes) || 1;
+          const uds = (Number(l.cantidad) || 0) * ue;
+          unidadesMap.set(l.documento_id, (unidadesMap.get(l.documento_id) || 0) + uds);
+        }
+      }
+
+      const agg = {
+        udsLumaggs: 0,
+        udsGalsa: 0,
+        impLumaggs: 0,
+        impGalsa: 0,
+      };
+      for (const d of rows) {
+        const uds = unidadesMap.get(d.id) || 0;
+        const imp = Number(d.total) || 0;
+        if (d.empresa_vendedora === "lumaggs_chevron") {
+          agg.udsLumaggs += uds;
+          agg.impLumaggs += imp;
+        } else if (d.empresa_vendedora === "galsa_phillips66") {
+          agg.udsGalsa += uds;
+          agg.impGalsa += imp;
+        }
+      }
+      return agg;
+    },
+  });
+
   const hayDatos = !!reporte;
 
   const kpis = useMemo(() => {
@@ -272,6 +332,11 @@ export default function ReporteDiario() {
     aoa.push(["Unidades vendidas — Galsa", kpis.udsGalsa]);
     aoa.push(["Total cobrado — Lumaggs", kpis.cobLumaggs]);
     aoa.push(["Total cobrado — Galsa", kpis.cobGalsa]);
+    aoa.push([`Acumulado en el mes (al ${day})`]);
+    aoa.push(["Unidades del mes — Lumaggs", acumMes?.udsLumaggs ?? 0]);
+    aoa.push(["Unidades del mes — Galsa", acumMes?.udsGalsa ?? 0]);
+    aoa.push(["Importe del mes — Lumaggs", acumMes?.impLumaggs ?? 0]);
+    aoa.push(["Importe del mes — Galsa", acumMes?.impGalsa ?? 0]);
     aoa.push([]);
 
     aoa.push(["Actividades del día"]);
@@ -340,8 +405,19 @@ export default function ReporteDiario() {
       14,
       24
     );
+    doc.text(
+      [
+        `Acumulado del mes (al ${day}):`,
+        `Unidades del mes — Lumaggs: ${num(acumMes?.udsLumaggs ?? 0)}`,
+        `Unidades del mes — Galsa: ${num(acumMes?.udsGalsa ?? 0)}`,
+        `Importe del mes — Lumaggs: ${money(acumMes?.impLumaggs ?? 0)}`,
+        `Importe del mes — Galsa: ${money(acumMes?.impGalsa ?? 0)}`,
+      ],
+      14,
+      42
+    );
 
-    let y = 48;
+    let y = 66;
     const sec = (titulo: string, head: string[], body: (string | number)[][]) => {
       doc.setFontSize(11);
       doc.text(titulo, 14, y);
@@ -499,6 +575,13 @@ export default function ReporteDiario() {
             <KpiCard label="Unidades vendidas — Galsa" value={num(kpis.udsGalsa)} />
             <KpiCard label="Total cobrado — Lumaggs" value={money(kpis.cobLumaggs)} />
             <KpiCard label="Total cobrado — Galsa" value={money(kpis.cobGalsa)} />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KpiCard label="Unidades del mes — Lumaggs" value={num(acumMes?.udsLumaggs ?? 0)} />
+            <KpiCard label="Unidades del mes — Galsa" value={num(acumMes?.udsGalsa ?? 0)} />
+            <KpiCard label="Importe del mes — Lumaggs" value={money(acumMes?.impLumaggs ?? 0)} />
+            <KpiCard label="Importe del mes — Galsa" value={money(acumMes?.impGalsa ?? 0)} />
           </div>
 
           <Card>
