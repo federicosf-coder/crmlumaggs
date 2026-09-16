@@ -47,6 +47,9 @@ export interface SeguimientoVentasRow {
   estatus_riesgo_id: string | null;
   estatus_ritmo_id: string | null;
   estatus_gestion_id: string | null;
+  etapa_prospecto_id: string | null;
+  etapa_prospecto_manual: boolean | null;
+  etapa_prospecto_manual_id: string | null;
   estatus_manual: boolean;
   estatus_manual_id: string | null;
   owner_id: string | null;
