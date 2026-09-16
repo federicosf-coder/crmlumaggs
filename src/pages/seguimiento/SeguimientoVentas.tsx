@@ -1104,7 +1104,7 @@ export default function SeguimientoVentas() {
 
   const ambito = tieneVenta ? "con_venta" : "sin_venta";
   const estatusOptions = useMemo(
-    () => catalog.filter((c) => c.ambito === ambito && c.familia === (tieneVenta ? "riesgo" : "gestion")),
+    () => catalog.filter((c) => c.ambito === ambito && c.familia === (tieneVenta ? "riesgo" : "etapa_prospecto")),
     [catalog, ambito, tieneVenta]
   );
   const avanceOptions = useMemo(
@@ -1137,8 +1137,13 @@ export default function SeguimientoVentas() {
   }, [catalog]);
 
   const getEffectiveStatusId = (row: SeguimientoVentasRow): string | null => {
-    if (row.estatus_manual && row.estatus_manual_id) return row.estatus_manual_id;
-    return tieneVenta ? row.estatus_riesgo_id : row.estatus_gestion_id;
+    if (tieneVenta) {
+      if (row.estatus_manual && row.estatus_manual_id) return row.estatus_manual_id;
+      return row.estatus_riesgo_id;
+    }
+    return row.etapa_prospecto_manual && row.etapa_prospecto_manual_id
+      ? row.etapa_prospecto_manual_id
+      : row.etapa_prospecto_id;
   };
 
   const handleSort = (key: string) => {
@@ -1353,9 +1358,7 @@ export default function SeguimientoVentas() {
     if (fEstatus.length > 0) {
       base = base.filter((r) => {
         // Usa el estatus EFECTIVO (manual si está activo, si no el calculado).
-        const id = r.estatus_manual && r.estatus_manual_id
-          ? r.estatus_manual_id
-          : (tieneVenta ? r.estatus_riesgo_id : r.estatus_gestion_id);
+        const id = getEffectiveStatusId(r);
         return id ? fEstatus.includes(id) : false;
       });
     }
@@ -2763,8 +2766,12 @@ export default function SeguimientoVentas() {
                 setBulkStatusSaving(true);
                 try {
                   const payload = bulkStatusId === "__auto__"
-                    ? { estatus_manual: false, estatus_manual_id: null }
-                    : { estatus_manual: true, estatus_manual_id: bulkStatusId };
+                    ? (tieneVenta
+                        ? { estatus_manual: false, estatus_manual_id: null }
+                        : { etapa_prospecto_manual: false, etapa_prospecto_manual_id: null })
+                    : (tieneVenta
+                        ? { estatus_manual: true, estatus_manual_id: bulkStatusId }
+                        : { etapa_prospecto_manual: true, etapa_prospecto_manual_id: bulkStatusId });
                   const { error } = await supabase
                     .from("seguimiento_ventas")
                     .update(payload as any)
