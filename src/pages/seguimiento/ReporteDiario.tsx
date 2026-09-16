@@ -332,6 +332,11 @@ export default function ReporteDiario() {
     aoa.push(["Unidades vendidas — Galsa", kpis.udsGalsa]);
     aoa.push(["Total cobrado — Lumaggs", kpis.cobLumaggs]);
     aoa.push(["Total cobrado — Galsa", kpis.cobGalsa]);
+    aoa.push([`Acumulado en el mes (al ${day})`]);
+    aoa.push(["Unidades del mes — Lumaggs", acumMes?.udsLumaggs ?? 0]);
+    aoa.push(["Unidades del mes — Galsa", acumMes?.udsGalsa ?? 0]);
+    aoa.push(["Importe del mes — Lumaggs", acumMes?.impLumaggs ?? 0]);
+    aoa.push(["Importe del mes — Galsa", acumMes?.impGalsa ?? 0]);
     aoa.push([]);
 
     aoa.push(["Actividades del día"]);
@@ -400,8 +405,19 @@ export default function ReporteDiario() {
       14,
       24
     );
+    doc.text(
+      [
+        `Acumulado del mes (al ${day}):`,
+        `Unidades del mes — Lumaggs: ${num(acumMes?.udsLumaggs ?? 0)}`,
+        `Unidades del mes — Galsa: ${num(acumMes?.udsGalsa ?? 0)}`,
+        `Importe del mes — Lumaggs: ${money(acumMes?.impLumaggs ?? 0)}`,
+        `Importe del mes — Galsa: ${money(acumMes?.impGalsa ?? 0)}`,
+      ],
+      14,
+      42
+    );
 
-    let y = 48;
+    let y = 66;
     const sec = (titulo: string, head: string[], body: (string | number)[][]) => {
       doc.setFontSize(11);
       doc.text(titulo, 14, y);
