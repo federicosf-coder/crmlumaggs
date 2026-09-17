@@ -599,6 +599,7 @@ export default function SeguimientoVentas() {
           .select("producto_id, cantidad, documentos!inner(empresa_id, fecha_documento, tipo_documento, estatus_factura, is_active, empresa_vendedora), productos:producto_id(nombre_producto, codigo)")
           .eq("documentos.tipo_documento", "factura")
           .neq("documentos.estatus_factura", "cancelada")
+          .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
           .eq("documentos.is_active", true)
           .eq("documentos.empresa_vendedora", empresaVendedora)
           .range(from, from + size - 1);

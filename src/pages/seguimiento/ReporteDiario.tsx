@@ -131,6 +131,7 @@ export default function ReporteDiario() {
             "id, tipo_documento, numero_factura, numero_cotizacion, empresa_vendedora, total, estatus_factura, empresa_id, ejecutivo_venta_id, companies:empresa_id(name)"
           )
           .in("tipo_documento", ["factura", "cotizacion"])
+          .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
           .eq("is_active", true)
           .eq("fecha_documento", day)
           .in("ejecutivo_venta_id", ids),
@@ -240,6 +241,7 @@ export default function ReporteDiario() {
         .eq("tipo_documento", "factura")
         .eq("is_active", true)
         .neq("estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
         .gte("fecha_documento", mesStart)
         .lte("fecha_documento", day)
         .in("ejecutivo_venta_id", ids);

@@ -353,6 +353,7 @@ export default function CreditoCescemexReport() {
         )
         .eq("tipo_documento", "factura")
         .neq("estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
         .eq("is_active", true)
         .in("tipo_pago", ["credito_cescemex", "credito_directo", "credito"])
         .gte("fecha_documento", `${ANIO}-01-01`);
@@ -478,6 +479,7 @@ export default function CreditoCescemexReport() {
       .select("id, numero_factura, empresa_id, tipo_pago, fecha_documento, fecha_vencimiento, total, saldo_pendiente_cobranza, estado_cobranza, companies(name, razon_social)")
       .eq("tipo_documento", "factura")
       .neq("estatus_factura", "cancelada")
+      .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
       .eq("is_active", true)
       .in("tipo_pago", ["credito_cescemex", "credito_directo"])
       .gte("fecha_documento", desde)

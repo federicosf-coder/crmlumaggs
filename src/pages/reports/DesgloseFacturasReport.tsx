@@ -69,6 +69,7 @@ export default function DesgloseFacturasReport() {
         .eq("empresa_vendedora", marca as any)
         .eq("tipo_documento", "factura")
         .neq("estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
         .gte("fecha_documento", desde)
         .lt("fecha_documento", hasta)
         .order("numero_factura");
