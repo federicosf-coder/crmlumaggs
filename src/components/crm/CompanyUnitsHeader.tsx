@@ -26,6 +26,8 @@ export function CompanyUnitsHeader({ companyId }: Props) {
         .select("tipo_documento, estatus_factura, unidades_equivalentes_total, fecha_documento, is_active")
         .eq("empresa_id", companyId)
         .eq("tipo_documento", "factura")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
+        .neq("estatus_factura", "cancelada")
         .eq("is_active", true);
 
       const facturas = (docs || []).filter((d: any) => d.estatus_factura !== "cancelada");

@@ -255,6 +255,8 @@ function ProductClientsDialog({
         )
         .eq("producto_id", productId!)
         .eq("documentos.tipo_documento", "factura")
+        .neq("documentos.estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
         .eq("documentos.is_active", true)
         .eq("documentos.empresa_vendedora", empresaVendedora);
       if (error) throw error;

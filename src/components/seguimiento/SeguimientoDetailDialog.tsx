@@ -195,6 +195,8 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
         .eq("empresa_id", row!.company_id)
         .eq("empresa_vendedora", empresaVendedora)
         .eq("tipo_documento", "factura")
+        .neq("estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
         .eq("is_active", true);
       const facMap = new Map<string, string>();
       for (const f of facturas || []) facMap.set(f.id, f.fecha_documento);

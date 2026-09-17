@@ -254,7 +254,11 @@ export default function SellerPortal() {
       let docQ = supabase.from("documentos").select("id, tipo_documento, fecha_documento, fecha_vencimiento, total, unidades_equivalentes_total, estatus_cotizacion, estatus_pedido, estatus_factura, empresa_id, plaza_id, ejecutivo_venta_id, created_by, numero_cotizacion, numero_pedido, numero_factura, saldo_pendiente_cobranza, estado_cobranza, empresa_vendedora, created_at").gte("fecha_documento", fromDate).lt("fecha_documento", toExclusive).eq("is_active", true).in("empresa_vendedora", marcasSeleccionadas as any).limit(2000);
       if (inList) docQ = docQ.or(`ejecutivo_venta_id.in.${inList},created_by.in.${inList}`);
       if (plazaId !== "all") docQ = docQ.eq("plaza_id", plazaId);
-      const { data: docsData } = await docQ;
+      const { data: docsRawData } = await docQ;
+      // Excluir refacturaciones RFC (numero_factura que empieza con "RFC")
+      const docsData = (docsRawData || []).filter(
+        (d: any) => !String(d.numero_factura ?? "").toUpperCase().startsWith("RFC")
+      );
 
       // Pagos cobrados en rango (periodo inclusivo [from, to+1))
       let pq = supabase.from("cobranza_pagos").select("id, fecha_pago, monto_total, monto_aplicado, empresa_id, plaza_id, creado_por, estatus_pago, created_at").gte("fecha_pago", fromDate).lt("fecha_pago", toExclusive).limit(1000);
@@ -272,6 +276,7 @@ export default function SellerPortal() {
         .eq("tipo_documento", "factura")
         .eq("is_active", true)
         .neq("estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
         .gt("fecha_vencimiento", todayIso)
         .lte("fecha_vencimiento", in30Iso)
         .in("empresa_vendedora", marcasSeleccionadas as any)
@@ -287,6 +292,7 @@ export default function SellerPortal() {
           .eq("tipo_documento", "factura")
           .eq("is_active", true)
           .neq("estatus_factura", "cancelada")
+          .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
           .gt("fecha_vencimiento", todayIso)
           .lte("fecha_vencimiento", in30Iso)
           .in("empresa_vendedora", marcasSeleccionadas as any)
@@ -333,6 +339,7 @@ export default function SellerPortal() {
         .eq("tipo_documento", "factura")
         .eq("is_active", true)
         .eq("estatus_factura", "vencida")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
         .in("empresa_vendedora", marcasSeleccionadas as any)
         .limit(2000);
       if (inList) venQ = venQ.or(`ejecutivo_venta_id.in.${inList},created_by.in.${inList}`);
@@ -343,6 +350,7 @@ export default function SellerPortal() {
           .eq("tipo_documento", "factura")
           .eq("is_active", true)
           .eq("estatus_factura", "vencida")
+          .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
           .in("empresa_vendedora", marcasSeleccionadas as any)
           .limit(2000);
         if (plazaId !== "all") venQ = venQ.eq("plaza_id", plazaId);
@@ -387,6 +395,7 @@ export default function SellerPortal() {
           .eq("tipo_documento", "factura")
           .eq("is_active", true)
           .neq("estatus_factura", "cancelada")
+          .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
           .lt("fecha_vencimiento", todayIso)
           .in("empresa_vendedora", marcasSeleccionadas as any)
           .limit(5000);
@@ -498,6 +507,7 @@ export default function SellerPortal() {
             .eq("tipo_documento", "factura")
             .eq("is_active", true)
             .neq("estatus_factura", "cancelada")
+            .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
             .in("empresa_id", empresasFactPeriodo)
             .lt("fecha_documento", fromDate)
             .limit(20000);
