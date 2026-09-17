@@ -993,6 +993,16 @@ export default function SeguimientoLanding() {
     },
   });
 
+  // Unidades del periodo (reutilizan docUnidadesMap: mismas UE que las tablas de abajo)
+  const unidadesFacturadasPeriodo = useMemo(
+    () => facturasPeriodo.reduce((acc: number, d: any) => acc + (docUnidadesMap.get(d.id) || 0), 0),
+    [facturasPeriodo, docUnidadesMap]
+  );
+  const unidadesCotizadasPeriodo = useMemo(
+    () => cotizacionesPeriodo.reduce((acc: number, d: any) => acc + (docUnidadesMap.get(d.id) || 0), 0),
+    [cotizacionesPeriodo, docUnidadesMap]
+  );
+
   const exportarActividades = () => {
     const rows = actividades.map((a) => {
       const seg = a.company_id ? segMap.get(a.company_id) : undefined;
@@ -1287,7 +1297,7 @@ export default function SeguimientoLanding() {
       </Card>
 
       {/* Ventas del periodo */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardContent className="p-4 flex flex-col h-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -1361,8 +1371,31 @@ export default function SeguimientoLanding() {
             </p>
           </CardContent>
         </Card>
-      </div>
 
+        <Card className="h-full">
+          <CardContent className="p-4 flex flex-col h-full">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Unidades Facturadas
+            </p>
+            <p className="text-2xl font-bold mt-2">
+              {unidadesFacturadasPeriodo.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoLabel(periodoStart, periodoEnd)}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full">
+          <CardContent className="p-4 flex flex-col h-full">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Unidades Cotizadas
+            </p>
+            <p className="text-2xl font-bold mt-2">
+              {unidadesCotizadasPeriodo.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoLabel(periodoStart, periodoEnd)}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Kanban */}
       <div className="space-y-6">
