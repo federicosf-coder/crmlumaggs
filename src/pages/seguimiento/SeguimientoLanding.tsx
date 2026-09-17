@@ -1371,8 +1371,31 @@ export default function SeguimientoLanding() {
             </p>
           </CardContent>
         </Card>
-      </div>
 
+        <Card className="h-full">
+          <CardContent className="p-4 flex flex-col h-full">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Unidades Facturadas
+            </p>
+            <p className="text-2xl font-bold mt-2">
+              {unidadesFacturadasPeriodo.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoLabel(periodoStart, periodoEnd)}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full">
+          <CardContent className="p-4 flex flex-col h-full">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Unidades Cotizadas
+            </p>
+            <p className="text-2xl font-bold mt-2">
+              {unidadesCotizadasPeriodo.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{rangoLabel(periodoStart, periodoEnd)}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Kanban */}
       <div className="space-y-6">
