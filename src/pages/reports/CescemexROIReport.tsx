@@ -90,6 +90,7 @@ export default function CescemexROIReport() {
         .select("subtotal")
         .eq("tipo_documento", "factura")
         .neq("estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
         .eq("is_active", true)
         .eq("tipo_pago", "credito_cescemex")
         .gte("fecha_documento", `${ANIO}-01-01`)

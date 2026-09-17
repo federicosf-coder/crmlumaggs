@@ -127,6 +127,7 @@ export default function DeloXLEReport() {
         .in("producto_id", PRODUCTO_IDS)
         .eq("documentos.tipo_documento", "factura")
         .neq("documentos.estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
         .eq("documentos.is_active", true)
         .gte("documentos.fecha_documento", desde)
         .lte("documentos.fecha_documento", hasta);

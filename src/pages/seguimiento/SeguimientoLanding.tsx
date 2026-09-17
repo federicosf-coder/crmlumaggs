@@ -746,6 +746,7 @@ export default function SeguimientoLanding() {
       .eq("tipo_documento", "factura")
       .eq("is_active", true)
       .neq("estatus_factura", "cancelada")
+      .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
       .gte("fecha_documento", desde)
       .lte("fecha_documento", hasta);
     if (!sinRestriccion) qImporte = qImporte.in("empresa_id", visibleCompanyIds);
@@ -759,6 +760,7 @@ export default function SeguimientoLanding() {
       .eq("documentos.is_active", true)
       .eq("documentos.empresa_vendedora", empresaSel)
       .neq("documentos.estatus_factura", "cancelada")
+      .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
       .gte("documentos.fecha_documento", desde)
       .lte("documentos.fecha_documento", hasta);
     if (!sinRestriccion) qUnidades = qUnidades.in("documentos.empresa_id", visibleCompanyIds);
@@ -850,6 +852,7 @@ export default function SeguimientoLanding() {
         .eq("documentos.is_active", true)
         .eq("documentos.empresa_vendedora", empresaSel)
         .in("documentos.empresa_id", actividadCompanyIds)
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
         .gte("documentos.fecha_documento", periodoStartDate)
         .lte("documentos.fecha_documento", periodoEndDate);
       if (error) throw error;
@@ -898,6 +901,7 @@ export default function SeguimientoLanding() {
         .eq("tipo_documento", "factura")
         .eq("is_active", true)
         .neq("estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
         .gte("fecha_documento", periodoStartDate)
         .lte("fecha_documento", periodoEndDate);
       if (!sinRestriccion) q = q.in("empresa_id", visibleCompanyIds);
@@ -977,6 +981,7 @@ export default function SeguimientoLanding() {
         .eq("documentos.is_active", true)
         .eq("documentos.empresa_vendedora", empresaSel)
         .in("documentos.id", periodoDocIds)
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
         .gte("documentos.fecha_documento", periodoStartDate)
         .lte("documentos.fecha_documento", periodoEndDate);
       if (error) throw error;

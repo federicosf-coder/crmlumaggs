@@ -52,6 +52,7 @@ export function useVentasMensual(empresa: EmpresaVendedora) {
         .eq("empresa_vendedora", empresa)
         .eq("tipo_documento", "factura")
         .neq("estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
         .gte("fecha_documento", desde)
         .limit(20000);
       if (error) throw error;

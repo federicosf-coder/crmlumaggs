@@ -44,10 +44,12 @@ const ESTATUS_LABEL: Record<string, string> = {
   pagada: "Pagada",
   parcial: "Parcial",
   vencida: "Vencida",
+  refacturacion_rfc: "Refacturación RFC",
   cancelada: "Cancelada",
 };
 
-const ESTATUS_KEYS = ["vigente", "pendiente", "pagada", "parcial", "vencida", "cancelada"];
+const ESTATUS_KEYS = ["vigente", "pendiente", "pagada", "parcial", "vencida", "refacturacion_rfc", "cancelada"];
+
 
 type SortKey =
   | "fecha"
@@ -82,7 +84,7 @@ export default function DetalleFacturacionProductoReport() {
   const [customEnd, setCustomEnd] = useState<Date | undefined>(endOfToday());
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [estatusSel, setEstatusSel] = useState<string[]>(["vigente", "pendiente", "pagada", "parcial", "vencida"]);
+  const [estatusSel, setEstatusSel] = useState<string[]>(["vigente", "pendiente", "pagada", "parcial", "vencida", "refacturacion_rfc"]);
   const [plazaSel, setPlazaSel] = useState<string[]>([]);
   const incluirCanceladas = estatusSel.includes("cancelada");
 
@@ -121,9 +123,13 @@ export default function DetalleFacturacionProductoReport() {
         .eq("documentos.is_active", true)
         .eq("documentos.empresa_vendedora", empresaSel)
         .gte("documentos.fecha_documento", desde)
-        .lte("documentos.fecha_documento", hasta);
+        .lte("documentos.fecha_documento", hasta)
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" });
       if (error) throw error;
-      const rows: Linea[] = ((data || []) as any[]).map((r) => {
+      const rows: Linea[] = ((data || []) as any[])
+        // Las refacturaciones RFC nunca se muestran ni suman, sin importar los chips de estatus
+        .filter((r) => !String(r.documentos?.numero_factura ?? "").toUpperCase().startsWith("RFC"))
+        .map((r) => {
         const doc = r.documentos;
         const pres = r.productos?.presentaciones;
         const ue = Number(pres?.unidades_equivalentes ?? 1) || 1;

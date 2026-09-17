@@ -66,6 +66,8 @@ export function CompanyMetricsPanel({ companyId }: Props) {
         .select("fecha_documento,unidades_equivalentes_total,subtotal,total,saldo_pendiente_cobranza,estado_cobranza,fecha_vencimiento,estatus_factura,empresa_vendedora")
         .eq("empresa_id", companyId)
         .eq("tipo_documento", "factura")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
+        .neq("estatus_factura", "cancelada")
         .eq("is_active", true)
         .limit(5000);
 
