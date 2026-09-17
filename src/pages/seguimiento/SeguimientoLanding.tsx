@@ -993,6 +993,16 @@ export default function SeguimientoLanding() {
     },
   });
 
+  // Unidades del periodo (reutilizan docUnidadesMap: mismas UE que las tablas de abajo)
+  const unidadesFacturadasPeriodo = useMemo(
+    () => facturasPeriodo.reduce((acc: number, d: any) => acc + (docUnidadesMap.get(d.id) || 0), 0),
+    [facturasPeriodo, docUnidadesMap]
+  );
+  const unidadesCotizadasPeriodo = useMemo(
+    () => cotizacionesPeriodo.reduce((acc: number, d: any) => acc + (docUnidadesMap.get(d.id) || 0), 0),
+    [cotizacionesPeriodo, docUnidadesMap]
+  );
+
   const exportarActividades = () => {
     const rows = actividades.map((a) => {
       const seg = a.company_id ? segMap.get(a.company_id) : undefined;
