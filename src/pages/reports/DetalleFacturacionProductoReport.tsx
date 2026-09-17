@@ -44,10 +44,12 @@ const ESTATUS_LABEL: Record<string, string> = {
   pagada: "Pagada",
   parcial: "Parcial",
   vencida: "Vencida",
+  refacturacion_rfc: "Refacturación RFC",
   cancelada: "Cancelada",
 };
 
-const ESTATUS_KEYS = ["vigente", "pendiente", "pagada", "parcial", "vencida", "cancelada"];
+const ESTATUS_KEYS = ["vigente", "pendiente", "pagada", "parcial", "vencida", "refacturacion_rfc", "cancelada"];
+
 
 type SortKey =
   | "fecha"
