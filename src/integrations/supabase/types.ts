@@ -10738,6 +10738,7 @@ export type Database = {
         | "inventario.dashboard_red"
         | "inventario.costos"
         | "reporte_ventas_sistema"
+        | "prospectos"
       app_role:
         | "admin"
         | "manager"
@@ -11097,6 +11098,7 @@ export const Constants = {
         "inventario.dashboard_red",
         "inventario.costos",
         "reporte_ventas_sistema",
+        "prospectos",
       ],
       app_role: [
         "admin",
