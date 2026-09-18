@@ -887,7 +887,8 @@ export default function WhatsAppInbox() {
                   </button>
                 );
               })}
-          </div>
+            </div>
+          )}
           {access.accessLevel === "todos" && (
             <Button
               size="sm"
@@ -897,7 +898,6 @@ export default function WhatsAppInbox() {
             >
               {onlyUnassigned ? "Mostrando sin asignar" : "Solo sin asignar"}
             </Button>
-          )}
           )}
           {/* Buscador de conversaciones */}
           <div className="relative">
