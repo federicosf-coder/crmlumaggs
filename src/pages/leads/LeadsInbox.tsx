@@ -62,7 +62,8 @@ export default function LeadsInbox() {
     const ids = new Set(
       access.accessLevel === "equipo" ? access.teamMemberIds : [access.userId ?? ""],
     );
-    return leadsRaw.filter((l) => l.responsable_id && ids.has(l.responsable_id));
+    // Los prospectos sin responsable siguen visibles para que alguien los tome.
+    return leadsRaw.filter((l) => !l.responsable_id || ids.has(l.responsable_id));
   }, [leadsRaw, access.accessLevel, access.teamMemberIds, access.userId]);
   const tomar = useTomarLead();
   const descartar = useDescartarLead();
