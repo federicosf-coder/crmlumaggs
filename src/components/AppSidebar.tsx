@@ -94,6 +94,7 @@ export function AppSidebar() {
   const whatsappAccess = useModuleAccess("whatsapp");
   const inventarioAccess = useModuleAccess("inventario");
   const rvsAccess = useModuleAccess("reporte_ventas_sistema");
+  const prospectosAccess = useModuleAccess("prospectos");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
   const [documentosOpen, setDocumentosOpen] = useState(
     location.pathname.startsWith("/documents") || location.pathname.startsWith("/autorizacion-precios") || location.pathname.startsWith("/entregas-corporativas")
@@ -154,7 +155,8 @@ export function AppSidebar() {
 
   const visibleMain = mainItems
     .filter(canAccess)
-    .filter((item) => (item.url === "/reporte-ventas-sistema" ? rvsAccess.canView : true));
+    .filter((item) => (item.url === "/reporte-ventas-sistema" ? rvsAccess.canView : true))
+    .filter((item) => (item.url === "/leads" ? prospectosAccess.canView : true));
   const visibleAdmin = adminItems.filter(canAccess);
   const visibleWhatsApp = whatsappItems.filter(canAccess).filter(() => whatsappAccess.canView);
 

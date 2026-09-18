@@ -26,6 +26,9 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
@@ -150,7 +153,10 @@ export default function WhatsAppInbox() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const access = useModuleAccess("whatsapp");
-  const { profile } = useAuth();
+  const { profile, hasAnyRole } = useAuth();
+  const canAssign = hasAnyRole(["admin", "manager"]);
+  const [usuarios, setUsuarios] = useState<{ user_id: string; full_name: string | null }[]>([]);
+  const [onlyUnassigned, setOnlyUnassigned] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [convSearch, setConvSearch] = useState("");
@@ -278,6 +284,17 @@ export default function WhatsAppInbox() {
     return () => {
       supabase.removeChannel(ch);
     };
+  }, []);
+
+  // Usuarios para asignar responsable de la conversación
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .eq("is_active", true)
+      .eq("approval_status", "aprobado")
+      .order("full_name")
+      .then(({ data }: any) => setUsuarios((data ?? []) as { user_id: string; full_name: string | null }[]));
   }, []);
 
   // Load templates
@@ -427,6 +444,9 @@ export default function WhatsAppInbox() {
     } else if (access.accessLevel === "ninguno") {
       list = [];
     }
+    if (onlyUnassigned && access.accessLevel === "todos") {
+      list = list.filter((c) => !c.assigned_to);
+    }
     const term = convSearch.trim().toLowerCase();
     if (term) {
       list = list.filter(
@@ -437,7 +457,25 @@ export default function WhatsAppInbox() {
       );
     }
     return list;
-  }, [conversations, selectedPhoneId, access.accessLevel, access.userId, access.teamMemberIds, convSearch]);
+  }, [conversations, selectedPhoneId, access.accessLevel, access.userId, access.teamMemberIds, convSearch, onlyUnassigned]);
+
+  const usuarioNombre = (id: string | null) =>
+    (id && usuarios.find((u) => u.user_id === id)?.full_name) || null;
+
+  const asignarResponsable = async (conversationId: string, userId: string | null) => {
+    const { error } = await supabase
+      .from("whatsapp_conversations")
+      .update({ assigned_to: userId })
+      .eq("id", conversationId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conversationId ? { ...c, assigned_to: userId } : c)),
+    );
+    toast.success(userId ? "Responsable asignado" : "Responsable removido");
+  };
 
   // Realtime global por cuenta seleccionada — refresca el chat activo si llega un
   // mensaje nuevo para esta línea (Maggs o Chevron) aunque no sea la conversación abierta.
@@ -851,6 +889,16 @@ export default function WhatsAppInbox() {
               })}
             </div>
           )}
+          {access.accessLevel === "todos" && (
+            <Button
+              size="sm"
+              variant={onlyUnassigned ? "default" : "outline"}
+              className="h-7 w-full text-xs"
+              onClick={() => setOnlyUnassigned((v) => !v)}
+            >
+              {onlyUnassigned ? "Mostrando sin asignar" : "Solo sin asignar"}
+            </Button>
+          )}
           {/* Buscador de conversaciones */}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -913,6 +961,9 @@ export default function WhatsAppInbox() {
                   ) : null;
                 })()}
                 <div className={`text-xs truncate ${isUnread ? "text-foreground font-medium" : "text-muted-foreground"}`}>{c.last_message_preview || "—"}</div>
+                <div className="text-[10px] mt-0.5 truncate text-muted-foreground">
+                  {c.assigned_to ? usuarioNombre(c.assigned_to) || "Responsable asignado" : "Sin asignar"}
+                </div>
               </button>
               );
             })
@@ -963,6 +1014,31 @@ export default function WhatsAppInbox() {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground">+{active.wa_phone}</div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Responsable</span>
+                    {canAssign ? (
+                      <Select
+                        value={active.assigned_to ?? "none"}
+                        onValueChange={(v) => asignarResponsable(active.id, v === "none" ? null : v)}
+                      >
+                        <SelectTrigger className="h-7 w-[200px] text-xs">
+                          <SelectValue placeholder="Sin asignar" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          <SelectItem value="none">Sin asignar</SelectItem>
+                          {usuarios.map((u) => (
+                            <SelectItem key={u.user_id} value={u.user_id}>
+                              {u.full_name || "Sin nombre"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-xs">
+                        {active.assigned_to ? usuarioNombre(active.assigned_to) || "Asignado" : "Sin asignar"}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
