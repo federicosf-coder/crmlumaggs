@@ -21,6 +21,8 @@ import { ImportarLeadsDialog } from "@/components/leads/ImportarLeadsDialog";
 import { VincularLeadDialog } from "@/components/leads/VincularLeadDialog";
 import { NuevoLeadDialog } from "@/components/leads/NuevoLeadDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { Lock } from "lucide-react";
 
 const ESTATUS_META: Record<LeadEstatus, { label: string; className: string }> = {
   nuevo: { label: "Nuevo", className: "bg-emerald-100 text-emerald-800 border-emerald-200" },
@@ -51,8 +53,17 @@ function semaforo(lead: Lead) {
 
 export default function LeadsInbox() {
   const { hasAnyRole } = useAuth();
+  const access = useModuleAccess("prospectos");
   const qc = useQueryClient();
-  const { data: leads = [], isLoading, refetch } = useLeads();
+  const { data: leadsRaw = [], isLoading, refetch } = useLeads();
+  const leads = useMemo(() => {
+    if (access.accessLevel === "ninguno") return [];
+    if (access.accessLevel === "todos") return leadsRaw;
+    const ids = new Set(
+      access.accessLevel === "equipo" ? access.teamMemberIds : [access.userId ?? ""],
+    );
+    return leadsRaw.filter((l) => l.responsable_id && ids.has(l.responsable_id));
+  }, [leadsRaw, access.accessLevel, access.teamMemberIds, access.userId]);
   const tomar = useTomarLead();
   const descartar = useDescartarLead();
   const [search, setSearch] = useState("");
