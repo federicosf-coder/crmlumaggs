@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { SeguimientoActividadBadges } from "@/components/seguimiento/SeguimientoActividadBadges";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

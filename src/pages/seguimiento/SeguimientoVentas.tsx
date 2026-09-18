@@ -5,6 +5,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { SeguimientoActividadBadges } from "@/components/seguimiento/SeguimientoActividadBadges";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
