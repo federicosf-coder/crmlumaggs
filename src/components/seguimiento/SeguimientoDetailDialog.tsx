@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { SeguimientoActividadBadges } from "@/components/seguimiento/SeguimientoActividadBadges";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -487,6 +488,11 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                   {effective.nombre}
                 </span>
               )}
+              <SeguimientoActividadBadges
+                diasUltimaActividad={row.dias_ultima_actividad}
+                actividadesTotal={row.actividades_total}
+                proximaTareaFecha={row.proxima_tarea_fecha}
+              />
               {ritmo && tieneVenta && (
                 <span
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-white shadow-sm"
