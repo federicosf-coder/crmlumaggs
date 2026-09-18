@@ -117,6 +117,18 @@ export default function LeadsInbox() {
     </Card>
   );
 
+  if (access.accessLevel === "ninguno" && !access.isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center gap-3">
+        <Lock className="h-10 w-10 text-muted-foreground" />
+        <h2 className="text-xl font-semibold">Acceso Denegado</h2>
+        <p className="text-muted-foreground max-w-md">
+          No tienes permisos para ver la Bandeja de Prospectos. Contacta a un administrador si necesitas acceso.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
