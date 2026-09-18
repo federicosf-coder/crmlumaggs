@@ -887,7 +887,17 @@ export default function WhatsAppInbox() {
                   </button>
                 );
               })}
-            </div>
+          </div>
+          {access.accessLevel === "todos" && (
+            <Button
+              size="sm"
+              variant={onlyUnassigned ? "default" : "outline"}
+              className="h-7 w-full text-xs"
+              onClick={() => setOnlyUnassigned((v) => !v)}
+            >
+              {onlyUnassigned ? "Mostrando sin asignar" : "Solo sin asignar"}
+            </Button>
+          )}
           )}
           {/* Buscador de conversaciones */}
           <div className="relative">
@@ -951,6 +961,9 @@ export default function WhatsAppInbox() {
                   ) : null;
                 })()}
                 <div className={`text-xs truncate ${isUnread ? "text-foreground font-medium" : "text-muted-foreground"}`}>{c.last_message_preview || "—"}</div>
+                <div className="text-[10px] mt-0.5 truncate text-muted-foreground">
+                  {c.assigned_to ? usuarioNombre(c.assigned_to) || "Responsable asignado" : "Sin asignar"}
+                </div>
               </button>
               );
             })
@@ -1001,6 +1014,31 @@ export default function WhatsAppInbox() {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground">+{active.wa_phone}</div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Responsable</span>
+                    {canAssign ? (
+                      <Select
+                        value={active.assigned_to ?? "none"}
+                        onValueChange={(v) => asignarResponsable(active.id, v === "none" ? null : v)}
+                      >
+                        <SelectTrigger className="h-7 w-[200px] text-xs">
+                          <SelectValue placeholder="Sin asignar" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          <SelectItem value="none">Sin asignar</SelectItem>
+                          {usuarios.map((u) => (
+                            <SelectItem key={u.user_id} value={u.user_id}>
+                              {u.full_name || "Sin nombre"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-xs">
+                        {active.assigned_to ? usuarioNombre(active.assigned_to) || "Asignado" : "Sin asignar"}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
