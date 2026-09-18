@@ -1196,13 +1196,22 @@ export default function SeguimientoVentas() {
         cellClassName: "text-xs font-light text-muted-foreground whitespace-nowrap",
         render: (r) => r.companies?.created_at ? formatDate(r.companies.created_at) : <span className="italic">—</span>,
       },
-      {
-        id: "estatus",
-        label: "Estatus",
-        sortKey: "estatus",
-        render: (r) => <StatusBadge estatus={catalogMap.get(getEffectiveStatusId(r) || "")} />,
-      },
-    ];
+        {
+          id: "estatus",
+          label: "Estatus",
+          sortKey: "estatus",
+          render: (r) => (
+            <span className="inline-flex items-center gap-1.5">
+              <StatusBadge estatus={catalogMap.get(getEffectiveStatusId(r) || "")} />
+              <SeguimientoActividadBadges
+                diasUltimaActividad={r.dias_ultima_actividad}
+                actividadesTotal={r.actividades_total}
+                proximaTareaFecha={r.proxima_tarea_fecha}
+              />
+            </span>
+          ),
+        },
+      ];
     if (tieneVenta) {
       return [
         ...base,
@@ -2391,9 +2400,16 @@ export default function SeguimientoVentas() {
                 onClick={() => setSelected(r)}
               >
                 <CardContent className="p-3 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold leading-tight">{r.companies?.name || "—"}</p>
-                    <StatusBadge estatus={eff} />
+                    <span className="inline-flex items-center gap-1.5">
+                      <StatusBadge estatus={eff} />
+                      <SeguimientoActividadBadges
+                        diasUltimaActividad={r.dias_ultima_actividad}
+                        actividadesTotal={r.actividades_total}
+                        proximaTareaFecha={r.proxima_tarea_fecha}
+                      />
+                    </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground font-light">
                     Ejecutivo: <span className="text-foreground">{r.owner_id ? (profileMap.get(r.owner_id) || "—") : "Sin asignar"}</span>

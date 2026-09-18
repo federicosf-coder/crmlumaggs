@@ -487,6 +487,11 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                   {effective.nombre}
                 </span>
               )}
+              <SeguimientoActividadBadges
+                diasUltimaActividad={row.dias_ultima_actividad}
+                actividadesTotal={row.actividades_total}
+                proximaTareaFecha={row.proxima_tarea_fecha}
+              />
               {ritmo && tieneVenta && (
                 <span
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-white shadow-sm"
