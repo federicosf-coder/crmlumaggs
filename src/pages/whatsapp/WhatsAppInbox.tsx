@@ -26,6 +26,9 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { ContactFormDialog, type ContactEditData } from "@/components/ContactFormDialog";
@@ -150,7 +153,10 @@ export default function WhatsAppInbox() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const access = useModuleAccess("whatsapp");
-  const { profile } = useAuth();
+  const { profile, hasAnyRole } = useAuth();
+  const canAssign = hasAnyRole(["admin", "manager"]);
+  const [usuarios, setUsuarios] = useState<{ user_id: string; full_name: string | null }[]>([]);
+  const [onlyUnassigned, setOnlyUnassigned] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [convSearch, setConvSearch] = useState("");
@@ -278,6 +284,17 @@ export default function WhatsAppInbox() {
     return () => {
       supabase.removeChannel(ch);
     };
+  }, []);
+
+  // Usuarios para asignar responsable de la conversación
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .eq("is_active", true)
+      .eq("approval_status", "aprobado")
+      .order("full_name")
+      .then(({ data }: any) => setUsuarios((data ?? []) as { user_id: string; full_name: string | null }[]));
   }, []);
 
   // Load templates
@@ -427,6 +444,9 @@ export default function WhatsAppInbox() {
     } else if (access.accessLevel === "ninguno") {
       list = [];
     }
+    if (onlyUnassigned && access.accessLevel === "todos") {
+      list = list.filter((c) => !c.assigned_to);
+    }
     const term = convSearch.trim().toLowerCase();
     if (term) {
       list = list.filter(
@@ -437,7 +457,25 @@ export default function WhatsAppInbox() {
       );
     }
     return list;
-  }, [conversations, selectedPhoneId, access.accessLevel, access.userId, access.teamMemberIds, convSearch]);
+  }, [conversations, selectedPhoneId, access.accessLevel, access.userId, access.teamMemberIds, convSearch, onlyUnassigned]);
+
+  const usuarioNombre = (id: string | null) =>
+    (id && usuarios.find((u) => u.user_id === id)?.full_name) || null;
+
+  const asignarResponsable = async (conversationId: string, userId: string | null) => {
+    const { error } = await supabase
+      .from("whatsapp_conversations")
+      .update({ assigned_to: userId })
+      .eq("id", conversationId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conversationId ? { ...c, assigned_to: userId } : c)),
+    );
+    toast.success(userId ? "Responsable asignado" : "Responsable removido");
+  };
 
   // Realtime global por cuenta seleccionada — refresca el chat activo si llega un
   // mensaje nuevo para esta línea (Maggs o Chevron) aunque no sea la conversación abierta.
