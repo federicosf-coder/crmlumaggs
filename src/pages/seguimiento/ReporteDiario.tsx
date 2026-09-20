@@ -399,12 +399,148 @@ export default function ReporteDiario() {
 
   const facturasPorMarca = (key: string) => (reporte?.facturas || []).filter((f) => f.empresaVendedora === key);
 
+  // ---- Cálculos por ejecutivo (alimentan el formato Texto) ----
+  const statsPorEjecutivo = (ejecutivoId: string) => {
+    const f = (reporte?.facturas || []).filter((x) => x.ejecutivoId === ejecutivoId);
+    const c = (reporte?.cobranza || []).filter((x) => x.creadoPor === ejecutivoId);
+    const mes = acumMes?.porEjecutivo?.[ejecutivoId] || {
+      udsLumaggs: 0,
+      udsGalsa: 0,
+      cobLumaggs: 0,
+      cobGalsa: 0,
+    };
+    const sumU = (k: string) =>
+      f.filter((x) => x.empresaVendedora === k).reduce((s, x) => s + x.unidades, 0);
+    const sumC = (k: string) =>
+      c.filter((x) => x.empresaVendedora === k).reduce((s, x) => s + x.importe, 0);
+    return {
+      udsLumaggsPeriodo: sumU("lumaggs_chevron"),
+      udsGalsaPeriodo: sumU("galsa_phillips66"),
+      cobLumaggsPeriodo: sumC("lumaggs_chevron"),
+      cobGalsaPeriodo: sumC("galsa_phillips66"),
+      udsLumaggsMes: mes.udsLumaggs,
+      udsGalsaMes: mes.udsGalsa,
+      cobLumaggsMes: mes.cobLumaggs,
+      cobGalsaMes: mes.cobGalsa,
+    };
+  };
+
+  const formatearTextoEjecutivo = (ejecutivoId: string) => {
+    const s = statsPorEjecutivo(ejecutivoId);
+    const desde = params?.fechaInicio || fechaInicio;
+    const hasta = params?.fechaFin || fechaFin;
+    const fmt = (d: string) => format(new Date(`${d}T12:00:00`), "dd 'de' MMMM yyyy", { locale: es });
+    const L: string[] = [];
+    L.push(`Reporte del ${fmt(desde)} al ${fmt(hasta)}`);
+    L.push(`Ejecutivo: ${nombreDe(ejecutivoId)}`);
+    L.push("");
+    L.push("Lumaggs");
+    L.push(`Unidades vendidas Lumaggs: ${num(s.udsLumaggsPeriodo)}`);
+    L.push(`Unidades del mes Lumaggs: ${num(s.udsLumaggsMes)}`);
+    L.push(`Importe cobrado Lumaggs: ${money(s.cobLumaggsPeriodo)}`);
+    L.push(`Importe cobrado mes Lumaggs: ${money(s.cobLumaggsMes)}`);
+    L.push("");
+    L.push("Galsa");
+    L.push(`Unidades vendidas Galsa: ${num(s.udsGalsaPeriodo)}`);
+    L.push(`Unidades del mes Galsa: ${num(s.udsGalsaMes)}`);
+    L.push(`Importe cobrado Galsa: ${money(s.cobGalsaPeriodo)}`);
+    L.push(`Importe cobrado mes Galsa: ${money(s.cobGalsaMes)}`);
+    L.push("");
+
+    const acts = (reporte?.actividades || []).filter((a) => a.userId === ejecutivoId);
+    L.push("Actividades");
+    if (acts.length === 0) L.push("Sin registros");
+    for (const a of acts) {
+      const prom =
+        a.promedioHistorico && a.promedioHistorico > 0
+          ? ` (Promedio histórico: ${num(a.promedioHistorico)} uds/mes)`
+          : "";
+      L.push(`${a.cliente} - ${a.tipo} - ${a.descripcion}${prom}`);
+      if (a.empresaId) {
+        const udsFact = (reporte?.facturas || [])
+          .filter((f) => f.empresaId === a.empresaId)
+          .reduce((t, f) => t + f.unidades, 0);
+        const udsCot = (reporte?.cotizaciones || [])
+          .filter((c) => c.empresaId === a.empresaId)
+          .reduce((t, c) => t + c.unidades, 0);
+        const partes: string[] = [];
+        if (udsFact > 0) partes.push(`Unidades vendidas ${num(udsFact)}`);
+        if (udsCot > 0) partes.push(`Unidades Cotizadas ${num(udsCot)}`);
+        if (partes.length > 0) L.push(partes.join("  "));
+      }
+    }
+    L.push("");
+
+    const ordenMarca = (arr: DocRow[]) => [
+      ...arr.filter((x) => x.empresaVendedora === "galsa_phillips66"),
+      ...arr.filter((x) => x.empresaVendedora !== "galsa_phillips66"),
+    ];
+
+    const cots = ordenMarca((reporte?.cotizaciones || []).filter((c) => c.ejecutivoId === ejecutivoId));
+    L.push("Cotizaciones");
+    if (cots.length === 0) L.push("Sin registros");
+    for (const c of cots)
+      L.push(
+        `${EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora} - ${c.folio} - ${c.cliente} - ${num(c.unidades)}`
+      );
+    L.push("");
+
+    const facts = ordenMarca((reporte?.facturas || []).filter((f) => f.ejecutivoId === ejecutivoId));
+    L.push("Facturado");
+    if (facts.length === 0) L.push("Sin registros");
+    for (const f of facts) L.push(`${f.folio} - ${f.cliente} - ${num(f.unidades)}`);
+    L.push("");
+
+    const cobs = (reporte?.cobranza || []).filter((c) => c.creadoPor === ejecutivoId);
+    L.push("Cobrado");
+    if (cobs.length === 0) L.push("Sin registros");
+    for (const c of cobs) L.push(`${c.cliente} - ${money(c.importe)}`);
+
+    return L.join("\n");
+  };
+
+  const textoCompleto = () =>
+    (params?.ids || selectedIds).map((id) => formatearTextoEjecutivo(id)).join("\n\n----------\n\n");
+
+  const abrirTexto = () => {
+    if (!reporte) {
+      toast.error("Primero genera el reporte");
+      return;
+    }
+    setTextoValor(textoCompleto());
+    setTextoOpen(true);
+  };
+
+  const copiarTexto = async () => {
+    try {
+      await navigator.clipboard.writeText(textoValor);
+      toast.success("Texto copiado");
+    } catch {
+      toast.error("No se pudo copiar");
+    }
+  };
+
+  const descargarDoc = () => {
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><p style="font-family:Arial;font-size:11pt">${textoValor
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br>")}</p></body></html>`;
+    const blob = new Blob([html], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `reporte_diario_${params?.fechaInicio || fechaInicio}_${params?.fechaFin || fechaFin}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const generar = () => {
     if (selectedIds.length === 0) {
       toast.error("Selecciona al menos un ejecutivo");
       return;
     }
-    setParams({ fecha: format(fecha, "yyyy-MM-dd"), ids: selectedIds });
+    setParams({ fechaInicio, fechaFin, ids: selectedIds });
   };
 
   const descargarExcel = () => {
@@ -412,10 +548,11 @@ export default function ReporteDiario() {
       toast.error("Primero genera el reporte");
       return;
     }
-    const day = params!.fecha;
+    const desde = params!.fechaInicio;
+    const day = params!.fechaFin;
     const aoa: (string | number)[][] = [];
     aoa.push([`Reporte diario consolidado`]);
-    aoa.push([`Fecha: ${day}`]);
+    aoa.push([`Periodo: ${desde} a ${day}`]);
     aoa.push([]);
     aoa.push(["Indicadores"]);
     aoa.push(["Unidades vendidas — Lumaggs", kpis.udsLumaggs]);
