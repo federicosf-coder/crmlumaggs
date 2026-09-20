@@ -143,13 +143,14 @@ export default function ReporteDiario() {
     (id && ejecutivos.find((e) => e.user_id === id)?.full_name) || "Sin nombre";
 
   const { data: reporte, isFetching } = useQuery({
-    queryKey: ["reporte-diario-consolidado", params?.fecha, params?.ids],
+    queryKey: ["reporte-diario-consolidado", params?.fechaInicio, params?.fechaFin, params?.ids],
     enabled: !!params && (params?.ids.length || 0) > 0,
     queryFn: async (): Promise<ReporteData> => {
-      const day = params!.fecha;
+      const desde = params!.fechaInicio;
+      const hasta = params!.fechaFin;
       const ids = params!.ids;
-      const startIso = new Date(`${day}T00:00:00`).toISOString();
-      const endIso = new Date(`${day}T23:59:59.999`).toISOString();
+      const startIso = new Date(`${desde}T00:00:00`).toISOString();
+      const endIso = new Date(`${hasta}T23:59:59.999`).toISOString();
 
       const [docsRes, pagosRes, actsRes] = await Promise.all([
         supabase
