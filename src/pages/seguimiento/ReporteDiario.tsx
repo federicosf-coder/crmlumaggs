@@ -209,6 +209,7 @@ export default function ReporteDiario() {
         folio: (d.tipo_documento === "factura" ? d.numero_factura : d.numero_cotizacion) || "—",
         empresaVendedora: d.empresa_vendedora || "sin_empresa",
         cliente: d.companies?.name || "Sin empresa",
+        empresaId: d.empresa_id || null,
         total: Number(d.total) || 0,
         unidades: unidadesMap.get(d.id) || 0,
         ejecutivoId: d.ejecutivo_venta_id || null,
