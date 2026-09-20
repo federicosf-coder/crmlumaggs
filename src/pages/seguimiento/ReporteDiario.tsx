@@ -161,12 +161,14 @@ export default function ReporteDiario() {
           .in("tipo_documento", ["factura", "cotizacion"])
           .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
           .eq("is_active", true)
-          .eq("fecha_documento", day)
+          .gte("fecha_documento", desde)
+          .lte("fecha_documento", hasta)
           .in("ejecutivo_venta_id", ids),
         supabase
           .from("cobranza_pagos")
-          .select("id, empresa_id, empresa_vendedora, monto_total, metodo_pago, companies:empresa_id(name)")
-          .eq("fecha_pago", day)
+          .select("id, empresa_id, empresa_vendedora, monto_total, metodo_pago, creado_por, companies:empresa_id(name)")
+          .gte("fecha_pago", desde)
+          .lte("fecha_pago", hasta)
           .in("creado_por", ids),
         supabase
           .from("crm_activities")
