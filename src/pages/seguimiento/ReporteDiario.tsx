@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
-import { format } from "date-fns";
+import { useEffect, useMemo, useState } from "react";
+import { format, startOfMonth, startOfWeek, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, FileSpreadsheet, FileText, FileDown } from "lucide-react";
+import type { DateRange } from "react-day-picker";
+import { CalendarIcon, FileSpreadsheet, FileText, FileDown, Copy } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -15,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -35,6 +38,7 @@ interface DocRow {
   folio: string;
   empresaVendedora: string;
   cliente: string;
+  empresaId: string | null;
   total: number;
   unidades: number;
   ejecutivoId: string | null;
@@ -47,14 +51,17 @@ interface CobranzaRow {
   metodoPago: string;
   importe: number;
   facturas: string[];
+  creadoPor: string | null;
 }
 
 interface ActividadRow {
   id: string;
   userId: string | null;
   cliente: string;
+  empresaId: string | null;
   tipo: string;
   descripcion: string;
+  promedioHistorico: number | null;
 }
 
 interface ReporteData {
@@ -72,9 +79,29 @@ export default function ReporteDiario() {
   const { user, hasAnyRole } = useAuth();
   const esGerencia = hasAnyRole(["admin", "manager"]);
 
-  const [fecha, setFecha] = useState<Date>(new Date());
+  type PeriodoKey = "ayer" | "hoy" | "semana" | "mes" | "periodo";
+  const [periodo, setPeriodo] = useState<PeriodoKey>("hoy");
+  const [rango, setRango] = useState<DateRange | undefined>({ from: new Date(), to: new Date() });
   const [seleccion, setSeleccion] = useState<string[] | null>(null);
-  const [params, setParams] = useState<{ fecha: string; ids: string[] } | null>(null);
+  const [params, setParams] = useState<{ fechaInicio: string; fechaFin: string; ids: string[] } | null>(null);
+  const [textoOpen, setTextoOpen] = useState(false);
+  const [textoValor, setTextoValor] = useState("");
+
+  const ymd = (d: Date) => format(d, "yyyy-MM-dd");
+  const { fechaInicio, fechaFin } = useMemo(() => {
+    const hoy = new Date();
+    if (periodo === "ayer") {
+      const a = subDays(hoy, 1);
+      return { fechaInicio: ymd(a), fechaFin: ymd(a) };
+    }
+    if (periodo === "hoy") return { fechaInicio: ymd(hoy), fechaFin: ymd(hoy) };
+    if (periodo === "semana")
+      return { fechaInicio: ymd(startOfWeek(hoy, { weekStartsOn: 1 })), fechaFin: ymd(hoy) };
+    if (periodo === "mes") return { fechaInicio: ymd(startOfMonth(hoy)), fechaFin: ymd(hoy) };
+    const from = rango?.from ?? hoy;
+    const to = rango?.to ?? from;
+    return { fechaInicio: ymd(from), fechaFin: ymd(to) };
+  }, [periodo, rango]);
 
   const { data: ejecutivos = [] } = useQuery({
     queryKey: ["reporte-diario-ejecutivos"],
@@ -116,13 +143,14 @@ export default function ReporteDiario() {
     (id && ejecutivos.find((e) => e.user_id === id)?.full_name) || "Sin nombre";
 
   const { data: reporte, isFetching } = useQuery({
-    queryKey: ["reporte-diario-consolidado", params?.fecha, params?.ids],
+    queryKey: ["reporte-diario-consolidado", params?.fechaInicio, params?.fechaFin, params?.ids],
     enabled: !!params && (params?.ids.length || 0) > 0,
     queryFn: async (): Promise<ReporteData> => {
-      const day = params!.fecha;
+      const desde = params!.fechaInicio;
+      const hasta = params!.fechaFin;
       const ids = params!.ids;
-      const startIso = new Date(`${day}T00:00:00`).toISOString();
-      const endIso = new Date(`${day}T23:59:59.999`).toISOString();
+      const startIso = new Date(`${desde}T00:00:00`).toISOString();
+      const endIso = new Date(`${hasta}T23:59:59.999`).toISOString();
 
       const [docsRes, pagosRes, actsRes] = await Promise.all([
         supabase
@@ -133,12 +161,14 @@ export default function ReporteDiario() {
           .in("tipo_documento", ["factura", "cotizacion"])
           .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
           .eq("is_active", true)
-          .eq("fecha_documento", day)
+          .gte("fecha_documento", desde)
+          .lte("fecha_documento", hasta)
           .in("ejecutivo_venta_id", ids),
         supabase
           .from("cobranza_pagos")
-          .select("id, empresa_id, empresa_vendedora, monto_total, metodo_pago, companies:empresa_id(name)")
-          .eq("fecha_pago", day)
+          .select("id, empresa_id, empresa_vendedora, monto_total, metodo_pago, creado_por, companies:empresa_id(name)")
+          .gte("fecha_pago", desde)
+          .lte("fecha_pago", hasta)
           .in("creado_por", ids),
         supabase
           .from("crm_activities")
@@ -179,6 +209,7 @@ export default function ReporteDiario() {
         folio: (d.tipo_documento === "factura" ? d.numero_factura : d.numero_cotizacion) || "—",
         empresaVendedora: d.empresa_vendedora || "sin_empresa",
         cliente: d.companies?.name || "Sin empresa",
+        empresaId: d.empresa_id || null,
         total: Number(d.total) || 0,
         unidades: unidadesMap.get(d.id) || 0,
         ejecutivoId: d.ejecutivo_venta_id || null,
@@ -212,42 +243,70 @@ export default function ReporteDiario() {
         metodoPago: p.metodo_pago || "—",
         importe: Number(p.monto_total) || 0,
         facturas: aplicMap.get(p.id) || [],
+        creadoPor: p.creado_por || null,
       }));
 
-      const actividades: ActividadRow[] = ((actsRes.data || []) as any[]).map((a) => ({
+      const actsRaw = (actsRes.data || []) as any[];
+      const actCompanyIds = Array.from(
+        new Set(actsRaw.map((a) => a.company_id).filter(Boolean))
+      ) as string[];
+      const promedioMap = new Map<string, number>();
+      if (actCompanyIds.length > 0) {
+        const { data: sv } = await supabase
+          .from("seguimiento_ventas")
+          .select("company_id, promedio_historico_mensual")
+          .in("company_id", actCompanyIds);
+        for (const r of (sv || []) as any[]) {
+          const v = Number(r.promedio_historico_mensual) || 0;
+          promedioMap.set(r.company_id, (promedioMap.get(r.company_id) || 0) + v);
+        }
+      }
+
+      const actividades: ActividadRow[] = actsRaw.map((a) => ({
         id: a.id,
         userId: a.user_id || null,
         cliente: a.companies?.name || "Sin empresa",
+        empresaId: a.company_id || null,
         tipo: a.type || "—",
         descripcion: (a.description || "").trim() || a.title || "",
+        promedioHistorico: a.company_id ? promedioMap.get(a.company_id) ?? null : null,
       }));
 
       return { cotizaciones, facturas, cobranza, actividades };
     },
   });
 
-  // Acumulado del mes (día 1 del mes hasta la fecha seleccionada), por marca
+  // Acumulado del mes (día 1 del mes de fechaFin hasta fechaFin), por marca y por ejecutivo
   const { data: acumMes } = useQuery({
-    queryKey: ["reporte-diario-acum-mes", params?.fecha, params?.ids],
+    queryKey: ["reporte-diario-acum-mes", params?.fechaFin, params?.ids],
     enabled: !!params && (params?.ids.length || 0) > 0,
     queryFn: async () => {
-      const day = params!.fecha;
+      const hasta = params!.fechaFin;
       const ids = params!.ids;
-      const mesStart = `${day.slice(0, 8)}01`;
+      const mesStart = `${hasta.slice(0, 8)}01`;
 
-      const { data: docsMes, error: docsErr } = await supabase
-        .from("documentos")
-        .select("id, empresa_vendedora, total")
-        .eq("tipo_documento", "factura")
-        .eq("is_active", true)
-        .neq("estatus_factura", "cancelada")
-        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
-        .gte("fecha_documento", mesStart)
-        .lte("fecha_documento", day)
-        .in("ejecutivo_venta_id", ids);
-      if (docsErr) throw docsErr;
+      const [docsRes, pagosRes] = await Promise.all([
+        supabase
+          .from("documentos")
+          .select("id, empresa_vendedora, total, ejecutivo_venta_id")
+          .eq("tipo_documento", "factura")
+          .eq("is_active", true)
+          .neq("estatus_factura", "cancelada")
+          .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
+          .gte("fecha_documento", mesStart)
+          .lte("fecha_documento", hasta)
+          .in("ejecutivo_venta_id", ids),
+        supabase
+          .from("cobranza_pagos")
+          .select("id, empresa_vendedora, monto_total, creado_por")
+          .gte("fecha_pago", mesStart)
+          .lte("fecha_pago", hasta)
+          .in("creado_por", ids),
+      ]);
+      if (docsRes.error) throw docsRes.error;
+      if (pagosRes.error) throw pagosRes.error;
 
-      const rows = (docsMes || []) as any[];
+      const rows = (docsRes.data || []) as any[];
       const docIds = rows.map((d) => d.id);
 
       const unidadesMap = new Map<string, number>();
@@ -271,19 +330,48 @@ export default function ReporteDiario() {
         udsGalsa: 0,
         impLumaggs: 0,
         impGalsa: 0,
+        cobLumaggs: 0,
+        cobGalsa: 0,
       };
+      const porEjecutivo: Record<
+        string,
+        { udsLumaggs: number; udsGalsa: number; cobLumaggs: number; cobGalsa: number }
+      > = {};
+      const bucket = (id: string | null) => {
+        const k = id || "sin_ejecutivo";
+        if (!porEjecutivo[k])
+          porEjecutivo[k] = { udsLumaggs: 0, udsGalsa: 0, cobLumaggs: 0, cobGalsa: 0 };
+        return porEjecutivo[k];
+      };
+
       for (const d of rows) {
         const uds = unidadesMap.get(d.id) || 0;
         const imp = Number(d.total) || 0;
+        const b = bucket(d.ejecutivo_venta_id || null);
         if (d.empresa_vendedora === "lumaggs_chevron") {
           agg.udsLumaggs += uds;
           agg.impLumaggs += imp;
+          b.udsLumaggs += uds;
         } else if (d.empresa_vendedora === "galsa_phillips66") {
           agg.udsGalsa += uds;
           agg.impGalsa += imp;
+          b.udsGalsa += uds;
         }
       }
-      return agg;
+
+      for (const p of (pagosRes.data || []) as any[]) {
+        const imp = Number(p.monto_total) || 0;
+        const b = bucket(p.creado_por || null);
+        if (p.empresa_vendedora === "lumaggs_chevron") {
+          agg.cobLumaggs += imp;
+          b.cobLumaggs += imp;
+        } else if (p.empresa_vendedora === "galsa_phillips66") {
+          agg.cobGalsa += imp;
+          b.cobGalsa += imp;
+        }
+      }
+
+      return { ...agg, porEjecutivo };
     },
   });
 
@@ -311,12 +399,148 @@ export default function ReporteDiario() {
 
   const facturasPorMarca = (key: string) => (reporte?.facturas || []).filter((f) => f.empresaVendedora === key);
 
+  // ---- Cálculos por ejecutivo (alimentan el formato Texto) ----
+  const statsPorEjecutivo = (ejecutivoId: string) => {
+    const f = (reporte?.facturas || []).filter((x) => x.ejecutivoId === ejecutivoId);
+    const c = (reporte?.cobranza || []).filter((x) => x.creadoPor === ejecutivoId);
+    const mes = acumMes?.porEjecutivo?.[ejecutivoId] || {
+      udsLumaggs: 0,
+      udsGalsa: 0,
+      cobLumaggs: 0,
+      cobGalsa: 0,
+    };
+    const sumU = (k: string) =>
+      f.filter((x) => x.empresaVendedora === k).reduce((s, x) => s + x.unidades, 0);
+    const sumC = (k: string) =>
+      c.filter((x) => x.empresaVendedora === k).reduce((s, x) => s + x.importe, 0);
+    return {
+      udsLumaggsPeriodo: sumU("lumaggs_chevron"),
+      udsGalsaPeriodo: sumU("galsa_phillips66"),
+      cobLumaggsPeriodo: sumC("lumaggs_chevron"),
+      cobGalsaPeriodo: sumC("galsa_phillips66"),
+      udsLumaggsMes: mes.udsLumaggs,
+      udsGalsaMes: mes.udsGalsa,
+      cobLumaggsMes: mes.cobLumaggs,
+      cobGalsaMes: mes.cobGalsa,
+    };
+  };
+
+  const formatearTextoEjecutivo = (ejecutivoId: string) => {
+    const s = statsPorEjecutivo(ejecutivoId);
+    const desde = params?.fechaInicio || fechaInicio;
+    const hasta = params?.fechaFin || fechaFin;
+    const fmt = (d: string) => format(new Date(`${d}T12:00:00`), "dd 'de' MMMM yyyy", { locale: es });
+    const L: string[] = [];
+    L.push(`Reporte del ${fmt(desde)} al ${fmt(hasta)}`);
+    L.push(`Ejecutivo: ${nombreDe(ejecutivoId)}`);
+    L.push("");
+    L.push("Lumaggs");
+    L.push(`Unidades vendidas Lumaggs: ${num(s.udsLumaggsPeriodo)}`);
+    L.push(`Unidades del mes Lumaggs: ${num(s.udsLumaggsMes)}`);
+    L.push(`Importe cobrado Lumaggs: ${money(s.cobLumaggsPeriodo)}`);
+    L.push(`Importe cobrado mes Lumaggs: ${money(s.cobLumaggsMes)}`);
+    L.push("");
+    L.push("Galsa");
+    L.push(`Unidades vendidas Galsa: ${num(s.udsGalsaPeriodo)}`);
+    L.push(`Unidades del mes Galsa: ${num(s.udsGalsaMes)}`);
+    L.push(`Importe cobrado Galsa: ${money(s.cobGalsaPeriodo)}`);
+    L.push(`Importe cobrado mes Galsa: ${money(s.cobGalsaMes)}`);
+    L.push("");
+
+    const acts = (reporte?.actividades || []).filter((a) => a.userId === ejecutivoId);
+    L.push("Actividades");
+    if (acts.length === 0) L.push("Sin registros");
+    for (const a of acts) {
+      const prom =
+        a.promedioHistorico && a.promedioHistorico > 0
+          ? ` (Promedio histórico: ${num(a.promedioHistorico)} uds/mes)`
+          : "";
+      L.push(`${a.cliente} - ${a.tipo} - ${a.descripcion}${prom}`);
+      if (a.empresaId) {
+        const udsFact = (reporte?.facturas || [])
+          .filter((f) => f.empresaId === a.empresaId)
+          .reduce((t, f) => t + f.unidades, 0);
+        const udsCot = (reporte?.cotizaciones || [])
+          .filter((c) => c.empresaId === a.empresaId)
+          .reduce((t, c) => t + c.unidades, 0);
+        const partes: string[] = [];
+        if (udsFact > 0) partes.push(`Unidades vendidas ${num(udsFact)}`);
+        if (udsCot > 0) partes.push(`Unidades Cotizadas ${num(udsCot)}`);
+        if (partes.length > 0) L.push(partes.join("  "));
+      }
+    }
+    L.push("");
+
+    const ordenMarca = (arr: DocRow[]) => [
+      ...arr.filter((x) => x.empresaVendedora === "galsa_phillips66"),
+      ...arr.filter((x) => x.empresaVendedora !== "galsa_phillips66"),
+    ];
+
+    const cots = ordenMarca((reporte?.cotizaciones || []).filter((c) => c.ejecutivoId === ejecutivoId));
+    L.push("Cotizaciones");
+    if (cots.length === 0) L.push("Sin registros");
+    for (const c of cots)
+      L.push(
+        `${EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora} - ${c.folio} - ${c.cliente} - ${num(c.unidades)}`
+      );
+    L.push("");
+
+    const facts = ordenMarca((reporte?.facturas || []).filter((f) => f.ejecutivoId === ejecutivoId));
+    L.push("Facturado");
+    if (facts.length === 0) L.push("Sin registros");
+    for (const f of facts) L.push(`${f.folio} - ${f.cliente} - ${num(f.unidades)}`);
+    L.push("");
+
+    const cobs = (reporte?.cobranza || []).filter((c) => c.creadoPor === ejecutivoId);
+    L.push("Cobrado");
+    if (cobs.length === 0) L.push("Sin registros");
+    for (const c of cobs) L.push(`${c.cliente} - ${money(c.importe)}`);
+
+    return L.join("\n");
+  };
+
+  const textoCompleto = () =>
+    (params?.ids || selectedIds).map((id) => formatearTextoEjecutivo(id)).join("\n\n----------\n\n");
+
+  const abrirTexto = () => {
+    if (!reporte) {
+      toast.error("Primero genera el reporte");
+      return;
+    }
+    setTextoValor(textoCompleto());
+    setTextoOpen(true);
+  };
+
+  const copiarTexto = async () => {
+    try {
+      await navigator.clipboard.writeText(textoValor);
+      toast.success("Texto copiado");
+    } catch {
+      toast.error("No se pudo copiar");
+    }
+  };
+
+  const descargarDoc = () => {
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><p style="font-family:Arial;font-size:11pt">${textoValor
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br>")}</p></body></html>`;
+    const blob = new Blob([html], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `reporte_diario_${params?.fechaInicio || fechaInicio}_${params?.fechaFin || fechaFin}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const generar = () => {
     if (selectedIds.length === 0) {
       toast.error("Selecciona al menos un ejecutivo");
       return;
     }
-    setParams({ fecha: format(fecha, "yyyy-MM-dd"), ids: selectedIds });
+    setParams({ fechaInicio, fechaFin, ids: selectedIds });
   };
 
   const descargarExcel = () => {
@@ -324,10 +548,11 @@ export default function ReporteDiario() {
       toast.error("Primero genera el reporte");
       return;
     }
-    const day = params!.fecha;
+    const desde = params!.fechaInicio;
+    const day = params!.fechaFin;
     const aoa: (string | number)[][] = [];
     aoa.push([`Reporte diario consolidado`]);
-    aoa.push([`Fecha: ${day}`]);
+    aoa.push([`Periodo: ${desde} a ${day}`]);
     aoa.push([]);
     aoa.push(["Indicadores"]);
     aoa.push(["Unidades vendidas — Lumaggs", kpis.udsLumaggs]);
