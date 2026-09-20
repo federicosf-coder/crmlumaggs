@@ -243,14 +243,33 @@ export default function ReporteDiario() {
         metodoPago: p.metodo_pago || "—",
         importe: Number(p.monto_total) || 0,
         facturas: aplicMap.get(p.id) || [],
+        creadoPor: p.creado_por || null,
       }));
 
-      const actividades: ActividadRow[] = ((actsRes.data || []) as any[]).map((a) => ({
+      const actsRaw = (actsRes.data || []) as any[];
+      const actCompanyIds = Array.from(
+        new Set(actsRaw.map((a) => a.company_id).filter(Boolean))
+      ) as string[];
+      const promedioMap = new Map<string, number>();
+      if (actCompanyIds.length > 0) {
+        const { data: sv } = await supabase
+          .from("seguimiento_ventas")
+          .select("company_id, promedio_historico_mensual")
+          .in("company_id", actCompanyIds);
+        for (const r of (sv || []) as any[]) {
+          const v = Number(r.promedio_historico_mensual) || 0;
+          promedioMap.set(r.company_id, (promedioMap.get(r.company_id) || 0) + v);
+        }
+      }
+
+      const actividades: ActividadRow[] = actsRaw.map((a) => ({
         id: a.id,
         userId: a.user_id || null,
         cliente: a.companies?.name || "Sin empresa",
+        empresaId: a.company_id || null,
         tipo: a.type || "—",
         descripcion: (a.description || "").trim() || a.title || "",
+        promedioHistorico: a.company_id ? promedioMap.get(a.company_id) ?? null : null,
       }));
 
       return { cotizaciones, facturas, cobranza, actividades };
