@@ -79,9 +79,29 @@ export default function ReporteDiario() {
   const { user, hasAnyRole } = useAuth();
   const esGerencia = hasAnyRole(["admin", "manager"]);
 
-  const [fecha, setFecha] = useState<Date>(new Date());
+  type PeriodoKey = "ayer" | "hoy" | "semana" | "mes" | "periodo";
+  const [periodo, setPeriodo] = useState<PeriodoKey>("hoy");
+  const [rango, setRango] = useState<DateRange | undefined>({ from: new Date(), to: new Date() });
   const [seleccion, setSeleccion] = useState<string[] | null>(null);
-  const [params, setParams] = useState<{ fecha: string; ids: string[] } | null>(null);
+  const [params, setParams] = useState<{ fechaInicio: string; fechaFin: string; ids: string[] } | null>(null);
+  const [textoOpen, setTextoOpen] = useState(false);
+  const [textoValor, setTextoValor] = useState("");
+
+  const ymd = (d: Date) => format(d, "yyyy-MM-dd");
+  const { fechaInicio, fechaFin } = useMemo(() => {
+    const hoy = new Date();
+    if (periodo === "ayer") {
+      const a = subDays(hoy, 1);
+      return { fechaInicio: ymd(a), fechaFin: ymd(a) };
+    }
+    if (periodo === "hoy") return { fechaInicio: ymd(hoy), fechaFin: ymd(hoy) };
+    if (periodo === "semana")
+      return { fechaInicio: ymd(startOfWeek(hoy, { weekStartsOn: 1 })), fechaFin: ymd(hoy) };
+    if (periodo === "mes") return { fechaInicio: ymd(startOfMonth(hoy)), fechaFin: ymd(hoy) };
+    const from = rango?.from ?? hoy;
+    const to = rango?.to ?? from;
+    return { fechaInicio: ymd(from), fechaFin: ymd(to) };
+  }, [periodo, rango]);
 
   const { data: ejecutivos = [] } = useQuery({
     queryKey: ["reporte-diario-ejecutivos"],
