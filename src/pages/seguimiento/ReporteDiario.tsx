@@ -38,6 +38,7 @@ interface DocRow {
   folio: string;
   empresaVendedora: string;
   cliente: string;
+  empresaId: string | null;
   total: number;
   unidades: number;
   ejecutivoId: string | null;
@@ -50,14 +51,17 @@ interface CobranzaRow {
   metodoPago: string;
   importe: number;
   facturas: string[];
+  creadoPor: string | null;
 }
 
 interface ActividadRow {
   id: string;
   userId: string | null;
   cliente: string;
+  empresaId: string | null;
   tipo: string;
   descripcion: string;
+  promedioHistorico: number | null;
 }
 
 interface ReporteData {
