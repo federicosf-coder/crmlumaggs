@@ -276,28 +276,37 @@ export default function ReporteDiario() {
     },
   });
 
-  // Acumulado del mes (día 1 del mes hasta la fecha seleccionada), por marca
+  // Acumulado del mes (día 1 del mes de fechaFin hasta fechaFin), por marca y por ejecutivo
   const { data: acumMes } = useQuery({
-    queryKey: ["reporte-diario-acum-mes", params?.fecha, params?.ids],
+    queryKey: ["reporte-diario-acum-mes", params?.fechaFin, params?.ids],
     enabled: !!params && (params?.ids.length || 0) > 0,
     queryFn: async () => {
-      const day = params!.fecha;
+      const hasta = params!.fechaFin;
       const ids = params!.ids;
-      const mesStart = `${day.slice(0, 8)}01`;
+      const mesStart = `${hasta.slice(0, 8)}01`;
 
-      const { data: docsMes, error: docsErr } = await supabase
-        .from("documentos")
-        .select("id, empresa_vendedora, total")
-        .eq("tipo_documento", "factura")
-        .eq("is_active", true)
-        .neq("estatus_factura", "cancelada")
-        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
-        .gte("fecha_documento", mesStart)
-        .lte("fecha_documento", day)
-        .in("ejecutivo_venta_id", ids);
-      if (docsErr) throw docsErr;
+      const [docsRes, pagosRes] = await Promise.all([
+        supabase
+          .from("documentos")
+          .select("id, empresa_vendedora, total, ejecutivo_venta_id")
+          .eq("tipo_documento", "factura")
+          .eq("is_active", true)
+          .neq("estatus_factura", "cancelada")
+          .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
+          .gte("fecha_documento", mesStart)
+          .lte("fecha_documento", hasta)
+          .in("ejecutivo_venta_id", ids),
+        supabase
+          .from("cobranza_pagos")
+          .select("id, empresa_vendedora, monto_total, creado_por")
+          .gte("fecha_pago", mesStart)
+          .lte("fecha_pago", hasta)
+          .in("creado_por", ids),
+      ]);
+      if (docsRes.error) throw docsRes.error;
+      if (pagosRes.error) throw pagosRes.error;
 
-      const rows = (docsMes || []) as any[];
+      const rows = (docsRes.data || []) as any[];
       const docIds = rows.map((d) => d.id);
 
       const unidadesMap = new Map<string, number>();
@@ -321,19 +330,48 @@ export default function ReporteDiario() {
         udsGalsa: 0,
         impLumaggs: 0,
         impGalsa: 0,
+        cobLumaggs: 0,
+        cobGalsa: 0,
       };
+      const porEjecutivo: Record<
+        string,
+        { udsLumaggs: number; udsGalsa: number; cobLumaggs: number; cobGalsa: number }
+      > = {};
+      const bucket = (id: string | null) => {
+        const k = id || "sin_ejecutivo";
+        if (!porEjecutivo[k])
+          porEjecutivo[k] = { udsLumaggs: 0, udsGalsa: 0, cobLumaggs: 0, cobGalsa: 0 };
+        return porEjecutivo[k];
+      };
+
       for (const d of rows) {
         const uds = unidadesMap.get(d.id) || 0;
         const imp = Number(d.total) || 0;
+        const b = bucket(d.ejecutivo_venta_id || null);
         if (d.empresa_vendedora === "lumaggs_chevron") {
           agg.udsLumaggs += uds;
           agg.impLumaggs += imp;
+          b.udsLumaggs += uds;
         } else if (d.empresa_vendedora === "galsa_phillips66") {
           agg.udsGalsa += uds;
           agg.impGalsa += imp;
+          b.udsGalsa += uds;
         }
       }
-      return agg;
+
+      for (const p of (pagosRes.data || []) as any[]) {
+        const imp = Number(p.monto_total) || 0;
+        const b = bucket(p.creado_por || null);
+        if (p.empresa_vendedora === "lumaggs_chevron") {
+          agg.cobLumaggs += imp;
+          b.cobLumaggs += imp;
+        } else if (p.empresa_vendedora === "galsa_phillips66") {
+          agg.cobGalsa += imp;
+          b.cobGalsa += imp;
+        }
+      }
+
+      return { ...agg, porEjecutivo };
     },
   });
 
