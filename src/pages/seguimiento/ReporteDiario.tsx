@@ -485,6 +485,7 @@ export default function ReporteDiario() {
       );
       if (index < acts.length - 1) L.push("<div>&nbsp;</div>");
     });
+    L.push("<br>");
     const ordenMarca = (arr: DocRow[]) => [
       ...arr.filter((x) => x.empresaVendedora === "galsa_phillips66"),
       ...arr.filter((x) => x.empresaVendedora !== "galsa_phillips66"),
