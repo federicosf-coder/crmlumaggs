@@ -480,7 +480,7 @@ export default function ReporteDiario() {
           : "";
       L.push(
         div(
-          `<strong>${escapeHtml(a.cliente)}</strong> - ${escapeHtml(a.tipo)} - ${escapeHtml(a.descripcion)}${escapeHtml(prom)}`
+          `<strong>${escapeHtml(a.cliente)}</strong> - ${escapeHtml(tipoLabel(a.tipo))} - ${escapeHtml(a.descripcion)}${escapeHtml(prom)}`
         )
       );
       if (a.empresaId) {
