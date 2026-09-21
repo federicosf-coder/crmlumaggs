@@ -89,6 +89,13 @@ export default function ReporteDiario() {
   const [params, setParams] = useState<{ fechaInicio: string; fechaFin: string; ids: string[] } | null>(null);
   const [textoOpen, setTextoOpen] = useState(false);
   const [textoHtml, setTextoHtml] = useState("");
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [emailPayload, setEmailPayload] = useState<{
+    ejecutivoId: string;
+    asunto: string;
+    cuerpo: string;
+    replyTo?: string;
+  } | null>(null);
 
   const ymd = (d: Date) => format(d, "yyyy-MM-dd");
   const { fechaInicio, fechaFin } = useMemo(() => {
