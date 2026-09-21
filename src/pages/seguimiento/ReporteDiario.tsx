@@ -17,7 +17,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -74,6 +73,8 @@ interface ReporteData {
 const money = (n: number) =>
   n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 });
 const num = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export default function ReporteDiario() {
   const { user, hasAnyRole } = useAuth();
@@ -85,7 +86,7 @@ export default function ReporteDiario() {
   const [seleccion, setSeleccion] = useState<string[] | null>(null);
   const [params, setParams] = useState<{ fechaInicio: string; fechaFin: string; ids: string[] } | null>(null);
   const [textoOpen, setTextoOpen] = useState(false);
-  const [textoValor, setTextoValor] = useState("");
+  const [textoHtml, setTextoHtml] = useState("");
 
   const ymd = (d: Date) => format(d, "yyyy-MM-dd");
   const { fechaInicio, fechaFin } = useMemo(() => {
@@ -430,32 +431,37 @@ export default function ReporteDiario() {
     const desde = params?.fechaInicio || fechaInicio;
     const hasta = params?.fechaFin || fechaFin;
     const fmt = (d: string) => format(new Date(`${d}T12:00:00`), "dd 'de' MMMM yyyy", { locale: es });
+    const div = (content: string) => `<div>${content}</div>`;
     const L: string[] = [];
-    L.push(`Reporte del ${fmt(desde)} al ${fmt(hasta)}`);
-    L.push(`Ejecutivo: ${nombreDe(ejecutivoId)}`);
-    L.push("");
-    L.push("Lumaggs");
-    L.push(`Unidades vendidas Lumaggs: ${num(s.udsLumaggsPeriodo)}`);
-    L.push(`Unidades del mes Lumaggs: ${num(s.udsLumaggsMes)}`);
-    L.push(`Importe cobrado Lumaggs: ${money(s.cobLumaggsPeriodo)}`);
-    L.push(`Importe cobrado mes Lumaggs: ${money(s.cobLumaggsMes)}`);
-    L.push("");
-    L.push("Galsa");
-    L.push(`Unidades vendidas Galsa: ${num(s.udsGalsaPeriodo)}`);
-    L.push(`Unidades del mes Galsa: ${num(s.udsGalsaMes)}`);
-    L.push(`Importe cobrado Galsa: ${money(s.cobGalsaPeriodo)}`);
-    L.push(`Importe cobrado mes Galsa: ${money(s.cobGalsaMes)}`);
-    L.push("");
+    L.push(div(`Reporte del ${fmt(desde)} al ${fmt(hasta)}`));
+    L.push(div(`Ejecutivo: ${escapeHtml(nombreDe(ejecutivoId))}`));
+    L.push("<br>");
+    L.push(div("<strong>Lumaggs</strong>"));
+    L.push(div(`Unidades vendidas Lumaggs: ${num(s.udsLumaggsPeriodo)}`));
+    L.push(div(`Unidades del mes Lumaggs: ${num(s.udsLumaggsMes)}`));
+    L.push(div(`Importe cobrado Lumaggs: ${money(s.cobLumaggsPeriodo)}`));
+    L.push(div(`Importe cobrado mes Lumaggs: ${money(s.cobLumaggsMes)}`));
+    L.push("<br>");
+    L.push(div("<strong>Galsa</strong>"));
+    L.push(div(`Unidades vendidas Galsa: ${num(s.udsGalsaPeriodo)}`));
+    L.push(div(`Unidades del mes Galsa: ${num(s.udsGalsaMes)}`));
+    L.push(div(`Importe cobrado Galsa: ${money(s.cobGalsaPeriodo)}`));
+    L.push(div(`Importe cobrado mes Galsa: ${money(s.cobGalsaMes)}`));
+    L.push("<br>");
 
     const acts = (reporte?.actividades || []).filter((a) => a.userId === ejecutivoId);
-    L.push("Actividades");
-    if (acts.length === 0) L.push("Sin registros");
-    for (const a of acts) {
+    L.push(div("<strong>Actividades</strong>"));
+    if (acts.length === 0) L.push(div("Sin registros"));
+    acts.forEach((a, index) => {
       const prom =
         a.promedioHistorico && a.promedioHistorico > 0
           ? ` (Promedio histórico: ${num(a.promedioHistorico)} uds/mes)`
           : "";
-      L.push(`${a.cliente} - ${a.tipo} - ${a.descripcion}${prom}`);
+      L.push(
+        div(
+          `<strong>${escapeHtml(a.cliente)}</strong> - ${escapeHtml(a.tipo)} - ${escapeHtml(a.descripcion)}${escapeHtml(prom)}`
+        )
+      );
       if (a.empresaId) {
         const udsFact = (reporte?.facturas || [])
           .filter((f) => f.empresaId === a.empresaId)
@@ -466,10 +472,11 @@ export default function ReporteDiario() {
         const partes: string[] = [];
         if (udsFact > 0) partes.push(`Unidades vendidas ${num(udsFact)}`);
         if (udsCot > 0) partes.push(`Unidades Cotizadas ${num(udsCot)}`);
-        if (partes.length > 0) L.push(partes.join("  "));
+        if (partes.length > 0) L.push(div(partes.join("  ")));
       }
-    }
-    L.push("");
+      if (index < acts.length - 1) L.push("<div>&nbsp;</div>");
+    });
+    L.push("<br>");
 
     const ordenMarca = (arr: DocRow[]) => [
       ...arr.filter((x) => x.empresaVendedora === "galsa_phillips66"),
@@ -477,43 +484,63 @@ export default function ReporteDiario() {
     ];
 
     const cots = ordenMarca((reporte?.cotizaciones || []).filter((c) => c.ejecutivoId === ejecutivoId));
-    L.push("Cotizaciones");
-    if (cots.length === 0) L.push("Sin registros");
+    L.push(div("<strong>Cotizaciones</strong>"));
+    if (cots.length === 0) L.push(div("Sin registros"));
     for (const c of cots)
       L.push(
-        `${EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora} - ${c.folio} - ${c.cliente} - ${num(c.unidades)}`
+        div(
+          `${escapeHtml(EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora)} - ${escapeHtml(c.folio)} - ${escapeHtml(c.cliente)} - ${num(c.unidades)}`
+        )
       );
-    L.push("");
+    L.push("<br>");
 
     const facts = ordenMarca((reporte?.facturas || []).filter((f) => f.ejecutivoId === ejecutivoId));
-    L.push("Facturado");
-    if (facts.length === 0) L.push("Sin registros");
-    for (const f of facts) L.push(`${f.folio} - ${f.cliente} - ${num(f.unidades)}`);
-    L.push("");
+    L.push(div("<strong>Facturado</strong>"));
+    if (facts.length === 0) L.push(div("Sin registros"));
+    for (const f of facts) L.push(div(`${escapeHtml(f.folio)} - ${escapeHtml(f.cliente)} - ${num(f.unidades)}`));
+    L.push("<br>");
 
     const cobs = (reporte?.cobranza || []).filter((c) => c.creadoPor === ejecutivoId);
-    L.push("Cobrado");
-    if (cobs.length === 0) L.push("Sin registros");
-    for (const c of cobs) L.push(`${c.cliente} - ${money(c.importe)}`);
+    L.push(div("<strong>Cobrado</strong>"));
+    if (cobs.length === 0) L.push(div("Sin registros"));
+    for (const c of cobs) L.push(div(`${escapeHtml(c.cliente)} - ${money(c.importe)}`));
 
-    return L.join("\n");
+    return L.join("");
   };
 
   const textoCompleto = () =>
-    (params?.ids || selectedIds).map((id) => formatearTextoEjecutivo(id)).join("\n\n----------\n\n");
+    (params?.ids || selectedIds)
+      .map((id) => formatearTextoEjecutivo(id))
+      .join('<hr style="margin:16px 0;border-top:1px solid #ccc;">');
 
   const abrirTexto = () => {
     if (!reporte) {
       toast.error("Primero genera el reporte");
       return;
     }
-    setTextoValor(textoCompleto());
+    setTextoHtml(textoCompleto());
     setTextoOpen(true);
+  };
+
+  const textoPlanoDesdeHtml = () => {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = textoHtml;
+    return tmp.textContent || "";
   };
 
   const copiarTexto = async () => {
     try {
-      await navigator.clipboard.writeText(textoValor);
+      const plano = textoPlanoDesdeHtml();
+      if ("ClipboardItem" in window && navigator.clipboard.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([textoHtml], { type: "text/html" }),
+            "text/plain": new Blob([plano], { type: "text/plain" }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(plano);
+      }
       toast.success("Texto copiado");
     } catch {
       toast.error("No se pudo copiar");
@@ -521,11 +548,7 @@ export default function ReporteDiario() {
   };
 
   const descargarDoc = () => {
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><p style="font-family:Arial;font-size:11pt">${textoValor
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\n/g, "<br>")}</p></body></html>`;
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body style="font-family:Arial;font-size:11pt">${textoHtml}</body></html>`;
     const blob = new Blob([html], { type: "application/msword" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1004,10 +1027,12 @@ export default function ReporteDiario() {
           <DialogHeader>
             <DialogTitle>Reporte en texto</DialogTitle>
           </DialogHeader>
-          <Textarea
-            value={textoValor}
-            onChange={(e) => setTextoValor(e.target.value)}
-            className="min-h-[400px] font-mono text-xs"
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            className="min-h-[400px] max-h-[60vh] overflow-y-auto border rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            dangerouslySetInnerHTML={{ __html: textoHtml }}
+            onBlur={(e) => setTextoHtml(e.currentTarget.innerHTML)}
           />
           <DialogFooter>
             <Button variant="outline" onClick={copiarTexto}>
