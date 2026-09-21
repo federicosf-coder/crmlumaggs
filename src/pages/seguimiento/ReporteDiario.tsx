@@ -1110,7 +1110,7 @@ export default function ReporteDiario() {
           replyTo={emailPayload.replyTo}
           blockedEmails={[]}
           previouslySentEmails={[]}
-          templateName="reporte-diario-actividades"
+          templateName="raw-html"
           subjectOverride={emailPayload.asunto}
           htmlOverride={emailPayload.cuerpo}
           title="Enviar reporte por correo"
