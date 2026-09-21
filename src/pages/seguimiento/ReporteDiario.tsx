@@ -704,7 +704,7 @@ export default function ReporteDiario() {
       ])
     );
 
-    doc.save(`reporte_diario_${day}.pdf`);
+    doc.save(`reporte_diario_${desde}_${day}.pdf`);
   };
 
   return (
@@ -998,6 +998,29 @@ export default function ReporteDiario() {
           </Card>
         </div>
       )}
+
+      <Dialog open={textoOpen} onOpenChange={setTextoOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Reporte en texto</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={textoValor}
+            onChange={(e) => setTextoValor(e.target.value)}
+            className="min-h-[400px] font-mono text-xs"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={copiarTexto}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copiar
+            </Button>
+            <Button onClick={descargarDoc}>
+              <FileDown className="mr-2 h-4 w-4" />
+              Descargar .doc
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
