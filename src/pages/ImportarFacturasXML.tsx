@@ -431,7 +431,8 @@ export default function ImportarFacturasXML() {
     tipoPagoManual[row.id] ?? perfilDe(row)?.tipoPagoDefault ?? "";
   const fechaVencResuelta = (row: IntakeRow): string =>
     fechaVencManual[row.id] ?? calcularFechaVencimiento(row.fecha_factura, tipoPagoResuelto(row));
-  const estatusResuelto = (row: IntakeRow): string => estatusManual[row.id] ?? "vigente";
+  // Las facturas importadas por XML siempre se crean como "vigente".
+  const estatusResuelto = (_row: IntakeRow): string => "vigente";
 
 
 
