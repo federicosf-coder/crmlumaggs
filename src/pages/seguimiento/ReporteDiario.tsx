@@ -540,6 +540,28 @@ export default function ReporteDiario() {
     return tmp.textContent || "";
   };
 
+  const idsReporteActual = params?.ids || selectedIds;
+
+  const abrirEnvioCorreo = () => {
+    if (idsReporteActual.length !== 1) return;
+    const ejecutivoId = idsReporteActual[0];
+    const desde = params?.fechaInicio || fechaInicio;
+    const hasta = params?.fechaFin || fechaFin;
+    const fmt = (d: string) => format(new Date(`${d}T12:00:00`), "dd 'de' MMMM yyyy", { locale: es });
+    const saludo =
+      "<div>Buen día Sres. Galván, por medio del presente les envío un cordial saludo y envío reporte de actividades.</div><div>&nbsp;</div>";
+    const despedida = `<div>&nbsp;</div><div>De antemano agradezco su atención y quedo al pendiente de cualquier comentario.</div><div>&nbsp;</div><div>Saludos,</div><div>${escapeHtml(nombreDe(ejecutivoId))}</div>`;
+    const cuerpoCorreo = saludo + textoHtml + despedida;
+    const asunto = `Reporte de actividades — ${nombreDe(ejecutivoId)} — ${fmt(desde)} al ${fmt(hasta)}`;
+    setEmailPayload({
+      ejecutivoId,
+      asunto,
+      cuerpo: cuerpoCorreo,
+      replyTo: emailDe(ejecutivoId),
+    });
+    setEmailPreviewOpen(true);
+  };
+
   const copiarTexto = async () => {
     try {
       const plano = textoPlanoDesdeHtml();
