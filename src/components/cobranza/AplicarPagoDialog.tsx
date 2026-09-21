@@ -67,7 +67,9 @@ export function AplicarPagoDialog({ open, onOpenChange, pago, onSaved }: Props) 
         const mapped: DocOption[] = (data || [])
           .filter((d: any) => {
             const status = (d.estatus_factura || "").toLowerCase();
-            return status !== "pagada" && status !== "cancelada";
+            // Se muestran todos los documentos con saldo pendiente > 0 (ya filtrado en la query),
+            // aunque el estatus haya quedado marcado como "pagada" por inconsistencia.
+            return status !== "cancelada";
           })
           .map((d: any) => ({
             id: d.id,
