@@ -835,7 +835,7 @@ export default function ReporteDiario() {
             </Button>
             <Button variant="outline" onClick={abrirTexto} disabled={!hayDatos}>
               <Copy className="mr-2 h-4 w-4" />
-              Texto
+              Texto y Correo
             </Button>
           </div>
 
