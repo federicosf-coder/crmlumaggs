@@ -497,7 +497,7 @@ export default function ReporteDiario() {
     for (const c of cots)
       L.push(
         div(
-          `${escapeHtml(EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora)} - ${escapeHtml(c.folio)} - ${escapeHtml(c.cliente)} - ${num(c.unidades)}`
+          `${escapeHtml(EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora)} - ${escapeHtml(c.folio)} - ${escapeHtml(c.cliente)} - ${num(c.unidades)} uds`
         )
       );
     L.push("<br>");
@@ -505,7 +505,7 @@ export default function ReporteDiario() {
     const facts = ordenMarca((reporte?.facturas || []).filter((f) => f.ejecutivoId === ejecutivoId));
     L.push(div("<strong>Facturado</strong>"));
     if (facts.length === 0) L.push(div("Sin registros"));
-    for (const f of facts) L.push(div(`${escapeHtml(f.folio)} - ${escapeHtml(f.cliente)} - ${num(f.unidades)}`));
+    for (const f of facts) L.push(div(`${escapeHtml(f.folio)} - ${escapeHtml(f.cliente)} - ${num(f.unidades)} uds`));
     L.push("<br>");
 
     const cobs = (reporte?.cobranza || []).filter((c) => c.creadoPor === ejecutivoId);
