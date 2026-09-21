@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { format, startOfMonth, startOfWeek, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
-import { CalendarIcon, FileSpreadsheet, FileText, FileDown, Copy } from "lucide-react";
+import { CalendarIcon, FileSpreadsheet, FileText, FileDown, Copy, Mail } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 
 const EMPRESA_LABELS: Record<string, string> = {
   lumaggs_chevron: "Lumaggs (Chevron)",
@@ -29,6 +30,7 @@ const EMPRESA_LABELS: Record<string, string> = {
 interface EjecutivoOption {
   user_id: string;
   full_name: string | null;
+  email: string | null;
 }
 
 interface DocRow {
@@ -87,6 +89,13 @@ export default function ReporteDiario() {
   const [params, setParams] = useState<{ fechaInicio: string; fechaFin: string; ids: string[] } | null>(null);
   const [textoOpen, setTextoOpen] = useState(false);
   const [textoHtml, setTextoHtml] = useState("");
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [emailPayload, setEmailPayload] = useState<{
+    ejecutivoId: string;
+    asunto: string;
+    cuerpo: string;
+    replyTo?: string;
+  } | null>(null);
 
   const ymd = (d: Date) => format(d, "yyyy-MM-dd");
   const { fechaInicio, fechaFin } = useMemo(() => {
@@ -109,7 +118,7 @@ export default function ReporteDiario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, email")
         .eq("is_active", true)
         .order("full_name");
       if (error) throw error;
@@ -142,6 +151,9 @@ export default function ReporteDiario() {
 
   const nombreDe = (id: string | null) =>
     (id && ejecutivos.find((e) => e.user_id === id)?.full_name) || "Sin nombre";
+
+  const emailDe = (id: string | null) =>
+    (id && ejecutivos.find((e) => e.user_id === id)?.email) || undefined;
 
   const { data: reporte, isFetching } = useQuery({
     queryKey: ["reporte-diario-consolidado", params?.fechaInicio, params?.fechaFin, params?.ids],
@@ -526,6 +538,28 @@ export default function ReporteDiario() {
     const tmp = document.createElement("div");
     tmp.innerHTML = textoHtml;
     return tmp.textContent || "";
+  };
+
+  const idsReporteActual = params?.ids || selectedIds;
+
+  const abrirEnvioCorreo = () => {
+    if (idsReporteActual.length !== 1) return;
+    const ejecutivoId = idsReporteActual[0];
+    const desde = params?.fechaInicio || fechaInicio;
+    const hasta = params?.fechaFin || fechaFin;
+    const fmt = (d: string) => format(new Date(`${d}T12:00:00`), "dd 'de' MMMM yyyy", { locale: es });
+    const saludo =
+      "<div>Buen día Sres. Galván, por medio del presente les envío un cordial saludo y envío reporte de actividades.</div><div>&nbsp;</div>";
+    const despedida = `<div>&nbsp;</div><div>De antemano agradezco su atención y quedo al pendiente de cualquier comentario.</div><div>&nbsp;</div><div>Saludos,</div><div>${escapeHtml(nombreDe(ejecutivoId))}</div>`;
+    const cuerpoCorreo = saludo + textoHtml + despedida;
+    const asunto = `Reporte de actividades — ${nombreDe(ejecutivoId)} — ${fmt(desde)} al ${fmt(hasta)}`;
+    setEmailPayload({
+      ejecutivoId,
+      asunto,
+      cuerpo: cuerpoCorreo,
+      replyTo: emailDe(ejecutivoId),
+    });
+    setEmailPreviewOpen(true);
   };
 
   const copiarTexto = async () => {
@@ -1043,9 +1077,47 @@ export default function ReporteDiario() {
               <FileDown className="mr-2 h-4 w-4" />
               Descargar .doc
             </Button>
+            <Button
+              variant="outline"
+              onClick={abrirEnvioCorreo}
+              disabled={idsReporteActual.length !== 1}
+              title={
+                idsReporteActual.length !== 1
+                  ? "Selecciona un solo ejecutivo para enviar por correo"
+                  : undefined
+              }
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Enviar por correo
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {emailPayload && (
+        <EnviarConfirmacionPagoDialog
+          open={emailPreviewOpen}
+          onOpenChange={setEmailPreviewOpen}
+          pagoId={`reporte-${emailPayload.ejecutivoId}-${params?.fechaInicio || fechaInicio}-${params?.fechaFin || fechaFin}`}
+          empresa="Galván"
+          fechaPago={params?.fechaFin || fechaFin}
+          montoTotal=""
+          moneda=""
+          documentos={[]}
+          comprobantes={[]}
+          defaultEmails={["ggalvan@dagal.com.mx", "miguelgalvan@dagal.com.mx"]}
+          ccEmails={["f.sarinanaf@dagal.com.mx"]}
+          replyTo={emailPayload.replyTo}
+          blockedEmails={[]}
+          previouslySentEmails={[]}
+          templateName="reporte-diario-actividades"
+          subjectOverride={emailPayload.asunto}
+          htmlOverride={emailPayload.cuerpo}
+          title="Enviar reporte por correo"
+          description="Revisa destinatarios y contenido antes de enviar."
+          onSent={() => toast.success("Reporte enviado por correo")}
+        />
+      )}
     </div>
   );
 }
