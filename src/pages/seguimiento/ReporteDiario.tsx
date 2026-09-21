@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { format, startOfMonth, startOfWeek, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
-import { CalendarIcon, FileSpreadsheet, FileText, FileDown, Copy } from "lucide-react";
+import { CalendarIcon, FileSpreadsheet, FileText, FileDown, Copy, Mail } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 
 const EMPRESA_LABELS: Record<string, string> = {
   lumaggs_chevron: "Lumaggs (Chevron)",
@@ -29,6 +30,7 @@ const EMPRESA_LABELS: Record<string, string> = {
 interface EjecutivoOption {
   user_id: string;
   full_name: string | null;
+  email: string | null;
 }
 
 interface DocRow {
@@ -109,7 +111,7 @@ export default function ReporteDiario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, email")
         .eq("is_active", true)
         .order("full_name");
       if (error) throw error;
@@ -142,6 +144,9 @@ export default function ReporteDiario() {
 
   const nombreDe = (id: string | null) =>
     (id && ejecutivos.find((e) => e.user_id === id)?.full_name) || "Sin nombre";
+
+  const emailDe = (id: string | null) =>
+    (id && ejecutivos.find((e) => e.user_id === id)?.email) || undefined;
 
   const { data: reporte, isFetching } = useQuery({
     queryKey: ["reporte-diario-consolidado", params?.fechaInicio, params?.fechaFin, params?.ids],
