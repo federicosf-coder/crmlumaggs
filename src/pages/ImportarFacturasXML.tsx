@@ -431,7 +431,8 @@ export default function ImportarFacturasXML() {
     tipoPagoManual[row.id] ?? perfilDe(row)?.tipoPagoDefault ?? "";
   const fechaVencResuelta = (row: IntakeRow): string =>
     fechaVencManual[row.id] ?? calcularFechaVencimiento(row.fecha_factura, tipoPagoResuelto(row));
-  const estatusResuelto = (row: IntakeRow): string => estatusManual[row.id] ?? "vigente";
+  // Las facturas importadas por XML siempre se crean como "vigente".
+  const estatusResuelto = (_row: IntakeRow): string => "vigente";
 
 
 
@@ -994,19 +995,7 @@ export default function ImportarFacturasXML() {
 
                     <div className="space-y-1.5">
                       <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Estatus</Label>
-                      <Select
-                        value={estatusResuelto(row)}
-                        onValueChange={(v) => setEstatusManual((p) => ({ ...p, [row.id]: v }))}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Estatus…" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="vigente">Vigente</SelectItem>
-                          <SelectItem value="pagada">Pagada</SelectItem>
-                          <SelectItem value="cancelada">Cancelada</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Input className="h-9" value="Vigente" readOnly disabled />
                     </div>
 
                   </div>
