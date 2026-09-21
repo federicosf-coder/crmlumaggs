@@ -78,6 +78,15 @@ const num = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+const TIPO_ACTIVIDAD_LABELS: Record<string, string> = {
+  call: "Llamada",
+  email: "Correo",
+  field_visit: "Visita",
+  meeting: "Junta",
+  whatsapp: "WhatsApp",
+};
+const tipoLabel = (t: string) => TIPO_ACTIVIDAD_LABELS[t] || t;
+
 export default function ReporteDiario() {
   const { user, hasAnyRole } = useAuth();
   const esGerencia = hasAnyRole(["admin", "manager"]);
