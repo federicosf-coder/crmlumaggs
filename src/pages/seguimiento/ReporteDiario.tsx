@@ -459,15 +459,11 @@ export default function ReporteDiario() {
     L.push("<br>");
     L.push(div("<strong>Lumaggs</strong>"));
     L.push(div(`Unidades vendidas Lumaggs: ${num(s.udsLumaggsPeriodo)}`));
-    L.push(div(`Unidades del mes Lumaggs: ${num(s.udsLumaggsMes)}`));
-    L.push(div(`Importe cobrado Lumaggs: ${money(s.cobLumaggsPeriodo)}`));
-    L.push(div(`Importe cobrado mes Lumaggs: ${money(s.cobLumaggsMes)}`));
+    L.push(div(`Unidades acumuladas del mes Lumaggs: ${num(s.udsLumaggsMes)}`));
     L.push("<br>");
     L.push(div("<strong>Galsa</strong>"));
     L.push(div(`Unidades vendidas Galsa: ${num(s.udsGalsaPeriodo)}`));
-    L.push(div(`Unidades del mes Galsa: ${num(s.udsGalsaMes)}`));
-    L.push(div(`Importe cobrado Galsa: ${money(s.cobGalsaPeriodo)}`));
-    L.push(div(`Importe cobrado mes Galsa: ${money(s.cobGalsaMes)}`));
+    L.push(div(`Unidades acumuladas del mes Galsa: ${num(s.udsGalsaMes)}`));
     L.push("<br>");
 
     const acts = (reporte?.actividades || []).filter((a) => a.userId === ejecutivoId);
