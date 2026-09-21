@@ -617,10 +617,11 @@ export default function ReporteDiario() {
       toast.error("Primero genera el reporte");
       return;
     }
-    const day = params!.fecha;
+    const desde = params!.fechaInicio;
+    const day = params!.fechaFin;
     const doc = new jsPDF({ orientation: "landscape" });
     doc.setFontSize(14);
-    doc.text(`Reporte diario — ${format(fecha, "PPP", { locale: es })}`, 14, 16);
+    doc.text(`Reporte diario — ${desde} a ${day}`, 14, 16);
     doc.setFontSize(10);
     doc.text(
       [
@@ -725,24 +726,36 @@ export default function ReporteDiario() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(fecha, "PPP", { locale: es })}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={fecha}
-                  onSelect={(d) => d && setFecha(d)}
-                  initialFocus
-                  locale={es}
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            {(["ayer", "hoy", "semana", "mes", "periodo"] as const).map((p) => (
+              <Button
+                key={p}
+                size="sm"
+                variant={periodo === p ? "default" : "outline"}
+                onClick={() => setPeriodo(p)}
+              >
+                {p === "ayer" ? "Ayer" : p === "hoy" ? "Hoy" : p === "semana" ? "Esta semana" : p === "mes" ? "Este mes" : "Periodo"}
+              </Button>
+            ))}
+            {periodo === "periodo" && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {fechaInicio} — {fechaFin}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={rango}
+                    onSelect={setRango}
+                    initialFocus
+                    locale={es}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
             <Button onClick={generar} disabled={isFetching}>
               {isFetching ? "Generando…" : "Generar reporte"}
             </Button>
@@ -753,6 +766,10 @@ export default function ReporteDiario() {
             <Button variant="outline" onClick={descargarPDF} disabled={!hayDatos}>
               <FileDown className="mr-2 h-4 w-4" />
               Descargar PDF
+            </Button>
+            <Button variant="outline" onClick={abrirTexto} disabled={!hayDatos}>
+              <Copy className="mr-2 h-4 w-4" />
+              Texto
             </Button>
           </div>
 
