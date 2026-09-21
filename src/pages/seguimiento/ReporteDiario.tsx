@@ -1055,9 +1055,47 @@ export default function ReporteDiario() {
               <FileDown className="mr-2 h-4 w-4" />
               Descargar .doc
             </Button>
+            <Button
+              variant="outline"
+              onClick={abrirEnvioCorreo}
+              disabled={idsReporteActual.length !== 1}
+              title={
+                idsReporteActual.length !== 1
+                  ? "Selecciona un solo ejecutivo para enviar por correo"
+                  : undefined
+              }
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Enviar por correo
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {emailPayload && (
+        <EnviarConfirmacionPagoDialog
+          open={emailPreviewOpen}
+          onOpenChange={setEmailPreviewOpen}
+          pagoId={`reporte-${emailPayload.ejecutivoId}-${params?.fechaInicio || fechaInicio}-${params?.fechaFin || fechaFin}`}
+          empresa="Galván"
+          fechaPago={params?.fechaFin || fechaFin}
+          montoTotal=""
+          moneda=""
+          documentos={[]}
+          comprobantes={[]}
+          defaultEmails={["ggalvan@dagal.com.mx", "miguelgalvan@dagal.com.mx"]}
+          ccEmails={["f.sarinanaf@dagal.com.mx"]}
+          replyTo={emailPayload.replyTo}
+          blockedEmails={[]}
+          previouslySentEmails={[]}
+          templateName="reporte-diario-actividades"
+          subjectOverride={emailPayload.asunto}
+          htmlOverride={emailPayload.cuerpo}
+          title="Enviar reporte por correo"
+          description="Revisa destinatarios y contenido antes de enviar."
+          onSent={() => toast.success("Reporte enviado por correo")}
+        />
+      )}
     </div>
   );
 }
