@@ -2302,7 +2302,11 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
                 <TableBody>
                   {aplicaciones.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Sin aplicaciones</TableCell></TableRow>}
                   {aplicaciones.map((a) => {
-                    const folio = a.documento?.numero_factura || a.documento?.numero_pedido || a.documento?.numero_cotizacion || a.documento_id.slice(0, 8);
+                    const folio = a.documento?.numero_factura
+                      || a.documento?.numero_cotizacion
+                      || a.documento?.numero_cotizacion_origen
+                      || a.documento?.numero_pedido
+                      || "Sin folio";
                     return (
                       <TableRow key={a.id}>
                         <TableCell>{formatDate(a.fecha_aplicacion)}</TableCell>

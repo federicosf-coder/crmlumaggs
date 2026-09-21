@@ -42,6 +42,8 @@ export interface CobranzaAplicacion {
     total: number;
     saldo_pendiente_cobranza: number;
     fecha_vencimiento: string | null;
+    /** Folio de la cotización origen (para pedidos sin folio propio). */
+    numero_cotizacion_origen?: string | null;
   } | null;
 }
 
@@ -151,9 +153,24 @@ export function useCobranzaAplicaciones(pagoId: string | null) {
     if (docIds.length > 0) {
       const { data: docs } = await supabase
         .from("documentos")
-        .select("id,numero_factura,numero_pedido,numero_cotizacion,tipo_documento,total,saldo_pendiente_cobranza,fecha_vencimiento")
+        .select("id,numero_factura,numero_pedido,numero_cotizacion,cotizacion_original_id,tipo_documento,total,saldo_pendiente_cobranza,fecha_vencimiento")
         .in("id", docIds);
       (docs || []).forEach((d: any) => { docsMap[d.id] = d; });
+      // Para pedidos sin folio propio, tomar el folio de la cotización origen
+      const cotIds = Array.from(new Set(
+        (docs || []).map((d: any) => d.cotizacion_original_id).filter(Boolean)
+      ));
+      if (cotIds.length > 0) {
+        const { data: cots } = await supabase
+          .from("documentos")
+          .select("id,numero_cotizacion")
+          .in("id", cotIds as string[]);
+        const cotMap: Record<string, string | null> = {};
+        (cots || []).forEach((c: any) => { cotMap[c.id] = c.numero_cotizacion; });
+        Object.values(docsMap).forEach((d: any) => {
+          d.numero_cotizacion_origen = d.cotizacion_original_id ? cotMap[d.cotizacion_original_id] ?? null : null;
+        });
+      }
     }
     const merged = (data || []).map((a: any) => ({ ...a, documento: docsMap[a.documento_id] || null }));
     setAplicaciones(merged as any);
