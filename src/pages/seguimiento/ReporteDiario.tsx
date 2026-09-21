@@ -1027,10 +1027,12 @@ export default function ReporteDiario() {
           <DialogHeader>
             <DialogTitle>Reporte en texto</DialogTitle>
           </DialogHeader>
-          <Textarea
-            value={textoValor}
-            onChange={(e) => setTextoValor(e.target.value)}
-            className="min-h-[400px] font-mono text-xs"
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            className="min-h-[400px] max-h-[60vh] overflow-y-auto border rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            dangerouslySetInnerHTML={{ __html: textoHtml }}
+            onBlur={(e) => setTextoHtml(e.currentTarget.innerHTML)}
           />
           <DialogFooter>
             <Button variant="outline" onClick={copiarTexto}>
