@@ -42,6 +42,8 @@ export interface CobranzaAplicacion {
     total: number;
     saldo_pendiente_cobranza: number;
     fecha_vencimiento: string | null;
+    /** Folio de la cotización origen (para pedidos sin folio propio). */
+    numero_cotizacion_origen?: string | null;
   } | null;
 }
 
