@@ -483,22 +483,8 @@ export default function ReporteDiario() {
           `<strong>${escapeHtml(a.cliente)}</strong> - ${escapeHtml(tipoLabel(a.tipo))} - ${escapeHtml(a.descripcion)}${escapeHtml(prom)}`
         )
       );
-      if (a.empresaId) {
-        const udsFact = (reporte?.facturas || [])
-          .filter((f) => f.empresaId === a.empresaId)
-          .reduce((t, f) => t + f.unidades, 0);
-        const udsCot = (reporte?.cotizaciones || [])
-          .filter((c) => c.empresaId === a.empresaId)
-          .reduce((t, c) => t + c.unidades, 0);
-        const partes: string[] = [];
-        if (udsFact > 0) partes.push(`Unidades vendidas ${num(udsFact)}`);
-        if (udsCot > 0) partes.push(`Unidades Cotizadas ${num(udsCot)}`);
-        if (partes.length > 0) L.push(div(partes.join("  ")));
-      }
       if (index < acts.length - 1) L.push("<div>&nbsp;</div>");
     });
-    L.push("<br>");
-
     const ordenMarca = (arr: DocRow[]) => [
       ...arr.filter((x) => x.empresaVendedora === "galsa_phillips66"),
       ...arr.filter((x) => x.empresaVendedora !== "galsa_phillips66"),
