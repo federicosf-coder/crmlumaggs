@@ -87,6 +87,12 @@ const TIPO_ACTIVIDAD_LABELS: Record<string, string> = {
 };
 const tipoLabel = (t: string) => TIPO_ACTIVIDAD_LABELS[t] || t;
 
+const fechaCorta = (iso: string) => {
+  const [y, m, d] = iso.split("-");
+  return d && m && y ? `${d}/${m}/${y.slice(2)}` : iso;
+};
+
+
 export default function ReporteDiario() {
   const { user, hasAnyRole } = useAuth();
   const esGerencia = hasAnyRole(["admin", "manager"]);
@@ -561,7 +567,7 @@ export default function ReporteDiario() {
       "<div>Buen día Sres. Galván, por medio del presente les envío un cordial saludo y envío reporte de actividades.</div><div>&nbsp;</div>";
     const despedida = `<div>&nbsp;</div><div>De antemano agradezco su atención y quedo al pendiente de cualquier comentario.</div><div>&nbsp;</div><div>Saludos,</div><div>${escapeHtml(nombreDe(ejecutivoId))}</div>`;
     const cuerpoCorreo = saludo + textoHtml + despedida;
-    const asunto = `Reporte actividades ${nombreDe(ejecutivoId)}`;
+    const asunto = `Reporte actividades ${nombreDe(ejecutivoId)} ${fechaCorta(hasta)}`;
     setEmailPayload({
       ejecutivoId,
       asunto,
