@@ -7950,6 +7950,7 @@ export type Database = {
           is_active: boolean
           phone: string | null
           plaza_id: string | null
+          supervisor_id: string | null
           updated_at: string
           user_id: string
         }
@@ -7963,6 +7964,7 @@ export type Database = {
           is_active?: boolean
           phone?: string | null
           plaza_id?: string | null
+          supervisor_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -7976,6 +7978,7 @@ export type Database = {
           is_active?: boolean
           phone?: string | null
           plaza_id?: string | null
+          supervisor_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -7986,6 +7989,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "plazas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -10561,6 +10571,10 @@ export type Database = {
       get_or_create_upload_token: {
         Args: { _regenerate?: boolean }
         Returns: string
+      }
+      get_supervisor_chain_emails: {
+        Args: { p_user_id: string }
+        Returns: string[]
       }
       get_user_module_access: {
         Args: {
