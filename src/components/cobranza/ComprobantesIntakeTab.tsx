@@ -107,7 +107,7 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
       const { data, error } = await supabase
         .from("comprobantes_intake")
         .select(
-          "id,canal,created_at,storage_path,email_html_storage_path,comprobante_generado_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error,nombre_detectado,metodo_extraido,empresa_id"
+          "id,canal,created_at,storage_path,email_html_storage_path,comprobante_generado_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error,nombre_detectado,metodo_extraido,empresa_id,ejecutivo_id,remitente_email"
         )
         .eq("estatus", "pendiente")
         .order("created_at", { ascending: true });
