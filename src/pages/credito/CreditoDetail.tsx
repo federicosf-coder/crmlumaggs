@@ -2423,7 +2423,7 @@ export default function CreditoDetail() {
         </TabsContent>
 
         {/* ============ DOCUMENTOS ============ */}
-        <TabsContent value="docs" className="space-y-4 mt-4">
+        <div className="order-first space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto pr-1">
           <Card><CardContent className="pt-6 space-y-4">
             {docTypes.length === 0 ? (
               <p className="text-muted-foreground text-sm">No hay tipos de documento configurados.</p>
