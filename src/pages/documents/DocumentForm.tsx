@@ -830,14 +830,38 @@ export default function DocumentForm() {
       }
 
       if (targetType === "pedido") {
+        let draftOk = false;
         try {
           await buildAutorizacionPrecioDraft(inserted.id, user?.id ?? null);
-
+          draftOk = true;
         } catch (draftErr: any) {
           console.error("Error al preparar autorización de precio:", draftErr);
           toast.warning("El pedido se creó, pero no se pudo preparar la autorización de precio automáticamente. Contacta a soporte.");
         }
+
+        // A prueba de fallos: si el borrador se creó, el pedido SIEMPRE debe avanzar
+        // a "espera_autorizacion_precio", sin depender de ningún otro paso.
+        if (draftOk) {
+          let estatusOk = false;
+          for (let intento = 0; intento < 3 && !estatusOk; intento++) {
+            const { error: estatusErr } = await (supabase as any)
+              .from("documentos")
+              .update({ estatus_pedido: "espera_autorizacion_precio" })
+              .eq("id", inserted.id)
+              .eq("tipo_documento", "pedido");
+            if (!estatusErr) {
+              estatusOk = true;
+            } else {
+              console.error("Error al actualizar estatus_pedido (intento " + (intento + 1) + "):", estatusErr);
+              await new Promise((r) => setTimeout(r, 400));
+            }
+          }
+          if (!estatusOk) {
+            toast.warning("El pedido se creó con su autorización, pero no se pudo cambiar el estatus a Espera Autorización. Cámbialo manualmente.");
+          }
+        }
       }
+
 
       qc.invalidateQueries({ queryKey: ["documentos"] });
       toast.success(`${label} creado desde cotización`);
