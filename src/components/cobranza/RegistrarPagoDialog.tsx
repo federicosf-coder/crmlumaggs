@@ -97,7 +97,10 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
     })();
     supabase.from("plazas").select("id,nombre").eq("is_active", true).order("nombre")
       .then(({ data }) => setPlazas(data || []));
-  }, [open]);
+    // Plaza por default: la asignada al usuario que captura el pago
+    if (profile?.plaza_id) setPlazaId((prev) => prev || profile.plaza_id!);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, profile?.plaza_id]);
 
   // Prefill empresa from default when dialog opens
   useEffect(() => {
@@ -198,7 +201,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
 
   const reset = () => {
-    setEmpresaId(""); setPlazaId(""); setEmpVend(empresaVendedora || ""); setMontoTotal(""); setObservaciones("");
+    setEmpresaId(""); setPlazaId(profile?.plaza_id || ""); setEmpVend(empresaVendedora || ""); setMontoTotal(""); setObservaciones("");
     setSeleccion({}); setFiles([]); setDocs([]); setFormaPago("");
     setFechaPago(new Date().toISOString().split("T")[0]);
   };
