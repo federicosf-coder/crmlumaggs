@@ -195,5 +195,6 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity 
         }}
       />
     )}
+    </>
   );
 }
