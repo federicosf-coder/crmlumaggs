@@ -96,6 +96,8 @@ interface IntakeRow {
   nombre_detectado: string | null;
   metodo_extraido: string | null;
   empresa_id: string | null;
+  ejecutivo_id: string | null;
+  remitente_email: string | null;
 }
 
 export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?: EmpresaVendedora }) {
