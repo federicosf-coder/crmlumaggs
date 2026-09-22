@@ -96,6 +96,8 @@ interface IntakeRow {
   nombre_detectado: string | null;
   metodo_extraido: string | null;
   empresa_id: string | null;
+  ejecutivo_id: string | null;
+  remitente_email: string | null;
 }
 
 export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?: EmpresaVendedora }) {
@@ -105,7 +107,7 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
       const { data, error } = await supabase
         .from("comprobantes_intake")
         .select(
-          "id,canal,created_at,storage_path,email_html_storage_path,comprobante_generado_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error,nombre_detectado,metodo_extraido,empresa_id"
+          "id,canal,created_at,storage_path,email_html_storage_path,comprobante_generado_path,nombre_archivo,mime_type,monto_extraido,fecha_extraida,banco_extraido,referencia_extraida,clabe_extraida,tarjeta_ultimos4_extraida,extraccion_error,nombre_detectado,metodo_extraido,empresa_id,ejecutivo_id,remitente_email"
         )
         .eq("estatus", "pendiente")
         .order("created_at", { ascending: true });
@@ -130,6 +132,13 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
     },
   });
 
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas-activas-intake"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id,nombre").eq("is_active", true).order("nombre");
+      return (data || []) as { id: string; nombre: string }[];
+    },
+  });
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Cargando comprobantes...</p>;
@@ -148,7 +157,7 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
   return (
     <div className="space-y-4">
       {comprobantes.map((c) => (
-        <ComprobanteCard key={c.id} row={c} companies={companies} empresaVendedora={empresaVendedora} onDone={() => refetch()} />
+        <ComprobanteCard key={c.id} row={c} companies={companies} plazas={plazas} empresaVendedora={empresaVendedora} onDone={() => refetch()} />
       ))}
     </div>
   );
@@ -157,19 +166,23 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
 function ComprobanteCard({
   row,
   companies,
+  plazas,
   empresaVendedora,
   onDone,
 }: {
   row: IntakeRow;
   companies: { id: string; name: string; razon_social?: string | null }[];
+  plazas: { id: string; nombre: string }[];
   empresaVendedora?: EmpresaVendedora;
   onDone: () => void;
 }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState(row.empresa_id || "");
   const [empVend, setEmpVend] = useState<EmpresaVendedora>(empresaVendedora || null);
+  const [plazaId, setPlazaId] = useState("");
+  const [plazaTocada, setPlazaTocada] = useState(false);
   const autoVinculado = !!row.empresa_id;
 
   const [empresaDatos, setEmpresaDatos] = useState<{ clabe_bancaria: string | null; tarjeta_ultimos4: string | null } | null>(null);
@@ -210,6 +223,40 @@ function ComprobanteCard({
       active = false;
     };
   }, [row.storage_path]);
+
+  // Plaza por default: la del usuario que envió el comprobante; si no, la del usuario en sesión
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      let plazaDefault: string | null = null;
+      if (row.ejecutivo_id) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("plaza_id")
+          .eq("user_id", row.ejecutivo_id)
+          .maybeSingle();
+        plazaDefault = (data as any)?.plaza_id ?? null;
+      }
+      if (!plazaDefault && row.remitente_email) {
+        const email = row.remitente_email.match(/[^\s<>,;]+@[^\s<>,;]+/)?.[0] || row.remitente_email;
+        const { data } = await supabase
+          .from("profiles")
+          .select("plaza_id")
+          .ilike("email", email.trim())
+          .maybeSingle();
+        plazaDefault = (data as any)?.plaza_id ?? null;
+      }
+      if (!plazaDefault) plazaDefault = profile?.plaza_id ?? null;
+      if (active && plazaDefault) {
+        setPlazaId((prev) => (prev ? prev : plazaDefault!));
+      }
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row.id, profile?.plaza_id]);
+
 
   useEffect(() => {
     if (!empresaId) {
@@ -317,13 +364,7 @@ function ComprobanteCard({
 
   const crearPago = async (aplicaciones: { doc_id: string; monto: number }[]): Promise<{ id: string } | null> => {
     try {
-      const { data: cp } = await supabase
-        .from("company_plazas")
-        .select("plaza_id")
-        .eq("company_id", empresaId)
-        .limit(1);
-      const plazaId = cp && cp.length > 0 ? (cp[0] as any).plaza_id : null;
-      if (!plazaId) toast.warning("El cliente no tiene plaza registrada. Completa la plaza manualmente en el pago.");
+
 
       const { data: pago, error: pagoErr } = await supabase
         .from("cobranza_pagos")
@@ -478,6 +519,10 @@ function ComprobanteCard({
       toast.error("Selecciona la forma de pago");
       return;
     }
+    if (!plazaId) {
+      toast.error("La plaza es requerida");
+      return;
+    }
     const aplicaciones = Object.entries(seleccion)
       .map(([doc_id, m]) => ({ doc_id, monto: Number(m) || 0 }))
       .filter((a) => a.monto > 0);
@@ -509,6 +554,10 @@ function ComprobanteCard({
     }
     if (!formaPago) {
       toast.error("Selecciona la forma de pago");
+      return;
+    }
+    if (!plazaId) {
+      toast.error("La plaza es requerida");
       return;
     }
     const aplicaciones = Object.entries(seleccion)
@@ -680,6 +729,26 @@ function ComprobanteCard({
               <p className="text-xs text-muted-foreground mt-1">Nombre detectado: "{row.nombre_detectado}"</p>
             )}
           </div>
+
+          <div>
+            <Label>Plaza *</Label>
+            <SearchableSelect
+              value={plazaId}
+              onValueChange={(v) => {
+                setPlazaTocada(true);
+                setPlazaId(v);
+              }}
+              options={plazas.map((p) => ({ value: p.id, label: p.nombre }))}
+              placeholder="Selecciona plaza..."
+            />
+            {!plazaId ? (
+              <p className="text-xs text-destructive mt-1">La plaza es requerida</p>
+            ) : !plazaTocada ? (
+              <p className="text-xs text-muted-foreground mt-1">Plaza tomada de quien envió el comprobante.</p>
+            ) : null}
+          </div>
+
+
 
 
           {(mismatchClabe || mismatchTarjeta) && (
