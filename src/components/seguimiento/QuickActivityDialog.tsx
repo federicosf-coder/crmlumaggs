@@ -110,7 +110,24 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity 
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Empresa *</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Empresa *</Label>
+              <div className="flex items-center gap-1">
+                <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setCompanyDialogOpen(true)}>
+                  <Plus className="h-3 w-3 mr-1" /> Nueva
+                </Button>
+                {companyId && (
+                  <a
+                    href={`/directory?tab=companies&select=${companyId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline px-2 h-6"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Ver
+                  </a>
+                )}
+              </div>
+            </div>
             <SearchableSelect
               value={companyId}
               onValueChange={setCompanyId}
