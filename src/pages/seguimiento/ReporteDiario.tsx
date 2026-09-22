@@ -567,7 +567,7 @@ export default function ReporteDiario() {
     const saludo =
       "<div>Buen día Sres. Galván, por medio del presente les envío un cordial saludo y envío reporte de actividades.</div><div>&nbsp;</div>";
     const despedida = `<div>&nbsp;</div><div>De antemano agradezco su atención y quedo al pendiente de cualquier comentario.</div><div>&nbsp;</div><div>Saludos,</div><div>${escapeHtml(nombreDe(ejecutivoId))}</div>`;
-    const cuerpoCorreo = saludo + textoHtml + despedida;
+    const cuerpoCorreo = `<div style="font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; line-height: 20px;">${saludo}${textoHtml}${despedida}</div>`;
     const asunto = `Reporte actividades ${nombreDe(ejecutivoId)} ${fechaCorta(hasta)}`;
     setEmailPayload({
       ejecutivoId,
