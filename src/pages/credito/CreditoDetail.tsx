@@ -2171,7 +2171,7 @@ export default function CreditoDetail() {
               </Field>
               <Field label="Antigüedad"><Input value={form.antiguedad || ""} onChange={(e) => set("antiguedad", e.target.value)} /></Field>
             </Section>
-            <Section title="Domicilio fiscal">
+            <Section title="Domicilio fiscal" complete={!!form.domicilio_fiscal}>
               <div className="sm:col-span-2">
                 <Field label="Domicilio">
                   <AddressAutocompleteInput
