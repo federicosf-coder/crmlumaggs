@@ -3,10 +3,15 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, BadgeDollarSign } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Loader2, BadgeDollarSign, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import AutorizacionPrecioCard from "@/components/documents/AutorizacionPrecioCard";
 
 type Autorizacion = any;
+
+const ESTATUS_PEDIDO_AVANZADO = ["validado_contabilidad", "programado_entrega", "entregado"];
 
 export default function AutorizacionPrecios() {
   const { data, isLoading, refetch } = useQuery({
@@ -15,14 +20,37 @@ export default function AutorizacionPrecios() {
       const { data: rows, error } = await (supabase as any)
         .from("documento_autorizaciones_precio")
         .select(
-          "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, created_at, enviado_at, margen_reportado_texto, margen_respondido_por, margen_respondido_at, autorizado, autorizado_por_texto, motivo, autorizacion_respondido_at, pospuesto, pospuesto_at, documentos(id, numero_pedido, numero_factura, fecha_documento, ejecutivo_venta_id, companies(id, name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
+          "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, created_at, enviado_at, margen_reportado_texto, margen_respondido_por, margen_respondido_at, autorizado, autorizado_por_texto, motivo, autorizacion_respondido_at, pospuesto, pospuesto_at, documentos(id, numero_pedido, numero_factura, fecha_documento, estatus_pedido, ejecutivo_venta_id, companies(id, name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
         )
         .in("estatus", ["pendiente_revision", "enviado", "rechazado", "indeterminado"])
         .order("created_at", { ascending: true });
       if (error) throw error;
 
+      // Excluir autorizaciones cuyo pedido ya avanzó más allá de la etapa de autorización
+      const docIds = Array.from(
+        new Set((rows || []).map((r: any) => r.documentos?.id).filter(Boolean))
+      );
+      let pedidosFacturados = new Set<string>();
+      if (docIds.length) {
+        const { data: facturas } = await (supabase as any)
+          .from("documentos")
+          .select("pedido_relacionado_id")
+          .in("pedido_relacionado_id", docIds);
+        pedidosFacturados = new Set(
+          (facturas || []).map((f: any) => f.pedido_relacionado_id).filter(Boolean)
+        );
+      }
+
+      const vigentes = (rows || []).filter((r: any) => {
+        const doc = r.documentos;
+        if (!doc) return true;
+        if (pedidosFacturados.has(doc.id)) return false;
+        if (ESTATUS_PEDIDO_AVANZADO.includes(doc.estatus_pedido)) return false;
+        return true;
+      });
+
       const ids = Array.from(
-        new Set((rows || []).map((r: any) => r.documentos?.ejecutivo_venta_id).filter(Boolean))
+        new Set(vigentes.map((r: any) => r.documentos?.ejecutivo_venta_id).filter(Boolean))
       );
       let mapa: Record<string, string> = {};
       if (ids.length) {
@@ -32,7 +60,7 @@ export default function AutorizacionPrecios() {
           .in("user_id", ids);
         mapa = Object.fromEntries((profs || []).map((p: any) => [p.user_id, p.full_name]));
       }
-      return { rows: (rows || []) as Autorizacion[], ejecutivos: mapa };
+      return { rows: vigentes as Autorizacion[], ejecutivos: mapa };
     },
   });
 
@@ -40,6 +68,8 @@ export default function AutorizacionPrecios() {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("id");
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
+  const [descartando, setDescartando] = useState(false);
 
   useEffect(() => {
     if (!isLoading && highlightId && rows.some((r) => r.id === highlightId)) {
@@ -51,20 +81,127 @@ export default function AutorizacionPrecios() {
     }
   }, [isLoading, highlightId, rows]);
 
+  const toggleSeleccion = (id: string, checked: boolean) => {
+    setSeleccionados((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleSeccion = (idsSeccion: string[], checked: boolean) => {
+    setSeleccionados((prev) => {
+      const next = new Set(prev);
+      for (const id of idsSeccion) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const descartarSeleccionadas = async () => {
+    const ids = Array.from(seleccionados);
+    if (ids.length === 0) return;
+    if (
+      !confirm(
+        `¿Descartar ${ids.length} autorización(es)? Los pedidos volverán a Confirmado Cliente.`
+      )
+    )
+      return;
+
+    setDescartando(true);
+    try {
+      const { data: evidencias } = await (supabase as any)
+        .from("documento_autorizacion_evidencias")
+        .select("storage_path")
+        .in("autorizacion_id", ids);
+      const paths = (evidencias || []).map((e: any) => e.storage_path).filter(Boolean);
+      if (paths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from("autorizacion-precios")
+          .remove(paths);
+        if (storageError) console.warn("No se pudieron eliminar evidencias:", storageError);
+      }
+
+      const { error: evErr } = await (supabase as any)
+        .from("documento_autorizacion_evidencias")
+        .delete()
+        .in("autorizacion_id", ids);
+      if (evErr) throw evErr;
+
+      const docIds = rows
+        .filter((r: Autorizacion) => seleccionados.has(r.id))
+        .map((r: Autorizacion) => r.documento_id)
+        .filter(Boolean);
+
+      const { error: autErr } = await (supabase as any)
+        .from("documento_autorizaciones_precio")
+        .delete()
+        .in("id", ids);
+      if (autErr) throw autErr;
+
+      if (docIds.length > 0) {
+        const { error: docErr } = await (supabase as any)
+          .from("documentos")
+          .update({ estatus_pedido: "confirmado_cliente" })
+          .in("id", docIds)
+          .eq("tipo_documento", "pedido");
+        if (docErr) throw docErr;
+      }
+
+      toast.success(`${ids.length} autorización(es) descartada(s)`);
+      setSeleccionados(new Set());
+      await refetch();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "No se pudieron descartar las autorizaciones");
+    } finally {
+      setDescartando(false);
+    }
+  };
+
   const renderCard = (row: Autorizacion) => (
-    <AutorizacionPrecioCard
-      key={row.id}
-      row={row}
-      ejecutivo={row.documentos?.ejecutivo_venta_id ? data?.ejecutivos?.[row.documentos.ejecutivo_venta_id] : null}
-      onRefetch={refetch}
-      isHighlighted={highlightedId === row.id}
-      defaultOpen={false}
-    />
+    <div key={row.id} className="flex items-start gap-3">
+      <Checkbox
+        className="mt-4"
+        checked={seleccionados.has(row.id)}
+        onCheckedChange={(c) => toggleSeleccion(row.id, c === true)}
+        aria-label="Seleccionar autorización"
+      />
+      <div className="flex-1 min-w-0">
+        <AutorizacionPrecioCard
+          row={row}
+          ejecutivo={
+            row.documentos?.ejecutivo_venta_id
+              ? data?.ejecutivos?.[row.documentos.ejecutivo_venta_id]
+              : null
+          }
+          onRefetch={refetch}
+          isHighlighted={highlightedId === row.id}
+          defaultOpen={false}
+        />
+      </div>
+    </div>
   );
 
   const pendientes = rows.filter((r: Autorizacion) => r.estatus === "pendiente_revision");
   const enviados = rows.filter((r: Autorizacion) => r.estatus === "enviado");
-  const atencion = rows.filter((r: Autorizacion) => r.estatus === "rechazado" || r.estatus === "indeterminado");
+  const atencion = rows.filter(
+    (r: Autorizacion) => r.estatus === "rechazado" || r.estatus === "indeterminado"
+  );
+
+  const seccionCheckbox = (lista: Autorizacion[]) => {
+    const ids = lista.map((r: Autorizacion) => r.id);
+    const todas = ids.length > 0 && ids.every((id) => seleccionados.has(id));
+    return (
+      <label className="flex items-center gap-2 text-xs font-normal text-muted-foreground cursor-pointer">
+        <Checkbox checked={todas} onCheckedChange={(c) => toggleSeccion(ids, c === true)} />
+        Seleccionar todas las visibles
+      </label>
+    );
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -77,6 +214,30 @@ export default function AutorizacionPrecios() {
           </p>
         </div>
       </div>
+
+      {seleccionados.size > 0 && (
+        <div className="sticky top-0 z-20 flex items-center justify-between gap-3 rounded-md border bg-muted/60 px-4 py-2 backdrop-blur">
+          <span className="text-sm font-medium">{seleccionados.size} seleccionadas</span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSeleccionados(new Set())}>
+              Limpiar selección
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={descartarSeleccionadas}
+              disabled={descartando}
+            >
+              {descartando ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Descartar seleccionadas
+            </Button>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -92,27 +253,36 @@ export default function AutorizacionPrecios() {
         <div className="space-y-6">
           {pendientes.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                Pendientes de revisar
-              </h2>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Pendientes de revisar
+                </h2>
+                {seccionCheckbox(pendientes)}
+              </div>
               <div className="space-y-3">{pendientes.map(renderCard)}</div>
             </div>
           )}
 
           {enviados.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                Esperando respuesta
-              </h2>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Esperando respuesta
+                </h2>
+                {seccionCheckbox(enviados)}
+              </div>
               <div className="space-y-3">{enviados.map(renderCard)}</div>
             </div>
           )}
 
           {atencion.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-amber-600">
-                ⚠️ Requieren atención
-              </h2>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-amber-600">
+                  ⚠️ Requieren atención
+                </h2>
+                {seccionCheckbox(atencion)}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Estas quedaron en un estado que necesita que alguien las revise o corrija manualmente.
               </p>
@@ -121,7 +291,6 @@ export default function AutorizacionPrecios() {
           )}
         </div>
       )}
-
     </div>
   );
 }
