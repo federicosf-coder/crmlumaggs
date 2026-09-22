@@ -824,7 +824,9 @@ export default function ImportarFacturasXML() {
             <div className="text-right">
               <div className="text-base font-semibold">{money(row.total)}</div>
               <div className="text-[11px] text-muted-foreground">
-                {row.empresa_vendedora_detectada || "empresa vendedora no detectada"}
+                {empresaVendedoraResuelta(row)
+                  ? EMPRESA_VENDEDORA_LABEL[empresaVendedoraResuelta(row) as string]
+                  : "empresa vendedora no detectada"}
               </div>
             </div>
           </div>
