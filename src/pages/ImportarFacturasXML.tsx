@@ -468,7 +468,7 @@ export default function ImportarFacturasXML() {
     row.cliente_match_estatus === "generico_manual" ||
     !lineasDe(row).every((l) => l.matched) ||
     !row.plaza_id_detectado ||
-    !row.empresa_vendedora_detectada;
+    !empresaVendedoraResuelta(row);
 
   const pendientes = (filas as IntakeRow[]).filter((r) => r.estatus === "pendiente");
   const listas = pendientes.filter((r) => !necesitaRevision(r));
@@ -523,7 +523,7 @@ export default function ImportarFacturasXML() {
   const elegibleAutomatico = (row: IntakeRow) =>
     (row.cliente_match_estatus === "exacto_rfc" || row.cliente_match_estatus === "pendiente") &&
     !!row.plaza_id_detectado &&
-    !!row.empresa_vendedora_detectada;
+    !!empresaVendedoraResuelta(row);
 
   const importarFila = async (row: IntakeRow, silencioso = false, autoRegistrar = false): Promise<boolean> => {
     const lineas = lineasDe(row);
@@ -609,7 +609,7 @@ export default function ImportarFacturasXML() {
         tipo_documento: "factura",
         numero_factura: `${row.serie || ""}${row.folio || ""}`,
         empresa_id: empresaId,
-        empresa_vendedora: row.empresa_vendedora_detectada || null,
+        empresa_vendedora: empresaVendedoraResuelta(row),
         plaza_id: plazaResuelta(row),
         fecha_documento: row.fecha_factura,
         fecha_vencimiento: fechaVencSel || null,
