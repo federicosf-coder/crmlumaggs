@@ -636,7 +636,6 @@ Deno.serve(async (req) => {
           // ¿Match perfecto para auto-importación (buzón facturaschevron@)?
           const matchPerfecto =
             esAutoImport &&
-            !yaExiste &&
             clienteEstatus === 'exacto_rfc' &&
             !!empresaIdMatched &&
             !!plazaId &&
@@ -735,10 +734,10 @@ Deno.serve(async (req) => {
             receptor_nombre: receptorNombre,
             receptor_rfc: receptorRfc,
             empresa_id_matched: empresaIdMatched,
-            cliente_match_estatus: yaExiste ? 'pendiente' : clienteEstatus,
+            cliente_match_estatus: clienteEstatus,
             cliente_candidatos: candidatos,
             productos_json: productos,
-            estatus: documentoCreadoId ? 'importado' : (yaExiste ? 'ya_existia' : 'pendiente'),
+            estatus: documentoCreadoId ? 'importado' : 'pendiente',
             documento_creado_id: documentoCreadoId,
             importado_at: documentoCreadoId ? new Date().toISOString() : null,
             importado_por: null,
