@@ -54,7 +54,7 @@ const FORMA_PAGO_OPTIONS: { value: FormaPago; label: string }[] = [
 const VALID_FORMAS: FormaPago[] = ["contado", "credito", "credito_cescemex"];
 
 export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpresaId, defaultDocumentoId, empresaVendedora }: Props) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [companies, setCompanies] = useState<{ id: string; name: string; email?: string | null; tipo_pago?: string | null }[]>([]);
   const [plazas, setPlazas] = useState<{ id: string; nombre: string }[]>([]);
   const [docs, setDocs] = useState<DocOption[]>([]);
