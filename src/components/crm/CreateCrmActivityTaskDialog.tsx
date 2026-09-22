@@ -25,6 +25,7 @@ import { TASK_TYPES, TASK_TYPE_LABEL, TaskTypeKey } from "@/lib/taskTypes";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Plus, ExternalLink } from "lucide-react";
+import { DictadoButton } from "@/components/DictadoButton";
 
 /** Próxima hora redonda (si son las 14:23 → 15:00). */
 function nextRoundHourLocal(): string {
@@ -549,7 +550,10 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
 
             {/* Descripción full width */}
             <div className="space-y-1.5">
-              <Label>Descripción</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Descripción</Label>
+                <DictadoButton onResult={(texto) => setDescription((prev) => (prev ? prev + " " : "") + texto)} />
+              </div>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detalles de la actividad..." maxLength={2000} />
             </div>
           </div>

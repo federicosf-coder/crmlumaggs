@@ -13,6 +13,7 @@ import { fetchAllRows } from "@/lib/supabasePagination";
 import { useAuth } from "@/contexts/AuthContext";
 import { TASK_TYPES, TASK_TYPE_LABEL, TaskTypeKey } from "@/lib/taskTypes";
 import { cn } from "@/lib/utils";
+import { DictadoButton } from "@/components/DictadoButton";
 import { format } from "date-fns";
 
 interface QuickActivityDialogProps {
@@ -163,7 +164,10 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity 
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Descripción</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Descripción</Label>
+              <DictadoButton onResult={(texto) => setDescription((prev) => (prev ? prev + " " : "") + texto)} />
+            </div>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
