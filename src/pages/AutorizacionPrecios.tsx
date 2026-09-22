@@ -226,29 +226,100 @@ export default function AutorizacionPrecios() {
     }
   };
 
-  const renderCard = (row: Autorizacion) => (
-    <div key={row.id} className="flex items-start gap-3">
-      <Checkbox
-        className="mt-4"
-        checked={seleccionados.has(row.id)}
-        onCheckedChange={(c) => toggleSeleccion(row.id, c === true)}
-        aria-label="Seleccionar autorización"
-      />
-      <div className="flex-1 min-w-0">
-        <AutorizacionPrecioCard
-          row={row}
-          ejecutivo={
-            row.documentos?.ejecutivo_venta_id
-              ? data?.ejecutivos?.[row.documentos.ejecutivo_venta_id]
-              : null
-          }
-          onRefetch={refetch}
-          isHighlighted={highlightedId === row.id}
-          defaultOpen={false}
-        />
-      </div>
-    </div>
+  const toggleExpandido = (id: string) => {
+    setExpandidos((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const renderTabla = (lista: Autorizacion[]) => (
+    <Card>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-10"></TableHead>
+            <TableHead>Cliente</TableHead>
+            <TableHead>N° Pedido/Factura</TableHead>
+            <TableHead>Ejecutivo</TableHead>
+            <TableHead className="text-right">Total</TableHead>
+            <TableHead>Estatus</TableHead>
+            <TableHead>Fecha</TableHead>
+            <TableHead className="w-10"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {lista.map((row: Autorizacion) => {
+            const doc = row.documentos || {};
+            const abierto = expandidos.has(row.id);
+            const ejecutivo = doc.ejecutivo_venta_id
+              ? data?.ejecutivos?.[doc.ejecutivo_venta_id]
+              : null;
+            return (
+              <>
+                <TableRow
+                  key={row.id}
+                  id={`aut-row-${row.id}`}
+                  className={`cursor-pointer ${
+                    highlightedId === row.id ? "ring-2 ring-primary/60" : ""
+                  }`}
+                  onClick={() => toggleExpandido(row.id)}
+                >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={seleccionados.has(row.id)}
+                      onCheckedChange={(c) => toggleSeleccion(row.id, c === true)}
+                      aria-label="Seleccionar autorización"
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {doc.companies?.name || doc.companies?.razon_social || "—"}
+                  </TableCell>
+                  <TableCell>{doc.numero_pedido || doc.numero_factura || "—"}</TableCell>
+                  <TableCell>{ejecutivo || "—"}</TableCell>
+                  <TableCell className="text-right">{money(doc.total)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {ESTATUS_LABEL[row.estatus] || row.estatus}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {row.created_at ? formatDate(row.created_at) : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {abierto ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </TableCell>
+                </TableRow>
+                {abierto && (
+                  <TableRow key={`${row.id}-exp`} className="hover:bg-transparent">
+                    <TableCell colSpan={8} className="p-0">
+                      <div className="p-3 bg-muted/20">
+                        <AutorizacionPrecioCard
+                          row={row}
+                          ejecutivo={ejecutivo}
+                          onRefetch={refetch}
+                          isHighlighted={false}
+                          defaultOpen
+                          embedded
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </Card>
   );
+
 
   const pendientes = rows.filter((r: Autorizacion) => r.estatus === "pendiente_revision");
   const enviados = rows.filter((r: Autorizacion) => r.estatus === "enviado");
