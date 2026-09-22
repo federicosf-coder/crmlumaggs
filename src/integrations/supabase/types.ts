@@ -8946,6 +8946,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sistema_candados: {
+        Row: {
+          activo: boolean
+          created_at: string
+          descripcion: string
+          id: string
+          modulo: string | null
+          rol_requerido: string | null
+          tabla_afectada: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          descripcion: string
+          id?: string
+          modulo?: string | null
+          rol_requerido?: string | null
+          tabla_afectada?: string | null
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          descripcion?: string
+          id?: string
+          modulo?: string | null
+          rol_requerido?: string | null
+          tabla_afectada?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
       solicitudes_producto: {
         Row: {
           aprobado_por: string | null

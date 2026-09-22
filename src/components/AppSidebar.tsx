@@ -64,6 +64,7 @@ const adminItems: NavItem[] = [
   { title: "Equipos", url: "/admin/teams", icon: Settings, roles: ["admin", "manager"] },
   { title: "Catálogos", url: "/admin/catalogs", icon: Database, roles: ["admin", "manager"] },
   { title: "Plantillas", url: "/admin/templates", icon: FileStack, roles: ["admin", "manager", "sales"] },
+  { title: "Candados del Sistema", url: "/admin/candados", icon: Lock, roles: ["admin", "master"] },
 ];
 
 const whatsappItems: NavItem[] = [
