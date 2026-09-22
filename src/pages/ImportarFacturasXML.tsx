@@ -570,6 +570,11 @@ export default function ImportarFacturasXML() {
       return false;
     }
 
+    if (!empresaVendedoraResuelta(row)) {
+      if (!silencioso) toast.error("Selecciona la empresa vendedora");
+      return false;
+    }
+
     const ejecutivoSel = ejecutivoResuelto(row);
     const contactoSel = contactoResuelto(row);
     const tipoPagoSel = tipoPagoResuelto(row);
