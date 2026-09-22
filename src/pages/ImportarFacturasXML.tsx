@@ -200,7 +200,7 @@ export default function ImportarFacturasXML() {
   /* ---------------- Carga y procesamiento ---------------- */
 
   const procesarArchivo = useCallback(
-    async (file: File, userId: string | null) => {
+    async (file: File, userId: string | null): Promise<"ok" | "duplicado"> => {
       const texto = await leerArchivo(file);
       const cfdi: CfdiParsed = parseCfdiXml(texto);
 
@@ -229,6 +229,9 @@ export default function ImportarFacturasXML() {
           yaExiste = !!(dupFolio && dupFolio.length);
         }
       }
+
+      // Duplicado: se omite por completo, sin rastro en la bandeja
+      if (yaExiste) return "duplicado";
 
       let clienteEstatus = "pendiente";
       let empresaIdMatched: string | null = null;
@@ -365,13 +368,14 @@ export default function ImportarFacturasXML() {
         receptor_nombre: cfdi.receptorNombre,
         receptor_rfc: cfdi.receptorRfc,
         empresa_id_matched: empresaIdMatched,
-        cliente_match_estatus: yaExiste ? "pendiente" : clienteEstatus,
+        cliente_match_estatus: clienteEstatus,
         cliente_candidatos: candidatos,
         productos_json: productos,
-        estatus: yaExiste ? "ya_existia" : "pendiente",
+        estatus: "pendiente",
         subido_por: userId,
       });
       if (insErr) throw new Error(insErr.message);
+      return "ok";
     },
     []
   );
