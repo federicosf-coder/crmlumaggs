@@ -58,6 +58,7 @@ export default function ImportarFacturasXML() {
 
   // Selecciones manuales por fila (plaza, cliente candidato, productos)
   const [plazaManual, setPlazaManual] = useState<Record<string, string>>({});
+  const [empresaVendedoraManual, setEmpresaVendedoraManual] = useState<Record<string, string>>({});
   const [clienteManual, setClienteManual] = useState<Record<string, string>>({});
   const [productoManual, setProductoManual] = useState<Record<string, Record<number, string>>>({});
   const [ejecutivoManual, setEjecutivoManual] = useState<Record<string, string>>({});
