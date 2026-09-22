@@ -511,6 +511,10 @@ Deno.serve(async (req) => {
           }
 
           let clienteEstatus = 'pendiente';
+          let empresaIdMatched: string | null = null;
+          let candidatos: any[] = [];
+          let plazaId: string | null = null;
+          let empresaVendedora: string | null = null;
           const productos: any[] = [];
 
           {
