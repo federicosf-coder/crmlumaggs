@@ -102,6 +102,7 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity 
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
