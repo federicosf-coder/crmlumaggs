@@ -87,6 +87,12 @@ const TIPO_ACTIVIDAD_LABELS: Record<string, string> = {
 };
 const tipoLabel = (t: string) => TIPO_ACTIVIDAD_LABELS[t] || t;
 
+const fechaCorta = (iso: string) => {
+  const [y, m, d] = iso.split("-");
+  return d && m && y ? `${d}/${m}/${y.slice(2)}` : iso;
+};
+
+
 export default function ReporteDiario() {
   const { user, hasAnyRole } = useAuth();
   const esGerencia = hasAnyRole(["admin", "manager"]);
