@@ -761,7 +761,7 @@ export default function CreditoDetail() {
   const [form, setForm] = useState<Req | null>(null);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState("datos");
+  const [tab, setTab] = useState("expediente");
   const [formTab, setFormTab] = useState("empresa");
   const [shareOpen, setShareOpen] = useState(false);
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
