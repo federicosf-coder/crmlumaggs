@@ -53,10 +53,30 @@ const DOC_PALETTE: Record<string, { icon: any; bg: string; border: string; iconB
   __default: { icon: Building2, bg: "bg-gradient-to-br from-neutral-50 to-stone-50", border: "border-neutral-200", iconBg: "bg-neutral-100", iconColor: "text-neutral-700", btn: "border-neutral-300 text-neutral-700 hover:bg-neutral-100" },
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function SecMark({ ok }: { ok: boolean }) {
+  return ok ? (
+    <Check className="h-3 w-3 text-emerald-600" />
+  ) : (
+    <span className="text-[9px] font-medium text-amber-600 whitespace-nowrap">Falta info</span>
+  );
+}
+
+function Section({ title, children, complete }: { title: string; children: React.ReactNode; complete?: boolean }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">{title}</p>
+      <div className="flex items-center gap-2">
+        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">{title}</p>
+        {complete === true && (
+          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">
+            <Check className="h-2.5 w-2.5" />Completo
+          </span>
+        )}
+        {complete === false && (
+          <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">
+            Falta información
+          </span>
+        )}
+      </div>
       <div className="grid sm:grid-cols-2 gap-3">{children}</div>
     </div>
   );
@@ -761,7 +781,7 @@ export default function CreditoDetail() {
   const [form, setForm] = useState<Req | null>(null);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState("datos");
+  const [tab, setTab] = useState("expediente");
   const [formTab, setFormTab] = useState("empresa");
   const [shareOpen, setShareOpen] = useState(false);
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
@@ -1386,6 +1406,19 @@ export default function CreditoDetail() {
 
   const c = CREDITO_ESTADO_COLOR[form.estado] || "bg-slate-50 text-slate-700 border-slate-200";
 
+  // Completitud por sección — mismo criterio que credit_request_completeness
+  const secEmpresaOk = !!(
+    form.razon_social && form.rfc && form.telefono && form.correo_contacto &&
+    form.domicilio_fiscal && form.domicilio_comercial && form.giro_comercial
+  );
+  const secRepOk = !!(
+    form.rep_legal_nombre && form.rep_legal_rfc &&
+    (!form.aval_es_distinto || form.aval_nombre)
+  );
+  const secFinOk =
+    ((form.referencias_comerciales || []).length >= 2) &&
+    ((form.datos_bancarios || []).length >= 1);
+
   return (
     <div className="container mx-auto py-6 space-y-4">
       <BackButton fallback="/credito" />
@@ -1781,12 +1814,9 @@ export default function CreditoDetail() {
       </Card>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-6 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
-          <TabsTrigger value="docs" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
-            Documentos
-          </TabsTrigger>
-          <TabsTrigger value="datos" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md text-blue-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
-            Formulario
+        <TabsList className="grid grid-cols-5 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
+          <TabsTrigger value="expediente" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
+            Documentos y Formulario
           </TabsTrigger>
           <TabsTrigger value="firmas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md text-emerald-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
             <span className="sm:hidden">Formatos<br/>y Firmas</span><span className="hidden sm:inline">Formatos y Firmas</span>
@@ -1803,18 +1833,20 @@ export default function CreditoDetail() {
         </TabsList>
 
         {/* ============ FORMULARIO ============ */}
-        <TabsContent value="datos" className="space-y-6 mt-4">
+        <TabsContent value="expediente" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-4 items-start">
+          <div className="min-w-0 space-y-6">
           <Card><CardContent className="pt-6 space-y-6">
             <Tabs value={formTab} onValueChange={setFormTab}>
               <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 h-auto gap-1 border border-blue-100">
                 <TabsTrigger value="empresa" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-blue-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
-                  <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Empresa</span>
+                  <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Empresa</span><SecMark ok={secEmpresaOk} />
                 </TabsTrigger>
                 <TabsTrigger value="representacion" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-violet-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
-                  <IdCard className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Representación</span>
+                  <IdCard className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Representación</span><SecMark ok={secRepOk} />
                 </TabsTrigger>
                 <TabsTrigger value="financiero" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-emerald-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
-                  <Landmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Financiero</span>
+                  <Landmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Financiero</span><SecMark ok={secFinOk} />
                 </TabsTrigger>
               </TabsList>
 
@@ -2057,7 +2089,7 @@ export default function CreditoDetail() {
               })()}
 
               <TabsContent value="empresa" className="space-y-6 mt-5">
-            <Section title="Datos generales">
+            <Section title="Datos generales" complete={!!(form.razon_social && form.rfc && form.telefono && form.correo_contacto && form.giro_comercial)}>
               <Field label="Razón social"><Input value={form.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} /></Field>
               <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
               <Field label="RFC"><Input value={form.rfc || ""} onChange={(e) => set("rfc", e.target.value.toUpperCase())} /></Field>
@@ -2139,7 +2171,7 @@ export default function CreditoDetail() {
               </Field>
               <Field label="Antigüedad"><Input value={form.antiguedad || ""} onChange={(e) => set("antiguedad", e.target.value)} /></Field>
             </Section>
-            <Section title="Domicilio fiscal">
+            <Section title="Domicilio fiscal" complete={!!form.domicilio_fiscal}>
               <div className="sm:col-span-2">
                 <Field label="Domicilio">
                   <AddressAutocompleteInput
@@ -2167,7 +2199,7 @@ export default function CreditoDetail() {
               <Field label="Ciudad"><Input value={form.ciudad_fiscal || ""} onChange={(e) => set("ciudad_fiscal", e.target.value)} /></Field>
               <Field label="Estado"><Input value={form.estado_fiscal || ""} onChange={(e) => set("estado_fiscal", e.target.value)} /></Field>
             </Section>
-            <Section title="Domicilio comercial">
+            <Section title="Domicilio comercial" complete={!!form.domicilio_comercial}>
               <div className="sm:col-span-2">
                 <Field label="Domicilio">
                   <AddressAutocompleteInput
@@ -2203,7 +2235,7 @@ export default function CreditoDetail() {
               </TabsContent>
 
               <TabsContent value="representacion" className="space-y-6 mt-5">
-            <Section title="Representante legal">
+            <Section title="Representante legal" complete={!!(form.rep_legal_nombre && form.rep_legal_rfc)}>
               <Field label="Nombre"><Input value={form.rep_legal_nombre || ""} onChange={(e) => set("rep_legal_nombre", e.target.value)} /></Field>
               <Field label="CURP"><Input value={form.rep_legal_curp || ""} onChange={(e) => set("rep_legal_curp", e.target.value.toUpperCase())} /></Field>
               <Field label="RFC"><Input value={form.rep_legal_rfc || ""} onChange={(e) => set("rep_legal_rfc", e.target.value.toUpperCase())} /></Field>
@@ -2213,7 +2245,7 @@ export default function CreditoDetail() {
               <Field label="Fecha nacimiento"><Input type="date" value={form.rep_legal_fecha_nacimiento || ""} onChange={(e) => set("rep_legal_fecha_nacimiento", e.target.value || null)} /></Field>
               <Field label="País nacimiento"><Input value={form.rep_legal_pais_nacimiento || ""} onChange={(e) => set("rep_legal_pais_nacimiento", e.target.value)} /></Field>
             </Section>
-            <Section title="Aval / Obligado solidario">
+            <Section title="Aval / Obligado solidario" complete={!form.aval_es_distinto || !!form.aval_nombre}>
               <div className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 leading-snug">
                 <span className="font-medium">Regla:</span> En <span className="font-medium">crédito directo</span> con <span className="font-medium">Persona Física</span>, el aval debe ser una persona <span className="font-medium">distinta</span> al solicitante. Para <span className="font-medium">Persona Moral</span>, el propio representante legal puede fungir como aval. Si el aval es otra persona, se requiere también su identificación oficial y comprobante de domicilio.
               </div>
@@ -2420,10 +2452,10 @@ export default function CreditoDetail() {
               Guardar
             </Button>
           </div>
-        </TabsContent>
+          </div>
 
         {/* ============ DOCUMENTOS ============ */}
-        <TabsContent value="docs" className="space-y-4 mt-4">
+        <div className="order-first space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto pr-1">
           <Card><CardContent className="pt-6 space-y-4">
             {docTypes.length === 0 ? (
               <p className="text-muted-foreground text-sm">No hay tipos de documento configurados.</p>
@@ -2537,7 +2569,7 @@ export default function CreditoDetail() {
                               return (
                       <div key={dt.id} className={`rounded-lg border-2 ${hasItems ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : (isRequerido(dt) ? "border-amber-300 bg-gradient-to-br from-amber-50/60 to-white" : palette.border + " " + palette.bg)} p-3 flex flex-col gap-2 relative`}>
                         <span className={`absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (isRequerido(dt) ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
-                          {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (isRequerido(dt) ? "Pendiente" : "Opcional")}
+                          {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (isRequerido(dt) ? "Requerido" : "Opcional")}
                         </span>
                         <div className="flex items-start gap-2.5 min-w-0 pr-20">
                             <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palette.iconBg}`}>
@@ -2653,6 +2685,8 @@ export default function CreditoDetail() {
               </div>
             </div>
           </CardContent></Card>
+        </div>
+          </div>
         </TabsContent>
 
         {/* ============ FIRMAS ============ */}
