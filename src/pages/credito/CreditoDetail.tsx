@@ -2245,7 +2245,7 @@ export default function CreditoDetail() {
               <Field label="Fecha nacimiento"><Input type="date" value={form.rep_legal_fecha_nacimiento || ""} onChange={(e) => set("rep_legal_fecha_nacimiento", e.target.value || null)} /></Field>
               <Field label="País nacimiento"><Input value={form.rep_legal_pais_nacimiento || ""} onChange={(e) => set("rep_legal_pais_nacimiento", e.target.value)} /></Field>
             </Section>
-            <Section title="Aval / Obligado solidario">
+            <Section title="Aval / Obligado solidario" complete={!form.aval_es_distinto || !!form.aval_nombre}>
               <div className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 leading-snug">
                 <span className="font-medium">Regla:</span> En <span className="font-medium">crédito directo</span> con <span className="font-medium">Persona Física</span>, el aval debe ser una persona <span className="font-medium">distinta</span> al solicitante. Para <span className="font-medium">Persona Moral</span>, el propio representante legal puede fungir como aval. Si el aval es otra persona, se requiere también su identificación oficial y comprobante de domicilio.
               </div>
