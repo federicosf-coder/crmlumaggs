@@ -1386,6 +1386,19 @@ export default function CreditoDetail() {
 
   const c = CREDITO_ESTADO_COLOR[form.estado] || "bg-slate-50 text-slate-700 border-slate-200";
 
+  // Completitud por sección — mismo criterio que credit_request_completeness
+  const secEmpresaOk = !!(
+    form.razon_social && form.rfc && form.telefono && form.correo_contacto &&
+    form.domicilio_fiscal && form.domicilio_comercial && form.giro_comercial
+  );
+  const secRepOk = !!(
+    form.rep_legal_nombre && form.rep_legal_rfc &&
+    (!form.aval_es_distinto || form.aval_nombre)
+  );
+  const secFinOk =
+    ((form.referencias_comerciales || []).length >= 2) &&
+    ((form.datos_bancarios || []).length >= 1);
+
   return (
     <div className="container mx-auto py-6 space-y-4">
       <BackButton fallback="/credito" />
