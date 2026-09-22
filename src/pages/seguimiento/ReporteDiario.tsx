@@ -257,6 +257,24 @@ export default function ReporteDiario() {
         }
       }
 
+      // Ejecutivos asignados por empresa (company_ejecutivos)
+      const pagoEmpresaIds = Array.from(
+        new Set(pagos.map((p) => p.empresa_id).filter(Boolean))
+      ) as string[];
+      const empresaEjecutivosMap = new Map<string, string[]>();
+      if (pagoEmpresaIds.length > 0) {
+        const { data: ce, error: ceErr } = await supabase
+          .from("company_ejecutivos")
+          .select("company_id, user_id")
+          .in("company_id", pagoEmpresaIds);
+        if (ceErr) throw ceErr;
+        for (const r of (ce || []) as any[]) {
+          const arr = empresaEjecutivosMap.get(r.company_id) || [];
+          arr.push(r.user_id);
+          empresaEjecutivosMap.set(r.company_id, arr);
+        }
+      }
+
       const cobranza: CobranzaRow[] = pagos.map((p) => ({
         id: p.id,
         cliente: p.companies?.name || "Sin empresa",
@@ -264,7 +282,7 @@ export default function ReporteDiario() {
         metodoPago: p.metodo_pago || "—",
         importe: Number(p.monto_total) || 0,
         facturas: aplicMap.get(p.id) || [],
-        creadoPor: p.creado_por || null,
+        ejecutivoIds: p.empresa_id ? empresaEjecutivosMap.get(p.empresa_id) || [] : [],
       }));
 
       const actsRaw = (actsRes.data || []) as any[];
@@ -423,7 +441,7 @@ export default function ReporteDiario() {
   // ---- Cálculos por ejecutivo (alimentan el formato Texto) ----
   const statsPorEjecutivo = (ejecutivoId: string) => {
     const f = (reporte?.facturas || []).filter((x) => x.ejecutivoId === ejecutivoId);
-    const c = (reporte?.cobranza || []).filter((x) => x.creadoPor === ejecutivoId);
+    const c = (reporte?.cobranza || []).filter((x) => x.ejecutivoIds.includes(ejecutivoId));
     const mes = acumMes?.porEjecutivo?.[ejecutivoId] || {
       udsLumaggs: 0,
       udsGalsa: 0,
@@ -503,7 +521,7 @@ export default function ReporteDiario() {
     for (const f of facts) L.push(div(`${escapeHtml(f.folio)} - ${escapeHtml(f.cliente)} - ${num(f.unidades)} uds`));
     L.push("<br>");
 
-    const cobs = (reporte?.cobranza || []).filter((c) => c.creadoPor === ejecutivoId);
+    const cobs = (reporte?.cobranza || []).filter((c) => c.ejecutivoIds.includes(ejecutivoId));
     L.push(div("<strong>Cobrado</strong>"));
     if (cobs.length === 0) L.push(div("Sin registros"));
     for (const c of cobs) L.push(div(`${escapeHtml(c.cliente)} - ${money(c.importe)}`));
