@@ -52,7 +52,7 @@ interface CobranzaRow {
   metodoPago: string;
   importe: number;
   facturas: string[];
-  creadoPor: string | null;
+  ejecutivoIds: string[];
 }
 
 interface ActividadRow {
@@ -188,10 +188,9 @@ export default function ReporteDiario() {
           .in("ejecutivo_venta_id", ids),
         supabase
           .from("cobranza_pagos")
-          .select("id, empresa_id, empresa_vendedora, monto_total, metodo_pago, creado_por, companies:empresa_id(name)")
+          .select("id, empresa_id, empresa_vendedora, monto_total, metodo_pago, companies:empresa_id(name)")
           .gte("fecha_pago", desde)
-          .lte("fecha_pago", hasta)
-          .in("creado_por", ids),
+          .lte("fecha_pago", hasta),
         supabase
           .from("crm_activities")
           .select("id, user_id, company_id, title, description, type, activity_date, companies:company_id(name)")
