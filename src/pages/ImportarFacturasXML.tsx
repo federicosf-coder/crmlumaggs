@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
 import { TIPO_PAGO_OPTS } from "@/components/CompanyFormDialog";
-import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
+import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
 import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
 import { fetchAllRows } from "@/lib/supabasePagination";
@@ -1111,12 +1111,12 @@ export default function ImportarFacturasXML() {
                 {lineas.length === 0 && <div className="p-2 text-xs text-muted-foreground">Sin conceptos</div>}
               </div>
             </>
-          )}
+
 
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => descartar(row)}>
               <Trash2 className="h-3.5 w-3.5 mr-1" />
-              {modo === "existente" ? "Descartar de la bandeja" : "Descartar"}
+              Descartar
             </Button>
             {modo === "revision" && elegibleAutomatico(row) && (
               <Button
@@ -1129,12 +1129,10 @@ export default function ImportarFacturasXML() {
                 Registrar automáticamente
               </Button>
             )}
-            {modo !== "existente" && (
-              <Button size="sm" disabled={!puedeImportar || importandoId === row.id} onClick={() => handleImportar(row)}>
-                {importandoId === row.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
-                Importar
-              </Button>
-            )}
+            <Button size="sm" disabled={!puedeImportar || importandoId === row.id} onClick={() => handleImportar(row)}>
+              {importandoId === row.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+              Importar
+            </Button>
           </div>
         </CardContent>
       </Card>
