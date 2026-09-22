@@ -129,16 +129,20 @@ export default function AutorizacionPrecios() {
   const highlightId = searchParams.get("id");
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [descartando, setDescartando] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && highlightId && rows.some((r) => r.id === highlightId)) {
-      const el = document.getElementById(highlightId);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        setHighlightedId(highlightId);
-      }
+    if (!isLoading && highlightId && rows.some((r: Autorizacion) => r.id === highlightId)) {
+      setHighlightedId(highlightId);
+      setExpandidos((prev) => new Set(prev).add(highlightId));
+      setTimeout(() => {
+        document
+          .getElementById(`aut-row-${highlightId}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
     }
+
   }, [isLoading, highlightId, rows]);
 
   const toggleSeleccion = (id: string, checked: boolean) => {
