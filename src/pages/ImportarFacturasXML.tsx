@@ -480,7 +480,6 @@ export default function ImportarFacturasXML() {
   const pendientes = (filas as IntakeRow[]).filter((r) => r.estatus === "pendiente");
   const listas = pendientes.filter((r) => !necesitaRevision(r));
   const revision = pendientes.filter((r) => necesitaRevision(r));
-  const yaRegistradas = (filas as IntakeRow[]).filter((r) => r.estatus === "ya_existia");
 
   const plazasOpcionesRevision = useMemo(() => {
     const mapa = new Map<string, string>();
@@ -809,7 +808,7 @@ export default function ImportarFacturasXML() {
 
   /* ---------------- Render ---------------- */
 
-  const renderTarjeta = (row: IntakeRow, modo: "lista" | "revision" | "existente") => {
+  const renderTarjeta = (row: IntakeRow, modo: "lista" | "revision") => {
     const lineas = lineasDe(row);
     const empresaOk = !!empresaResuelta(row);
     const puedeImportar = todosProductosOk(row) && empresaOk;
@@ -838,9 +837,8 @@ export default function ImportarFacturasXML() {
             </div>
           </div>
 
-          {modo !== "existente" && (
-            <>
-              <div className="grid gap-3 md:grid-cols-2">
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
                 {/* Cliente */}
                 <div className="space-y-1.5">
                   <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Cliente</Label>
@@ -1250,16 +1248,6 @@ export default function ImportarFacturasXML() {
             )}
           </section>
 
-          <section className="space-y-3">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-              <RotateCcw className="h-4 w-4 text-blue-600" /> Ya registradas ({yaRegistradas.length})
-            </h2>
-            {yaRegistradas.length === 0 ? (
-              <p className="text-xs text-muted-foreground font-light">Ninguna duplicada.</p>
-            ) : (
-              yaRegistradas.map((r) => renderTarjeta(r, "existente"))
-            )}
-          </section>
         </div>
       )}
     </div>
