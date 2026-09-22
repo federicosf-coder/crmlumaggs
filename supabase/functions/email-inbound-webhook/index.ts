@@ -486,6 +486,21 @@ Deno.serve(async (req) => {
             yaExiste = !!(dup && dup.length);
           }
 
+          // Duplicado por número de factura + empresa vendedora
+          if (!yaExiste) {
+            const numeroFacturaCfdi = (serie || '') + (folio || '');
+            const empresaVendedoraCfdi = mapEmisorAEmpresaVendedora(emisorRfc || '');
+            if (numeroFacturaCfdi && empresaVendedoraCfdi) {
+              const { data: dupFolio } = await admin
+                .from('documentos')
+                .select('id')
+                .eq('numero_factura', numeroFacturaCfdi)
+                .eq('empresa_vendedora', empresaVendedoraCfdi)
+                .limit(1);
+              yaExiste = !!(dupFolio && dupFolio.length);
+            }
+          }
+
           let clienteEstatus = 'pendiente';
           let empresaIdMatched: string | null = null;
           let candidatos: any[] = [];
