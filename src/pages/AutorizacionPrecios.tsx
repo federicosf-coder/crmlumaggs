@@ -5,13 +5,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Loader2, BadgeDollarSign, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Loader2, BadgeDollarSign, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { formatDate } from "@/lib/formatters";
 import AutorizacionPrecioCard from "@/components/documents/AutorizacionPrecioCard";
 
 type Autorizacion = any;
 
 const ESTATUS_PEDIDO_AVANZADO = ["validado_contabilidad", "programado_entrega", "entregado"];
+
+const ESTATUS_LABEL: Record<string, string> = {
+  pendiente_revision: "Pendiente",
+  enviado: "Enviado",
+  rechazado: "Rechazado",
+  indeterminado: "Indeterminado",
+};
+
+const money = (v: any) =>
+  v === null || v === undefined || v === ""
+    ? "—"
+    : new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(v));
 
 export default function AutorizacionPrecios() {
   const { data, isLoading, refetch } = useQuery({
@@ -20,7 +42,7 @@ export default function AutorizacionPrecios() {
       const { data: rows, error } = await (supabase as any)
         .from("documento_autorizaciones_precio")
         .select(
-          "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, created_at, enviado_at, margen_reportado_texto, margen_respondido_por, margen_respondido_at, autorizado, autorizado_por_texto, motivo, autorizacion_respondido_at, pospuesto, pospuesto_at, documentos(id, numero_pedido, numero_factura, fecha_documento, estatus_pedido, ejecutivo_venta_id, companies(id, name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
+          "id, documento_id, ronda, estatus, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, created_at, enviado_at, margen_reportado_texto, margen_respondido_por, margen_respondido_at, autorizado, autorizado_por_texto, motivo, autorizacion_respondido_at, pospuesto, pospuesto_at, documentos(id, numero_pedido, numero_factura, fecha_documento, created_at, total, empresa_id, estatus_pedido, ejecutivo_venta_id, companies(id, name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
         )
         .in("estatus", ["pendiente_revision", "enviado", "rechazado", "indeterminado"])
         .order("created_at", { ascending: true });
@@ -41,11 +63,48 @@ export default function AutorizacionPrecios() {
         );
       }
 
+      // Detección en vivo de facturas reales (timbradas) que corresponden al pedido
+      const empresaIds = Array.from(
+        new Set((rows || []).map((r: any) => r.documentos?.empresa_id).filter(Boolean))
+      );
+      let facturasPorEmpresa: Record<string, any[]> = {};
+      if (empresaIds.length) {
+        const { data: facts } = await (supabase as any)
+          .from("documentos")
+          .select("id, empresa_id, total, fecha_documento")
+          .eq("tipo_documento", "factura")
+          .eq("is_active", true)
+          .not("folio_fiscal_uuid", "is", null)
+          .in("empresa_id", empresaIds);
+        for (const f of facts || []) {
+          (facturasPorEmpresa[f.empresa_id] ||= []).push(f);
+        }
+      }
+
+      const yaFacturado = (doc: any) => {
+        if (!doc?.empresa_id) return false;
+        const candidatas = facturasPorEmpresa[doc.empresa_id] || [];
+        if (!candidatas.length) return false;
+        const totalPedido = Number(doc.total || 0);
+        if (!totalPedido) return false;
+        const tolerancia = Math.max(50, totalPedido * 0.02);
+        const desde = doc.created_at ? new Date(doc.created_at) : null;
+        return candidatas.some((f: any) => {
+          if (Math.abs(Number(f.total || 0) - totalPedido) > tolerancia) return false;
+          if (desde && f.fecha_documento) {
+            const fFecha = new Date(`${String(f.fecha_documento).slice(0, 10)}T23:59:59`);
+            if (fFecha < desde) return false;
+          }
+          return true;
+        });
+      };
+
       const vigentes = (rows || []).filter((r: any) => {
         const doc = r.documentos;
         if (!doc) return true;
         if (pedidosFacturados.has(doc.id)) return false;
         if (ESTATUS_PEDIDO_AVANZADO.includes(doc.estatus_pedido)) return false;
+        if (yaFacturado(doc)) return false;
         return true;
       });
 
@@ -63,6 +122,7 @@ export default function AutorizacionPrecios() {
       return { rows: vigentes as Autorizacion[], ejecutivos: mapa };
     },
   });
+
 
   const rows = data?.rows || [];
   const [searchParams] = useSearchParams();
