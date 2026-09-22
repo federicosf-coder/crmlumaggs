@@ -25,10 +25,12 @@ interface QuickActivityDialogProps {
 
 export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity }: QuickActivityDialogProps) {
   const { session } = useAuth();
+  const queryClient = useQueryClient();
   const [companyId, setCompanyId] = useState<string>("");
   const [type, setType] = useState<TaskTypeKey>("call");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
   useEffect(() => {
     if (open && editActivity) {
