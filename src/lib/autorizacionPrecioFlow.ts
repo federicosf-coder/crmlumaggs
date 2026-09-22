@@ -537,10 +537,31 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const cc: string[] = [
     "precios@correo.lumaggs.com.mx",
     "f.sarinanaf@lumaggs.com.mx",
-    "atencionclientes.tijuana@dagal.com.mx",
   ];
-  if (ejecutivoEmail && !cc.includes(ejecutivoEmail)) cc.push(ejecutivoEmail);
-  for (const e of tplCc) if (e && !cc.includes(e)) cc.push(e);
+
+  const pushCc = (email?: string | null) => {
+    const e = (email || "").trim();
+    if (!e) return;
+    if (!cc.some((x) => x.toLowerCase() === e.toLowerCase())) cc.push(e);
+  };
+
+  // 9a. Atención a Clientes de la plaza del pedido
+  const plazaNombre = (documento?.plazas?.nombre || "").trim();
+  pushCc(await resolveAtencionClientesEmail(documento?.plaza_id || null, plazaNombre));
+
+  // 9b. Ejecutivo del pedido
+  pushCc(ejecutivoEmail);
+
+  // 9c. Usuario que está enviando el correo
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    pushCc(authData?.user?.email || null);
+  } catch {
+    /* sin sesión disponible */
+  }
+
+  for (const e of tplCc) pushCc(e);
+
 
 
   // 10. Retorno
