@@ -184,5 +184,15 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity 
         </div>
       </DialogContent>
     </Dialog>
+    {companyDialogOpen && (
+      <CompanyFormDialog
+        open={companyDialogOpen}
+        onOpenChange={setCompanyDialogOpen}
+        onCreated={(newId) => {
+          queryClient.invalidateQueries({ queryKey: ["companies-picker"] });
+          setCompanyId(newId);
+        }}
+      />
+    )}
   );
 }
