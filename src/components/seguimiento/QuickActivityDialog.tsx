@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { CompanyFormDialog } from "@/components/CompanyFormDialog";
+import { ExternalLink, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -23,10 +25,12 @@ interface QuickActivityDialogProps {
 
 export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity }: QuickActivityDialogProps) {
   const { session } = useAuth();
+  const queryClient = useQueryClient();
   const [companyId, setCompanyId] = useState<string>("");
   const [type, setType] = useState<TaskTypeKey>("call");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
   useEffect(() => {
     if (open && editActivity) {
@@ -98,6 +102,7 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity 
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -106,7 +111,24 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity 
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Empresa *</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Empresa *</Label>
+              <div className="flex items-center gap-1">
+                <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setCompanyDialogOpen(true)}>
+                  <Plus className="h-3 w-3 mr-1" /> Nueva
+                </Button>
+                {companyId && (
+                  <a
+                    href={`/directory?tab=companies&select=${companyId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline px-2 h-6"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Ver
+                  </a>
+                )}
+              </div>
+            </div>
             <SearchableSelect
               value={companyId}
               onValueChange={setCompanyId}
@@ -163,5 +185,16 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity 
         </div>
       </DialogContent>
     </Dialog>
+    {companyDialogOpen && (
+      <CompanyFormDialog
+        open={companyDialogOpen}
+        onOpenChange={setCompanyDialogOpen}
+        onCreated={(newId) => {
+          queryClient.invalidateQueries({ queryKey: ["companies-picker"] });
+          setCompanyId(newId);
+        }}
+      />
+    )}
+    </>
   );
 }
