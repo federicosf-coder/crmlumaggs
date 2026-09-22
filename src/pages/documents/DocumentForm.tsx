@@ -139,6 +139,7 @@ export default function DocumentForm() {
   }, [autorizacionFlag, id]);
   const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
+  const isMaster = hasRole("master");
   const isManager = hasRole("manager");
   const isAccounting = hasRole("accounting");
   const isSales = hasRole("sales");
@@ -1312,7 +1313,14 @@ export default function DocumentForm() {
                   <Label>Estatus Factura</Label>
                   <Select value={form.estatus_factura} onValueChange={v => set("estatus_factura", v)}>
                     <SelectTrigger className="text-left"><SelectValue /></SelectTrigger>
-                    <SelectContent>{ESTATUS_FAC.map(s => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}</SelectContent>
+                    <SelectContent>{ESTATUS_FAC.map(s => {
+                      const bloqueada = s.v === "pagada" && !isMaster;
+                      return (
+                        <SelectItem key={s.v} value={s.v} disabled={bloqueada} title={bloqueada ? "Solo Usuario Master" : undefined}>
+                          {s.l}{bloqueada && <span className="ml-2 text-xs text-muted-foreground">(Solo Usuario Master)</span>}
+                        </SelectItem>
+                      );
+                    })}</SelectContent>
                   </Select>
                 </div>
               </fieldset>
