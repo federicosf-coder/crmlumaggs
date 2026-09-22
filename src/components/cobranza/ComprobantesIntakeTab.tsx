@@ -166,19 +166,23 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
 function ComprobanteCard({
   row,
   companies,
+  plazas,
   empresaVendedora,
   onDone,
 }: {
   row: IntakeRow;
   companies: { id: string; name: string; razon_social?: string | null }[];
+  plazas: { id: string; nombre: string }[];
   empresaVendedora?: EmpresaVendedora;
   onDone: () => void;
 }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState(row.empresa_id || "");
   const [empVend, setEmpVend] = useState<EmpresaVendedora>(empresaVendedora || null);
+  const [plazaId, setPlazaId] = useState("");
+  const [plazaTocada, setPlazaTocada] = useState(false);
   const autoVinculado = !!row.empresa_id;
 
   const [empresaDatos, setEmpresaDatos] = useState<{ clabe_bancaria: string | null; tarjeta_ultimos4: string | null } | null>(null);
