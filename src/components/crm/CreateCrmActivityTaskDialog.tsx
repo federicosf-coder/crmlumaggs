@@ -549,7 +549,10 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
 
             {/* Descripción full width */}
             <div className="space-y-1.5">
-              <Label>Descripción</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Descripción</Label>
+                <DictadoButton onResult={(texto) => setDescription((prev) => (prev ? prev + " " : "") + texto)} />
+              </div>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Detalles de la actividad..." maxLength={2000} />
             </div>
           </div>
