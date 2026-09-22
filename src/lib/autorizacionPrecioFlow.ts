@@ -547,7 +547,11 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
 
   // 9a. Atención a Clientes de la plaza del pedido
   const plazaNombre = (documento?.plazas?.nombre || "").trim();
-  pushCc(await resolveAtencionClientesEmail(documento?.plaza_id || null, plazaNombre));
+  const atencionPlazaEmail = await resolveAtencionClientesEmail(
+    documento?.plaza_id || null,
+    plazaNombre
+  );
+  pushCc(atencionPlazaEmail);
 
   // 9b. Ejecutivo del pedido
   pushCc(ejecutivoEmail);
@@ -560,7 +564,12 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     /* sin sesión disponible */
   }
 
-  for (const e of tplCc) pushCc(e);
+  // 9d. CC de la plantilla, omitiendo correos de atención a clientes de otras plazas
+  for (const e of tplCc) {
+    if (esCorreoAtencionClientes(e) && !mismoCorreo(e, atencionPlazaEmail)) continue;
+    pushCc(e);
+  }
+
 
 
 
