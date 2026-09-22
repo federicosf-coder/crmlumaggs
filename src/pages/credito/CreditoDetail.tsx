@@ -2235,7 +2235,7 @@ export default function CreditoDetail() {
               </TabsContent>
 
               <TabsContent value="representacion" className="space-y-6 mt-5">
-            <Section title="Representante legal">
+            <Section title="Representante legal" complete={!!(form.rep_legal_nombre && form.rep_legal_rfc)}>
               <Field label="Nombre"><Input value={form.rep_legal_nombre || ""} onChange={(e) => set("rep_legal_nombre", e.target.value)} /></Field>
               <Field label="CURP"><Input value={form.rep_legal_curp || ""} onChange={(e) => set("rep_legal_curp", e.target.value.toUpperCase())} /></Field>
               <Field label="RFC"><Input value={form.rep_legal_rfc || ""} onChange={(e) => set("rep_legal_rfc", e.target.value.toUpperCase())} /></Field>
