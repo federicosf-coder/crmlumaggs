@@ -519,6 +519,10 @@ function ComprobanteCard({
       toast.error("Selecciona la forma de pago");
       return;
     }
+    if (!plazaId) {
+      toast.error("La plaza es requerida");
+      return;
+    }
     const aplicaciones = Object.entries(seleccion)
       .map(([doc_id, m]) => ({ doc_id, monto: Number(m) || 0 }))
       .filter((a) => a.monto > 0);
@@ -550,6 +554,10 @@ function ComprobanteCard({
     }
     if (!formaPago) {
       toast.error("Selecciona la forma de pago");
+      return;
+    }
+    if (!plazaId) {
+      toast.error("La plaza es requerida");
       return;
     }
     const aplicaciones = Object.entries(seleccion)
