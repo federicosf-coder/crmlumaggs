@@ -1810,13 +1810,13 @@ export default function CreditoDetail() {
             <Tabs value={formTab} onValueChange={setFormTab}>
               <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 h-auto gap-1 border border-blue-100">
                 <TabsTrigger value="empresa" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-blue-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
-                  <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Empresa</span>
+                  <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Empresa</span><SecMark ok={secEmpresaOk} />
                 </TabsTrigger>
                 <TabsTrigger value="representacion" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-violet-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
-                  <IdCard className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Representación</span>
+                  <IdCard className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Representación</span><SecMark ok={secRepOk} />
                 </TabsTrigger>
                 <TabsTrigger value="financiero" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-emerald-700 text-[10px] sm:text-xs h-auto whitespace-normal break-words min-w-0 leading-tight flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 py-1.5">
-                  <Landmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Financiero</span>
+                  <Landmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span>Financiero</span><SecMark ok={secFinOk} />
                 </TabsTrigger>
               </TabsList>
 
