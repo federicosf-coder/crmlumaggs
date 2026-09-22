@@ -946,7 +946,28 @@ export default function ImportarFacturasXML() {
                     </Select>
                   )}
                 </div>
+
+                {/* Empresa vendedora */}
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa vendedora</Label>
+                  <Select
+                    value={empresaVendedoraResuelta(row) || ""}
+                    onValueChange={(v) => setEmpresaVendedoraManual((p) => ({ ...p, [row.id]: v }))}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="No detectada — elígela" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(EMPRESA_VENDEDORA_LABEL).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
 
               {(() => {
                 const empId = empresaResuelta(row);
