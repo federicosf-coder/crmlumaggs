@@ -5,7 +5,9 @@ import { XMLParser } from 'npm:fast-xml-parser@4';
 
 // --- Matching CFDI (réplica exacta de src/lib/xmlFacturaMatching.ts) ---
 const RFC_GENERICOS = new Set(['XAXX010101000']);
-const EMISOR_RFC_MAP: Record<string, string> = { PSM891005QY7: 'lumaggs_chevron' };
+// PSM891005QY7 = Procesadora de Servicios Maggs (Lumaggs / Chevron)
+// PGA850730EU0 = Proveedora Galsa (Galsa / Phillips 66)
+const EMISOR_RFC_MAP: Record<string, string> = { PSM891005QY7: 'lumaggs_chevron', PGA850730EU0: 'galsa_phillips66' };
 const SERIE_PLAZA_MAP: Record<string, string> = { TIJ: 'Tijuana', MXL: 'Mexicali', ENS: 'Ensenada', MOR: 'Morelos' };
 const STOPWORDS_CFDI = new Set([
   'SA', 'S', 'A', 'DE', 'CV', 'C', 'V', 'SAPI', 'SRL', 'RL', 'DEL', 'LA', 'EL',
