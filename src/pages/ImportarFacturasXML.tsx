@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
 import { TIPO_PAGO_OPTS } from "@/components/CompanyFormDialog";
-import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
+import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
 import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
 import { fetchAllRows } from "@/lib/supabasePagination";
@@ -190,7 +190,7 @@ export default function ImportarFacturasXML() {
       const { data, error } = await (supabase as any)
         .from("documentos_xml_intake")
         .select("*")
-        .in("estatus", ["pendiente", "ya_existia"])
+        .in("estatus", ["pendiente"])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as IntakeRow[];
@@ -200,7 +200,7 @@ export default function ImportarFacturasXML() {
   /* ---------------- Carga y procesamiento ---------------- */
 
   const procesarArchivo = useCallback(
-    async (file: File, userId: string | null) => {
+    async (file: File, userId: string | null): Promise<"ok" | "duplicado"> => {
       const texto = await leerArchivo(file);
       const cfdi: CfdiParsed = parseCfdiXml(texto);
 
@@ -229,6 +229,9 @@ export default function ImportarFacturasXML() {
           yaExiste = !!(dupFolio && dupFolio.length);
         }
       }
+
+      // Duplicado: se omite por completo, sin rastro en la bandeja
+      if (yaExiste) return "duplicado";
 
       let clienteEstatus = "pendiente";
       let empresaIdMatched: string | null = null;
@@ -365,13 +368,14 @@ export default function ImportarFacturasXML() {
         receptor_nombre: cfdi.receptorNombre,
         receptor_rfc: cfdi.receptorRfc,
         empresa_id_matched: empresaIdMatched,
-        cliente_match_estatus: yaExiste ? "pendiente" : clienteEstatus,
+        cliente_match_estatus: clienteEstatus,
         cliente_candidatos: candidatos,
         productos_json: productos,
-        estatus: yaExiste ? "ya_existia" : "pendiente",
+        estatus: "pendiente",
         subido_por: userId,
       });
       if (insErr) throw new Error(insErr.message);
+      return "ok";
     },
     []
   );
@@ -387,16 +391,19 @@ export default function ImportarFacturasXML() {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth?.user?.id ?? null;
       let ok = 0;
+      let omitidos = 0;
       for (const f of xmls) {
         try {
-          await procesarArchivo(f, userId);
-          ok++;
+          const res = await procesarArchivo(f, userId);
+          if (res === "duplicado") omitidos++;
+          else ok++;
         } catch (e: any) {
           toast.error(`${f.name}: ${e?.message || "no se pudo procesar"}`);
         }
       }
       setProcesando(false);
       if (ok) toast.success(`${ok} XML procesado(s)`);
+      if (omitidos) toast.info(`${omitidos} factura(s) ya estaban registradas, se omitieron`);
       refetch();
     },
     [procesarArchivo, refetch]
@@ -473,7 +480,6 @@ export default function ImportarFacturasXML() {
   const pendientes = (filas as IntakeRow[]).filter((r) => r.estatus === "pendiente");
   const listas = pendientes.filter((r) => !necesitaRevision(r));
   const revision = pendientes.filter((r) => necesitaRevision(r));
-  const yaRegistradas = (filas as IntakeRow[]).filter((r) => r.estatus === "ya_existia");
 
   const plazasOpcionesRevision = useMemo(() => {
     const mapa = new Map<string, string>();
@@ -802,7 +808,7 @@ export default function ImportarFacturasXML() {
 
   /* ---------------- Render ---------------- */
 
-  const renderTarjeta = (row: IntakeRow, modo: "lista" | "revision" | "existente") => {
+  const renderTarjeta = (row: IntakeRow, modo: "lista" | "revision") => {
     const lineas = lineasDe(row);
     const empresaOk = !!empresaResuelta(row);
     const puedeImportar = todosProductosOk(row) && empresaOk;
@@ -831,9 +837,8 @@ export default function ImportarFacturasXML() {
             </div>
           </div>
 
-          {modo !== "existente" && (
-            <>
-              <div className="grid gap-3 md:grid-cols-2">
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
                 {/* Cliente */}
                 <div className="space-y-1.5">
                   <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Cliente</Label>
@@ -1106,12 +1111,12 @@ export default function ImportarFacturasXML() {
                 {lineas.length === 0 && <div className="p-2 text-xs text-muted-foreground">Sin conceptos</div>}
               </div>
             </>
-          )}
+
 
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => descartar(row)}>
               <Trash2 className="h-3.5 w-3.5 mr-1" />
-              {modo === "existente" ? "Descartar de la bandeja" : "Descartar"}
+              Descartar
             </Button>
             {modo === "revision" && elegibleAutomatico(row) && (
               <Button
@@ -1124,12 +1129,10 @@ export default function ImportarFacturasXML() {
                 Registrar automáticamente
               </Button>
             )}
-            {modo !== "existente" && (
-              <Button size="sm" disabled={!puedeImportar || importandoId === row.id} onClick={() => handleImportar(row)}>
-                {importandoId === row.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
-                Importar
-              </Button>
-            )}
+            <Button size="sm" disabled={!puedeImportar || importandoId === row.id} onClick={() => handleImportar(row)}>
+              {importandoId === row.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+              Importar
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -1243,16 +1246,6 @@ export default function ImportarFacturasXML() {
             )}
           </section>
 
-          <section className="space-y-3">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-              <RotateCcw className="h-4 w-4 text-blue-600" /> Ya registradas ({yaRegistradas.length})
-            </h2>
-            {yaRegistradas.length === 0 ? (
-              <p className="text-xs text-muted-foreground font-light">Ninguna duplicada.</p>
-            ) : (
-              yaRegistradas.map((r) => renderTarjeta(r, "existente"))
-            )}
-          </section>
         </div>
       )}
     </div>

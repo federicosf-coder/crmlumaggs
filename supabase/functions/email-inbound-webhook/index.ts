@@ -450,6 +450,7 @@ Deno.serve(async (req) => {
       };
 
       let procesadosFact = 0;
+      let duplicadosOmitidosFact = 0;
 
       for (const att of xmls) {
         try {
@@ -503,6 +504,12 @@ Deno.serve(async (req) => {
             }
           }
 
+          // Duplicado: se omite por completo, sin insertar nada en la bandeja
+          if (yaExiste) {
+            duplicadosOmitidosFact++;
+            continue;
+          }
+
           let clienteEstatus = 'pendiente';
           let empresaIdMatched: string | null = null;
           let candidatos: any[] = [];
@@ -510,7 +517,7 @@ Deno.serve(async (req) => {
           let empresaVendedora: string | null = null;
           const productos: any[] = [];
 
-          if (!yaExiste) {
+          {
             const rfcReceptor = (receptorRfc || '').trim().toUpperCase();
             // 0. Alias aprendido por nombre de receptor (tiene prioridad sobre todo)
             const aliasNorm = normalizarTextoCfdi(receptorNombre || '');
@@ -629,7 +636,6 @@ Deno.serve(async (req) => {
           // ¿Match perfecto para auto-importación (buzón facturaschevron@)?
           const matchPerfecto =
             esAutoImport &&
-            !yaExiste &&
             clienteEstatus === 'exacto_rfc' &&
             !!empresaIdMatched &&
             !!plazaId &&
@@ -728,10 +734,10 @@ Deno.serve(async (req) => {
             receptor_nombre: receptorNombre,
             receptor_rfc: receptorRfc,
             empresa_id_matched: empresaIdMatched,
-            cliente_match_estatus: yaExiste ? 'pendiente' : clienteEstatus,
+            cliente_match_estatus: clienteEstatus,
             cliente_candidatos: candidatos,
             productos_json: productos,
-            estatus: documentoCreadoId ? 'importado' : (yaExiste ? 'ya_existia' : 'pendiente'),
+            estatus: documentoCreadoId ? 'importado' : 'pendiente',
             documento_creado_id: documentoCreadoId,
             importado_at: documentoCreadoId ? new Date().toISOString() : null,
             importado_por: null,
@@ -745,7 +751,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      return jsonRes({ ok: true, procesados: procesadosFact });
+      return jsonRes({ ok: true, procesados: procesadosFact, duplicados_omitidos: duplicadosOmitidosFact });
     }
 
     // ===================== FLUJO PROSPECTOS (prospectos@) =====================
