@@ -224,6 +224,40 @@ function ComprobanteCard({
     };
   }, [row.storage_path]);
 
+  // Plaza por default: la del usuario que envió el comprobante; si no, la del usuario en sesión
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      let plazaDefault: string | null = null;
+      if (row.ejecutivo_id) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("plaza_id")
+          .eq("user_id", row.ejecutivo_id)
+          .maybeSingle();
+        plazaDefault = (data as any)?.plaza_id ?? null;
+      }
+      if (!plazaDefault && row.remitente_email) {
+        const email = row.remitente_email.match(/[^\s<>,;]+@[^\s<>,;]+/)?.[0] || row.remitente_email;
+        const { data } = await supabase
+          .from("profiles")
+          .select("plaza_id")
+          .ilike("email", email.trim())
+          .maybeSingle();
+        plazaDefault = (data as any)?.plaza_id ?? null;
+      }
+      if (!plazaDefault) plazaDefault = profile?.plaza_id ?? null;
+      if (active && plazaDefault) {
+        setPlazaId((prev) => (prev ? prev : plazaDefault!));
+      }
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row.id, profile?.plaza_id]);
+
+
   useEffect(() => {
     if (!empresaId) {
       setEmpresaDatos(null);
