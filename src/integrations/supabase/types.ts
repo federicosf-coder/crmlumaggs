@@ -4663,6 +4663,8 @@ export type Database = {
           cambiado_por: string | null
           documento_id: string
           estatus_anterior: Database["public"]["Enums"]["estatus_pedido"] | null
+          estatus_factura_anterior: string | null
+          estatus_factura_nuevo: string | null
           estatus_nuevo: Database["public"]["Enums"]["estatus_pedido"] | null
           id: string
         }
@@ -4673,6 +4675,8 @@ export type Database = {
           estatus_anterior?:
             | Database["public"]["Enums"]["estatus_pedido"]
             | null
+          estatus_factura_anterior?: string | null
+          estatus_factura_nuevo?: string | null
           estatus_nuevo?: Database["public"]["Enums"]["estatus_pedido"] | null
           id?: string
         }
@@ -4683,6 +4687,8 @@ export type Database = {
           estatus_anterior?:
             | Database["public"]["Enums"]["estatus_pedido"]
             | null
+          estatus_factura_anterior?: string | null
+          estatus_factura_nuevo?: string | null
           estatus_nuevo?: Database["public"]["Enums"]["estatus_pedido"] | null
           id?: string
         }
