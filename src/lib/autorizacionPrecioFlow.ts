@@ -54,11 +54,18 @@ async function resolveAtencionClientesEmail(
 
   if (!plazaId) return null;
   try {
+    const { data: roleRows } = await (supabase as any)
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "customer_service");
+    const userIds = (roleRows || []).map((r: any) => r.user_id).filter(Boolean);
+    if (userIds.length === 0) return null;
+
     const { data } = await (supabase as any)
       .from("profiles")
-      .select("email, user_id, user_roles!inner(role)")
+      .select("email")
       .eq("plaza_id", plazaId)
-      .eq("user_roles.role", "customer_service")
+      .in("user_id", userIds)
       .not("email", "is", null)
       .limit(1);
     const email = (data || [])[0]?.email;
