@@ -423,6 +423,18 @@ export default function ImportarFacturasXML() {
 
   const plazaResuelta = (row: IntakeRow): string | null => plazaManual[row.id] || row.plaza_id_detectado || null;
 
+  const EMPRESA_VENDEDORA_LABEL: Record<string, string> = {
+    lumaggs_chevron: "Procesadora de Servicios Maggs (Lumaggs · Chevron)",
+    galsa_phillips66: "Proveedora Galsa (Phillips 66)",
+  };
+
+  // Empresa vendedora: manual > detectada al importar > deducida del RFC del emisor del CFDI
+  const empresaVendedoraResuelta = (row: IntakeRow): string | null =>
+    empresaVendedoraManual[row.id] ||
+    row.empresa_vendedora_detectada ||
+    mapEmisorAEmpresaVendedora((row as any).emisor_rfc || "") ||
+    null;
+
   const calcularFechaVencimiento = (fechaFactura: string | null | undefined, tipoPago: string | null | undefined) => {
     if (!fechaFactura || !tipoPago) return "";
     const base = String(fechaFactura).slice(0, 10);
