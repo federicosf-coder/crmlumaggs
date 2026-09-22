@@ -752,7 +752,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      return jsonRes({ ok: true, procesados: procesadosFact });
+      return jsonRes({ ok: true, procesados: procesadosFact, duplicados_omitidos: duplicadosOmitidosFact });
     }
 
     // ===================== FLUJO PROSPECTOS (prospectos@) =====================
