@@ -364,13 +364,7 @@ function ComprobanteCard({
 
   const crearPago = async (aplicaciones: { doc_id: string; monto: number }[]): Promise<{ id: string } | null> => {
     try {
-      const { data: cp } = await supabase
-        .from("company_plazas")
-        .select("plaza_id")
-        .eq("company_id", empresaId)
-        .limit(1);
-      const plazaId = cp && cp.length > 0 ? (cp[0] as any).plaza_id : null;
-      if (!plazaId) toast.warning("El cliente no tiene plaza registrada. Completa la plaza manualmente en el pago.");
+
 
       const { data: pago, error: pagoErr } = await supabase
         .from("cobranza_pagos")
