@@ -25,6 +25,7 @@ import { TASK_TYPES, TASK_TYPE_LABEL, TaskTypeKey } from "@/lib/taskTypes";
 import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Plus, ExternalLink } from "lucide-react";
+import { DictadoButton } from "@/components/DictadoButton";
 
 /** Próxima hora redonda (si son las 14:23 → 15:00). */
 function nextRoundHourLocal(): string {
