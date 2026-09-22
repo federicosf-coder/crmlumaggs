@@ -214,6 +214,21 @@ export default function ImportarFacturasXML() {
         yaExiste = !!(dup && dup.length);
       }
 
+      // 1b. Duplicado por número de factura + empresa vendedora
+      if (!yaExiste) {
+        const numeroFacturaCfdi = (cfdi.serie || "") + (cfdi.folio || "");
+        const empresaVendedoraCfdi = mapEmisorAEmpresaVendedora(cfdi.emisorRfc || "");
+        if (numeroFacturaCfdi && empresaVendedoraCfdi) {
+          const { data: dupFolio } = await (supabase as any)
+            .from("documentos")
+            .select("id")
+            .eq("numero_factura", numeroFacturaCfdi)
+            .eq("empresa_vendedora", empresaVendedoraCfdi)
+            .limit(1);
+          yaExiste = !!(dupFolio && dupFolio.length);
+        }
+      }
+
       let clienteEstatus = "pendiente";
       let empresaIdMatched: string | null = null;
       let candidatos: any[] = [];
