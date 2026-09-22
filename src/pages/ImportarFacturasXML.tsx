@@ -190,7 +190,7 @@ export default function ImportarFacturasXML() {
       const { data, error } = await (supabase as any)
         .from("documentos_xml_intake")
         .select("*")
-        .in("estatus", ["pendiente", "ya_existia"])
+        .in("estatus", ["pendiente"])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as IntakeRow[];
@@ -391,16 +391,19 @@ export default function ImportarFacturasXML() {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth?.user?.id ?? null;
       let ok = 0;
+      let omitidos = 0;
       for (const f of xmls) {
         try {
-          await procesarArchivo(f, userId);
-          ok++;
+          const res = await procesarArchivo(f, userId);
+          if (res === "duplicado") omitidos++;
+          else ok++;
         } catch (e: any) {
           toast.error(`${f.name}: ${e?.message || "no se pudo procesar"}`);
         }
       }
       setProcesando(false);
       if (ok) toast.success(`${ok} XML procesado(s)`);
+      if (omitidos) toast.info(`${omitidos} factura(s) ya estaban registradas, se omitieron`);
       refetch();
     },
     [procesarArchivo, refetch]
