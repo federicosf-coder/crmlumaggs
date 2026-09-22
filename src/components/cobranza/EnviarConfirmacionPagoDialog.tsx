@@ -63,7 +63,7 @@ interface Props {
   onSent?: () => void;
 }
 
-const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(e);
 
 export function EnviarConfirmacionPagoDialog({
   open,
@@ -397,7 +397,12 @@ export function EnviarConfirmacionPagoDialog({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onBlur={() => input.trim() && addEmail()}
+                onBlur={() => {
+                  const value = input.trim();
+                  // Solo agrega el chip si es un correo completo y válido;
+                  // si no, lo deja en el campo para seguir editándolo.
+                  if (value && isValidEmail(value)) addEmail();
+                }}
               />
               <Button type="button" variant="outline" onClick={() => addEmail()}>
                 Agregar
