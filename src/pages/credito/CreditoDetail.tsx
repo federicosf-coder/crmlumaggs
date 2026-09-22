@@ -2420,7 +2420,7 @@ export default function CreditoDetail() {
               Guardar
             </Button>
           </div>
-        </TabsContent>
+          </div>
 
         {/* ============ DOCUMENTOS ============ */}
         <div className="order-first space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto pr-1">
