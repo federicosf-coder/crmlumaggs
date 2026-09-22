@@ -1,8 +1,11 @@
 // Helpers de emparejamiento para la importación de facturas XML (CFDI).
 
-// RFC del emisor -> empresa vendedora. Fácil de extender (Galsa se agregará después).
+// RFC del emisor -> empresa vendedora.
+// PSM891005QY7 = Procesadora de Servicios Maggs (Lumaggs / Chevron)
+// PGA850730EU0 = Proveedora Galsa (Galsa / Phillips 66)
 const EMISOR_RFC_MAP: Record<string, string> = {
   PSM891005QY7: "lumaggs_chevron",
+  PGA850730EU0: "galsa_phillips66",
 };
 
 export function mapEmisorAEmpresaVendedora(rfc: string): string | null {
