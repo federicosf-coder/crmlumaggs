@@ -531,6 +531,7 @@ export default function ReporteDiario() {
     L.push(div("<strong>Cobrado</strong>"));
     if (cobs.length === 0) L.push(div("Sin registros"));
     for (const c of cobs) L.push(div(`${escapeHtml(c.cliente)} - ${money(c.importe)}`));
+    if (cobs.length > 0) L.push(div(`<strong>Total: ${money(cobs.reduce((s, c) => s + c.importe, 0))}</strong>`));
 
     return L.join("");
   };
