@@ -1122,7 +1122,7 @@ export default function ReporteDiario() {
           documentos={[]}
           comprobantes={[]}
           defaultEmails={["ggalvan@dagal.com.mx", "miguelgalvan@dagal.com.mx"]}
-          ccEmails={["f.sarinanaf@dagal.com.mx", "r.galvang@dagal.com.mx"]}
+          ccEmails={["f.sarinanaf@dagal.com.mx", "r.galvang@dagal.com.mx", emailPayload.replyTo].filter((e): e is string => Boolean(e))}
           replyTo={emailPayload.replyTo}
           blockedEmails={[]}
           previouslySentEmails={[]}
