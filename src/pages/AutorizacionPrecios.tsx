@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -258,9 +258,8 @@ export default function AutorizacionPrecios() {
               ? data?.ejecutivos?.[doc.ejecutivo_venta_id]
               : null;
             return (
-              <>
+              <Fragment key={row.id}>
                 <TableRow
-                  key={row.id}
                   id={`aut-row-${row.id}`}
                   className={`cursor-pointer ${
                     highlightedId === row.id ? "ring-2 ring-primary/60" : ""
@@ -297,7 +296,7 @@ export default function AutorizacionPrecios() {
                   </TableCell>
                 </TableRow>
                 {abierto && (
-                  <TableRow key={`${row.id}-exp`} className="hover:bg-transparent">
+                  <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={8} className="p-0">
                       <div className="p-3 bg-muted/20">
                         <AutorizacionPrecioCard
@@ -312,7 +311,7 @@ export default function AutorizacionPrecios() {
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </TableBody>
@@ -394,7 +393,7 @@ export default function AutorizacionPrecios() {
                 </h2>
                 {seccionCheckbox(pendientes)}
               </div>
-              <div className="space-y-3">{pendientes.map(renderCard)}</div>
+              {renderTabla(pendientes)}
             </div>
           )}
 
@@ -406,7 +405,7 @@ export default function AutorizacionPrecios() {
                 </h2>
                 {seccionCheckbox(enviados)}
               </div>
-              <div className="space-y-3">{enviados.map(renderCard)}</div>
+              {renderTabla(enviados)}
             </div>
           )}
 
@@ -421,7 +420,7 @@ export default function AutorizacionPrecios() {
               <p className="text-xs text-muted-foreground">
                 Estas quedaron en un estado que necesita que alguien las revise o corrija manualmente.
               </p>
-              <div className="space-y-3">{atencion.map(renderCard)}</div>
+              {renderTabla(atencion)}
             </div>
           )}
         </div>
