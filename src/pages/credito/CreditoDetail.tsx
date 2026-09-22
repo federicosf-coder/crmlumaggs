@@ -2199,7 +2199,7 @@ export default function CreditoDetail() {
               <Field label="Ciudad"><Input value={form.ciudad_fiscal || ""} onChange={(e) => set("ciudad_fiscal", e.target.value)} /></Field>
               <Field label="Estado"><Input value={form.estado_fiscal || ""} onChange={(e) => set("estado_fiscal", e.target.value)} /></Field>
             </Section>
-            <Section title="Domicilio comercial">
+            <Section title="Domicilio comercial" complete={!!form.domicilio_comercial}>
               <div className="sm:col-span-2">
                 <Field label="Domicilio">
                   <AddressAutocompleteInput
