@@ -2653,6 +2653,8 @@ export default function CreditoDetail() {
               </div>
             </div>
           </CardContent></Card>
+        </div>
+          </div>
         </TabsContent>
 
         {/* ============ FIRMAS ============ */}
