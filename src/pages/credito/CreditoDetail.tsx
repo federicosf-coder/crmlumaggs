@@ -53,10 +53,30 @@ const DOC_PALETTE: Record<string, { icon: any; bg: string; border: string; iconB
   __default: { icon: Building2, bg: "bg-gradient-to-br from-neutral-50 to-stone-50", border: "border-neutral-200", iconBg: "bg-neutral-100", iconColor: "text-neutral-700", btn: "border-neutral-300 text-neutral-700 hover:bg-neutral-100" },
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function SecMark({ ok }: { ok: boolean }) {
+  return ok ? (
+    <Check className="h-3 w-3 text-emerald-600" />
+  ) : (
+    <span className="text-[9px] font-medium text-amber-600 whitespace-nowrap">Falta info</span>
+  );
+}
+
+function Section({ title, children, complete }: { title: string; children: React.ReactNode; complete?: boolean }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">{title}</p>
+      <div className="flex items-center gap-2">
+        <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">{title}</p>
+        {complete === true && (
+          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">
+            <Check className="h-2.5 w-2.5" />Completo
+          </span>
+        )}
+        {complete === false && (
+          <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">
+            Falta información
+          </span>
+        )}
+      </div>
       <div className="grid sm:grid-cols-2 gap-3">{children}</div>
     </div>
   );
