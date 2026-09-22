@@ -58,6 +58,7 @@ export default function ImportarFacturasXML() {
 
   // Selecciones manuales por fila (plaza, cliente candidato, productos)
   const [plazaManual, setPlazaManual] = useState<Record<string, string>>({});
+  const [empresaVendedoraManual, setEmpresaVendedoraManual] = useState<Record<string, string>>({});
   const [clienteManual, setClienteManual] = useState<Record<string, string>>({});
   const [productoManual, setProductoManual] = useState<Record<string, Record<number, string>>>({});
   const [ejecutivoManual, setEjecutivoManual] = useState<Record<string, string>>({});
@@ -422,6 +423,18 @@ export default function ImportarFacturasXML() {
 
   const plazaResuelta = (row: IntakeRow): string | null => plazaManual[row.id] || row.plaza_id_detectado || null;
 
+  const EMPRESA_VENDEDORA_LABEL: Record<string, string> = {
+    lumaggs_chevron: "Procesadora de Servicios Maggs (Lumaggs · Chevron)",
+    galsa_phillips66: "Proveedora Galsa (Phillips 66)",
+  };
+
+  // Empresa vendedora: manual > detectada al importar > deducida del RFC del emisor del CFDI
+  const empresaVendedoraResuelta = (row: IntakeRow): string | null =>
+    empresaVendedoraManual[row.id] ||
+    row.empresa_vendedora_detectada ||
+    mapEmisorAEmpresaVendedora((row as any).emisor_rfc || "") ||
+    null;
+
   const calcularFechaVencimiento = (fechaFactura: string | null | undefined, tipoPago: string | null | undefined) => {
     if (!fechaFactura || !tipoPago) return "";
     const base = String(fechaFactura).slice(0, 10);
@@ -455,7 +468,7 @@ export default function ImportarFacturasXML() {
     row.cliente_match_estatus === "generico_manual" ||
     !lineasDe(row).every((l) => l.matched) ||
     !row.plaza_id_detectado ||
-    !row.empresa_vendedora_detectada;
+    !empresaVendedoraResuelta(row);
 
   const pendientes = (filas as IntakeRow[]).filter((r) => r.estatus === "pendiente");
   const listas = pendientes.filter((r) => !necesitaRevision(r));
@@ -510,7 +523,7 @@ export default function ImportarFacturasXML() {
   const elegibleAutomatico = (row: IntakeRow) =>
     (row.cliente_match_estatus === "exacto_rfc" || row.cliente_match_estatus === "pendiente") &&
     !!row.plaza_id_detectado &&
-    !!row.empresa_vendedora_detectada;
+    !!empresaVendedoraResuelta(row);
 
   const importarFila = async (row: IntakeRow, silencioso = false, autoRegistrar = false): Promise<boolean> => {
     const lineas = lineasDe(row);
@@ -557,6 +570,11 @@ export default function ImportarFacturasXML() {
       return false;
     }
 
+    if (!empresaVendedoraResuelta(row)) {
+      if (!silencioso) toast.error("Selecciona la empresa vendedora");
+      return false;
+    }
+
     const ejecutivoSel = ejecutivoResuelto(row);
     const contactoSel = contactoResuelto(row);
     const tipoPagoSel = tipoPagoResuelto(row);
@@ -596,7 +614,7 @@ export default function ImportarFacturasXML() {
         tipo_documento: "factura",
         numero_factura: `${row.serie || ""}${row.folio || ""}`,
         empresa_id: empresaId,
-        empresa_vendedora: row.empresa_vendedora_detectada || null,
+        empresa_vendedora: empresaVendedoraResuelta(row),
         plaza_id: plazaResuelta(row),
         fecha_documento: row.fecha_factura,
         fecha_vencimiento: fechaVencSel || null,
@@ -806,7 +824,9 @@ export default function ImportarFacturasXML() {
             <div className="text-right">
               <div className="text-base font-semibold">{money(row.total)}</div>
               <div className="text-[11px] text-muted-foreground">
-                {row.empresa_vendedora_detectada || "empresa vendedora no detectada"}
+                {empresaVendedoraResuelta(row)
+                  ? EMPRESA_VENDEDORA_LABEL[empresaVendedoraResuelta(row) as string]
+                  : "empresa vendedora no detectada"}
               </div>
             </div>
           </div>
@@ -926,7 +946,28 @@ export default function ImportarFacturasXML() {
                     </Select>
                   )}
                 </div>
+
+                {/* Empresa vendedora */}
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa vendedora</Label>
+                  <Select
+                    value={empresaVendedoraResuelta(row) || ""}
+                    onValueChange={(v) => setEmpresaVendedoraManual((p) => ({ ...p, [row.id]: v }))}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="No detectada — elígela" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(EMPRESA_VENDEDORA_LABEL).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
 
               {(() => {
                 const empId = empresaResuelta(row);
