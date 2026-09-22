@@ -132,6 +132,13 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
     },
   });
 
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas-activas-intake"],
+    queryFn: async () => {
+      const { data } = await supabase.from("plazas").select("id,nombre").eq("is_active", true).order("nombre");
+      return (data || []) as { id: string; nombre: string }[];
+    },
+  });
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Cargando comprobantes...</p>;
@@ -150,7 +157,7 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
   return (
     <div className="space-y-4">
       {comprobantes.map((c) => (
-        <ComprobanteCard key={c.id} row={c} companies={companies} empresaVendedora={empresaVendedora} onDone={() => refetch()} />
+        <ComprobanteCard key={c.id} row={c} companies={companies} plazas={plazas} empresaVendedora={empresaVendedora} onDone={() => refetch()} />
       ))}
     </div>
   );
