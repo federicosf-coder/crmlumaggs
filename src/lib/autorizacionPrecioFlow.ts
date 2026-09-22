@@ -18,6 +18,64 @@ function resolveEmpresaCosto(empresaVendedora: string): "lumaggs" | "galsa" {
   return empresaVendedora === "galsa_phillips66" ? "galsa" : "lumaggs";
 }
 
+// Correos de Atención a Clientes por plaza (nombre de la plaza en minúsculas).
+const ATENCION_CLIENTES_POR_PLAZA: Record<string, string> = {
+  tijuana: "atencionclientes.tijuana@dagal.com.mx",
+  mexicali: "atencionclientes.mexicali@dagal.com.mx",
+  "san luis": "atencionclientes.sanluis@dagal.com.mx",
+  ensenada: "distribuidora.ensenada@dagal.com.mx",
+};
+
+const ATENCION_CLIENTES_CONOCIDOS = new Set(
+  Object.values(ATENCION_CLIENTES_POR_PLAZA).map((e) => e.toLowerCase())
+);
+
+export function esCorreoAtencionClientes(email: string | null | undefined): boolean {
+  const e = (email || "").trim().toLowerCase();
+  if (!e) return false;
+  return ATENCION_CLIENTES_CONOCIDOS.has(e) || e.startsWith("atencionclientes.");
+}
+
+function mismoCorreo(a: string | null | undefined, b: string | null | undefined): boolean {
+  return (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase() && !!(a || "").trim();
+}
+
+/**
+ * Resuelve el correo de Atención a Clientes que corresponde a la plaza del pedido.
+ * Primero usa el mapa fijo por nombre de plaza; si no hay coincidencia, busca en
+ * profiles un usuario con rol customer_service asignado a esa plaza.
+ */
+async function resolveAtencionClientesEmail(
+  plazaId: string | null,
+  plazaNombre: string
+): Promise<string | null> {
+  const key = (plazaNombre || "").trim().toLowerCase();
+  if (key && ATENCION_CLIENTES_POR_PLAZA[key]) return ATENCION_CLIENTES_POR_PLAZA[key];
+
+  if (!plazaId) return null;
+  try {
+    const { data: roleRows } = await (supabase as any)
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "customer_service");
+    const userIds = (roleRows || []).map((r: any) => r.user_id).filter(Boolean);
+    if (userIds.length === 0) return null;
+
+    const { data } = await (supabase as any)
+      .from("profiles")
+      .select("email")
+      .eq("plaza_id", plazaId)
+      .in("user_id", userIds)
+      .not("email", "is", null)
+      .limit(1);
+    const email = (data || [])[0]?.email;
+    return email ? String(email).trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+
 function formatMonthYearUpper(mesYYYYMM: string): string {
   const [y, m] = mesYYYYMM.split("-").map(Number);
   const d = new Date(y, m - 1, 1);
@@ -217,7 +275,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const { data: autorizacion, error: authError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
     .select(
-      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, numero_factura, pdf_url, ejecutivo_venta_id, companies(name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
+      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, numero_factura, pdf_url, ejecutivo_venta_id, plaza_id, plazas(nombre), companies(name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
     )
     .eq("id", autorizacionId)
     .maybeSingle();
@@ -537,10 +595,40 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const cc: string[] = [
     "precios@correo.lumaggs.com.mx",
     "f.sarinanaf@lumaggs.com.mx",
-    "atencionclientes.tijuana@dagal.com.mx",
   ];
-  if (ejecutivoEmail && !cc.includes(ejecutivoEmail)) cc.push(ejecutivoEmail);
-  for (const e of tplCc) if (e && !cc.includes(e)) cc.push(e);
+
+  const pushCc = (email?: string | null) => {
+    const e = (email || "").trim();
+    if (!e) return;
+    if (!cc.some((x) => x.toLowerCase() === e.toLowerCase())) cc.push(e);
+  };
+
+  // 9a. Atención a Clientes de la plaza del pedido
+  const plazaNombre = (documento?.plazas?.nombre || "").trim();
+  const atencionPlazaEmail = await resolveAtencionClientesEmail(
+    documento?.plaza_id || null,
+    plazaNombre
+  );
+  pushCc(atencionPlazaEmail);
+
+  // 9b. Ejecutivo del pedido
+  pushCc(ejecutivoEmail);
+
+  // 9c. Usuario que está enviando el correo
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    pushCc(authData?.user?.email || null);
+  } catch {
+    /* sin sesión disponible */
+  }
+
+  // 9d. CC de la plantilla, omitiendo correos de atención a clientes de otras plazas
+  for (const e of tplCc) {
+    if (esCorreoAtencionClientes(e) && !mismoCorreo(e, atencionPlazaEmail)) continue;
+    pushCc(e);
+  }
+
+
 
 
   // 10. Retorno
