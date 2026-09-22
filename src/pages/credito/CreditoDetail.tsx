@@ -2089,7 +2089,7 @@ export default function CreditoDetail() {
               })()}
 
               <TabsContent value="empresa" className="space-y-6 mt-5">
-            <Section title="Datos generales">
+            <Section title="Datos generales" complete={!!(form.razon_social && form.rfc && form.telefono && form.correo_contacto && form.giro_comercial)}>
               <Field label="Razón social"><Input value={form.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} /></Field>
               <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
               <Field label="RFC"><Input value={form.rfc || ""} onChange={(e) => set("rfc", e.target.value.toUpperCase())} /></Field>
