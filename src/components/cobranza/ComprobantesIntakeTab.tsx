@@ -730,6 +730,26 @@ function ComprobanteCard({
             )}
           </div>
 
+          <div>
+            <Label>Plaza *</Label>
+            <SearchableSelect
+              value={plazaId}
+              onValueChange={(v) => {
+                setPlazaTocada(true);
+                setPlazaId(v);
+              }}
+              options={plazas.map((p) => ({ value: p.id, label: p.nombre }))}
+              placeholder="Selecciona plaza..."
+            />
+            {!plazaId ? (
+              <p className="text-xs text-destructive mt-1">La plaza es requerida</p>
+            ) : !plazaTocada ? (
+              <p className="text-xs text-muted-foreground mt-1">Plaza tomada de quien envió el comprobante.</p>
+            ) : null}
+          </div>
+
+
+
 
           {(mismatchClabe || mismatchTarjeta) && (
             <Alert className="border-amber-300 bg-amber-50 text-amber-800">
