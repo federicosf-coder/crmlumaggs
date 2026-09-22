@@ -450,6 +450,7 @@ Deno.serve(async (req) => {
       };
 
       let procesadosFact = 0;
+      let duplicadosOmitidosFact = 0;
 
       for (const att of xmls) {
         try {
@@ -503,14 +504,16 @@ Deno.serve(async (req) => {
             }
           }
 
+          // Duplicado: se omite por completo, sin insertar nada en la bandeja
+          if (yaExiste) {
+            duplicadosOmitidosFact++;
+            continue;
+          }
+
           let clienteEstatus = 'pendiente';
-          let empresaIdMatched: string | null = null;
-          let candidatos: any[] = [];
-          let plazaId: string | null = null;
-          let empresaVendedora: string | null = null;
           const productos: any[] = [];
 
-          if (!yaExiste) {
+          {
             const rfcReceptor = (receptorRfc || '').trim().toUpperCase();
             // 0. Alias aprendido por nombre de receptor (tiene prioridad sobre todo)
             const aliasNorm = normalizarTextoCfdi(receptorNombre || '');
