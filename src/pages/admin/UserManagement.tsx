@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAuth } from "@/contexts/AuthContext";
 import { X, Pencil, Merge, Power, Trash2, UserPlus, Search, KeyRound } from "lucide-react";
 import { roleLabel } from "@/lib/roles";
@@ -65,6 +66,7 @@ interface UserWithRoles {
   phone: string | null;
   plaza_id: string | null;
   approval_status: "pendiente" | "aprobado" | "rechazado";
+  supervisor_id: string | null;
   created_at: string;
   roles: AppRole[];
   team_ids: string[];
@@ -79,6 +81,7 @@ export default function UserManagement() {
   const [editPhone, setEditPhone] = useState("");
   const [editTeamIds, setEditTeamIds] = useState<string[]>([]);
   const [editPlazaId, setEditPlazaId] = useState<string>("");
+  const [editSupervisorId, setEditSupervisorId] = useState<string>("");
   const [editEmail, setEditEmail] = useState("");
   const [editPwd, setEditPwd] = useState("");
   const [editPwdConfirm, setEditPwdConfirm] = useState("");
@@ -222,6 +225,7 @@ export default function UserManagement() {
       phone: p.phone,
       plaza_id: (p as any).plaza_id ?? null,
       approval_status: ((p as any).approval_status ?? "aprobado") as "pendiente" | "aprobado" | "rechazado",
+      supervisor_id: (p as any).supervisor_id ?? null,
       created_at: (p as any).created_at ?? "",
       roles: (allRoles || []).filter((r) => r.user_id === p.user_id).map((r) => r.role as AppRole),
       team_ids: (membersData || []).filter((m) => m.user_id === p.user_id).map((m) => m.team_id),
@@ -348,6 +352,7 @@ export default function UserManagement() {
     setEditPhone(u.phone || "");
     setEditTeamIds([...u.team_ids]);
     setEditPlazaId(u.plaza_id || "");
+    setEditSupervisorId(u.supervisor_id || "");
     setEditEmail("");
     setEditPwd("");
     setEditPwdConfirm("");
@@ -385,7 +390,7 @@ export default function UserManagement() {
       // Update profile
       const { error: profErr } = await supabase
         .from("profiles")
-        .update({ full_name: editName, phone: editPhone || null, plaza_id: editPlazaId || null })
+        .update({ full_name: editName, phone: editPhone || null, plaza_id: editPlazaId || null, supervisor_id: editSupervisorId || null } as any)
         .eq("user_id", editUser.user_id);
       if (profErr) throw profErr;
 
@@ -556,6 +561,28 @@ export default function UserManagement() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Supervisor</Label>
+                <SearchableSelect
+                  value={editSupervisorId || "__none__"}
+                  onValueChange={(v) => setEditSupervisorId(v === "__none__" ? "" : v)}
+                  placeholder="Sin supervisor"
+                  options={[
+                    { value: "__none__", label: "Sin supervisor" },
+                    ...users
+                      .filter((u) => u.is_active && u.user_id !== editUser.user_id)
+                      .map((u) => ({
+                        value: u.user_id,
+                        label: u.full_name || u.email || "—",
+                        searchText: `${u.full_name ?? ""} ${u.email ?? ""}`,
+                        description: u.email || undefined,
+                      })),
+                  ]}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Sus supervisores reciben copia en los correos de autorización de precio.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Equipos</Label>

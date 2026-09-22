@@ -611,8 +611,20 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   );
   pushCc(atencionPlazaEmail);
 
-  // 9b. Ejecutivo del pedido
+  // 9b. Ejecutivo del pedido y su cadena de supervisores
   pushCc(ejecutivoEmail);
+  if (documento?.ejecutivo_venta_id) {
+    try {
+      const { data: chainEmails } = await (supabase as any).rpc("get_supervisor_chain_emails", {
+        p_user_id: documento.ejecutivo_venta_id,
+      });
+      if (Array.isArray(chainEmails)) {
+        for (const e of chainEmails) pushCc(e);
+      }
+    } catch {
+      /* si falla el rpc, no se agregan supervisores */
+    }
+  }
 
   // 9c. Usuario que está enviando el correo
   try {
