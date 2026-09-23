@@ -24,15 +24,17 @@ export function PlazaCoberturaMatrix() {
   const { data, isLoading } = useQuery({
     queryKey: ["plaza_cobertura"],
     queryFn: async () => {
-      const [pl, pr, ro] = await Promise.all([
+      const [pl, pr, ro, resp] = await Promise.all([
         supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre"),
         supabase.from("profiles").select("user_id, full_name, email, plaza_id, is_active, approval_status").eq("is_active", true),
         supabase.from("user_roles").select("user_id, role"),
+        (supabase as any).from("plaza_responsables").select("user_id, plaza_id"),
       ]);
       if (pl.error) throw pl.error;
       if (pr.error) throw pr.error;
       if (ro.error) throw ro.error;
-      return { plazas: pl.data || [], profiles: (pr.data || []).filter((p: any) => p.user_id && p.approval_status === "aprobado"), roles: ro.data || [] };
+      if (resp.error) throw resp.error;
+      return { plazas: pl.data || [], profiles: (pr.data || []).filter((p: any) => p.user_id && p.approval_status === "aprobado"), roles: ro.data || [], responsables: resp.data || [] };
     },
   });
 
