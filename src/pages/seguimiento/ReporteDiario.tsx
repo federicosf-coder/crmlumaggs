@@ -134,7 +134,7 @@ export default function ReporteDiario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email")
+        .select("user_id, full_name, email, plazas:plaza_id(nombre)")
         .eq("is_active", true)
         .order("full_name");
       if (error) throw error;
