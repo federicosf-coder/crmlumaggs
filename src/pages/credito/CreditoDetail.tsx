@@ -2559,7 +2559,7 @@ export default function CreditoDetail() {
                               </span>
                             )}
                           </div>
-                          <div className="grid sm:grid-cols-2 gap-3">
+                          <div className="rounded-lg border border-border/60 divide-y divide-border/50 overflow-hidden bg-background/60">
                             {g.items.map((dt) => {
                               const items = (docs as any[]).filter((d) => d.doc_type_id === dt.id);
                               const palette = DOC_PALETTE[dt.nombre] || DOC_PALETTE.__default;
@@ -2567,83 +2567,66 @@ export default function CreditoDetail() {
                               const canAdd = dt.permite_multiples || items.length === 0;
                               const hasItems = items.length > 0;
                               return (
-                      <div key={dt.id} className={`rounded-lg border-2 ${hasItems ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-white" : (isRequerido(dt) ? "border-amber-300 bg-gradient-to-br from-amber-50/60 to-white" : palette.border + " " + palette.bg)} p-3 flex flex-col gap-2 relative`}>
-                        <span className={`absolute -top-2 right-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (isRequerido(dt) ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
-                          {hasItems ? (<><Check className="h-2.5 w-2.5" />Subido{items.length > 1 ? ` (${items.length})` : ""}</>) : (isRequerido(dt) ? "Requerido" : "Opcional")}
-                        </span>
-                        <div className="flex items-start gap-2.5 min-w-0 pr-20">
-                            <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${palette.iconBg}`}>
-                              <Icon className={`h-4.5 w-4.5 ${palette.iconColor}`} />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-sm leading-tight">
-                                {dt.nombre} {isRequerido(dt) && <span className="text-red-600">*</span>}
-                                {dt.permite_multiples && (
-                                  <span className="ml-1 text-[10px] text-muted-foreground font-normal">(múltiples)</span>
-                                )}
-                              </p>
-                              {dt.instrucciones_cliente && <p className="text-[11px] text-muted-foreground mt-0.5">{dt.instrucciones_cliente}</p>}
-                              {isOptInDoc(dt.nombre) && (
-                                <label className="mt-1.5 inline-flex items-center gap-1.5 cursor-pointer rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700 hover:bg-indigo-100 transition-colors">
-                                  <Switch
-                                    checked={optInChecked(dt.nombre)}
-                                    onCheckedChange={() => toggleDocRequerido(dt.nombre)}
-                                    className="scale-75"
-                                  />
-                                  <span>Requerido</span>
-                                </label>
-                              )}
-                            </div>
+                      <div key={dt.id} className={`px-2 py-1.5 ${hasItems ? "bg-emerald-50/50" : (isRequerido(dt) ? "bg-amber-50/40" : "")}`}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`h-5 w-5 rounded flex items-center justify-center shrink-0 ${palette.iconBg}`}>
+                            <Icon className={`h-3 w-3 ${palette.iconColor}`} />
+                          </div>
+                          <p className="text-xs font-medium leading-tight truncate flex-1 min-w-0" title={dt.nombre}>
+                            {dt.nombre} {isRequerido(dt) && <span className="text-red-600">*</span>}
+                          </p>
+                          {isOptInDoc(dt.nombre) && (
+                            <Switch
+                              checked={optInChecked(dt.nombre)}
+                              onCheckedChange={() => toggleDocRequerido(dt.nombre)}
+                              className="scale-[0.6] shrink-0"
+                            />
+                          )}
+                          <span className={`shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${hasItems ? "bg-emerald-500 text-white border-emerald-600" : (isRequerido(dt) ? "bg-amber-500 text-white border-amber-600" : "bg-slate-200 text-slate-700 border-slate-300")}`}>
+                            {hasItems ? `OK${items.length > 1 ? ` ${items.length}` : ""}` : (isRequerido(dt) ? "Req" : "Opc")}
+                          </span>
+                          {canAdd && (
+                            <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" title={items.length > 0 ? "Agregar otro" : "Subir documento"} onClick={() => openUploadDialog(dt.id, dt.nombre)}>
+                              <FileUp className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </div>
-                        {canAdd && (
-                          <Button size="sm" variant="outline" className={`h-7 px-2 text-xs w-full ${palette.btn}`} onClick={() => openUploadDialog(dt.id, dt.nombre)}>
-                            <FileUp className="h-3.5 w-3.5 mr-1" />{items.length > 0 ? "Agregar otro" : "Subir documento"}
-                          </Button>
-                        )}
                         {items.length > 0 && (
-                          <div className="space-y-1">
+                          <div className="mt-1 space-y-0.5 pl-7">
                             {items.map((it: any) => (
                               (() => {
                                 const vs = vencStatus(it.fecha_vencimiento);
                                 const requiereVerif = it.metadata?.requiere_verificacion;
                                 const extractKind = kindForDocTypeName(dt.nombre);
                                 return (
-                                  <div key={it.id} className="bg-white/70 rounded border border-white px-2 py-1.5 space-y-1">
-                                    <div className="flex items-center justify-between gap-2 text-xs">
-                                      <button onClick={() => openDoc(it.url_archivo)} className="truncate text-left hover:underline flex-1">{it.nombre_archivo}</button>
-                                      <span className={`px-1.5 py-0.5 rounded text-[10px] border ${
-                                        it.estado === "recibido" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                        it.estado === "rechazado" ? "bg-red-50 text-red-700 border-red-200" :
-                                        it.estado === "vencido" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                        "bg-slate-50 text-slate-700 border-slate-200"
-                                      }`}>{it.estado}</span>
-                                      {extractKind && (
-                                        <Button size="sm" variant="outline" disabled={autofilling !== null} className="h-6 px-2 text-[10px] border-violet-300 text-violet-700 hover:bg-violet-50" title="Extraer datos con IA" onClick={() => extractFromDoc(it, extractKind, dt.nombre)}>
-                                          {autofilling === extractKind ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Wand2 className="h-3 w-3 mr-1" />}
-                                          Extraer
-                                        </Button>
-                                      )}
-                                      {requiereVerif && (
-                                        <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setVerifyDoc(it)}>
-                                          <AlertTriangle className="h-3 w-3 mr-1" />Verificar
-                                        </Button>
-                                      )}
-                                      {it.estado !== "recibido" && (
-                                        <Button size="icon" variant="ghost" className="h-6 w-6" title="Aprobar" onClick={() => setDocEstado(it.id, "recibido")}><Check className="h-3.5 w-3.5" /></Button>
-                                      )}
-                                      <Button size="icon" variant="ghost" className="h-6 w-6" title="Rechazar" onClick={() => { const m = prompt("Motivo de rechazo:"); if (m) setDocEstado(it.id, "rechazado", m); }}><X className="h-3.5 w-3.5" /></Button>
-                                      <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" title="Eliminar" onClick={() => deleteDoc(it.id, it.url_archivo)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
-                                      <button onClick={() => openEditFecha(it)} className="inline-flex items-center gap-1 hover:text-foreground">
-                                        <CalendarClock className="h-3 w-3" />
-                                        {it.fecha_emision ? `Emitido ${format(new Date(it.fecha_emision + "T00:00:00"), "dd/MM/yyyy")}` : "Sin fecha de emisión"}
-                                      </button>
-                                      {it.fecha_vencimiento && (
-                                        <span>· Vence {format(new Date(it.fecha_vencimiento + "T00:00:00"), "dd/MM/yyyy")}</span>
-                                      )}
-                                      {vs && <span className={`px-1.5 py-0.5 rounded border ${vs.cls}`}>{vs.label}</span>}
-                                    </div>
+                                  <div key={it.id} className="flex items-center gap-1 text-[11px] min-w-0">
+                                    <button onClick={() => openDoc(it.url_archivo)} className="truncate text-left hover:underline flex-1 min-w-0">{it.nombre_archivo}</button>
+                                    <button onClick={() => openEditFecha(it)} className="hidden sm:inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground shrink-0" title="Fecha de emisión">
+                                      <CalendarClock className="h-3 w-3" />
+                                      {it.fecha_emision ? format(new Date(it.fecha_emision + "T00:00:00"), "dd/MM/yy") : "—"}
+                                    </button>
+                                    {vs && <span className={`shrink-0 px-1 py-0.5 rounded border text-[9px] ${vs.cls}`}>{vs.label}</span>}
+                                    <span className={`shrink-0 px-1 py-0.5 rounded text-[9px] border ${
+                                      it.estado === "recibido" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                      it.estado === "rechazado" ? "bg-red-50 text-red-700 border-red-200" :
+                                      it.estado === "vencido" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                      "bg-slate-50 text-slate-700 border-slate-200"
+                                    }`}>{it.estado}</span>
+                                    {extractKind && (
+                                      <Button size="icon" variant="ghost" disabled={autofilling !== null} className="h-5 w-5 shrink-0 text-violet-700" title="Extraer datos con IA" onClick={() => extractFromDoc(it, extractKind, dt.nombre)}>
+                                        {autofilling === extractKind ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                                      </Button>
+                                    )}
+                                    {requiereVerif && (
+                                      <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0 text-amber-700" title="Verificar" onClick={() => setVerifyDoc(it)}>
+                                        <AlertTriangle className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                    {it.estado !== "recibido" && (
+                                      <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0" title="Aprobar" onClick={() => setDocEstado(it.id, "recibido")}><Check className="h-3 w-3" /></Button>
+                                    )}
+                                    <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0" title="Rechazar" onClick={() => { const m = prompt("Motivo de rechazo:"); if (m) setDocEstado(it.id, "rechazado", m); }}><X className="h-3 w-3" /></Button>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0 text-destructive" title="Eliminar" onClick={() => deleteDoc(it.id, it.url_archivo)}><Trash2 className="h-3 w-3" /></Button>
                                   </div>
                                 );
                               })()
