@@ -269,6 +269,20 @@ export default function UserManagement() {
     }
   };
 
+  const updateUserSupervisor = async (userId: string, supervisorId: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ supervisor_id: supervisorId || null } as any)
+      .eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Supervisor actualizado" });
+      fetchUsers();
+    }
+  };
+
+
   const setApprovalStatus = async (userId: string, status: "aprobado" | "rechazado") => {
     const { error } = await supabase
       .from("profiles")
