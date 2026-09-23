@@ -1834,7 +1834,7 @@ export default function CreditoDetail() {
 
         {/* ============ FORMULARIO ============ */}
         <TabsContent value="expediente" className="mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-4 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)] gap-4 items-start">
           <div className="min-w-0 space-y-6">
           <Card><CardContent className="pt-6 space-y-6">
             <Tabs value={formTab} onValueChange={setFormTab}>
