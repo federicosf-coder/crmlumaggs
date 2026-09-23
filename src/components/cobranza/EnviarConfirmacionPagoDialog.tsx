@@ -106,6 +106,7 @@ export function EnviarConfirmacionPagoDialog({
   useEffect(() => {
     if (open) {
       setEmails(sanitize(defaultEmails));
+      setInput("");
       setConfirmingResend(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -144,13 +145,12 @@ export function EnviarConfirmacionPagoDialog({
   };
 
   const computeFinalEmails = () => {
+    // Puro: NO muta estado (nunca setEmails aquí — antes causaba chips
+    // automáticos mientras el usuario escribía el dominio).
     let finalEmails = emails;
-    if (input.trim()) {
-      const value = input.trim();
-      if (isValidEmail(value) && !isBlocked(value) && !finalEmails.includes(value)) {
-        finalEmails = [...finalEmails, value];
-        setEmails(finalEmails);
-      }
+    const value = input.trim();
+    if (value && isValidEmail(value) && !isBlocked(value) && !finalEmails.includes(value)) {
+      finalEmails = [...finalEmails, value];
     }
     // Defensa: nunca enviar a correos bloqueados
     return finalEmails.filter((e) => !isBlocked(e));
