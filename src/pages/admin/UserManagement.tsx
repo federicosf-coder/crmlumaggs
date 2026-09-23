@@ -755,6 +755,27 @@ export default function UserManagement() {
                       </Select>
                     </TableCell>
                     <TableCell>
+                      <div className="w-44">
+                        <SearchableSelect
+                          value={u.supervisor_id || "__none__"}
+                          onValueChange={(v) => updateUserSupervisor(u.user_id, v === "__none__" ? "" : v)}
+                          placeholder="Sin supervisor"
+                          options={[
+                            { value: "__none__", label: "Sin supervisor" },
+                            ...users
+                              .filter((o) => o.is_active && o.user_id !== u.user_id)
+                              .map((o) => ({
+                                value: o.user_id,
+                                label: o.full_name || o.email || "—",
+                                searchText: `${o.full_name ?? ""} ${o.email ?? ""}`,
+                                description: o.email || undefined,
+                              })),
+                          ]}
+                        />
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
                       <Select onValueChange={(v) => addRole(u.user_id, v as AppRole)}>
                         <SelectTrigger className="w-36 h-8 text-xs">
                           <SelectValue placeholder="Agregar rol..." />
