@@ -1,3 +1,4 @@
+import { companyOption } from "@/lib/companyLabel";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -45,7 +46,7 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity 
     queryKey: ["companies-picker"],
     queryFn: async () =>
       await fetchAllRows<any>((from, to) =>
-        supabase.from("companies").select("id, name").eq("is_active", true).order("name").range(from, to)
+        supabase.from("companies").select("id, name, razon_social").eq("is_active", true).order("name").range(from, to)
       ),
   });
 
@@ -133,7 +134,7 @@ export function QuickActivityDialog({ open, onOpenChange, onSaved, editActivity 
             <SearchableSelect
               value={companyId}
               onValueChange={setCompanyId}
-              options={(companies || []).map((c: any) => ({ value: c.id, label: c.name }))}
+              options={(companies || []).map((c: any) => companyOption(c))}
               placeholder="Buscar empresa..."
             />
           </div>

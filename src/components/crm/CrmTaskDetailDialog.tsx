@@ -1,3 +1,4 @@
+import { companyOption } from "@/lib/companyLabel";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { localInputToIso } from "@/lib/formatters";
 import { CrmTask, useUpdateCrmTask, useDeleteCrmTask, useTaskTimeline } from "@/hooks/useCrmTasks";
@@ -134,7 +135,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
   const { data: companies } = useQuery({
     queryKey: ["companies-picker-task"],
     queryFn: async () => {
-      const data = await fetchAllRows<any>((from, to) => supabase.from("companies").select("id, name").eq("is_active", true).order("name").range(from, to));
+      const data = await fetchAllRows<any>((from, to) => supabase.from("companies").select("id, name, razon_social").eq("is_active", true).order("name").range(from, to));
       return data;
     },
   });
@@ -338,7 +339,7 @@ export function CrmTaskDetailDialog({ task, open, onOpenChange }: CrmTaskDetailD
 
   const pMeta = PRIORITY_META[priority] || PRIORITY_META.medium;
 
-  const companyOptions = [{ value: "none", label: "Sin empresa" }, ...(companies || []).map((c: any) => ({ value: c.id, label: c.name }))];
+  const companyOptions = [{ value: "none", label: "Sin empresa" }, ...(companies || []).map((c: any) => companyOption(c))];
   const contactOptions = [{ value: "none", label: "Sin contacto" }, ...filteredContacts.map((c: any) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` }))];
   const userOptions = [{ value: "none", label: "Sin asignar" }, ...(users || []).map((u: any) => ({ value: u.user_id, label: u.full_name || u.email }))];
 

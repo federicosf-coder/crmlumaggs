@@ -1,3 +1,4 @@
+import { companyOption } from "@/lib/companyLabel";
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -162,7 +163,7 @@ export default function DeliveryAddresses() {
       for (let i = 0; i < 10; i++) {
         const { data, error } = await supabase
           .from("companies")
-          .select("id, name")
+          .select("id, name, razon_social")
           .eq("is_active", true)
           .order("name")
           .range(from, from + pageSize - 1);
@@ -653,7 +654,7 @@ export default function DeliveryAddresses() {
                 value={form.empresa_id}
                 onValueChange={(v) => setForm((p) => ({ ...p, empresa_id: v }))}
                 placeholder="Seleccionar empresa"
-                options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
+                options={companies.map((c: any) => companyOption(c))}
               />
             </div>
             <div>

@@ -1,3 +1,4 @@
+import { companyOption } from "@/lib/companyLabel";
 import { useState, useEffect } from "react";
 import { localInputToIso } from "@/lib/formatters";
 import { useAuth } from "@/contexts/AuthContext";
@@ -74,7 +75,7 @@ export function CreateCrmTaskDialog({
   const { data: companies } = useQuery({
     queryKey: ["companies-picker"],
     queryFn: async () => {
-      const data = await fetchAllRows<any>((from, to) => supabase.from("companies").select("id, name").eq("is_active", true).order("name").range(from, to));
+      const data = await fetchAllRows<any>((from, to) => supabase.from("companies").select("id, name, razon_social").eq("is_active", true).order("name").range(from, to));
       return data;
     },
   });
@@ -743,7 +744,7 @@ export function CreateCrmTaskDialog({
                 onValueChange={(v) => setCompanyId(v === "none" ? "" : v)}
                 options={[
                   { value: "none", label: "Ninguna" },
-                  ...((companies || []).map((c: any) => ({ value: c.id, label: c.name }))),
+                  ...((companies || []).map((c: any) => companyOption(c))),
                 ]}
                 placeholder="Buscar empresa..."
                 className="font-light text-sm"

@@ -1,3 +1,4 @@
+import { companyOption } from "@/lib/companyLabel";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -314,7 +315,7 @@ export default function CreditoList() {
               <SearchableSelect
                 value={newCompanyId}
                 onValueChange={setNewCompanyId}
-                options={(companies as any[]).map((c) => ({ value: c.id, label: c.name || c.razon_social || c.id }))}
+                options={(companies as any[]).map((c) => companyOption(c))}
                 placeholder="Buscar empresa..."
               />
             </div>
