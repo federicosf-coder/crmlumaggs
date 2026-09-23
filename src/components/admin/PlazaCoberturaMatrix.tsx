@@ -199,7 +199,12 @@ export function PlazaCoberturaMatrix() {
         <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
           <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
             <DialogTitle className="text-lg font-semibold tracking-tight">Asignar {target?.label}</DialogTitle>
-            <DialogDescription className="text-xs font-light">Plaza {target?.plazaNombre}. Se asigna la plaza al usuario y se le agrega el puesto.</DialogDescription>
+            <DialogDescription className="text-xs font-light">
+              Plaza {target?.plazaNombre}.{" "}
+              {target?.role === "manager"
+                ? "El usuario queda como responsable de esta plaza además de las que ya tenga; su plaza base no cambia."
+                : "Se asigna la plaza al usuario y se le agrega el puesto."}
+            </DialogDescription>
           </DialogHeader>
           <div className="px-5 py-5">
             <SearchableSelect value="" onValueChange={assign} options={options} placeholder="Buscar usuario..." />
