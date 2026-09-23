@@ -269,6 +269,20 @@ export default function UserManagement() {
     }
   };
 
+  const updateUserSupervisor = async (userId: string, supervisorId: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ supervisor_id: supervisorId || null } as any)
+      .eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Supervisor actualizado" });
+      fetchUsers();
+    }
+  };
+
+
   const setApprovalStatus = async (userId: string, status: "aprobado" | "rechazado") => {
     const { error } = await supabase
       .from("profiles")
@@ -686,6 +700,8 @@ export default function UserManagement() {
                   <TableHead>Roles</TableHead>
                   <TableHead>Equipos</TableHead>
                   <TableHead>Plaza</TableHead>
+                  <TableHead>Supervisor</TableHead>
+
                   <TableHead>Agregar Rol</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
@@ -738,6 +754,27 @@ export default function UserManagement() {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      <div className="w-44">
+                        <SearchableSelect
+                          value={u.supervisor_id || "__none__"}
+                          onValueChange={(v) => updateUserSupervisor(u.user_id, v === "__none__" ? "" : v)}
+                          placeholder="Sin supervisor"
+                          options={[
+                            { value: "__none__", label: "Sin supervisor" },
+                            ...users
+                              .filter((o) => o.is_active && o.user_id !== u.user_id)
+                              .map((o) => ({
+                                value: o.user_id,
+                                label: o.full_name || o.email || "—",
+                                searchText: `${o.full_name ?? ""} ${o.email ?? ""}`,
+                                description: o.email || undefined,
+                              })),
+                          ]}
+                        />
+                      </div>
+                    </TableCell>
+
                     <TableCell>
                       <Select onValueChange={(v) => addRole(u.user_id, v as AppRole)}>
                         <SelectTrigger className="w-36 h-8 text-xs">
