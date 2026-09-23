@@ -2533,6 +2533,7 @@ export default function CreditoDetail() {
                   toast.success(nuevo ? `${nombre} marcado como requerido` : `${nombre} marcado como no requerido`);
                 };
                 return (
+                  <TooltipProvider delayDuration={150}>
                   <div className="space-y-5">
                     {/* Progreso global */}
                     <div className="rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-violet-50 p-3 space-y-2">
