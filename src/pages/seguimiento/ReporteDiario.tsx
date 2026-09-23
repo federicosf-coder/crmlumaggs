@@ -483,6 +483,8 @@ export default function ReporteDiario() {
     const L: string[] = [];
     L.push(div(`Reporte del ${fmt(desde)} al ${fmt(hasta)}`));
     L.push(div(`Ejecutivo: ${escapeHtml(nombreDe(ejecutivoId))}`));
+    const plazaEj = plazaDe(ejecutivoId);
+    if (plazaEj) L.push(div(`Plaza: ${escapeHtml(plazaEj)}`));
     L.push("<br>");
     L.push(div("<strong>Lumaggs</strong>"));
     L.push(div(`Unidades vendidas Lumaggs: ${num(s.udsLumaggsPeriodo)}`));
