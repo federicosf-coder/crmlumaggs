@@ -21,6 +21,7 @@ import { Plus, MapPin, Tags, BoxesIcon, Pencil, Kanban, Trash2, ChevronDown, Che
 import { EmailGroupsTab } from "@/components/admin/EmailGroupsTab";
 import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
 import { SeguimientoEstatusTab } from "@/components/admin/SeguimientoEstatusTab";
+import { PlazaCoberturaMatrix } from "@/components/admin/PlazaCoberturaMatrix";
 import { DocumentosPlantillaCatalogoTab } from "@/components/admin/DocumentosPlantillaCatalogoTab";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
@@ -91,6 +92,7 @@ function PlazasTab() {
   };
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5" /> Plazas</CardTitle>
@@ -146,6 +148,8 @@ function PlazasTab() {
         </DialogContent>
       </Dialog>
     </Card>
+    <PlazaCoberturaMatrix />
+    </>
   );
 }
 
