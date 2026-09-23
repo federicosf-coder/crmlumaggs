@@ -700,6 +700,8 @@ export default function UserManagement() {
                   <TableHead>Roles</TableHead>
                   <TableHead>Equipos</TableHead>
                   <TableHead>Plaza</TableHead>
+                  <TableHead>Supervisor</TableHead>
+
                   <TableHead>Agregar Rol</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
