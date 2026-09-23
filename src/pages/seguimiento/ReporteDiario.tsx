@@ -171,6 +171,9 @@ export default function ReporteDiario() {
   const emailDe = (id: string | null) =>
     (id && ejecutivos.find((e) => e.user_id === id)?.email) || undefined;
 
+  const plazaDe = (id: string | null) =>
+    (id && ejecutivos.find((e) => e.user_id === id)?.plazas?.nombre) || undefined;
+
   const { data: reporte, isFetching } = useQuery({
     queryKey: ["reporte-diario-consolidado", params?.fechaInicio, params?.fechaFin, params?.ids],
     enabled: !!params && (params?.ids.length || 0) > 0,
