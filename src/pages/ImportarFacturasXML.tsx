@@ -89,20 +89,19 @@ export default function ImportarFacturasXML() {
       const [{ data: comp }, { data: ejec }, { data: cts }] = await Promise.all([
         (supabase as any).from("companies").select("primary_contact_id, tipo_pago").eq("id", empresaId).maybeSingle(),
         (supabase as any).from("company_ejecutivos").select("user_id").eq("company_id", empresaId).limit(1),
-        (supabase as any)
-          .from("contacts")
-          .select("id, first_name, last_name, job_title")
-          .eq("company_id", empresaId)
-          .eq("is_active", true),
+        // Todos los contactos de la empresa, sin importar quién los capturó
+        (supabase as any).rpc("get_company_contacts_for_cobranza", { p_company_id: empresaId }),
       ]);
       const perfil: PerfilEmpresa = {
         ejecutivoDefault: ejec && ejec.length ? ejec[0].user_id : null,
         contactoDefault: comp?.primary_contact_id || null,
         tipoPagoDefault: comp?.tipo_pago || null,
-        contactos: (cts || []).map((c: any) => ({
-          id: c.id,
-          label: `${c.first_name || ""} ${c.last_name || ""}`.trim() + (c.job_title ? ` — ${c.job_title}` : ""),
-        })),
+        contactos: (cts || [])
+          .filter((c: any) => c.is_active !== false)
+          .map((c: any) => ({
+            id: c.id,
+            label: `${c.first_name || ""} ${c.last_name || ""}`.trim() || c.email || "Contacto",
+          })),
       };
       setPerfilPorEmpresa((prev) => ({ ...prev, [empresaId]: perfil }));
     },
@@ -302,7 +301,7 @@ export default function ImportarFacturasXML() {
 
         // b. Plaza / empresa vendedora
         empresaVendedora = mapEmisorAEmpresaVendedora(cfdi.emisorRfc || "");
-        const nombrePlaza = mapSerieAPlaza(cfdi.serie || "");
+        const nombrePlaza = mapSerieAPlaza(cfdi.serie || "", cfdi.folio || "");
         if (nombrePlaza) {
           const { data: pl } = await (supabase as any)
             .from("plazas")
@@ -926,27 +925,22 @@ export default function ImportarFacturasXML() {
                 {/* Plaza */}
                 <div className="space-y-1.5">
                   <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Plaza</Label>
-                  {row.plaza_id_detectado ? (
-                    <Badge variant="secondary">
-                      {(plazas as any[]).find((p) => p.id === row.plaza_id_detectado)?.nombre || "Detectada"}
-                    </Badge>
-                  ) : (
-                    <Select
-                      value={plazaManual[row.id] || ""}
-                      onValueChange={(v) => setPlazaManual((p) => ({ ...p, [row.id]: v }))}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Plaza no detectada — elígela" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(plazas as any[]).map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+                  <Select
+                    value={plazaResuelta(row) || ""}
+                    onValueChange={(v) => setPlazaManual((p) => ({ ...p, [row.id]: v }))}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Plaza no detectada — elígela" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(plazas as any[]).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nombre}
+                          {p.id === row.plaza_id_detectado ? " (según factura)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Empresa vendedora */}
