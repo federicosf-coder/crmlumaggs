@@ -7448,6 +7448,35 @@ export type Database = {
         }
         Relationships: []
       }
+      plaza_responsables: {
+        Row: {
+          created_at: string
+          id: string
+          plaza_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plaza_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plaza_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plaza_responsables_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plazas: {
         Row: {
           created_at: string

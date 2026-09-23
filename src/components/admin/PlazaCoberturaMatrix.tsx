@@ -24,15 +24,17 @@ export function PlazaCoberturaMatrix() {
   const { data, isLoading } = useQuery({
     queryKey: ["plaza_cobertura"],
     queryFn: async () => {
-      const [pl, pr, ro] = await Promise.all([
+      const [pl, pr, ro, resp] = await Promise.all([
         supabase.from("plazas").select("id, nombre").eq("is_active", true).order("nombre"),
         supabase.from("profiles").select("user_id, full_name, email, plaza_id, is_active, approval_status").eq("is_active", true),
         supabase.from("user_roles").select("user_id, role"),
+        (supabase as any).from("plaza_responsables").select("user_id, plaza_id"),
       ]);
       if (pl.error) throw pl.error;
       if (pr.error) throw pr.error;
       if (ro.error) throw ro.error;
-      return { plazas: pl.data || [], profiles: (pr.data || []).filter((p: any) => p.user_id && p.approval_status === "aprobado"), roles: ro.data || [] };
+      if (resp.error) throw resp.error;
+      return { plazas: pl.data || [], profiles: (pr.data || []).filter((p: any) => p.user_id && p.approval_status === "aprobado"), roles: ro.data || [], responsables: resp.data || [] };
     },
   });
 
@@ -45,14 +47,37 @@ export function PlazaCoberturaMatrix() {
     return m;
   }, [data]);
 
-  const usersFor = (plazaId: string, role: string) =>
-    (data?.profiles || []).filter((p: any) => p.plaza_id === plazaId && rolesByUser.get(p.user_id)?.has(role));
+  const usersFor = (plazaId: string, role: string) => {
+    if (role === "manager") {
+      const ids = new Set(
+        (data?.responsables || []).filter((r: any) => r.plaza_id === plazaId).map((r: any) => r.user_id)
+      );
+      return (data?.profiles || []).filter((p: any) => ids.has(p.user_id));
+    }
+    return (data?.profiles || []).filter((p: any) => p.plaza_id === plazaId && rolesByUser.get(p.user_id)?.has(role));
+  };
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["plaza_cobertura"] });
 
   const assign = async (userId: string) => {
     if (!target || !userId) return;
     const prof = data?.profiles.find((p: any) => p.user_id === userId) as any;
+
+    // Responsable de Plaza: asignación multi-plaza, no mueve la plaza base del usuario.
+    if (target.role === "manager") {
+      const { error } = await (supabase as any)
+        .from("plaza_responsables")
+        .insert({ user_id: userId, plaza_id: target.plazaId });
+      if (error) return toast.error("No se pudo asignar responsable: " + error.message);
+      if (!rolesByUser.get(userId)?.has("manager")) {
+        await supabase.from("user_roles").insert({ user_id: userId, role: "manager" } as any);
+      }
+      toast.success("Responsable asignado");
+      setTarget(null);
+      refresh();
+      return;
+    }
+
     if (prof && prof.plaza_id && prof.plaza_id !== target.plazaId) {
       if (!confirm(`${prof.full_name || prof.email} está asignado a otra plaza. ¿Moverlo a ${target.plazaNombre}?`)) return;
     }
@@ -69,9 +94,21 @@ export function PlazaCoberturaMatrix() {
     refresh();
   };
 
-  const remove = async (userId: string, role: string) => {
+  const remove = async (userId: string, role: string, plazaId: string) => {
     if (!confirm("¿Quitar este puesto al usuario? (Conserva su plaza y demás roles)")) return;
-    setBusy(userId + role);
+    setBusy(userId + role + plazaId);
+    if (role === "manager") {
+      const { error } = await (supabase as any)
+        .from("plaza_responsables")
+        .delete()
+        .eq("user_id", userId)
+        .eq("plaza_id", plazaId);
+      setBusy(null);
+      if (error) return toast.error(error.message);
+      toast.success("Responsable removido de esta plaza");
+      refresh();
+      return;
+    }
     const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
     setBusy(null);
     if (error) return toast.error(error.message);
@@ -81,8 +118,9 @@ export function PlazaCoberturaMatrix() {
 
   const options = useMemo(() => {
     if (!target) return [];
+    const yaAsignados = new Set(usersFor(target.plazaId, target.role).map((u: any) => u.user_id));
     return (data?.profiles || [])
-      .filter((p: any) => !(p.plaza_id === target.plazaId && rolesByUser.get(p.user_id)?.has(target.role)))
+      .filter((p: any) => !yaAsignados.has(p.user_id))
       .map((p: any) => {
         const plaza = data?.plazas.find((x: any) => x.id === p.plaza_id)?.nombre;
         return {
@@ -140,9 +178,9 @@ export function PlazaCoberturaMatrix() {
                             {us.map((u: any) => (
                               <span key={u.user_id} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-light">
                                 {u.full_name || u.email}
-                                <button type="button" onClick={() => remove(u.user_id, pu.role)} disabled={busy === u.user_id + pu.role}
+                                <button type="button" onClick={() => remove(u.user_id, pu.role, pl.id)} disabled={busy === u.user_id + pu.role + pl.id}
                                   className="text-muted-foreground hover:text-destructive" title="Quitar puesto">
-                                  {busy === u.user_id + pu.role ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                                  {busy === u.user_id + pu.role + pl.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
                                 </button>
                               </span>
                             ))}
@@ -161,7 +199,12 @@ export function PlazaCoberturaMatrix() {
         <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
           <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
             <DialogTitle className="text-lg font-semibold tracking-tight">Asignar {target?.label}</DialogTitle>
-            <DialogDescription className="text-xs font-light">Plaza {target?.plazaNombre}. Se asigna la plaza al usuario y se le agrega el puesto.</DialogDescription>
+            <DialogDescription className="text-xs font-light">
+              Plaza {target?.plazaNombre}.{" "}
+              {target?.role === "manager"
+                ? "El usuario queda como responsable de esta plaza además de las que ya tenga; su plaza base no cambia."
+                : "Se asigna la plaza al usuario y se le agrega el puesto."}
+            </DialogDescription>
           </DialogHeader>
           <div className="px-5 py-5">
             <SearchableSelect value="" onValueChange={assign} options={options} placeholder="Buscar usuario..." />
