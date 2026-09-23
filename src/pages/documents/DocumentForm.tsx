@@ -215,7 +215,7 @@ export default function DocumentForm() {
       return await fetchAllRows<any>((from, to) =>
         supabase
           .from("companies")
-          .select("id, name, phone, lista_precios, uso_cfdi, metodo_pago, tipo_pago, forma_pago, id_contpaq")
+          .select("id, name, razon_social, phone, lista_precios, uso_cfdi, metodo_pago, tipo_pago, forma_pago, id_contpaq")
           .eq("is_active", true)
           .order("name")
           .range(from, to)
@@ -1120,7 +1120,7 @@ export default function DocumentForm() {
                   value={form.empresa_id}
                   onValueChange={v => { set("empresa_id", v); set("contacto_id", ""); set("direccion_envio", ""); }}
                   placeholder="Seleccionar"
-                  options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
+                  options={companies.map((c: any) => companyOption(c))}
                   className="flex-1 text-left"
                 />
                 <Button variant="outline" size="icon" onClick={() => setShowNewCompany(true)}><Plus className="h-4 w-4" /></Button>

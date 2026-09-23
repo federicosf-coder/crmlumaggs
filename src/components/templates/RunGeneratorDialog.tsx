@@ -97,11 +97,7 @@ export function RunGeneratorDialog({ open, onOpenChange, templateId, generatorId
 
   const empresaOptions = useMemo(
     () =>
-      (empresas as any[]).map((e) => ({
-        value: e.id,
-        label: e.name + (e.razon_social && e.razon_social !== e.name ? ` — ${e.razon_social}` : ""),
-        searchText: `${e.name} ${e.razon_social || ""}`,
-      })),
+      (empresas as any[]).map((e) => companyOption(e)),
     [empresas]
   );
 

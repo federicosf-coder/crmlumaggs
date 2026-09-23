@@ -59,15 +59,15 @@ export function VincularLeadDialog({ lead, open, onOpenChange }: Props) {
     if (!open) return;
     let cancel = false;
     (async () => {
-      let q = (supabase as any).from("companies").select("id, name").order("name").limit(20);
-      if (busqueda.trim()) q = q.ilike("name", `%${busqueda.trim()}%`);
+      let q = (supabase as any).from("companies").select("id, name, razon_social").order("name").limit(20);
+      if (busqueda.trim()) q = q.or(`name.ilike.%${busqueda.trim()}%,razon_social.ilike.%${busqueda.trim()}%`);
       const { data } = await q;
       if (!cancel) setCompanies((data ?? []) as { id: string; name: string }[]);
     })();
     return () => { cancel = true; };
   }, [open, busqueda]);
 
-  const opciones = companies.map((c) => ({ value: c.id, label: c.name }));
+  const opciones = companies.map((c: any) => companyOption(c));
 
   async function insertarContacto(cid: string) {
     const { data: userData } = await supabase.auth.getUser();
