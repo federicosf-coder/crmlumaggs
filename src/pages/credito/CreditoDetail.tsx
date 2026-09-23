@@ -2639,10 +2639,8 @@ export default function CreditoDetail() {
                               );
                             })}
                           </div>
-                        </div>
-                      );
-                    })}
                   </div>
+                  </TooltipProvider>
                 );
               })()
             )}
