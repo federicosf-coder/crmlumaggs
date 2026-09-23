@@ -1,3 +1,4 @@
+import { companyOption } from "@/lib/companyLabel";
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

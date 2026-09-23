@@ -1,3 +1,4 @@
+import { companyOption } from "@/lib/companyLabel";
 import { useState, useEffect, useRef } from "react";
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";

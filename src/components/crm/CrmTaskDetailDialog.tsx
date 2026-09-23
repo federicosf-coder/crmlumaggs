@@ -1,3 +1,4 @@
+import { companyOption } from "@/lib/companyLabel";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { localInputToIso } from "@/lib/formatters";
 import { CrmTask, useUpdateCrmTask, useDeleteCrmTask, useTaskTimeline } from "@/hooks/useCrmTasks";
