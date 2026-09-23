@@ -2577,6 +2577,23 @@ export default function CreditoDetail() {
                           <p className="text-xs font-medium leading-tight truncate flex-1 min-w-0" title={dt.nombre}>
                             {dt.nombre} {isRequerido(dt) && <span className="text-red-600">*</span>}
                           </p>
+                          {dt.instrucciones_cliente && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  aria-label={`Información de ${dt.nombre}`}
+                                  className="h-3.5 w-3.5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center shrink-0 cursor-help transition-colors"
+                                >
+                                  <Info className="h-2.5 w-2.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" align="start" className="max-w-[260px] text-[11px] leading-snug p-2.5">
+                                <p className="font-semibold mb-0.5">{dt.nombre}</p>
+                                <p className="font-normal text-muted-foreground">{dt.instrucciones_cliente}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           {isOptInDoc(dt.nombre) && (
                             <Switch
                               checked={optInChecked(dt.nombre)}
