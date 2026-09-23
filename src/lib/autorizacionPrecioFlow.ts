@@ -487,6 +487,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     cliente: documento?.companies?.name || "—",
     razon_social: documento?.companies?.razon_social || "—",
     ejecutivo: ejecutivoNombre,
+    correo_ejecutivo: ejecutivoEmail || "—",
     numero_pedido:
       documento?.numero_pedido || documento?.numero_factura || autorizacion.numero_pedido_ref || "—",
     numero_factura: numeroFacturaDoc,
