@@ -13,18 +13,30 @@ export function mapEmisorAEmpresaVendedora(rfc: string): string | null {
   return EMISOR_RFC_MAP[rfc.trim().toUpperCase()] ?? null;
 }
 
-// Prefijo de Serie -> nombre de plaza.
+// Prefijo de Serie -> nombre de plaza (se evalúan primero los prefijos más largos).
 const SERIE_PLAZA_MAP: Record<string, string> = {
   TIJ: "Tijuana",
   MXL: "Mexicali",
   ENS: "Ensenada",
   MOR: "Morelos",
+  SLR: "San Luis",
+  SQN: "San Quintin",
+  PEN: "Peñasco",
+  TJ: "Tijuana",
+  MX: "Mexicali",
+  EN: "Ensenada",
+  MR: "Morelos",
+  SL: "San Luis",
+  SQ: "San Quintin",
+  PE: "Peñasco",
 };
 
-export function mapSerieAPlaza(serie: string): string | null {
-  if (!serie) return null;
-  const s = serie.trim().toUpperCase();
-  for (const prefijo of Object.keys(SERIE_PLAZA_MAP)) {
+
+export function mapSerieAPlaza(serie: string, folio?: string): string | null {
+  const s = `${serie || ""}${folio || ""}`.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!s) return null;
+  const prefijos = Object.keys(SERIE_PLAZA_MAP).sort((a, b) => b.length - a.length);
+  for (const prefijo of prefijos) {
     if (s.startsWith(prefijo)) return SERIE_PLAZA_MAP[prefijo];
   }
   return null;
