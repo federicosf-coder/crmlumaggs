@@ -397,12 +397,6 @@ export function EnviarConfirmacionPagoDialog({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onBlur={() => {
-                  const value = input.trim();
-                  // Solo agrega el chip si es un correo completo y válido;
-                  // si no, lo deja en el campo para seguir editándolo.
-                  if (value && isValidEmail(value)) addEmail();
-                }}
               />
               <Button type="button" variant="outline" onClick={() => addEmail()}>
                 Agregar
