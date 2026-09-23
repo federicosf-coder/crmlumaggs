@@ -31,6 +31,7 @@ interface EjecutivoOption {
   user_id: string;
   full_name: string | null;
   email: string | null;
+  plazas?: { nombre: string | null } | null;
 }
 
 interface DocRow {
@@ -133,11 +134,11 @@ export default function ReporteDiario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email")
+        .select("user_id, full_name, email, plazas:plaza_id(nombre)")
         .eq("is_active", true)
         .order("full_name");
       if (error) throw error;
-      return (data || []) as EjecutivoOption[];
+      return (data || []) as unknown as EjecutivoOption[];
     },
   });
 
@@ -169,6 +170,9 @@ export default function ReporteDiario() {
 
   const emailDe = (id: string | null) =>
     (id && ejecutivos.find((e) => e.user_id === id)?.email) || undefined;
+
+  const plazaDe = (id: string | null) =>
+    (id && ejecutivos.find((e) => e.user_id === id)?.plazas?.nombre) || undefined;
 
   const { data: reporte, isFetching } = useQuery({
     queryKey: ["reporte-diario-consolidado", params?.fechaInicio, params?.fechaFin, params?.ids],
@@ -479,6 +483,8 @@ export default function ReporteDiario() {
     const L: string[] = [];
     L.push(div(`Reporte del ${fmt(desde)} al ${fmt(hasta)}`));
     L.push(div(`Ejecutivo: ${escapeHtml(nombreDe(ejecutivoId))}`));
+    const plazaEj = plazaDe(ejecutivoId);
+    if (plazaEj) L.push(div(`Plaza: ${escapeHtml(plazaEj)}`));
     L.push("<br>");
     L.push(div("<strong>Lumaggs</strong>"));
     L.push(div(`Unidades vendidas Lumaggs: ${num(s.udsLumaggsPeriodo)}`));
@@ -616,6 +622,11 @@ export default function ReporteDiario() {
     setParams({ fechaInicio, fechaFin, ids: selectedIds });
   };
 
+  const ordenMarcaExport = (arr: DocRow[]) => [
+    ...arr.filter((x) => x.empresaVendedora === "galsa_phillips66"),
+    ...arr.filter((x) => x.empresaVendedora !== "galsa_phillips66"),
+  ];
+
   const descargarExcel = () => {
     if (!reporte) {
       toast.error("Primero genera el reporte");
@@ -624,61 +635,66 @@ export default function ReporteDiario() {
     const desde = params!.fechaInicio;
     const day = params!.fechaFin;
     const aoa: (string | number)[][] = [];
-    aoa.push([`Reporte diario consolidado`]);
-    aoa.push([`Periodo: ${desde} a ${day}`]);
-    aoa.push([]);
-    aoa.push(["Indicadores"]);
-    aoa.push(["Unidades vendidas — Lumaggs", kpis.udsLumaggs]);
-    aoa.push(["Unidades vendidas — Galsa", kpis.udsGalsa]);
-    aoa.push(["Total cobrado — Lumaggs", kpis.cobLumaggs]);
-    aoa.push(["Total cobrado — Galsa", kpis.cobGalsa]);
-    aoa.push([`Acumulado en el mes (al ${day})`]);
-    aoa.push(["Unidades del mes — Lumaggs", acumMes?.udsLumaggs ?? 0]);
-    aoa.push(["Unidades del mes — Galsa", acumMes?.udsGalsa ?? 0]);
-    aoa.push(["Importe del mes — Lumaggs", acumMes?.impLumaggs ?? 0]);
-    aoa.push(["Importe del mes — Galsa", acumMes?.impGalsa ?? 0]);
+    aoa.push([`Reporte del ${desde} al ${day}`]);
     aoa.push([]);
 
-    aoa.push(["Actividades del día"]);
-    aoa.push(["Realizó", "Cliente", "Tipo", "Descripción"]);
-    if (reporte.actividades.length === 0) aoa.push(["Sin actividades", "", "", ""]);
-    reporte.actividades.forEach((a) =>
-      aoa.push([nombreDe(a.userId), a.cliente, a.tipo, a.descripcion])
-    );
-    aoa.push([]);
+    for (const id of params!.ids) {
+      const s = statsPorEjecutivo(id);
+      const plaza = plazaDe(id);
+      aoa.push([`Ejecutivo: ${nombreDe(id)}`]);
+      if (plaza) aoa.push([`Plaza: ${plaza}`]);
+      aoa.push([]);
 
-    aoa.push(["Cotizaciones realizadas"]);
-    aoa.push(["Empresa", "Cliente", "Folio", "Unidades", "Importe"]);
-    if (reporte.cotizaciones.length === 0) aoa.push(["Sin cotizaciones", "", "", 0, 0]);
-    reporte.cotizaciones.forEach((c) =>
-      aoa.push([
-        EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora,
-        c.cliente,
-        c.folio,
-        c.unidades,
-        c.total,
-      ])
-    );
-    aoa.push(["Total unidades cotizadas", "", "", totalUdsCotizadas, ""]);
-    aoa.push([]);
+      aoa.push(["Lumaggs"]);
+      aoa.push(["Unidades vendidas Lumaggs", s.udsLumaggsPeriodo]);
+      aoa.push(["Unidades acumuladas del mes Lumaggs", s.udsLumaggsMes]);
+      aoa.push([]);
+      aoa.push(["Galsa"]);
+      aoa.push(["Unidades vendidas Galsa", s.udsGalsaPeriodo]);
+      aoa.push(["Unidades acumuladas del mes Galsa", s.udsGalsaMes]);
+      aoa.push([]);
 
-    aoa.push(["Facturas elaboradas"]);
-    for (const key of ["lumaggs_chevron", "galsa_phillips66"]) {
-      const rows = facturasPorMarca(key);
-      aoa.push([EMPRESA_LABELS[key]]);
-      aoa.push(["Cliente", "Folio", "Unidades", "Importe"]);
-      if (rows.length === 0) aoa.push(["Sin facturas", "", 0, 0]);
-      rows.forEach((f) => aoa.push([f.cliente, f.folio, f.unidades, f.total]));
-      aoa.push(["Total unidades", "", rows.reduce((s, f) => s + f.unidades, 0), ""]);
+      const acts = (reporte.actividades || []).filter((a) => a.userId === id);
+      aoa.push(["Actividades"]);
+      aoa.push(["Cliente", "Tipo", "Descripción", "Promedio histórico (uds/mes)"]);
+      if (acts.length === 0) aoa.push(["Sin registros", "", "", ""]);
+      acts.forEach((a) =>
+        aoa.push([
+          a.cliente,
+          tipoLabel(a.tipo),
+          a.descripcion,
+          a.promedioHistorico && a.promedioHistorico > 0 ? a.promedioHistorico : "",
+        ])
+      );
+      aoa.push([]);
+
+      const cots = ordenMarcaExport((reporte.cotizaciones || []).filter((c) => c.ejecutivoId === id));
+      aoa.push(["Cotizaciones"]);
+      aoa.push(["Empresa", "Folio", "Cliente", "Unidades"]);
+      if (cots.length === 0) aoa.push(["Sin registros", "", "", 0]);
+      cots.forEach((c) =>
+        aoa.push([EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora, c.folio, c.cliente, c.unidades])
+      );
+      aoa.push([]);
+
+      const facts = ordenMarcaExport((reporte.facturas || []).filter((f) => f.ejecutivoId === id));
+      aoa.push(["Facturado"]);
+      aoa.push(["Empresa", "Folio", "Cliente", "Unidades"]);
+      if (facts.length === 0) aoa.push(["Sin registros", "", "", 0]);
+      facts.forEach((f) =>
+        aoa.push([EMPRESA_LABELS[f.empresaVendedora] || f.empresaVendedora, f.folio, f.cliente, f.unidades])
+      );
+      aoa.push([]);
+
+      const cobs = (reporte.cobranza || []).filter((c) => c.ejecutivoIds.includes(id));
+      aoa.push(["Cobrado"]);
+      aoa.push(["Cliente", "Importe"]);
+      if (cobs.length === 0) aoa.push(["Sin registros", 0]);
+      cobs.forEach((c) => aoa.push([c.cliente, c.importe]));
+      if (cobs.length > 0) aoa.push(["Total", cobs.reduce((sum, c) => sum + c.importe, 0)]);
+      aoa.push([]);
       aoa.push([]);
     }
-
-    aoa.push(["Desglose de cobranza"]);
-    aoa.push(["Empresa", "Forma de pago", "Importe", "Facturas relacionadas"]);
-    if (reporte.cobranza.length === 0) aoa.push(["Sin cobranza", "", 0, ""]);
-    reporte.cobranza.forEach((c) =>
-      aoa.push([c.cliente, c.metodoPago, c.importe, c.facturas.length ? c.facturas.join(", ") : "Sin aplicar"])
-    );
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "Reporte diario");
@@ -693,33 +709,17 @@ export default function ReporteDiario() {
     const desde = params!.fechaInicio;
     const day = params!.fechaFin;
     const doc = new jsPDF({ orientation: "landscape" });
-    doc.setFontSize(14);
-    doc.text(`Reporte diario — ${desde} a ${day}`, 14, 16);
-    doc.setFontSize(10);
-    doc.text(
-      [
-        `Unidades vendidas — Lumaggs: ${num(kpis.udsLumaggs)}`,
-        `Unidades vendidas — Galsa: ${num(kpis.udsGalsa)}`,
-        `Total cobrado — Lumaggs: ${money(kpis.cobLumaggs)}`,
-        `Total cobrado — Galsa: ${money(kpis.cobGalsa)}`,
-      ],
-      14,
-      24
-    );
-    doc.text(
-      [
-        `Acumulado del mes (al ${day}):`,
-        `Unidades del mes — Lumaggs: ${num(acumMes?.udsLumaggs ?? 0)}`,
-        `Unidades del mes — Galsa: ${num(acumMes?.udsGalsa ?? 0)}`,
-        `Importe del mes — Lumaggs: ${money(acumMes?.impLumaggs ?? 0)}`,
-        `Importe del mes — Galsa: ${money(acumMes?.impGalsa ?? 0)}`,
-      ],
-      14,
-      42
-    );
+    let y = 16;
 
-    let y = 66;
+    const espacio = (alto: number) => {
+      if (y + alto > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage();
+        y = 16;
+      }
+    };
+
     const sec = (titulo: string, head: string[], body: (string | number)[][]) => {
+      espacio(20);
       doc.setFontSize(11);
       doc.text(titulo, 14, y);
       autoTable(doc, {
@@ -731,51 +731,91 @@ export default function ReporteDiario() {
         margin: { left: 14, right: 14 },
       });
       y = (doc as any).lastAutoTable.finalY + 10;
-      if (y > doc.internal.pageSize.getHeight() - 30) {
+    };
+
+    doc.setFontSize(14);
+    doc.text(`Reporte diario — ${desde} a ${day}`, 14, y);
+    y += 10;
+
+    params!.ids.forEach((id, idx) => {
+      if (idx > 0) {
         doc.addPage();
         y = 16;
       }
-    };
-
-    sec(
-      "Actividades del día",
-      ["Realizó", "Cliente", "Tipo", "Descripción"],
-      reporte.actividades.map((a) => [nombreDe(a.userId), a.cliente, a.tipo, a.descripcion])
-    );
-
-    sec(
-      `Cotizaciones realizadas (total unidades: ${num(totalUdsCotizadas)})`,
-      ["Empresa", "Cliente", "Folio", "Unidades", "Importe"],
-      reporte.cotizaciones.map((c) => [
-        EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora,
-        c.cliente,
-        c.folio,
-        num(c.unidades),
-        money(c.total),
-      ])
-    );
-
-    for (const key of ["lumaggs_chevron", "galsa_phillips66"]) {
-      const rows = facturasPorMarca(key);
-      sec(
-        `Facturas elaboradas — ${EMPRESA_LABELS[key]} (total unidades: ${num(
-          rows.reduce((s, f) => s + f.unidades, 0)
-        )})`,
-        ["Cliente", "Folio", "Unidades", "Importe"],
-        rows.map((f) => [f.cliente, f.folio, num(f.unidades), money(f.total)])
+      const s = statsPorEjecutivo(id);
+      const plaza = plazaDe(id);
+      doc.setFontSize(13);
+      doc.text(`Ejecutivo: ${nombreDe(id)}`, 14, y);
+      y += 6;
+      if (plaza) {
+        doc.setFontSize(10);
+        doc.text(`Plaza: ${plaza}`, 14, y);
+        y += 6;
+      }
+      doc.setFontSize(10);
+      doc.text(
+        [
+          "Lumaggs",
+          `Unidades vendidas Lumaggs: ${num(s.udsLumaggsPeriodo)}`,
+          `Unidades acumuladas del mes Lumaggs: ${num(s.udsLumaggsMes)}`,
+        ],
+        14,
+        y
       );
-    }
+      y += 18;
+      doc.text(
+        [
+          "Galsa",
+          `Unidades vendidas Galsa: ${num(s.udsGalsaPeriodo)}`,
+          `Unidades acumuladas del mes Galsa: ${num(s.udsGalsaMes)}`,
+        ],
+        14,
+        y
+      );
+      y += 20;
 
-    sec(
-      "Desglose de cobranza",
-      ["Empresa", "Forma de pago", "Importe", "Facturas relacionadas"],
-      reporte.cobranza.map((c) => [
-        c.cliente,
-        c.metodoPago,
-        money(c.importe),
-        c.facturas.length ? c.facturas.join(", ") : "Sin aplicar",
-      ])
-    );
+      const acts = (reporte.actividades || []).filter((a) => a.userId === id);
+      sec(
+        "Actividades",
+        ["Cliente", "Tipo", "Descripción", "Promedio histórico"],
+        acts.map((a) => [
+          a.cliente,
+          tipoLabel(a.tipo),
+          a.descripcion,
+          a.promedioHistorico && a.promedioHistorico > 0 ? `${num(a.promedioHistorico)} uds/mes` : "",
+        ])
+      );
+
+      const cots = ordenMarcaExport((reporte.cotizaciones || []).filter((c) => c.ejecutivoId === id));
+      sec(
+        "Cotizaciones",
+        ["Empresa", "Folio", "Cliente", "Unidades"],
+        cots.map((c) => [
+          EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora,
+          c.folio,
+          c.cliente,
+          num(c.unidades),
+        ])
+      );
+
+      const facts = ordenMarcaExport((reporte.facturas || []).filter((f) => f.ejecutivoId === id));
+      sec(
+        "Facturado",
+        ["Empresa", "Folio", "Cliente", "Unidades"],
+        facts.map((f) => [
+          EMPRESA_LABELS[f.empresaVendedora] || f.empresaVendedora,
+          f.folio,
+          f.cliente,
+          num(f.unidades),
+        ])
+      );
+
+      const cobs = (reporte.cobranza || []).filter((c) => c.ejecutivoIds.includes(id));
+      const cuerpoCob: (string | number)[][] = cobs.map((c) => [c.cliente, money(c.importe)]);
+      if (cobs.length > 0)
+        cuerpoCob.push(["Total", money(cobs.reduce((sum, c) => sum + c.importe, 0))]);
+      sec("Cobrado", ["Cliente", "Importe"], cuerpoCob);
+    });
 
     doc.save(`reporte_diario_${desde}_${day}.pdf`);
   };
