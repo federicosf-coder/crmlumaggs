@@ -118,8 +118,9 @@ export function PlazaCoberturaMatrix() {
 
   const options = useMemo(() => {
     if (!target) return [];
+    const yaAsignados = new Set(usersFor(target.plazaId, target.role).map((u: any) => u.user_id));
     return (data?.profiles || [])
-      .filter((p: any) => !(p.plaza_id === target.plazaId && rolesByUser.get(p.user_id)?.has(target.role)))
+      .filter((p: any) => !yaAsignados.has(p.user_id))
       .map((p: any) => {
         const plaza = data?.plazas.find((x: any) => x.id === p.plaza_id)?.nombre;
         return {
