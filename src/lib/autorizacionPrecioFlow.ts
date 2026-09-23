@@ -604,35 +604,75 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     if (!cc.some((x) => x.toLowerCase() === e.toLowerCase())) cc.push(e);
   };
 
-  // 9a. Atención a Clientes de la plaza del pedido
-  const plazaNombre = (documento?.plazas?.nombre || "").trim();
-  const atencionPlazaEmail = await resolveAtencionClientesEmail(
-    documento?.plaza_id || null,
-    plazaNombre
-  );
-  pushCc(atencionPlazaEmail);
-
-  // 9b. Ejecutivo del pedido y su cadena de supervisores
-  pushCc(ejecutivoEmail);
+  // 9a. Plaza del ejecutivo (respaldo: plaza del pedido)
+  let plazaEjecId: string | null = null;
+  let plazaEjecNombre = "";
   if (documento?.ejecutivo_venta_id) {
     try {
-      const { data: chainEmails } = await (supabase as any).rpc("get_supervisor_chain_emails", {
-        p_user_id: documento.ejecutivo_venta_id,
-      });
-      if (Array.isArray(chainEmails)) {
-        for (const e of chainEmails) pushCc(e);
+      const { data: pe } = await (supabase as any)
+        .from("profiles")
+        .select("plaza_id, plazas(nombre)")
+        .eq("user_id", documento.ejecutivo_venta_id)
+        .maybeSingle();
+      plazaEjecId = pe?.plaza_id || null;
+      plazaEjecNombre = (pe?.plazas?.nombre || "").trim();
+    } catch {
+      /* sin plaza */
+    }
+  }
+  if (!plazaEjecId) {
+    plazaEjecId = documento?.plaza_id || null;
+    plazaEjecNombre = (documento?.plazas?.nombre || "").trim();
+  }
+
+  // Atención a Clientes de la plaza
+  const atencionPlazaEmail = await resolveAtencionClientesEmail(plazaEjecId, plazaEjecNombre);
+  pushCc(atencionPlazaEmail);
+
+  // Atención a Clientes y Almacén (usuarios con rol en esa plaza)
+  if (plazaEjecId) {
+    try {
+      const { data: roleRows } = await (supabase as any)
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["customer_service", "warehouse"]);
+      const ids = Array.from(new Set((roleRows || []).map((r: any) => r.user_id).filter(Boolean)));
+      if (ids.length) {
+        const { data: profs } = await (supabase as any)
+          .from("profiles")
+          .select("email")
+          .eq("plaza_id", plazaEjecId)
+          .in("user_id", ids)
+          .not("email", "is", null);
+        for (const p of profs || []) pushCc(p.email);
       }
     } catch {
-      /* si falla el rpc, no se agregan supervisores */
+      /* sin usuarios de plaza */
     }
   }
 
-  // 9c. Usuario que está enviando el correo
+  // 9b. Ejecutivo, usuario que envía y la cadena completa de supervisores de ambos
+  pushCc(ejecutivoEmail);
+  let senderId: string | null = null;
   try {
     const { data: authData } = await supabase.auth.getUser();
+    senderId = authData?.user?.id || null;
     pushCc(authData?.user?.email || null);
   } catch {
     /* sin sesión disponible */
+  }
+  const chainUsers = Array.from(
+    new Set([documento?.ejecutivo_venta_id, senderId].filter(Boolean) as string[])
+  );
+  for (const uid of chainUsers) {
+    try {
+      const { data: chainEmails } = await (supabase as any).rpc("get_supervisor_chain_emails", {
+        p_user_id: uid,
+      });
+      if (Array.isArray(chainEmails)) for (const e of chainEmails) pushCc(e);
+    } catch {
+      /* si falla el rpc, no se agregan supervisores */
+    }
   }
 
   // 9d. CC de la plantilla, omitiendo correos de atención a clientes de otras plazas
