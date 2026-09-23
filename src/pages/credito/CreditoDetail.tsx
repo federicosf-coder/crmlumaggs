@@ -3086,8 +3086,26 @@ export default function CreditoDetail() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Archivo</Label>
-              <Input type="file" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
-              {uploadFile && <p className="text-xs text-muted-foreground truncate">{uploadFile.name} · {(uploadFile.size / 1024).toFixed(0)} KB</p>}
+              <label
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.dataset.drag = "1"; }}
+                onDragLeave={(e) => { delete e.currentTarget.dataset.drag; }}
+                onDrop={(e) => { e.preventDefault(); delete e.currentTarget.dataset.drag; const f = e.dataTransfer.files?.[0]; if (f) setUploadFile(f); }}
+                className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-6 text-center cursor-pointer transition-colors hover:border-primary/60 hover:bg-primary/5 data-[drag]:border-primary data-[drag]:bg-primary/10"
+              >
+                <Upload className="h-6 w-6 text-muted-foreground" />
+                {uploadFile ? (
+                  <>
+                    <p className="text-sm font-medium truncate max-w-full">{uploadFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(uploadFile.size / 1024).toFixed(0)} KB · clic o arrastra para cambiar</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-light">Arrastra y suelta el archivo aquí</p>
+                    <p className="text-xs text-muted-foreground">o haz clic para seleccionarlo</p>
+                  </>
+                )}
+                <input type="file" className="hidden" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+              </label>
             </div>
           </div>
           <DialogFooter className="bg-muted/40 px-6 py-3 border-t">
