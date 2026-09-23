@@ -47,14 +47,37 @@ export function PlazaCoberturaMatrix() {
     return m;
   }, [data]);
 
-  const usersFor = (plazaId: string, role: string) =>
-    (data?.profiles || []).filter((p: any) => p.plaza_id === plazaId && rolesByUser.get(p.user_id)?.has(role));
+  const usersFor = (plazaId: string, role: string) => {
+    if (role === "manager") {
+      const ids = new Set(
+        (data?.responsables || []).filter((r: any) => r.plaza_id === plazaId).map((r: any) => r.user_id)
+      );
+      return (data?.profiles || []).filter((p: any) => ids.has(p.user_id));
+    }
+    return (data?.profiles || []).filter((p: any) => p.plaza_id === plazaId && rolesByUser.get(p.user_id)?.has(role));
+  };
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["plaza_cobertura"] });
 
   const assign = async (userId: string) => {
     if (!target || !userId) return;
     const prof = data?.profiles.find((p: any) => p.user_id === userId) as any;
+
+    // Responsable de Plaza: asignación multi-plaza, no mueve la plaza base del usuario.
+    if (target.role === "manager") {
+      const { error } = await (supabase as any)
+        .from("plaza_responsables")
+        .insert({ user_id: userId, plaza_id: target.plazaId });
+      if (error) return toast.error("No se pudo asignar responsable: " + error.message);
+      if (!rolesByUser.get(userId)?.has("manager")) {
+        await supabase.from("user_roles").insert({ user_id: userId, role: "manager" } as any);
+      }
+      toast.success("Responsable asignado");
+      setTarget(null);
+      refresh();
+      return;
+    }
+
     if (prof && prof.plaza_id && prof.plaza_id !== target.plazaId) {
       if (!confirm(`${prof.full_name || prof.email} está asignado a otra plaza. ¿Moverlo a ${target.plazaNombre}?`)) return;
     }
@@ -71,9 +94,21 @@ export function PlazaCoberturaMatrix() {
     refresh();
   };
 
-  const remove = async (userId: string, role: string) => {
+  const remove = async (userId: string, role: string, plazaId: string) => {
     if (!confirm("¿Quitar este puesto al usuario? (Conserva su plaza y demás roles)")) return;
-    setBusy(userId + role);
+    setBusy(userId + role + plazaId);
+    if (role === "manager") {
+      const { error } = await (supabase as any)
+        .from("plaza_responsables")
+        .delete()
+        .eq("user_id", userId)
+        .eq("plaza_id", plazaId);
+      setBusy(null);
+      if (error) return toast.error(error.message);
+      toast.success("Responsable removido de esta plaza");
+      refresh();
+      return;
+    }
     const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
     setBusy(null);
     if (error) return toast.error(error.message);
