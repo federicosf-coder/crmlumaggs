@@ -31,6 +31,7 @@ interface EjecutivoOption {
   user_id: string;
   full_name: string | null;
   email: string | null;
+  plazas?: { nombre: string | null } | null;
 }
 
 interface DocRow {
