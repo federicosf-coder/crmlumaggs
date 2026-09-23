@@ -178,9 +178,9 @@ export function PlazaCoberturaMatrix() {
                             {us.map((u: any) => (
                               <span key={u.user_id} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-light">
                                 {u.full_name || u.email}
-                                <button type="button" onClick={() => remove(u.user_id, pu.role)} disabled={busy === u.user_id + pu.role}
+                                <button type="button" onClick={() => remove(u.user_id, pu.role, pl.id)} disabled={busy === u.user_id + pu.role + pl.id}
                                   className="text-muted-foreground hover:text-destructive" title="Quitar puesto">
-                                  {busy === u.user_id + pu.role ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                                  {busy === u.user_id + pu.role + pl.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
                                 </button>
                               </span>
                             ))}
