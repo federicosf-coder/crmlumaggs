@@ -307,7 +307,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
       while (true) {
         const { data, error } = await supabase
           .from("companies")
-          .select("id, name")
+          .select("id, name, razon_social")
           .eq("is_active", true)
           .order("name")
           .range(from, from + size - 1);
@@ -533,7 +533,7 @@ export function ContactFormDialog({ open, onOpenChange, defaultCompanyId, defaul
                       <SearchableSelect
                         value={form.company_id}
                         onValueChange={v => setAndSaveNow("company_id", v)}
-                        options={companies.map(c => ({ value: c.id, label: c.name }))}
+                        options={companies.map((c: any) => companyOption(c))}
                         placeholder="Seleccionar empresa"
                       />
                     </div>

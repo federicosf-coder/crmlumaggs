@@ -717,12 +717,7 @@ function ComprobanteCard({
             <SearchableSelect
               value={empresaId}
               onValueChange={setEmpresaId}
-              options={companies.map((c) => ({
-                value: c.id,
-                label: c.razon_social && c.razon_social.trim() && c.razon_social.trim().toUpperCase() !== c.name.trim().toUpperCase()
-                  ? `${c.name} / ${c.razon_social}`
-                  : c.name,
-              }))}
+              options={companies.map((c: any) => companyOption(c))}
               placeholder="Selecciona cliente..."
             />
             {!autoVinculado && row.nombre_detectado && (

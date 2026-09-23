@@ -59,7 +59,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
   const { data: companies } = useQuery({
     queryKey: ["companies-picker"],
     queryFn: async () => {
-      const data = await fetchAllRows<any>((from, to) => supabase.from("companies").select("id, name").eq("is_active", true).order("name").range(from, to));
+      const data = await fetchAllRows<any>((from, to) => supabase.from("companies").select("id, name, razon_social").eq("is_active", true).order("name").range(from, to));
       return data;
     },
   });
@@ -512,7 +512,7 @@ export function CreateCrmActivityTaskDialog({ open, onOpenChange, defaultContact
                     }}
                     options={[
                       { value: "none", label: "Ninguna" },
-                      ...(companies?.map((c) => ({ value: c.id, label: c.name })) || []),
+                      ...(companies?.map((c: any) => companyOption(c)) || []),
                     ]}
                     placeholder="Buscar empresa..."
                   />

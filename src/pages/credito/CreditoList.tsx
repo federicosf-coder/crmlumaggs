@@ -314,7 +314,7 @@ export default function CreditoList() {
               <SearchableSelect
                 value={newCompanyId}
                 onValueChange={setNewCompanyId}
-                options={(companies as any[]).map((c) => ({ value: c.id, label: c.name || c.razon_social || c.id }))}
+                options={(companies as any[]).map((c) => companyOption(c))}
                 placeholder="Buscar empresa..."
               />
             </div>

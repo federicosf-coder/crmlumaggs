@@ -163,7 +163,7 @@ export function CompanyAddressDialog({ open, onOpenChange, empresaId, empresaNam
       for (let i = 0; i < 10; i++) {
         const { data, error } = await supabase
           .from("companies")
-          .select("id, name")
+          .select("id, name, razon_social")
           .eq("is_active", true)
           .order("name")
           .range(from, from + pageSize - 1);
@@ -318,7 +318,7 @@ export function CompanyAddressDialog({ open, onOpenChange, empresaId, empresaNam
                 placeholder="Buscar empresa..."
                 options={(empresasList as any[])
                   .filter((c) => c.id !== empresaId)
-                  .map((c) => ({ value: c.id, label: c.name }))}
+                  .map((c: any) => companyOption(c))}
               />
             </div>
           </div>

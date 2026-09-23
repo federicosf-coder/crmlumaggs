@@ -166,11 +166,7 @@ export default function ImportarFacturasXML() {
 
   const companyOptions = useMemo(
     () =>
-      (companiesActivas as any[]).map((c) => ({
-        value: c.id,
-        label: c.razon_social && c.razon_social !== c.name ? `${c.razon_social} (${c.name})` : c.name,
-        searchText: `${c.name || ""} ${c.razon_social || ""}`,
-      })),
+      (companiesActivas as any[]).map((c) => companyOption(c)),
     [companiesActivas]
   );
 
