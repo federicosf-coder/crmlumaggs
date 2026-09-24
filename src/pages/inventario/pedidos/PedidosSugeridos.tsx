@@ -247,10 +247,19 @@ export default function PedidosSugeridos() {
     const m: Record<string, any> = {};
     (niveles as any[]).forEach((n) => {
       if (!n.codigo_producto) return;
-      if (!m[n.codigo_producto]) m[n.codigo_producto] = n;
+      const prev = m[n.codigo_producto];
+      if (!prev) { m[n.codigo_producto] = { ...n }; return; }
+      m[n.codigo_producto] = {
+        ...prev,
+        nombre_producto: prev.nombre_producto || n.nombre_producto,
+        presentacion: prev.presentacion || n.presentacion,
+        empresa_vendedora: prev.empresa_vendedora || n.empresa_vendedora,
+        piezas_por_tarima: prev.piezas_por_tarima ?? n.piezas_por_tarima,
+      };
     });
     return m;
   }, [niveles]);
+
 
   const yaPedidoPorCodigo = useMemo(() => {
     const m: Record<string, number> = {};
