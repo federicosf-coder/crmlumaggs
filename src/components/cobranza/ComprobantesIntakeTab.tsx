@@ -101,7 +101,37 @@ interface IntakeRow {
   remitente_email: string | null;
 }
 
+/**
+ * Misma cadena de resolución de plaza que ya se usa para prellenar el campo "Plaza"
+ * de cada tarjeta: ejecutivo que subió → si no, remitente por correo → si no, plaza
+ * del usuario en sesión. Aquí se usa solo para decidir si la tarjeta se muestra.
+ */
+async function resolverPlazaComprobante(row: IntakeRow, plazaSesion: string | null): Promise<string | null> {
+  if (row.ejecutivo_id) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("plaza_id")
+      .eq("user_id", row.ejecutivo_id)
+      .maybeSingle();
+    if ((data as any)?.plaza_id) return (data as any).plaza_id as string;
+  }
+  if (row.remitente_email) {
+    const email = row.remitente_email.match(/[^\s<>,;]+@[^\s<>,;]+/)?.[0] || row.remitente_email;
+    const { data } = await supabase
+      .from("profiles")
+      .select("plaza_id")
+      .ilike("email", email.trim())
+      .maybeSingle();
+    if ((data as any)?.plaza_id) return (data as any).plaza_id as string;
+  }
+  return plazaSesion;
+}
+
 export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?: EmpresaVendedora }) {
+  const { profile, hasAnyRole } = useAuth();
+  const verTodo = hasAnyRole(["admin", "manager"]);
+  const plazaSesion = profile?.plaza_id ?? null;
+
   const { data: comprobantes = [], isLoading, refetch } = useQuery({
     queryKey: ["comprobantes-intake-pendientes"],
     queryFn: async () => {
