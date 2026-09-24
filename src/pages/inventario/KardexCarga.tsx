@@ -762,6 +762,8 @@ async function procesarInventario(
     total_skus_actualizados: Math.max(0, (updated + created) - errors),
     total_skus_error: errors,
   }).eq("id", carga.id);
+
+  return { creados: created, actualizados: updated, omitidos: omitidosCatalogo, errores: errors };
 }
 
 async function procesarKardexUnidades(
