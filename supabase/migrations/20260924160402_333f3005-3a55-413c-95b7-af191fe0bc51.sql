@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.inv_niveles_bloquear_marca_cruzada() FROM PUBLIC, anon, authenticated;
