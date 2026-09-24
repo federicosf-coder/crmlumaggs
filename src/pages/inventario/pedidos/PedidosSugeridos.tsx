@@ -64,10 +64,31 @@ export default function PedidosSugeridos() {
   });
 
   const nivMap = useMemo(() => {
+    // Puede haber varias filas por código (una por empresa vendedora).
+    // Se consolidan sumando existencias por almacén y conservando los datos no vacíos.
     const m = new Map<string, NivelRow>();
-    for (const n of nivelesFull) m.set(n.codigo_producto, n);
+    for (const n of nivelesFull) {
+      const prev = m.get(n.codigo_producto);
+      if (!prev) {
+        m.set(n.codigo_producto, { ...n });
+        continue;
+      }
+      m.set(n.codigo_producto, {
+        ...prev,
+        nombre_producto: prev.nombre_producto || n.nombre_producto,
+        clasificacion_abc: prev.clasificacion_abc || n.clasificacion_abc,
+        lead_time_dias: prev.lead_time_dias ?? n.lead_time_dias,
+        piezas_por_tarima: prev.piezas_por_tarima ?? n.piezas_por_tarima,
+        fuente_suministro: prev.fuente_suministro || n.fuente_suministro,
+        stock_almacen_1001: (Number(prev.stock_almacen_1001) || 0) + (Number(n.stock_almacen_1001) || 0),
+        stock_almacen_1002: (Number(prev.stock_almacen_1002) || 0) + (Number(n.stock_almacen_1002) || 0),
+        stock_almacen_1003: (Number(prev.stock_almacen_1003) || 0) + (Number(n.stock_almacen_1003) || 0),
+        stock_almacen_1004: (Number(prev.stock_almacen_1004) || 0) + (Number(n.stock_almacen_1004) || 0),
+      });
+    }
     return m;
   }, [nivelesFull]);
+
 
   const { data: productosPres = [] } = useQuery({
     queryKey: ["productos_presentacion_sugeridos"],
@@ -226,10 +247,19 @@ export default function PedidosSugeridos() {
     const m: Record<string, any> = {};
     (niveles as any[]).forEach((n) => {
       if (!n.codigo_producto) return;
-      if (!m[n.codigo_producto]) m[n.codigo_producto] = n;
+      const prev = m[n.codigo_producto];
+      if (!prev) { m[n.codigo_producto] = { ...n }; return; }
+      m[n.codigo_producto] = {
+        ...prev,
+        nombre_producto: prev.nombre_producto || n.nombre_producto,
+        presentacion: prev.presentacion || n.presentacion,
+        empresa_vendedora: prev.empresa_vendedora || n.empresa_vendedora,
+        piezas_por_tarima: prev.piezas_por_tarima ?? n.piezas_por_tarima,
+      };
     });
     return m;
   }, [niveles]);
+
 
   const yaPedidoPorCodigo = useMemo(() => {
     const m: Record<string, number> = {};

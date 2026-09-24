@@ -112,10 +112,27 @@ export function MinMaxTabContent() {
   });
 
   const nivMap = useMemo(() => {
+    // Un mismo código puede tener varias filas (por empresa vendedora): se consolidan.
     const m = new Map<string, NivelRow>();
-    for (const n of niveles) m.set(n.codigo_producto, n);
+    for (const n of niveles) {
+      const prev = m.get(n.codigo_producto);
+      if (!prev) { m.set(n.codigo_producto, { ...n }); continue; }
+      m.set(n.codigo_producto, {
+        ...prev,
+        nombre_producto: prev.nombre_producto || n.nombre_producto,
+        clasificacion_abc: prev.clasificacion_abc || n.clasificacion_abc,
+        lead_time_dias: prev.lead_time_dias ?? n.lead_time_dias,
+        piezas_por_tarima: prev.piezas_por_tarima ?? n.piezas_por_tarima,
+        fuente_suministro: prev.fuente_suministro || n.fuente_suministro,
+        stock_almacen_1001: (Number(prev.stock_almacen_1001) || 0) + (Number(n.stock_almacen_1001) || 0),
+        stock_almacen_1002: (Number(prev.stock_almacen_1002) || 0) + (Number(n.stock_almacen_1002) || 0),
+        stock_almacen_1003: (Number(prev.stock_almacen_1003) || 0) + (Number(n.stock_almacen_1003) || 0),
+        stock_almacen_1004: (Number(prev.stock_almacen_1004) || 0) + (Number(n.stock_almacen_1004) || 0),
+      });
+    }
     return m;
   }, [niveles]);
+
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
