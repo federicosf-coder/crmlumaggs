@@ -537,8 +537,13 @@ function FileTypeCard({
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: null });
 
+      let mensajeOk = "Archivo procesado correctamente";
       if (tipo === "inventario_unidades" || tipo === "inventario_importe") {
-        await procesarInventario(tipo, rows, file.name, empresa, userId, setProgress);
+        const res = await procesarInventario(tipo, rows, file.name, empresa, userId, setProgress);
+        const partes = [`Creados: ${res.creados}`, `Actualizados: ${res.actualizados}`];
+        if (res.omitidos > 0) partes.push(`Omitidos por no estar en el catálogo de productos: ${res.omitidos}`);
+        if (res.errores > 0) partes.push(`Con error: ${res.errores}`);
+        mensajeOk = partes.join(" · ");
       } else if (tipo === "kardex_unidades") {
         await procesarKardexUnidades(rows, file.name, empresa, userId, setProgress);
       } else {
@@ -546,7 +551,7 @@ function FileTypeCard({
       }
 
       setProgress(100);
-      setResultado({ ok: true, mensaje: "Archivo procesado correctamente" });
+      setResultado({ ok: true, mensaje: mensajeOk });
       toast.success(`${titulo}: procesado`);
       setFile(null);
       if (inputRef.current) inputRef.current.value = "";
@@ -648,7 +653,7 @@ async function procesarInventario(
   empresa: string,
   userId: string | null,
   setProgress: (n: number) => void,
-) {
+): Promise<{ creados: number; actualizados: number; omitidos: number; errores: number }> {
   const parsed = parseInventario(rows, empresa);
 
   const { data: carga, error: cErr } = await (supabase as any)
@@ -678,11 +683,35 @@ async function procesarInventario(
   }
 
   const skuList = Array.from(bySku.keys());
-  const { data: existentes } = await (supabase as any)
-    .from("inv_niveles_inventario")
-    .select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total")
-    .eq("empresa_vendedora", empresa)
-    .in("codigo_producto", skuList);
+
+  // Filtro contra el catálogo real: solo códigos que existan en productos
+  const catalogSet = new Set<string>();
+  for (let i = 0; i < skuList.length; i += 500) {
+    const { data: prods, error: pErr } = await (supabase as any)
+      .from("productos")
+      .select("codigo")
+      .in("codigo", skuList.slice(i, i + 500));
+    if (pErr) throw pErr;
+    for (const p of prods || []) catalogSet.add(p.codigo);
+  }
+  let omitidosCatalogo = 0;
+  for (const codigo of skuList) {
+    if (!catalogSet.has(codigo)) {
+      bySku.delete(codigo);
+      omitidosCatalogo++;
+    }
+  }
+
+  const filtros: any[] = Array.from(bySku.keys());
+  let existentes: any[] | null = null;
+  if (filtros.length > 0) {
+    const { data } = await (supabase as any)
+      .from("inv_niveles_inventario")
+      .select("codigo_producto, stock_almacen_1001, stock_almacen_1002, stock_almacen_1003, stock_almacen_1004, stock_total")
+      .eq("empresa_vendedora", empresa)
+      .in("codigo_producto", filtros);
+    existentes = data || null;
+  }
   const existMap = new Map<string, any>((existentes || []).map((r: any) => [r.codigo_producto, r]));
 
   const upserts: any[] = [];
@@ -738,6 +767,8 @@ async function procesarInventario(
     total_skus_actualizados: Math.max(0, (updated + created) - errors),
     total_skus_error: errors,
   }).eq("id", carga.id);
+
+  return { creados: created, actualizados: updated, omitidos: omitidosCatalogo, errores: errors };
 }
 
 async function procesarKardexUnidades(
