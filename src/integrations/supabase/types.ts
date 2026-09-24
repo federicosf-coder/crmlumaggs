@@ -10601,6 +10601,10 @@ export type Database = {
         Args: { _regenerate?: boolean }
         Returns: string
       }
+      get_plaza_remitente: {
+        Args: { _email: string; _user_id: string }
+        Returns: string
+      }
       get_supervisor_chain_emails: {
         Args: { p_user_id: string }
         Returns: string[]

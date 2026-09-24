@@ -106,25 +106,20 @@ interface IntakeRow {
  * de cada tarjeta: ejecutivo que subió → si no, remitente por correo → si no, plaza
  * del usuario en sesión. Aquí se usa solo para decidir si la tarjeta se muestra.
  */
+async function plazaRemitente(row: IntakeRow): Promise<string | null> {
+  if (!row.ejecutivo_id && !row.remitente_email) return null;
+  const email = row.remitente_email
+    ? (row.remitente_email.match(/[^\s<>,;]+@[^\s<>,;]+/)?.[0] || row.remitente_email).trim()
+    : null;
+  const { data } = await (supabase as any).rpc("get_plaza_remitente", {
+    _user_id: row.ejecutivo_id ?? null,
+    _email: email,
+  });
+  return (data as string | null) ?? null;
+}
+
 async function resolverPlazaComprobante(row: IntakeRow, plazaSesion: string | null): Promise<string | null> {
-  if (row.ejecutivo_id) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("plaza_id")
-      .eq("user_id", row.ejecutivo_id)
-      .maybeSingle();
-    if ((data as any)?.plaza_id) return (data as any).plaza_id as string;
-  }
-  if (row.remitente_email) {
-    const email = row.remitente_email.match(/[^\s<>,;]+@[^\s<>,;]+/)?.[0] || row.remitente_email;
-    const { data } = await supabase
-      .from("profiles")
-      .select("plaza_id")
-      .ilike("email", email.trim())
-      .maybeSingle();
-    if ((data as any)?.plaza_id) return (data as any).plaza_id as string;
-  }
-  return plazaSesion;
+  return (await plazaRemitente(row)) ?? plazaSesion;
 }
 
 export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?: EmpresaVendedora }) {
@@ -292,24 +287,7 @@ function ComprobanteCard({
   useEffect(() => {
     let active = true;
     (async () => {
-      let plazaDefault: string | null = null;
-      if (row.ejecutivo_id) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("plaza_id")
-          .eq("user_id", row.ejecutivo_id)
-          .maybeSingle();
-        plazaDefault = (data as any)?.plaza_id ?? null;
-      }
-      if (!plazaDefault && row.remitente_email) {
-        const email = row.remitente_email.match(/[^\s<>,;]+@[^\s<>,;]+/)?.[0] || row.remitente_email;
-        const { data } = await supabase
-          .from("profiles")
-          .select("plaza_id")
-          .ilike("email", email.trim())
-          .maybeSingle();
-        plazaDefault = (data as any)?.plaza_id ?? null;
-      }
+      let plazaDefault: string | null = await plazaRemitente(row);
       if (!plazaDefault) plazaDefault = profile?.plaza_id ?? null;
       if (active && plazaDefault) {
         setPlazaId((prev) => (prev ? prev : plazaDefault!));
