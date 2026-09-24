@@ -48,29 +48,56 @@ export function useAlertasPendientes() {
     queryFn: async (): Promise<AlertaComprobante[]> => {
       const { data, error } = await (supabase as any)
         .from("comprobantes_intake")
-        .select("id, created_at, nombre_detectado, monto_extraido, empresa_id, canal")
+        .select(
+          "id, created_at, nombre_detectado, monto_extraido, empresa_id, canal, ejecutivo_id, remitente_email"
+        )
         .eq("estatus", "pendiente")
         .order("created_at", { ascending: true });
       if (error) throw error;
-      const rows = (data || []) as AlertaComprobante[];
-      if (verTodo) return rows;
+      const rows = (data || []) as (AlertaComprobante & {
+        ejecutivo_id: string | null;
+        remitente_email: string | null;
+      })[];
+      if (verTodo || !plazaId) return rows;
 
+      // Misma cadena de resolución que la bandeja de comprobantes:
+      // ejecutivo que subió → remitente por correo → plaza de la empresa.
       const empresaIds = Array.from(
         new Set(rows.map((r) => r.empresa_id).filter((v): v is string => !!v))
       );
-      if (empresaIds.length === 0) return [];
-      const { data: cp, error: cpError } = await (supabase as any)
-        .from("company_plazas")
-        .select("company_id, plaza_id")
-        .in("company_id", empresaIds);
-      if (cpError) throw cpError;
-      const mapa = new Map<string, string>();
-      for (const row of (cp || []) as { company_id: string; plaza_id: string }[]) {
-        if (!mapa.has(row.company_id)) mapa.set(row.company_id, row.plaza_id);
+      const mapaEmpresa = new Map<string, string>();
+      if (empresaIds.length > 0) {
+        const { data: cp, error: cpError } = await (supabase as any)
+          .from("company_plazas")
+          .select("company_id, plaza_id")
+          .in("company_id", empresaIds);
+        if (cpError) throw cpError;
+        for (const row of (cp || []) as { company_id: string; plaza_id: string }[]) {
+          if (!mapaEmpresa.has(row.company_id)) mapaEmpresa.set(row.company_id, row.plaza_id);
+        }
       }
-      return rows.filter((r) => r.empresa_id && mapa.get(r.empresa_id) === plazaId);
+
+      const visibles: AlertaComprobante[] = [];
+      for (const r of rows) {
+        let plazaRow: string | null = null;
+        if (r.ejecutivo_id || r.remitente_email) {
+          const email = r.remitente_email
+            ? (r.remitente_email.match(/[^\s<>,;]+@[^\s<>,;]+/)?.[0] || r.remitente_email).trim()
+            : null;
+          const { data: rpcData } = await (supabase as any).rpc("get_plaza_remitente", {
+            _user_id: r.ejecutivo_id ?? null,
+            _email: email,
+          });
+          plazaRow = (rpcData as string | null) ?? null;
+        }
+        if (!plazaRow && r.empresa_id) plazaRow = mapaEmpresa.get(r.empresa_id) ?? null;
+        // Sin plaza resoluble, se muestra (mismo criterio que la bandeja).
+        if (!plazaRow || plazaRow === plazaId) visibles.push(r);
+      }
+      return visibles;
     },
   });
+
 
   const entregasQuery = useQuery({
     queryKey: ["alertas-entregas-intake"],
