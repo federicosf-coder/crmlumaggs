@@ -537,8 +537,13 @@ function FileTypeCard({
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: null });
 
+      let mensajeOk = "Archivo procesado correctamente";
       if (tipo === "inventario_unidades" || tipo === "inventario_importe") {
-        await procesarInventario(tipo, rows, file.name, empresa, userId, setProgress);
+        const res = await procesarInventario(tipo, rows, file.name, empresa, userId, setProgress);
+        const partes = [`Creados: ${res.creados}`, `Actualizados: ${res.actualizados}`];
+        if (res.omitidos > 0) partes.push(`Omitidos por no estar en el catálogo de productos: ${res.omitidos}`);
+        if (res.errores > 0) partes.push(`Con error: ${res.errores}`);
+        mensajeOk = partes.join(" · ");
       } else if (tipo === "kardex_unidades") {
         await procesarKardexUnidades(rows, file.name, empresa, userId, setProgress);
       } else {
@@ -546,7 +551,7 @@ function FileTypeCard({
       }
 
       setProgress(100);
-      setResultado({ ok: true, mensaje: "Archivo procesado correctamente" });
+      setResultado({ ok: true, mensaje: mensajeOk });
       toast.success(`${titulo}: procesado`);
       setFile(null);
       if (inputRef.current) inputRef.current.value = "";
