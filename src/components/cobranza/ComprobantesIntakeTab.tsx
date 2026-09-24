@@ -171,11 +171,44 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
     },
   });
 
+  // Filtro por plaza para roles operativos (mismo criterio que useAlertasPendientes):
+  // admin/manager ven todo; el resto solo su plaza. Sin plaza asignada, ve todo.
+  const [plazasResueltas, setPlazasResueltas] = useState<Record<string, string | null>>({});
+  const filtrando = !verTodo && !!plazaSesion;
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!filtrando) {
+        setPlazasResueltas({});
+        return;
+      }
+      const next: Record<string, string | null> = {};
+      for (const c of comprobantes) {
+        next[c.id] = await resolverPlazaComprobante(c, plazaSesion);
+      }
+      if (active) setPlazasResueltas(next);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [comprobantes, filtrando, plazaSesion]);
+
+  const comprobantesVisibles = useMemo(() => {
+    if (!filtrando) return comprobantes;
+    if (Object.keys(plazasResueltas).length < comprobantes.length) return [];
+    return comprobantes.filter((c) => (plazasResueltas[c.id] ?? null) === plazaSesion);
+  }, [comprobantes, filtrando, plazasResueltas, plazaSesion]);
+
   if (isLoading) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Cargando comprobantes...</p>;
   }
 
-  if (comprobantes.length === 0) {
+  if (comprobantes.length === 0 || (filtrando && Object.keys(plazasResueltas).length < comprobantes.length)) {
+    return <p className="text-sm text-muted-foreground py-8 text-center">Cargando comprobantes...</p>;
+  }
+
+  if (comprobantesVisibles.length === 0) {
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
@@ -187,7 +220,7 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
 
   return (
     <div className="space-y-4">
-      {comprobantes.map((c) => (
+      {comprobantesVisibles.map((c) => (
         <ComprobanteCard key={c.id} row={c} companies={companies} plazas={plazas} empresaVendedora={empresaVendedora} onDone={() => refetch()} />
       ))}
     </div>
