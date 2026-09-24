@@ -648,7 +648,7 @@ async function procesarInventario(
   empresa: string,
   userId: string | null,
   setProgress: (n: number) => void,
-) {
+): Promise<{ creados: number; actualizados: number; omitidos: number; errores: number }> {
   const parsed = parseInventario(rows, empresa);
 
   const { data: carga, error: cErr } = await (supabase as any)
