@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { companyLabel } from "@/lib/companyLabel";
-import { Wallet, Download } from "lucide-react";
+import { Wallet, Download, FileText } from "lucide-react";
+import { generateCobranzaResumenPdf } from "@/lib/generateCobranzaResumenPdf";
 
 type PeriodoKey = "hoy" | "ayer" | "semana" | "mes" | "periodo";
 type AgrupacionKey = "plaza" | "tipo_pago" | "cliente";
@@ -80,6 +81,7 @@ interface Fila {
   referencia: string;
   facturas: string[];
   importe: number;
+  empresa: string | null;
 }
 
 export default function CobranzaResumenReporte() {
@@ -213,6 +215,7 @@ export default function CobranzaResumenReporte() {
         referencia: p.referencia_pago || "",
         facturas: Array.from(new Set(facturasPorPago[p.id] ?? [])),
         importe: Number(p.monto_total || 0),
+        empresa: p.empresa_vendedora ?? null,
       }));
     },
   });
@@ -271,6 +274,16 @@ export default function CobranzaResumenReporte() {
     XLSX.writeFile(wb, `cobranza_${desde}_${hasta}.xlsx`);
   };
 
+  const exportarPdf = () => {
+    const f = (x: string) => x.split("-").reverse().join("/");
+    const periodoLabel = desde === hasta ? `Fecha: ${f(desde)}` : `Periodo: ${f(desde)} al ${f(hasta)}`;
+    generateCobranzaResumenPdf(
+      filas.map((r) => ({ empresa: r.empresa, plaza: r.plaza, tipoLabel: TIPO_PAGO_LABEL[r.tipo], cliente: r.cliente, fecha: r.fecha, importe: r.importe })),
+      periodoLabel,
+      `cobranza_${desde}_${hasta}.pdf`,
+    );
+  };
+
   const mostrarChipsTipo = agrupacion !== "tipo_pago" && agrupacion !== "cliente";
 
   return (
@@ -293,6 +306,16 @@ export default function CobranzaResumenReporte() {
         >
           <Download className="h-3.5 w-3.5 mr-1.5" />
           Exportar Excel
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={exportarPdf}
+          disabled={!filas.length}
+          className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
+        >
+          <FileText className="h-3.5 w-3.5 mr-1.5" />
+          Exportar PDF
         </Button>
       </PageBanner>
 
