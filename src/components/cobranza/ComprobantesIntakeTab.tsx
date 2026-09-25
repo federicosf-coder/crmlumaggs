@@ -410,7 +410,10 @@ function ComprobanteCard({
   };
 
   const crearPago = async (aplicaciones: { doc_id: string; monto: number }[]): Promise<{ id: string } | null> => {
+    // Candado anti-duplicados: si este comprobante ya generó un pago, se reutiliza.
+    if (pagoCreadoId) return { id: pagoCreadoId };
     try {
+
 
 
       const { data: pago, error: pagoErr } = await supabase
