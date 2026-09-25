@@ -260,7 +260,10 @@ function ComprobanteCard({
   );
   const [saving, setSaving] = useState(false);
   const [savingEnviar, setSavingEnviar] = useState(false);
-  const [pagoCreadoId, setPagoCreadoId] = useState<string | null>(row.cobranza_pago_id || null);
+  const [pagoCreadoId, setPagoCreadoId] = useState<string | null>(
+    ((row as any).cobranza_pago_id as string | null) || null
+  );
+
 
   const [docs, setDocs] = useState<DocOption[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
