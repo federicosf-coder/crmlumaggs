@@ -145,11 +145,11 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-activas-intake"],
     queryFn: async () => {
-      return await fetchAllRows<{ id: string; name: string; razon_social: string | null }>(
+      return await fetchAllRows<{ id: string; name: string; razon_social: string | null; id_contpaq: string | null }>(
         (from, to) =>
           supabase
             .from("companies")
-            .select("id,name,razon_social")
+            .select("id,name,razon_social,id_contpaq")
             .eq("is_active", true)
             .order("name")
             .range(from, to),

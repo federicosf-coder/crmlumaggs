@@ -84,7 +84,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
       while (true) {
         const { data, error } = await supabase
           .from("companies")
-          .select("id,name,razon_social,email,tipo_pago")
+          .select("id,name,razon_social,id_contpaq,email,tipo_pago")
           .eq("is_active", true)
           .order("name")
           .range(from, from + size - 1);
