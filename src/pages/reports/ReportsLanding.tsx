@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageBanner } from "@/components/PageBanner";
 import { cn } from "@/lib/utils";
-import { Truck, FileText, ListChecks, TrendingUp, PieChart, Search, CreditCard, ShieldCheck, Package } from "lucide-react";
+import { Truck, FileText, ListChecks, TrendingUp, PieChart, Search, CreditCard, ShieldCheck, Package, Wallet } from "lucide-react";
 
 const CATEGORIAS = ["Todos", "Ventas", "Crédito", "Operación"] as const;
 
@@ -59,6 +59,13 @@ const REPORTS = [
     url: "/reports/detalle-facturacion-producto",
     icon: Package,
     category: "Ventas",
+  },
+  {
+    title: "Resumen de Cobranza",
+    description: "Pagos cobrados por periodo, agrupados por plaza, tipo de pago o cliente, con totales.",
+    url: "/cobranza/resumen",
+    icon: Wallet,
+    category: "Crédito",
   },
   {
     title: "ROI Póliza Cescemex",
