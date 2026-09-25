@@ -1,4 +1,4 @@
-import { companyOption } from "@/lib/companyLabel";
+import { companyOptionConContpaq } from "@/lib/companyLabel";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -145,11 +145,11 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-activas-intake"],
     queryFn: async () => {
-      return await fetchAllRows<{ id: string; name: string; razon_social: string | null }>(
+      return await fetchAllRows<{ id: string; name: string; razon_social: string | null; id_contpaq: string | null }>(
         (from, to) =>
           supabase
             .from("companies")
-            .select("id,name,razon_social")
+            .select("id,name,razon_social,id_contpaq")
             .eq("is_active", true)
             .order("name")
             .range(from, to),
@@ -790,7 +790,7 @@ function ComprobanteCard({
             <SearchableSelect
               value={empresaId}
               onValueChange={setEmpresaId}
-              options={companies.map((c: any) => companyOption(c))}
+              options={companies.map((c: any) => companyOptionConContpaq(c))}
               placeholder="Selecciona cliente..."
             />
             {!autoVinculado && row.nombre_detectado && (

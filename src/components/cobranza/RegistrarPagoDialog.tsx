@@ -1,4 +1,4 @@
-import { companyOption } from "@/lib/companyLabel";
+import { companyOptionConContpaq } from "@/lib/companyLabel";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -84,7 +84,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
       while (true) {
         const { data, error } = await supabase
           .from("companies")
-          .select("id,name,razon_social,email,tipo_pago")
+          .select("id,name,razon_social,id_contpaq,email,tipo_pago")
           .eq("is_active", true)
           .order("name")
           .range(from, from + size - 1);
@@ -307,7 +307,7 @@ export function RegistrarPagoDialog({ open, onOpenChange, onSaved, defaultEmpres
               <SearchableSelect
                 value={empresaId}
                 onValueChange={setEmpresaId}
-                options={companies.map((c: any) => companyOption(c))}
+                options={companies.map((c: any) => companyOptionConContpaq(c))}
                 placeholder="Buscar empresa..."
               />
             </div>
