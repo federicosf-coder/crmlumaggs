@@ -348,10 +348,10 @@ function FuentesSuministroTab() {
           const ppt = Math.max(1, Number(n?.piezas_por_tarima ?? 1) || 1);
           const ddia = ultimaDem.get(`${r.codigo_producto}|${r.almacen}`) ?? Number(r.demanda_diaria_hub ?? 0);
           const abc = n?.clasificacion_abc ?? r.clasificacion_abc ?? null;
-          const cobertura = abc && FS_COBERTURA[abc] ? FS_COBERTURA[abc] : 45;
+          const cobertura = Number(r.dias_cobertura_objetivo) || 45;
           const seguridad = abc && FS_SEGURIDAD[abc] ? FS_SEGURIDAD[abc] : 10;
           const minCalc = Math.ceil((ddia * (lead + seguridad)) / ppt) * ppt;
-          const maxCalc = Math.ceil((ddia * (lead + cobertura)) / ppt) * ppt;
+          const maxCalc = Math.ceil((ddia * cobertura) / ppt) * ppt;
           const stock = Number(n?.[`stock_almacen_${r.almacen}`] ?? 0) || 0;
           const reordenCalc = Math.max(0, minCalc - stock);
           await supabase.from("inv_minmax").update({
