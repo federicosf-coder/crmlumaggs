@@ -266,6 +266,8 @@ function ComprobanteCard({
 
 
   const [docs, setDocs] = useState<DocOption[]>([]);
+  const correoEnviadoRef = useRef(false);
+
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [seleccion, setSeleccion] = useState<Record<string, string>>({});
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
