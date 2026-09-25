@@ -444,6 +444,7 @@ export default function CobranzaResumenReporte() {
             <TableHeader>
               <TableRow>
                 <TableHead>Fecha</TableHead>
+                <TableHead>Plaza</TableHead>
                 <TableHead>Tipo de pago</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Método de pago</TableHead>
