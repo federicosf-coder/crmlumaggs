@@ -582,11 +582,17 @@ function ComprobanteCard({
     if (totalAsignado > montoNum + TOLERANCIA) { toast.error("La suma asignada excede el monto del pago"); return; }
     setSaving(true);
     try {
+      const yaExistia = !!pagoCreadoId;
       const pago = await crearPago(aplicaciones);
       if (!pago) return;
-      toast.success("Pago creado y comprobante clasificado");
+      toast.success(
+        yaExistia
+          ? "Este comprobante ya tenía un pago registrado. Se abre el pago existente."
+          : "Pago creado y comprobante clasificado"
+      );
       onDone();
       navigate(`/cobranza/${empVend === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
+
     } finally {
       setSaving(false);
     }
