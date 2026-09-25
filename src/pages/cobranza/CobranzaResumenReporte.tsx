@@ -444,6 +444,7 @@ export default function CobranzaResumenReporte() {
             <TableHeader>
               <TableRow>
                 <TableHead>Fecha</TableHead>
+                <TableHead>Plaza</TableHead>
                 <TableHead>Tipo de pago</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Método de pago</TableHead>
@@ -455,6 +456,7 @@ export default function CobranzaResumenReporte() {
               {g.items.map((f) => (
                 <TableRow key={f.id}>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(f.fecha)}</TableCell>
+                  <TableCell className="text-xs font-light text-muted-foreground whitespace-nowrap">{f.plaza}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={`text-[10px] font-semibold ${TIPO_PAGO_CLASS[f.tipo]}`}>
                       {TIPO_PAGO_LABEL[f.tipo]}
