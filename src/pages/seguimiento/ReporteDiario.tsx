@@ -208,7 +208,7 @@ export default function ReporteDiario() {
           .in("ejecutivo_venta_id", ids),
         supabase
           .from("cobranza_pagos")
-          .select("id, empresa_id, empresa_vendedora, monto_total, metodo_pago, companies:empresa_id(name)")
+          .select("id, empresa_id, empresa_vendedora, monto_total, metodo_pago, tipo_pago, companies:empresa_id(name)")
           .gte("fecha_pago", desde)
           .lte("fecha_pago", hasta),
         supabase
@@ -299,6 +299,7 @@ export default function ReporteDiario() {
         id: p.id,
         cliente: p.companies?.name || "Sin empresa",
         empresaVendedora: p.empresa_vendedora || "sin_empresa",
+        tipoPago: tipoPagoCobranzaLabel(p.tipo_pago),
         metodoPago: p.metodo_pago || "—",
         importe: Number(p.monto_total) || 0,
         facturas: aplicMap.get(p.id) || [],
