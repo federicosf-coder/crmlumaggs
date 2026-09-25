@@ -1202,6 +1202,7 @@ Deno.serve(async (req) => {
     console.log('attachments del webhook:', JSON.stringify(validos.map((a: any) => ({ id: a?.id, content_type: a?.content_type, disposition: a?.content_disposition }))));
 
     let procesados = 0;
+    let duplicadosOmitidos = 0;
 
     for (const att of validos) {
       try {
@@ -1442,7 +1443,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return jsonRes({ ok: true, procesados });
+    return jsonRes({ ok: true, procesados, duplicados_omitidos: duplicadosOmitidos });
   } catch (e) {
     console.error('email-inbound-webhook error:', e);
     return jsonRes({ error: (e as Error).message }, 500);
