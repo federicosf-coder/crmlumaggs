@@ -963,16 +963,25 @@ function ComprobanteCard({
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <Button onClick={handleCrearPago} disabled={saving || savingEnviar}>
-              {saving ? "Creando..." : "Crear pago"}
+            <Button onClick={handleCrearPago} disabled={saving || savingEnviar || openPreview}>
+              {saving ? "Creando..." : pagoCreadoId ? "Ver pago registrado" : "Crear pago"}
             </Button>
-            <Button onClick={handleGuardarYEnviar} disabled={saving || savingEnviar || !formaPago}>
+            <Button
+              onClick={handleGuardarYEnviar}
+              disabled={saving || savingEnviar || openPreview || !formaPago || !!pagoCreadoId}
+            >
               {savingEnviar ? "Enviando..." : "Guardar y Enviar por Correo"}
             </Button>
-            <Button variant="ghost" onClick={handleDescartar} disabled={saving || savingEnviar}>
+            <Button variant="ghost" onClick={handleDescartar} disabled={saving || savingEnviar || openPreview || !!pagoCreadoId}>
               <Trash2 className="h-4 w-4 mr-1" /> Descartar
             </Button>
           </div>
+          {pagoCreadoId && (
+            <p className="text-xs text-muted-foreground">
+              Este comprobante ya tiene un pago registrado. No se puede volver a registrar.
+            </p>
+          )}
+
         </div>
       </CardContent>
     </Card>
