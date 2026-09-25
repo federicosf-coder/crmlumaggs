@@ -17,6 +17,14 @@ export default function CobranzaLanding() {
           <Button
             size="sm"
             variant="outline"
+            className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800"
+            onClick={() => navigate("/cobranza/resumen")}
+          >
+            Reporte de Cobranza
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:text-blue-300"
             onClick={() => navigate("/cobranza/chevron")}
           >

@@ -58,6 +58,7 @@ import ContactosSinEmpresa from "@/pages/directory/ContactosSinEmpresa";
 import Cobranza from "@/pages/cobranza/Cobranza";
 import CobranzaLanding from "@/pages/cobranza/CobranzaLanding";
 import CobranzaReporteDiario from "@/pages/cobranza/CobranzaReporteDiario";
+import CobranzaResumenReporte from "@/pages/cobranza/CobranzaResumenReporte";
 import Unsubscribe from "@/pages/Unsubscribe";
 import WhatsAppInbox from "@/pages/whatsapp/WhatsAppInbox";
 import WhatsAppCampaigns from "@/pages/whatsapp/WhatsAppCampaigns";
@@ -190,6 +191,7 @@ const App = () => (
             <Route path="/delivery/entrega/:id" element={<ProtectedRoute><EntregaDetalle /></ProtectedRoute>} />
             <Route path="/cobranza" element={<ProtectedRoute><CobranzaLanding /></ProtectedRoute>} />
             <Route path="/cobranza/reporte" element={<ProtectedRoute><CobranzaReporteDiario /></ProtectedRoute>} />
+            <Route path="/cobranza/resumen" element={<ProtectedRoute><CobranzaResumenReporte /></ProtectedRoute>} />
             <Route path="/cobranza/:brand" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
 
             
