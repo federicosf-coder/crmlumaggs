@@ -439,6 +439,9 @@ function ComprobanteCard({
         .select("id")
         .single();
       if (pagoErr) throw pagoErr;
+      // Se marca de inmediato para que un segundo clic no vuelva a crear el pago.
+      setPagoCreadoId(pago.id);
+
 
       // Aplicaciones a documentos seleccionados
       if (aplicaciones.length > 0) {
