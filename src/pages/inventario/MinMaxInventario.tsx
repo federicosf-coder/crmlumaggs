@@ -182,12 +182,12 @@ export function MinMaxTabContent() {
         const ddia = ultimaDem.get(k) ?? Number(r.demanda_diaria_hub ?? 0);
         const n = nivMap.get(r.codigo_producto);
         const abc = n?.clasificacion_abc ?? r.clasificacion_abc ?? null;
-        const cobertura = abc && COBERTURA[abc] ? COBERTURA[abc] : 45;
+        const cobertura = Number(r.dias_cobertura_objetivo) || 45;
         const seguridad = abc && SEGURIDAD[abc] ? SEGURIDAD[abc] : 10;
         const lead = Number(n?.lead_time_dias ?? r.lead_time_dias ?? 10) || 10;
         const ppt = Math.max(1, Number(n?.piezas_por_tarima ?? 1) || 1);
         const minCalc = Math.ceil((ddia * (lead + seguridad)) / ppt) * ppt;
-        const maxCalc = Math.ceil((ddia * (lead + cobertura)) / ppt) * ppt;
+        const maxCalc = Math.ceil((ddia * cobertura) / ppt) * ppt;
         const stock = stockOf(n, r.almacen);
         const reordenCalc = Math.max(0, minCalc - stock);
         updates.push({
@@ -642,10 +642,10 @@ export function AjusteManualDialog({
         for (const r of ((mmRows || []) as Row[])) {
           const ddia = ultimaDem.get(r.almacen) ?? Number(r.demanda_diaria_hub ?? 0);
           const abc = n?.clasificacion_abc ?? r.clasificacion_abc ?? null;
-          const cobertura = abc && COBERTURA[abc] ? COBERTURA[abc] : 45;
+          const cobertura = Number(r.dias_cobertura_objetivo) || 45;
           const seguridad = abc && SEGURIDAD[abc] ? SEGURIDAD[abc] : 10;
           const minCalc = Math.ceil((ddia * (lead + seguridad)) / ppt) * ppt;
-          const maxCalc = Math.ceil((ddia * (lead + cobertura)) / ppt) * ppt;
+          const maxCalc = Math.ceil((ddia * cobertura) / ppt) * ppt;
           const stock = stockOf(n, r.almacen);
           const reordenCalc = Math.max(0, minCalc - stock);
           await (supabase as any).from("inv_minmax").update({
