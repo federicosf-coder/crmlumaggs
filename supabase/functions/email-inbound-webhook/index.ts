@@ -1202,6 +1202,7 @@ Deno.serve(async (req) => {
     console.log('attachments del webhook:', JSON.stringify(validos.map((a: any) => ({ id: a?.id, content_type: a?.content_type, disposition: a?.content_disposition }))));
 
     let procesados = 0;
+    let duplicadosOmitidos = 0;
 
     for (const att of validos) {
       try {
@@ -1409,6 +1410,29 @@ Deno.serve(async (req) => {
           insertPayload.extraccion_error = extraccionError;
         }
 
+        // Detección de duplicados: solo si se extrajeron con confianza monto Y referencia
+        const montoDup = typeof insertPayload.monto_extraido === 'number' ? insertPayload.monto_extraido : null;
+        const refDup = typeof insertPayload.referencia_extraida === 'string' ? insertPayload.referencia_extraida : null;
+
+        if (montoDup != null && refDup) {
+          const hace30Dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+          const { data: dup } = await admin
+            .from('comprobantes_intake')
+            .select('id')
+            .eq('monto_extraido', montoDup)
+            .eq('referencia_extraida', refDup)
+            .neq('estatus', 'descartado')
+            .gte('created_at', hace30Dias)
+            .limit(1)
+            .maybeSingle();
+
+          if (dup?.id) {
+            console.log(`comprobante omitido por duplicado: coincide con intake ${dup.id} (monto=${montoDup}, referencia=${refDup})`);
+            duplicadosOmitidos++;
+            continue;
+          }
+        }
+
         const { error: insErr } = await admin.from('comprobantes_intake').insert(insertPayload);
         if (insErr) throw new Error(`insert_failed: ${insErr.message}`);
 
@@ -1419,7 +1443,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return jsonRes({ ok: true, procesados });
+    return jsonRes({ ok: true, procesados, duplicados_omitidos: duplicadosOmitidos });
   } catch (e) {
     console.error('email-inbound-webhook error:', e);
     return jsonRes({ error: (e as Error).message }, 500);

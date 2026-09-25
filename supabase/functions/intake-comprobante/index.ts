@@ -182,6 +182,28 @@ Deno.serve(async (req) => {
     }
 
 
+    // Detección de duplicados: solo si se extrajeron con confianza monto Y referencia
+    const montoDup = typeof insertPayload.monto_extraido === 'number' ? insertPayload.monto_extraido : null;
+    const refDup = typeof insertPayload.referencia_extraida === 'string' ? insertPayload.referencia_extraida : null;
+
+    if (montoDup != null && refDup) {
+      const hace30Dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: dup } = await admin
+        .from('comprobantes_intake')
+        .select('id')
+        .eq('monto_extraido', montoDup)
+        .eq('referencia_extraida', refDup)
+        .neq('estatus', 'descartado')
+        .gte('created_at', hace30Dias)
+        .limit(1)
+        .maybeSingle();
+
+      if (dup?.id) {
+        console.log(`comprobante omitido por duplicado: coincide con intake ${dup.id} (monto=${montoDup}, referencia=${refDup})`);
+        return jsonRes({ ok: true, duplicado_omitido: true, duplicado_de: dup.id, extraccion_error: extraccionError });
+      }
+    }
+
     const { data: inserted, error: insErr } = await admin
       .from('comprobantes_intake')
       .insert(insertPayload)
@@ -190,7 +212,7 @@ Deno.serve(async (req) => {
 
     if (insErr) return jsonRes({ error: 'insert_failed', detail: insErr.message }, 500);
 
-    return jsonRes({ ok: true, intake_id: inserted.id, extraccion_error: extraccionError });
+    return jsonRes({ ok: true, intake_id: inserted.id, duplicado_omitido: false, extraccion_error: extraccionError });
   } catch (e) {
     return jsonRes({ error: (e as Error).message }, 500);
   }
