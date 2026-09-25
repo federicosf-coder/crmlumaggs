@@ -50,6 +50,7 @@ interface CobranzaRow {
   id: string;
   cliente: string;
   empresaVendedora: string;
+  tipoPago: string;
   metodoPago: string;
   importe: number;
   facturas: string[];
@@ -87,6 +88,15 @@ const TIPO_ACTIVIDAD_LABELS: Record<string, string> = {
   whatsapp: "WhatsApp",
 };
 const tipoLabel = (t: string) => TIPO_ACTIVIDAD_LABELS[t] || t;
+
+const TIPO_PAGO_COBRANZA_LABELS: Record<string, string> = {
+  contado: "Contado",
+  credito: "Directo",
+  credito_directo: "Directo",
+  credito_cescemex: "Cescemex",
+};
+const tipoPagoCobranzaLabel = (t: string | null) =>
+  (t && TIPO_PAGO_COBRANZA_LABELS[t]) || (t ? t : "Sin tipo");
 
 const fechaCorta = (iso: string) => {
   const [y, m, d] = iso.split("-");
