@@ -50,6 +50,7 @@ interface CobranzaRow {
   id: string;
   cliente: string;
   empresaVendedora: string;
+  tipoPago: string;
   metodoPago: string;
   importe: number;
   facturas: string[];
@@ -87,6 +88,15 @@ const TIPO_ACTIVIDAD_LABELS: Record<string, string> = {
   whatsapp: "WhatsApp",
 };
 const tipoLabel = (t: string) => TIPO_ACTIVIDAD_LABELS[t] || t;
+
+const TIPO_PAGO_COBRANZA_LABELS: Record<string, string> = {
+  contado: "Contado",
+  credito: "Directo",
+  credito_directo: "Directo",
+  credito_cescemex: "Cescemex",
+};
+const tipoPagoCobranzaLabel = (t: string | null) =>
+  (t && TIPO_PAGO_COBRANZA_LABELS[t]) || (t ? t : "Sin tipo");
 
 const fechaCorta = (iso: string) => {
   const [y, m, d] = iso.split("-");
@@ -198,7 +208,7 @@ export default function ReporteDiario() {
           .in("ejecutivo_venta_id", ids),
         supabase
           .from("cobranza_pagos")
-          .select("id, empresa_id, empresa_vendedora, monto_total, metodo_pago, companies:empresa_id(name)")
+          .select("id, empresa_id, empresa_vendedora, monto_total, metodo_pago, tipo_pago, companies:empresa_id(name)")
           .gte("fecha_pago", desde)
           .lte("fecha_pago", hasta),
         supabase
@@ -289,6 +299,7 @@ export default function ReporteDiario() {
         id: p.id,
         cliente: p.companies?.name || "Sin empresa",
         empresaVendedora: p.empresa_vendedora || "sin_empresa",
+        tipoPago: tipoPagoCobranzaLabel(p.tipo_pago),
         metodoPago: p.metodo_pago || "—",
         importe: Number(p.monto_total) || 0,
         facturas: aplicMap.get(p.id) || [],
@@ -536,7 +547,7 @@ export default function ReporteDiario() {
     const cobs = (reporte?.cobranza || []).filter((c) => c.ejecutivoIds.includes(ejecutivoId));
     L.push(div("<strong>Cobrado</strong>"));
     if (cobs.length === 0) L.push(div("Sin registros"));
-    for (const c of cobs) L.push(div(`${escapeHtml(c.cliente)} - ${money(c.importe)}`));
+    for (const c of cobs) L.push(div(`${escapeHtml(c.cliente)} - ${escapeHtml(c.tipoPago)} - ${money(c.importe)}`));
     if (cobs.length > 0) L.push(div(`<strong>Total: ${money(cobs.reduce((s, c) => s + c.importe, 0))}</strong>`));
 
     return L.join("");
@@ -688,9 +699,9 @@ export default function ReporteDiario() {
 
       const cobs = (reporte.cobranza || []).filter((c) => c.ejecutivoIds.includes(id));
       aoa.push(["Cobrado"]);
-      aoa.push(["Cliente", "Importe"]);
-      if (cobs.length === 0) aoa.push(["Sin registros", 0]);
-      cobs.forEach((c) => aoa.push([c.cliente, c.importe]));
+      aoa.push(["Cliente", "Tipo de pago", "Importe"]);
+      if (cobs.length === 0) aoa.push(["Sin registros", "", 0]);
+      cobs.forEach((c) => aoa.push([c.cliente, c.tipoPago, c.importe]));
       if (cobs.length > 0) aoa.push(["Total", cobs.reduce((sum, c) => sum + c.importe, 0)]);
       aoa.push([]);
       aoa.push([]);
@@ -811,10 +822,10 @@ export default function ReporteDiario() {
       );
 
       const cobs = (reporte.cobranza || []).filter((c) => c.ejecutivoIds.includes(id));
-      const cuerpoCob: (string | number)[][] = cobs.map((c) => [c.cliente, money(c.importe)]);
+      const cuerpoCob: (string | number)[][] = cobs.map((c) => [c.cliente, c.tipoPago, money(c.importe)]);
       if (cobs.length > 0)
-        cuerpoCob.push(["Total", money(cobs.reduce((sum, c) => sum + c.importe, 0))]);
-      sec("Cobrado", ["Cliente", "Importe"], cuerpoCob);
+        cuerpoCob.push(["Total", "", money(cobs.reduce((sum, c) => sum + c.importe, 0))]);
+      sec("Cobrado", ["Cliente", "Tipo de pago", "Importe"], cuerpoCob);
     });
 
     doc.save(`reporte_diario_${desde}_${day}.pdf`);
