@@ -1007,7 +1007,19 @@ function ComprobanteCard({
     </Dialog>
     <EnviarConfirmacionPagoDialog
       open={openPreview}
-      onOpenChange={setOpenPreview}
+      onOpenChange={(v) => {
+        setOpenPreview(v);
+        // Si se cierra sin enviar, el pago ya quedó registrado: se retira el comprobante
+        // de la bandeja para que nadie vuelva a capturarlo.
+        if (!v && !correoEnviadoRef.current && previewPagoId) {
+          toast.success("Pago registrado. Se omitió el envío del correo.");
+          onDone();
+          navigate(
+            `/cobranza/${empVend === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${previewPagoId}`
+          );
+        }
+      }}
+
       pagoId={previewPagoId || ""}
       empresa={previewFlow?.empresaNombre || ""}
       fechaPago={previewFlow?.fechaPagoFormateada || fecha}
