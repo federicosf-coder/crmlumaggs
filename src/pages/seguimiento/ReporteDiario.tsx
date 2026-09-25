@@ -547,7 +547,7 @@ export default function ReporteDiario() {
     const cobs = (reporte?.cobranza || []).filter((c) => c.ejecutivoIds.includes(ejecutivoId));
     L.push(div("<strong>Cobrado</strong>"));
     if (cobs.length === 0) L.push(div("Sin registros"));
-    for (const c of cobs) L.push(div(`${escapeHtml(c.cliente)} - ${money(c.importe)}`));
+    for (const c of cobs) L.push(div(`${escapeHtml(c.cliente)} - ${escapeHtml(c.tipoPago)} - ${money(c.importe)}`));
     if (cobs.length > 0) L.push(div(`<strong>Total: ${money(cobs.reduce((s, c) => s + c.importe, 0))}</strong>`));
 
     return L.join("");
@@ -699,9 +699,9 @@ export default function ReporteDiario() {
 
       const cobs = (reporte.cobranza || []).filter((c) => c.ejecutivoIds.includes(id));
       aoa.push(["Cobrado"]);
-      aoa.push(["Cliente", "Importe"]);
-      if (cobs.length === 0) aoa.push(["Sin registros", 0]);
-      cobs.forEach((c) => aoa.push([c.cliente, c.importe]));
+      aoa.push(["Cliente", "Tipo de pago", "Importe"]);
+      if (cobs.length === 0) aoa.push(["Sin registros", "", 0]);
+      cobs.forEach((c) => aoa.push([c.cliente, c.tipoPago, c.importe]));
       if (cobs.length > 0) aoa.push(["Total", cobs.reduce((sum, c) => sum + c.importe, 0)]);
       aoa.push([]);
       aoa.push([]);
@@ -822,10 +822,10 @@ export default function ReporteDiario() {
       );
 
       const cobs = (reporte.cobranza || []).filter((c) => c.ejecutivoIds.includes(id));
-      const cuerpoCob: (string | number)[][] = cobs.map((c) => [c.cliente, money(c.importe)]);
+      const cuerpoCob: (string | number)[][] = cobs.map((c) => [c.cliente, c.tipoPago, money(c.importe)]);
       if (cobs.length > 0)
-        cuerpoCob.push(["Total", money(cobs.reduce((sum, c) => sum + c.importe, 0))]);
-      sec("Cobrado", ["Cliente", "Importe"], cuerpoCob);
+        cuerpoCob.push(["Total", "", money(cobs.reduce((sum, c) => sum + c.importe, 0))]);
+      sec("Cobrado", ["Cliente", "Tipo de pago", "Importe"], cuerpoCob);
     });
 
     doc.save(`reporte_diario_${desde}_${day}.pdf`);
