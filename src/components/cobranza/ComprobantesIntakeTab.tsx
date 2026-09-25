@@ -1042,7 +1042,9 @@ function ComprobanteCard({
       description={previewFlow?.description}
       logContext={{ user_id: user?.id || null, company_id: empresaId || null }}
       onSent={async () => {
+        correoEnviadoRef.current = true;
         if (previewPagoId) {
+
           await supabase
             .from("cobranza_pagos")
             .update({ estatus_pago: "enviado_validar" as any })
