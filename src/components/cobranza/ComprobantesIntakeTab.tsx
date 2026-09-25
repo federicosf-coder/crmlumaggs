@@ -260,7 +260,14 @@ function ComprobanteCard({
   );
   const [saving, setSaving] = useState(false);
   const [savingEnviar, setSavingEnviar] = useState(false);
+  const [pagoCreadoId, setPagoCreadoId] = useState<string | null>(
+    ((row as any).cobranza_pago_id as string | null) || null
+  );
+
+
   const [docs, setDocs] = useState<DocOption[]>([]);
+  const correoEnviadoRef = useRef(false);
+
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [seleccion, setSeleccion] = useState<Record<string, string>>({});
   const [tipoFiltro, setTipoFiltro] = useState<"factura" | "pedido" | "cotizacion">("factura");
@@ -405,7 +412,10 @@ function ComprobanteCard({
   };
 
   const crearPago = async (aplicaciones: { doc_id: string; monto: number }[]): Promise<{ id: string } | null> => {
+    // Candado anti-duplicados: si este comprobante ya generó un pago, se reutiliza.
+    if (pagoCreadoId) return { id: pagoCreadoId };
     try {
+
 
 
       const { data: pago, error: pagoErr } = await supabase
@@ -431,6 +441,9 @@ function ComprobanteCard({
         .select("id")
         .single();
       if (pagoErr) throw pagoErr;
+      // Se marca de inmediato para que un segundo clic no vuelva a crear el pago.
+      setPagoCreadoId(pago.id);
+
 
       // Aplicaciones a documentos seleccionados
       if (aplicaciones.length > 0) {
@@ -571,11 +584,17 @@ function ComprobanteCard({
     if (totalAsignado > montoNum + TOLERANCIA) { toast.error("La suma asignada excede el monto del pago"); return; }
     setSaving(true);
     try {
+      const yaExistia = !!pagoCreadoId;
       const pago = await crearPago(aplicaciones);
       if (!pago) return;
-      toast.success("Pago creado y comprobante clasificado");
+      toast.success(
+        yaExistia
+          ? "Este comprobante ya tenía un pago registrado. Se abre el pago existente."
+          : "Pago creado y comprobante clasificado"
+      );
       onDone();
       navigate(`/cobranza/${empVend === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
+
     } finally {
       setSaving(false);
     }
@@ -611,14 +630,26 @@ function ComprobanteCard({
       const pago = await crearPago(aplicaciones);
       if (!pago) return;
 
-      const flowData = await buildValidacionEmailFlow(
-        pago.id,
-        formaPago as any,
-        user?.email || undefined
-      );
+      let flowData: ValidacionEmailFlow | null = null;
+      try {
+        flowData = await buildValidacionEmailFlow(
+          pago.id,
+          formaPago as any,
+          user?.email || undefined
+        );
+      } catch (e: any) {
+        console.error("buildValidacionEmailFlow", e);
+      }
+      if (!flowData) {
+        toast.warning("El pago quedó registrado, pero no se pudo preparar el correo.");
+        onDone();
+        navigate(`/cobranza/${empVend === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
+        return;
+      }
       setPreviewFlow(flowData);
       setPreviewPagoId(pago.id);
       setOpenPreview(true);
+
     } finally {
       setSavingEnviar(false);
     }
@@ -934,16 +965,25 @@ function ComprobanteCard({
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <Button onClick={handleCrearPago} disabled={saving || savingEnviar}>
-              {saving ? "Creando..." : "Crear pago"}
+            <Button onClick={handleCrearPago} disabled={saving || savingEnviar || openPreview}>
+              {saving ? "Creando..." : pagoCreadoId ? "Ver pago registrado" : "Crear pago"}
             </Button>
-            <Button onClick={handleGuardarYEnviar} disabled={saving || savingEnviar || !formaPago}>
+            <Button
+              onClick={handleGuardarYEnviar}
+              disabled={saving || savingEnviar || openPreview || !formaPago || !!pagoCreadoId}
+            >
               {savingEnviar ? "Enviando..." : "Guardar y Enviar por Correo"}
             </Button>
-            <Button variant="ghost" onClick={handleDescartar} disabled={saving || savingEnviar}>
+            <Button variant="ghost" onClick={handleDescartar} disabled={saving || savingEnviar || openPreview || !!pagoCreadoId}>
               <Trash2 className="h-4 w-4 mr-1" /> Descartar
             </Button>
           </div>
+          {pagoCreadoId && (
+            <p className="text-xs text-muted-foreground">
+              Este comprobante ya tiene un pago registrado. No se puede volver a registrar.
+            </p>
+          )}
+
         </div>
       </CardContent>
     </Card>
@@ -969,7 +1009,19 @@ function ComprobanteCard({
     </Dialog>
     <EnviarConfirmacionPagoDialog
       open={openPreview}
-      onOpenChange={setOpenPreview}
+      onOpenChange={(v) => {
+        setOpenPreview(v);
+        // Si se cierra sin enviar, el pago ya quedó registrado: se retira el comprobante
+        // de la bandeja para que nadie vuelva a capturarlo.
+        if (!v && !correoEnviadoRef.current && previewPagoId) {
+          toast.success("Pago registrado. Se omitió el envío del correo.");
+          onDone();
+          navigate(
+            `/cobranza/${empVend === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${previewPagoId}`
+          );
+        }
+      }}
+
       pagoId={previewPagoId || ""}
       empresa={previewFlow?.empresaNombre || ""}
       fechaPago={previewFlow?.fechaPagoFormateada || fecha}
@@ -992,7 +1044,9 @@ function ComprobanteCard({
       description={previewFlow?.description}
       logContext={{ user_id: user?.id || null, company_id: empresaId || null }}
       onSent={async () => {
+        correoEnviadoRef.current = true;
         if (previewPagoId) {
+
           await supabase
             .from("cobranza_pagos")
             .update({ estatus_pago: "enviado_validar" as any })
