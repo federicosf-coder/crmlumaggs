@@ -622,14 +622,26 @@ function ComprobanteCard({
       const pago = await crearPago(aplicaciones);
       if (!pago) return;
 
-      const flowData = await buildValidacionEmailFlow(
-        pago.id,
-        formaPago as any,
-        user?.email || undefined
-      );
+      let flowData: ValidacionEmailFlow | null = null;
+      try {
+        flowData = await buildValidacionEmailFlow(
+          pago.id,
+          formaPago as any,
+          user?.email || undefined
+        );
+      } catch (e: any) {
+        console.error("buildValidacionEmailFlow", e);
+      }
+      if (!flowData) {
+        toast.warning("El pago quedó registrado, pero no se pudo preparar el correo.");
+        onDone();
+        navigate(`/cobranza/${empVend === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${pago.id}`);
+        return;
+      }
       setPreviewFlow(flowData);
       setPreviewPagoId(pago.id);
       setOpenPreview(true);
+
     } finally {
       setSavingEnviar(false);
     }
