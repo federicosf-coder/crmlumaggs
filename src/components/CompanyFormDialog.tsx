@@ -180,6 +180,7 @@ export interface CompanyData {
   tarjeta_ultimos4?: string | null;
   limite_credito?: number | null;
   justificacion_precio_default?: string | null;
+  grupo_comercial_id?: string | null;
 }
 
 
@@ -205,6 +206,7 @@ const emptyForm = {
   tarjeta_ultimos4: "",
   limite_credito: 0,
   justificacion_precio_default: "",
+  grupo_comercial_id: "",
   plaza_ids: [] as string[],
   ejecutivo_ids: [] as string[],
 };
@@ -490,6 +492,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
         limite_credito: Number((editData as any).limite_credito ?? 0),
         justificacion_precio_default: (editData as any).justificacion_precio_default || "",
+        grupo_comercial_id: (editData as any).grupo_comercial_id || "",
         plaza_ids: [],
         ejecutivo_ids: [],
       });
@@ -522,6 +525,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
         limite_credito: Number((editData as any).limite_credito ?? 0),
         justificacion_precio_default: (editData as any).justificacion_precio_default || "",
+        grupo_comercial_id: (editData as any).grupo_comercial_id || "",
         plaza_ids: [],
         ejecutivo_ids: [],
       });
@@ -616,6 +620,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       tarjeta_ultimos4: form.tarjeta_ultimos4?.trim() || null,
       limite_credito: Number((form as any).limite_credito ?? 0),
       justificacion_precio_default: form.justificacion_precio_default?.trim() || null,
+      grupo_comercial_id: form.grupo_comercial_id || null,
     } as any;
 
 
