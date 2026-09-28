@@ -1114,6 +1114,7 @@ export default function Directory() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <CompanyFormDialog
         open={companyOpen}
