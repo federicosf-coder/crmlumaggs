@@ -56,7 +56,6 @@ import Alertas from "@/pages/Alertas";
 import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 import ContactosSinEmpresa from "@/pages/directory/ContactosSinEmpresa";
 import Cobranza from "@/pages/cobranza/Cobranza";
-import CobranzaLanding from "@/pages/cobranza/CobranzaLanding";
 import CobranzaReporteDiario from "@/pages/cobranza/CobranzaReporteDiario";
 import CobranzaResumenReporte from "@/pages/cobranza/CobranzaResumenReporte";
 import Unsubscribe from "@/pages/Unsubscribe";
@@ -189,7 +188,7 @@ const App = () => (
             <Route path="/delivery" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/schedule" element={<ProtectedRoute><DeliverySchedule /></ProtectedRoute>} />
             <Route path="/delivery/entrega/:id" element={<ProtectedRoute><EntregaDetalle /></ProtectedRoute>} />
-            <Route path="/cobranza" element={<ProtectedRoute><CobranzaLanding /></ProtectedRoute>} />
+            <Route path="/cobranza" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
             <Route path="/cobranza/reporte" element={<ProtectedRoute><CobranzaReporteDiario /></ProtectedRoute>} />
             <Route path="/cobranza/resumen" element={<ProtectedRoute><CobranzaResumenReporte /></ProtectedRoute>} />
             <Route path="/cobranza/:brand" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
