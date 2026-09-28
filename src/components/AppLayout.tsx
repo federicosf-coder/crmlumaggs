@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -37,13 +37,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isAdmin = hasRole("admin");
   const [sp] = useSearchParams();
   const embed = sp.get("embed") === "1";
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(getStoredSidebarOpen);
 
   if (embed) {
     return <div className="min-h-screen w-full bg-background"><main className="p-4">{children}</main></div>;
   }
 
   return (
-    <SidebarProvider defaultOpen={getStoredSidebarOpen()} onOpenChange={persistSidebarOpen}>
+    <SidebarProvider
+      open={sidebarOpen}
+      onOpenChange={(v) => { setSidebarOpen(v); persistSidebarOpen(v); }}
+    >
       <div className="min-h-screen flex w-full max-w-full overflow-x-hidden">
         <AppSidebar />
         <div className="flex-1 min-w-0 flex flex-col">
