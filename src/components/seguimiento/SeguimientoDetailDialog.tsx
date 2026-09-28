@@ -235,6 +235,36 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
 
   const primaryContact = contacts?.[0] || null;
 
+  // ---- Ficha del cliente: datos fiscales / comerciales ----
+  const { data: companyInfo } = useQuery({
+    queryKey: ["seguimiento_company_info", row?.company_id],
+    enabled: !!row?.company_id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("companies")
+        .select(
+          "id, name, razon_social, rfc, id_contpaq, industry, lista_precios, tipo_cliente_comercial, tipo_pago, forma_pago, metodo_pago, uso_cfdi, limite_credito, address, city, state, zip_code, email, phone, website, notes, potencial_unidades, tomador_decision, riesgo_cambio_marca, plazas(nombre)"
+        )
+        .eq("id", row!.company_id)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  // ---- Direcciones de entrega ----
+  const { data: companyAddresses = [] } = useQuery({
+    queryKey: ["seguimiento_company_addresses", row?.company_id],
+    enabled: !!row?.company_id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("direcciones_empresa")
+        .select("id, nombre, tipo, tipos, direccion_completa, calle, ciudad, estado, codigo_postal, referencia")
+        .eq("empresa_id", row!.company_id)
+        .eq("is_active", true);
+      return (data || []) as any[];
+    },
+  });
+
   // ---- Actividades y tareas vinculadas a ESTE seguimiento (tablas puente) ----
   const { data: linkedActivities } = useQuery({
     queryKey: ["seguimiento_activities_linked", row?.id],
