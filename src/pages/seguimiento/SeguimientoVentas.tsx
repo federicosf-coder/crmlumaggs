@@ -53,6 +53,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useToast } from "@/hooks/use-toast";
+import { buildGruposResumen, diasCompraConGrupo, resolveRiesgoEstatusId } from "@/lib/grupoComercial";
 
 type SortDir = "asc" | "desc";
 interface SortState {
@@ -1138,9 +1139,17 @@ export default function SeguimientoVentas() {
     return m;
   }, [catalog]);
 
+  // Consolidación por grupo comercial: varias razones sociales = mismo cliente
+  const gruposResumen = useMemo(() => buildGruposResumen(rows), [rows]);
+
   const getEffectiveStatusId = (row: SeguimientoVentasRow): string | null => {
     if (tieneVenta) {
       if (row.estatus_manual && row.estatus_manual_id) return row.estatus_manual_id;
+      const g = diasCompraConGrupo(row, gruposResumen);
+      if (g.consolidado) {
+        const id = resolveRiesgoEstatusId(catalog, g.dias, row.ciclo_dias);
+        if (id) return id;
+      }
       return row.estatus_riesgo_id;
     }
     return row.etapa_prospecto_manual && row.etapa_prospecto_manual_id
@@ -1174,7 +1183,16 @@ export default function SeguimientoVentas() {
         label: "Empresa",
         sortKey: "empresa",
         cellClassName: "font-medium",
-        render: (r) => r.companies?.name || "—",
+        render: (r) => (
+          <span className="inline-flex flex-col">
+            <span>{r.companies?.name || "—"}</span>
+            {r.companies?.grupos_comerciales?.nombre && (
+              <span className="text-[10px] font-light text-violet-700">
+                Grupo: {r.companies.grupos_comerciales.nombre}
+              </span>
+            )}
+          </span>
+        ),
       },
       {
         id: "ejecutivo",
@@ -1228,16 +1246,22 @@ export default function SeguimientoVentas() {
           id: "ultima_compra",
           label: "Última compra",
           sortKey: "ultima_compra",
-          render: (r) => (
-            <>
-              <span className={`font-medium ${daysColor(r.dias_ultima_compra)}`}>
-                {r.dias_ultima_compra != null ? `${r.dias_ultima_compra} d` : "—"}
-              </span>
-              {r.fecha_ultima_compra && (
-                <span className="block text-[10px] text-muted-foreground">{formatDate(r.fecha_ultima_compra)}</span>
-              )}
-            </>
-          ),
+          render: (r) => {
+            const g = diasCompraConGrupo(r, gruposResumen);
+            return (
+              <>
+                <span className={`font-medium ${daysColor(g.dias)}`}>
+                  {g.dias != null ? `${g.dias} d` : "—"}
+                </span>
+                {g.fecha && (
+                  <span className="block text-[10px] text-muted-foreground">{formatDate(g.fecha)}</span>
+                )}
+                {g.consolidado && (
+                  <span className="block text-[10px] font-light text-violet-700">Del grupo</span>
+                )}
+              </>
+            );
+          },
         },
         { id: "potencial", label: "Potencial", sortKey: "potencial", align: "right", render: (r) => fmtNum(r.potencial) },
         { id: "promedio_mensual", label: "Prom. mensual", sortKey: "promedio_mensual", align: "right", render: (r) => fmtNum(r.promedio_historico_mensual) },
@@ -1300,7 +1324,7 @@ export default function SeguimientoVentas() {
       { id: "actividades", label: "Activ.", sortKey: "actividades", align: "center", render: (r) => <Badge variant="outline">{r.actividades_activas}</Badge> },
       { id: "proxima_tarea", label: "Próx. tarea", sortKey: "proxima_tarea", cellClassName: "text-xs text-muted-foreground", render: (r) => r.proxima_tarea_fecha ? formatDate(r.proxima_tarea_fecha) : "—" },
     ];
-  }, [tieneVenta, profileMap, catalogMap, companyPlazaMap, plazaNameMap]);
+  }, [tieneVenta, profileMap, catalogMap, companyPlazaMap, plazaNameMap, gruposResumen, catalog]);
 
   const defaultOrderIds = useMemo(() => allColumns.map((c) => c.id), [allColumns]);
   const colsStorageKey = `seguimiento_cols_order_${tieneVenta ? "con_venta" : "sin_venta"}`;
@@ -1396,7 +1420,7 @@ export default function SeguimientoVentas() {
     }
     if (fDias.length > 0) {
       base = base.filter((r) => {
-        const d = tieneVenta ? r.dias_ultima_compra : r.dias_ultima_actividad;
+        const d = tieneVenta ? diasCompraConGrupo(r, gruposResumen).dias : r.dias_ultima_actividad;
         if (d == null) return false;
         return fDias.some((id) => {
           const range = DIAS_RANGES.find((x) => x.id === id);
@@ -1468,8 +1492,8 @@ export default function SeguimientoVentas() {
         const ua = ea?.es_urgente ? 1 : 0;
         const ub = eb?.es_urgente ? 1 : 0;
         if (ua !== ub) return ub - ua;
-        const da = tieneVenta ? (a.dias_ultima_compra ?? -1) : (a.dias_ultima_actividad ?? -1);
-        const db = tieneVenta ? (b.dias_ultima_compra ?? -1) : (b.dias_ultima_actividad ?? -1);
+        const da = tieneVenta ? (diasCompraConGrupo(a, gruposResumen).dias ?? -1) : (a.dias_ultima_actividad ?? -1);
+        const db = tieneVenta ? (diasCompraConGrupo(b, gruposResumen).dias ?? -1) : (b.dias_ultima_actividad ?? -1);
         return db - da;
       });
     }
@@ -1511,8 +1535,8 @@ export default function SeguimientoVentas() {
           break;
         }
         case "ultima_compra":
-          va = a.dias_ultima_compra ?? -1;
-          vb = b.dias_ultima_compra ?? -1;
+          va = diasCompraConGrupo(a, gruposResumen).dias ?? -1;
+          vb = diasCompraConGrupo(b, gruposResumen).dias ?? -1;
           break;
         case "potencial":
           va = a.potencial ?? 0;
@@ -2442,8 +2466,10 @@ export default function SeguimientoVentas() {
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-light">
                       <div>
                         <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Última compra</span>
-                        <p className={`font-medium ${daysColor(r.dias_ultima_compra)}`}>
-                          {r.dias_ultima_compra != null ? `${r.dias_ultima_compra} d` : "—"}
+                        <p className={`font-medium ${daysColor(diasCompraConGrupo(r, gruposResumen).dias)}`}>
+                          {diasCompraConGrupo(r, gruposResumen).dias != null
+                            ? `${diasCompraConGrupo(r, gruposResumen).dias} d`
+                            : "—"}
                         </p>
                       </div>
                       <div>

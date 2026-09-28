@@ -1439,6 +1439,7 @@ export type Database = {
           frecuencia_compra_chevron_dias: number | null
           frecuencia_compra_dias: number | null
           frecuencia_compra_phillips66_dias: number | null
+          grupo_comercial_id: string | null
           id: string
           id_contpaq: string | null
           industrias: string[] | null
@@ -1510,6 +1511,7 @@ export type Database = {
           frecuencia_compra_chevron_dias?: number | null
           frecuencia_compra_dias?: number | null
           frecuencia_compra_phillips66_dias?: number | null
+          grupo_comercial_id?: string | null
           id?: string
           id_contpaq?: string | null
           industrias?: string[] | null
@@ -1581,6 +1583,7 @@ export type Database = {
           frecuencia_compra_chevron_dias?: number | null
           frecuencia_compra_dias?: number | null
           frecuencia_compra_phillips66_dias?: number | null
+          grupo_comercial_id?: string | null
           id?: string
           id_contpaq?: string | null
           industrias?: string[] | null
@@ -1630,6 +1633,13 @@ export type Database = {
             columns: ["estatus_cliente_id"]
             isOneToOne: false
             referencedRelation: "product_option_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_grupo_comercial_id_fkey"
+            columns: ["grupo_comercial_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_comerciales"
             referencedColumns: ["id"]
           },
           {
@@ -5441,6 +5451,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      grupos_comerciales: {
+        Row: {
+          activo: boolean
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       industrias_catalog: {
         Row: {

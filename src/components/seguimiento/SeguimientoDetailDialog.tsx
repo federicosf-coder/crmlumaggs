@@ -49,6 +49,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { GrupoComercialDialog } from "@/components/seguimiento/GrupoComercialDialog";
+import { Users2 } from "lucide-react";
 import { formatDate, formatRelativeDate } from "@/lib/formatters";
 import {
   type EmpresaVendedora,
@@ -101,6 +103,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
   const [registrarPerdidaOpen, setRegistrarPerdidaOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<{ phone: string; contact: any | null } | null>(null);
+  const [grupoOpen, setGrupoOpen] = useState(false);
   const [reassignOpen, setReassignOpen] = useState(false);
   const [reassignUserId, setReassignUserId] = useState("");
   const [reassigning, setReassigning] = useState(false);
@@ -126,6 +129,40 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
     if (!row?.owner_id) return null;
     return profilesList.find((p) => p.user_id === row.owner_id)?.full_name || null;
   }, [profilesList, row?.owner_id]);
+
+  // ---- Grupo comercial (varias razones sociales = mismo cliente) ----
+  const grupoId = (row?.companies as any)?.grupo_comercial_id ?? null;
+  const grupoNombre = (row?.companies as any)?.grupos_comerciales?.nombre ?? null;
+
+  const { data: grupoHermanas = [] } = useQuery({
+    queryKey: ["seguimiento_grupo_hermanas", grupoId, empresaVendedora],
+    enabled: open && !!grupoId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("seguimiento_ventas")
+        .select("company_id, dias_ultima_compra, fecha_ultima_compra, companies!inner(id, name, grupo_comercial_id)")
+        .eq("companies.grupo_comercial_id", grupoId)
+        .eq("empresa_vendedora", empresaVendedora);
+      return (data || []) as {
+        company_id: string;
+        dias_ultima_compra: number | null;
+        fecha_ultima_compra: string | null;
+        companies: { id: string; name: string } | null;
+      }[];
+    },
+  });
+
+  const grupoUltimaCompra = useMemo(() => {
+    let best: { dias: number; fecha: string | null; empresa: string } | null = null;
+    for (const h of grupoHermanas) {
+      if (h.dias_ultima_compra == null) continue;
+      if (!best || h.dias_ultima_compra < best.dias) {
+        best = { dias: h.dias_ultima_compra, fecha: h.fecha_ultima_compra, empresa: h.companies?.name || "—" };
+      }
+    }
+    return best;
+  }, [grupoHermanas]);
+
 
   const handleReasignar = async () => {
     if (!row || !reassignUserId) return;
@@ -592,6 +629,25 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                   Reasignar
                 </Button>
               </span>
+              <span className="inline-flex items-center gap-1">
+                <Badge variant="outline" className="text-xs bg-white/80 gap-1">
+                  <Users2 className="h-3 w-3" />
+                  Grupo: {grupoNombre || <span className="italic text-muted-foreground">Sin grupo</span>}
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs bg-white/80"
+                  onClick={() => setGrupoOpen(true)}
+                >
+                  {grupoNombre ? "Cambiar grupo" : "Asignar grupo"}
+                </Button>
+              </span>
+              {grupoUltimaCompra && (
+                <Badge variant="outline" className="text-xs bg-emerald-50 border-emerald-200 text-emerald-800">
+                  Grupo compró hace {grupoUltimaCompra.dias} d · {grupoUltimaCompra.empresa}
+                </Badge>
+              )}
               {ritmo && tieneVenta && (
                 <span
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-white shadow-sm"
@@ -1089,6 +1145,14 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GrupoComercialDialog
+        open={grupoOpen}
+        onOpenChange={setGrupoOpen}
+        companyId={row.company_id}
+        companyName={row.companies?.name}
+        currentGrupoId={grupoId}
+      />
     </Dialog>
   );
 }
