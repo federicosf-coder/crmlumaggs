@@ -35,6 +35,7 @@ import { CompanyMetricsPanel } from "@/components/directory/CompanyMetricsPanel"
 import { CompanyCreditoCobranzaTab } from "@/components/directory/CompanyCreditoCobranzaTab";
 import { JustificacionPrecioBlock } from "@/components/directory/JustificacionPrecioBlock";
 import { GrupoComercialDialog } from "@/components/seguimiento/GrupoComercialDialog";
+import { GruposComercialesTab } from "@/components/directory/GruposComercialesTab";
 import { Users2 } from "lucide-react";
 
 interface Company {
@@ -94,6 +95,7 @@ const listaPreciosLabel = (v?: string | null) => {
 const TAB_COLORS: Record<string, { active: string; border: string }> = {
   companies: { active: "bg-blue-600 text-white hover:bg-blue-700", border: "border-blue-500" },
   contacts: { active: "bg-emerald-600 text-white hover:bg-emerald-700", border: "border-emerald-500" },
+  grupos: { active: "bg-violet-600 text-white hover:bg-violet-700", border: "border-violet-500" },
 };
 
 export default function Directory() {
@@ -682,6 +684,7 @@ export default function Directory() {
           {[
             { value: "companies", label: "Empresas", icon: Building2 },
             { value: "contacts", label: "Contactos", icon: User },
+            { value: "grupos", label: "Grupos", icon: Users2 },
           ].map((tab) => {
             const isActive = activeTab === tab.value;
             const colors = TAB_COLORS[tab.value];
@@ -720,6 +723,15 @@ export default function Directory() {
       </div>
 
       {/* Content */}
+      {activeTab === "grupos" && (
+        <GruposComercialesTab
+          onOpenCompany={(id) => {
+            const c = companies.find(x => x.id === id);
+            if (c) { setTab("companies"); setSelectedCompany(c); }
+          }}
+        />
+      )}
+      {activeTab !== "grupos" && (
       <Card className={`border-t-2 ${tabColor.border}`}>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row gap-2">
@@ -1103,6 +1115,7 @@ export default function Directory() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <CompanyFormDialog
         open={companyOpen}
