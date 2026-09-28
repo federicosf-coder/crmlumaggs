@@ -2466,8 +2466,10 @@ export default function SeguimientoVentas() {
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-light">
                       <div>
                         <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Última compra</span>
-                        <p className={`font-medium ${daysColor(r.dias_ultima_compra)}`}>
-                          {r.dias_ultima_compra != null ? `${r.dias_ultima_compra} d` : "—"}
+                        <p className={`font-medium ${daysColor(diasCompraConGrupo(r, gruposResumen).dias)}`}>
+                          {diasCompraConGrupo(r, gruposResumen).dias != null
+                            ? `${diasCompraConGrupo(r, gruposResumen).dias} d`
+                            : "—"}
                         </p>
                       </div>
                       <div>
