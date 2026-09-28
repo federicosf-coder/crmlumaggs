@@ -1590,11 +1590,16 @@ export default function Directory() {
         companyId={selectedCompany?.id || null}
         companyName={selectedCompany?.name || null}
         currentGrupoId={selectedCompany?.grupo_comercial_id || null}
-        onOpenChange={(o) => {
+        onOpenChange={async (o) => {
           setGrupoDialogOpen(o);
-          if (!o) {
+          if (!o && selectedCompany?.id) {
+            const { data } = await supabase
+              .from("companies")
+              .select("*, plazas(nombre), contacts!contacts_company_id_fkey(id)")
+              .eq("id", selectedCompany.id)
+              .maybeSingle();
+            if (data) setSelectedCompany(data as any);
             fetchData();
-            setSelectedCompany((prev) => prev);
           }
         }}
       />
