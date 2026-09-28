@@ -49,6 +49,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { GrupoComercialDialog } from "@/components/seguimiento/GrupoComercialDialog";
+import { Users2 } from "lucide-react";
 import { formatDate, formatRelativeDate } from "@/lib/formatters";
 import {
   type EmpresaVendedora,
