@@ -214,6 +214,8 @@ export default function ChevronFacturasRecibidas() {
     () => registros.filter((r) => r.tipo_comprobante === "E" || r.tipo_comprobante === "P"),
     [registros]
   );
+  const pagosCfdi = useMemo(() => registros.filter((r) => r.tipo_comprobante === "P"), [registros]);
+  const notasCredito = useMemo(() => registros.filter((r) => r.tipo_comprobante === "E"), [registros]);
 
   const totalesPorFactura = useMemo(() => {
     const m = new Map<string, { pagado: number; notas: number }>();
