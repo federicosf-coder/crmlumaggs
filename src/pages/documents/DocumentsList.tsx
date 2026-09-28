@@ -1227,7 +1227,7 @@ export default function DocumentsList() {
               </div>
             ) : (
               <>
-              <div className="overflow-x-auto">
+              <div className="w-full max-w-full overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1246,7 +1246,7 @@ export default function DocumentsList() {
                         </SortableHead>
                       )}
                       {isColVisible("cliente") && (
-                        <SortableHead ascKey="client_asc" descKey="client_desc" className="min-w-[180px]">Cliente</SortableHead>
+                        <SortableHead ascKey="client_asc" descKey="client_desc" className="min-w-[160px] max-w-[220px]">Cliente</SortableHead>
                       )}
                       {isColVisible("ejecutivo") && (
                         <SortableHead ascKey="ejecutivo_asc" descKey="ejecutivo_desc" className="hidden sm:table-cell">Ejecutivo</SortableHead>
@@ -1313,7 +1313,13 @@ export default function DocumentsList() {
                               : (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "-")}
                           </TableCell>
                         )}
-                        {isColVisible("cliente") && <TableCell>{(doc.companies as any)?.name || "-"}</TableCell>}
+                        {isColVisible("cliente") && (
+                          <TableCell className="max-w-[220px]">
+                            <span className="block truncate" title={(doc.companies as any)?.name || ""}>
+                              {(doc.companies as any)?.name || "-"}
+                            </span>
+                          </TableCell>
+                        )}
                         {isColVisible("ejecutivo") && (
                           <TableCell className="hidden sm:table-cell">
                             {getEjecutivoName(doc.ejecutivo_venta_id)}
