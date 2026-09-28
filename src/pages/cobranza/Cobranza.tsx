@@ -926,11 +926,48 @@ export default function Cobranza() {
         title={brandTitle}
         description={brandSubtitle}
         avatar={<div className="h-10 w-10 rounded-md bg-primary/10 text-primary flex items-center justify-center"><Wallet className="h-5 w-5" /></div>}
-      />
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/70 p-1 backdrop-blur">
+            <button
+              type="button"
+              onClick={() => navigate("/cobranza/chevron")}
+              className={cn(
+                "rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-widest transition-colors",
+                !isGalsa
+                  ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md"
+                  : "text-blue-700 hover:bg-blue-50 dark:text-blue-300"
+              )}
+            >
+              Lumaggs · Chevron
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/cobranza/phillips66")}
+              className={cn(
+                "rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-widest transition-colors",
+                isGalsa
+                  ? "bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md"
+                  : "text-orange-700 hover:bg-orange-50 dark:text-orange-300"
+              )}
+            >
+              Galsa · Phillips 66
+            </button>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
+            onClick={() => navigate("/cobranza/resumen")}
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" /> Reporte de Cobranza
+          </Button>
+        </div>
+      </PageBanner>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <BackButton fallback="/cobranza" />
+          <BackButton fallback="/" />
           <div className="flex items-center gap-2">
             <Label className="text-sm text-muted-foreground">Plaza</Label>
             <Select
@@ -951,13 +988,13 @@ export default function Cobranza() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleDescargarReporte}>
-            <Download className="h-4 w-4 mr-2" /> Descargar PDF
+          <Button variant="outline" size="sm" onClick={handleDescargarReporte}>
+            <Download className="h-4 w-4 mr-2" /> PDF
           </Button>
-          <Button variant="outline" onClick={handleDescargarReporteXlsx}>
-            <Download className="h-4 w-4 mr-2" /> Descargar Excel
+          <Button variant="outline" size="sm" onClick={handleDescargarReporteXlsx}>
+            <Download className="h-4 w-4 mr-2" /> Excel
           </Button>
-          <Button onClick={() => setOpenRegistrar(true)}>
+          <Button size="sm" onClick={() => setOpenRegistrar(true)}>
             <Plus className="h-4 w-4 mr-2" /> Registrar pago
           </Button>
         </div>
@@ -968,15 +1005,16 @@ export default function Cobranza() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="pagos">Pagos</TabsTrigger>
-          <TabsTrigger value="facturas">Seguimiento de facturas</TabsTrigger>
-          <TabsTrigger value="intake" className="gap-2">
+        <TabsList className="grid grid-cols-4 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
+          <TabsTrigger value="dashboard" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Dashboard</TabsTrigger>
+          <TabsTrigger value="pagos" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md text-emerald-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Pagos</TabsTrigger>
+          <TabsTrigger value="facturas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md text-amber-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Seguimiento de facturas</TabsTrigger>
+          <TabsTrigger value="intake" className="gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md text-blue-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">
             Comprobantes
             {intakePendientes > 0 && <Badge variant="secondary">{intakePendientes}</Badge>}
           </TabsTrigger>
         </TabsList>
+
 
 
         {/* DASHBOARD */}
