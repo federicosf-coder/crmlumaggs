@@ -853,6 +853,31 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                 </div>
               </div>
 
+              {/* Grupo comercial */}
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Grupo comercial
+                  </Label>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={crearGrupoComercial}>
+                    <Plus className="h-3.5 w-3.5 mr-1" />Crear grupo
+                  </Button>
+                </div>
+                <SearchableSelect
+                  value={form.grupo_comercial_id || ""}
+                  onValueChange={v => setAndSaveNow("grupo_comercial_id", v)}
+                  options={[
+                    { value: "", label: "Sin grupo" },
+                    ...gruposComerciales.map(g => ({ value: g.id, label: g.nombre })),
+                  ]}
+                  placeholder="Sin grupo"
+                />
+                <p className="text-xs text-muted-foreground font-light">
+                  Une varias razones sociales que en realidad son el mismo cliente; el seguimiento toma la compra más reciente del grupo.
+                </p>
+              </div>
+
+
               {/* Sitio Web + Ejecutivo(s) de Venta */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
