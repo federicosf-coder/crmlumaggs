@@ -304,8 +304,9 @@ export default function Cobranza() {
   const invalidBrand = !!brand && brand !== "chevron" && brand !== "phillips66";
   const empresaVendedora: "lumaggs_chevron" | "galsa_phillips66" =
     brand === "phillips66" ? "galsa_phillips66" : "lumaggs_chevron";
-  const brandTitle = brand === "phillips66" ? "Cobranza — Phillips 66" : "Cobranza — Chevron";
-  const brandSubtitle = brand === "phillips66" ? "Galsa" : "Lumaggs";
+  const isGalsa = brand === "phillips66";
+  const brandTitle = "Cobranza";
+  const brandSubtitle = isGalsa ? "Galsa · Phillips 66" : "Lumaggs · Chevron";
 
   const isAdminOrManager = hasAnyRole(["admin", "manager", "accounting"]);
   const facturacionAccess = useModuleAccess("facturacion");
