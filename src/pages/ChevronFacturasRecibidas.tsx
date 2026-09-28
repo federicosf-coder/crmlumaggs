@@ -803,7 +803,90 @@ export default function ChevronFacturasRecibidas() {
 
         {/* ---------------- Notas de Crédito ---------------- */}
         <TabsContent value="notas">{renderMovimientos(notasCredito, "Sin notas de crédito")}</TabsContent>
+
+        {/* ---------------- Sin Clasificar ---------------- */}
+        <TabsContent value="sin_clasificar">
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+                  <TableRow>
+                    {["Tipo", "Folio", "Fecha", "Total", "Motivo", ""].map((h, i) => (
+                      <TableHead key={i} className="uppercase tracking-wide text-xs font-medium">
+                        {h}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sinClasificar.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground font-light">
+                        Todos los comprobantes están clasificados
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {sinClasificar.map((m, i) => {
+                    const folio = [m.serie, m.folio].filter(Boolean).join("-") || m.folio_fiscal.slice(0, 8);
+                    const esFactura = m.tipo_comprobante === "I";
+                    const motivo = esFactura
+                      ? m.numero_pedido_proveedor
+                        ? `Pedido ${m.numero_pedido_proveedor} no encontrado`
+                        : "El XML no trae número de pedido"
+                      : m.uuid_relacionado
+                      ? "La factura relacionada aún no se importa"
+                      : "El XML no indica factura relacionada";
+                    return (
+                      <TableRow key={m.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              esFactura
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : m.tipo_comprobante === "E"
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            }
+                          >
+                            {esFactura ? "Factura" : m.tipo_comprobante === "E" ? "Nota de Crédito" : "Pago"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">{folio}</TableCell>
+                        <TableCell className="text-xs">{fechaFmt(m.fecha)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{money(Number(m.total))}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground font-light">{motivo}</TableCell>
+                        <TableCell className="space-x-1 whitespace-nowrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              esFactura ? setPedDialog({ id: m.id, folio }) : setEmpDialog({ id: m.id, folio })
+                            }
+                          >
+                            <Link2 className="h-3.5 w-3.5 mr-1" />
+                            {esFactura ? "Vincular pedido" : "Vincular factura"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={!m.pdf_storage_path}
+                            onClick={() => abrirPdf(m.pdf_storage_path)}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                            PDF
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
 
       <Dialog open={!!empDialog} onOpenChange={(o) => !o && setEmpDialog(null)}>
         <DialogContent className="max-w-lg p-0 overflow-hidden">
