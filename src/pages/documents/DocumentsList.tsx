@@ -27,7 +27,7 @@ import { fetchAllRows } from "@/lib/supabasePagination";
 import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 
 // Column visibility config per document type
-type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente" | "tipo_pago";
+type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "saldo" | "estatus" | "pdf" | "oc_cliente" | "tipo_pago";
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "numero", label: "Número" },
   { key: "cliente", label: "Cliente" },
@@ -39,16 +39,18 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "oc_cliente", label: "Núm. OC Cliente" },
   { key: "tipo_pago", label: "Tipo de Pago" },
   { key: "total", label: "Total" },
+  { key: "saldo", label: "Saldo" },
   { key: "estatus", label: "Estatus" },
   { key: "pdf", label: "PDF" },
 ];
 const DEFAULT_COLS_BY_TIPO: Record<string, ColumnKey[]> = {
   cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "tipo_pago", "total", "estatus", "pdf"],
   pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "tipo_pago", "total", "estatus", "pdf"],
-  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "tipo_pago", "total", "estatus", "pdf"],
+  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "tipo_pago", "total", "saldo", "estatus", "pdf"],
   entrega_corporativa: ["cliente", "ejecutivo", "fecha", "fecha_programada", "oc_cliente", "estatus"],
 };
 const colsStorageKey = (userId: string, tipo: string) => `doc-cols:${userId}:${tipo}`;
+
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador", impresa: "Impresa", enviada: "Enviada",
@@ -318,9 +320,14 @@ export default function DocumentsList() {
       const raw = localStorage.getItem(colsStorageKey(user.id, tipoFilter));
       if (raw) {
         const arr = JSON.parse(raw) as ColumnKey[];
-        if (Array.isArray(arr)) setVisibleCols(new Set(arr));
-        else setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
+        if (Array.isArray(arr)) {
+          const next = new Set(arr);
+          // Asegurar que Saldo esté disponible en facturas aunque el usuario tenga columnas guardadas
+          if (tipoFilter === "factura" && !next.has("saldo")) next.add("saldo");
+          setVisibleCols(next);
+        } else setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
       } else {
+
         setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
       }
     } catch {
@@ -513,6 +520,9 @@ export default function DocumentsList() {
       case "created_asc": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       case "total_desc": return Number(b.total) - Number(a.total);
       case "total_asc": return Number(a.total) - Number(b.total);
+      case "saldo_desc": return Number(b.saldo_pendiente_cobranza || 0) - Number(a.saldo_pendiente_cobranza || 0);
+      case "saldo_asc": return Number(a.saldo_pendiente_cobranza || 0) - Number(b.saldo_pendiente_cobranza || 0);
+
       case "client_asc": return ((a.companies as any)?.name || "").localeCompare((b.companies as any)?.name || "");
       case "client_desc": return ((b.companies as any)?.name || "").localeCompare((a.companies as any)?.name || "");
       case "numero_asc": {
@@ -1171,6 +1181,11 @@ export default function DocumentsList() {
                   { value: "numero_asc", label: "Número ↑" },
                   { value: "total_desc", label: "Total ↓" },
                   { value: "total_asc", label: "Total ↑" },
+                  ...(tipoFilter === "factura" ? [
+                    { value: "saldo_desc", label: "Saldo ↓" },
+                    { value: "saldo_asc", label: "Saldo ↑" },
+                  ] : []),
+
                   { value: "client_asc", label: "Cliente A-Z" },
                   { value: "client_desc", label: "Cliente Z-A" },
                   { value: "ejecutivo_asc", label: "Ejecutivo A-Z" },
@@ -1259,6 +1274,10 @@ export default function DocumentsList() {
                       {isColVisible("total") && (
                         <SortableHead ascKey="total_asc" descKey="total_desc">Total</SortableHead>
                       )}
+                      {tipoFilter === "factura" && isColVisible("saldo") && (
+                        <SortableHead ascKey="saldo_asc" descKey="saldo_desc">Saldo</SortableHead>
+                      )}
+
                       {isColVisible("estatus") && (
                         <SortableHead ascKey="estatus_asc" descKey="estatus_desc">
                           {tipoFilter === "factura" ? "Estatus Factura" : "Estatus"}
@@ -1354,6 +1373,15 @@ export default function DocumentsList() {
                             ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                           </TableCell>
                         )}
+                        {tipoFilter === "factura" && isColVisible("saldo") && (() => {
+                          const saldo = Number(doc.saldo_pendiente_cobranza ?? 0);
+                          return (
+                            <TableCell className={`whitespace-nowrap ${saldo > 0 ? "text-amber-700 font-medium" : "text-emerald-700"}`}>
+                              ${saldo.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                            </TableCell>
+                          );
+                        })()}
+
                         {isColVisible("estatus") && (
                           <TableCell>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc)}`}>

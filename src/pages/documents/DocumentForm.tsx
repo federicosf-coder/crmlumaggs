@@ -1325,6 +1325,17 @@ export default function DocumentForm() {
                   </Select>
                 </div>
               </fieldset>
+              <div>
+                <Label>Saldo</Label>
+                <Input
+                  readOnly
+                  disabled
+                  className="bg-muted font-medium"
+                  value={`$${Number((existingDoc as any)?.saldo_pendiente_cobranza ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Se calcula automáticamente con los pagos aplicados.</p>
+              </div>
+
             </>
           )}
           {td === "entrega_corporativa" && (
