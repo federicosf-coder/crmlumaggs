@@ -305,6 +305,37 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const labelTipoDireccion = (clave: string) =>
     tiposDireccionCatalog.find((t) => t.clave === clave)?.etiqueta || clave;
 
+  // Grupos comerciales (para unir varias razones sociales del mismo cliente)
+  const { data: gruposComerciales = [], refetch: refetchGrupos } = useQuery({
+    queryKey: ["grupos_comerciales"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("grupos_comerciales")
+        .select("id, nombre")
+        .eq("activo", true)
+        .order("nombre");
+      return (data || []) as { id: string; nombre: string }[];
+    },
+    enabled: open,
+    staleTime: 60_000,
+  });
+
+  const crearGrupoComercial = async () => {
+    const nombre = (window.prompt("Nombre del grupo comercial nuevo") || "").trim();
+    if (!nombre) return;
+    const { data, error } = await (supabase as any)
+      .from("grupos_comerciales")
+      .insert({ nombre })
+      .select("id")
+      .single();
+    if (error) {
+      toast.error("No se pudo crear el grupo");
+      return;
+    }
+    await refetchGrupos();
+    setAndSaveNow("grupo_comercial_id", data.id);
+  };
+
   // Contactos disponibles para vincular al crear empresa (sin company_id o seleccionados)
   const { data: pendingContactsData = [], refetch: refetchPendingContacts } = useQuery({
     queryKey: ["pending_contacts_for_new_company", pendingContactIds.join(",")],
