@@ -1145,6 +1145,14 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GrupoComercialDialog
+        open={grupoOpen}
+        onOpenChange={setGrupoOpen}
+        companyId={row.company_id}
+        companyName={row.companies?.name}
+        currentGrupoId={grupoId}
+      />
     </Dialog>
   );
 }
