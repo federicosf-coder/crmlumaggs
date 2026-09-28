@@ -499,6 +499,15 @@ export default function ChevronFacturasRecibidas() {
     return [f.serie, f.folio, f.folio_fiscal].filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q));
   });
 
+  const pedidosParaVincular = pedidosDisponibles.filter((p) => {
+    const q = pedBusqueda.trim().toLowerCase();
+    if (!q) return true;
+    return [p.numero_po_interno, p.numero_orden_proveedor]
+      .filter(Boolean)
+      .some((v: string) => String(v).toLowerCase().includes(q));
+  });
+
+
   const renderMovimientos = (items: any[], vacio: string) => (
     <Card>
       <CardContent className="p-0 overflow-x-auto">
