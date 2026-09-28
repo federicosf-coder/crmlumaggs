@@ -446,6 +446,89 @@ export default function ChevronFacturasRecibidas() {
     return [f.serie, f.folio, f.folio_fiscal].filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q));
   });
 
+  const renderMovimientos = (items: any[], vacio: string) => (
+    <Card>
+      <CardContent className="p-0 overflow-x-auto">
+        <Table>
+          <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+            <TableRow>
+              {["Folio", "Fecha", "Total", "Factura relacionada", ""].map((h, i) => (
+                <TableHead key={i} className="uppercase tracking-wide text-xs font-medium">
+                  {h}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground font-light">
+                  {vacio}
+                </TableCell>
+              </TableRow>
+            )}
+            {items.map((m, i) => {
+              const rel = m.factura_relacionada_id ? facturas.find((f) => f.id === m.factura_relacionada_id) : null;
+              return (
+                <TableRow key={m.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                  <TableCell className="text-xs font-mono">
+                    {[m.serie, m.folio].filter(Boolean).join("-") || m.folio_fiscal.slice(0, 8)}
+                  </TableCell>
+                  <TableCell className="text-xs">{fechaFmt(m.fecha)}</TableCell>
+                  <TableCell className="text-xs text-right tabular-nums">{money(Number(m.total))}</TableCell>
+                  <TableCell>
+                    {rel ? (
+                      <button
+                        className="text-xs font-mono text-blue-700 hover:underline"
+                        onClick={() => {
+                          setFiltroFacturas(rel.folio_fiscal);
+                          setTab("facturas");
+                        }}
+                      >
+                        {[rel.serie, rel.folio].filter(Boolean).join("-") || rel.folio_fiscal.slice(0, 8)}
+                      </button>
+                    ) : (
+                      <div className="space-y-0.5">
+                        <p className="text-[11px] font-mono text-muted-foreground">{m.uuid_relacionado || "—"}</p>
+                        <p className="text-[11px] text-muted-foreground font-light">aún no importada</p>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="space-x-1 whitespace-nowrap">
+                    {!rel && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setEmpDialog({
+                            id: m.id,
+                            folio: [m.serie, m.folio].filter(Boolean).join("-") || m.folio_fiscal.slice(0, 8),
+                          })
+                        }
+                      >
+                        <Link2 className="h-3.5 w-3.5 mr-1" />
+                        Emparejar manual
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={!m.pdf_storage_path}
+                      onClick={() => abrirPdf(m.pdf_storage_path)}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                      PDF
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="p-6 space-y-4">
       <div>
