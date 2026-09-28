@@ -447,3 +447,263 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
     </Dialog>
   );
 }
+
+function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [data, setData] = useState<any>(null);
+  const [resolucion, setResolucion] = useState("");
+  const [notas, setNotas] = useState<any[]>([]);
+  const [notaCreditoId, setNotaCreditoId] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    (async () => {
+      const { data: rec } = await (supabase as any).from("inv_reclamos")
+        .select("*, inv_pedidos(numero_po_interno), chevron_facturas_recibidas(folio, fecha, total)")
+        .eq("id", id).single();
+      const { data: lin } = await (supabase as any).from("inv_reclamo_lineas").select("*").eq("reclamo_id", id);
+      const { data: arc } = await (supabase as any).from("inv_reclamo_archivos").select("*").eq("reclamo_id", id);
+      const { data: seg } = await (supabase as any).from("inv_reclamo_seguimiento").select("*").eq("reclamo_id", id).order("created_at", { ascending: false });
+      const { data: ncs } = await (supabase as any).from("chevron_facturas_recibidas")
+        .select("id, folio, fecha, total").eq("tipo_comprobante", "E").order("folio", { ascending: false });
+      setData({ reclamo: rec, lineas: lin || [], archivos: arc || [], notas: ncs || [] });
+      setNotas(seg || []);
+      setResolucion(rec?.resolucion || "");
+      setNotaCreditoId(rec?.nota_credito_id || "");
+    })();
+  }, [id]);
+
+  if (!id) return null;
+  const r = data?.reclamo;
+
+  const cambiarEstatus = async (nuevo: string) => {
+    if (nuevo === "aceptado" && !notaCreditoId && !r?.nota_credito_id) {
+      toast.error("Selecciona la nota de crédito antes de marcar como Aceptado");
+      return;
+    }
+    const update: any = { estatus: nuevo };
+    if (nuevo === "aceptado" && notaCreditoId) {
+      const nc = data.notas.find((n: any) => n.id === notaCreditoId);
+      update.nota_credito_id = notaCreditoId;
+      update.nota_credito_folio = nc?.folio || null;
+      update.nota_credito_monto = nc?.total || null;
+    }
+    if (nuevo === "rechazado") update.fecha_resolucion = hoyISO();
+    const { error } = await (supabase as any).from("inv_reclamos").update(update).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Estatus actualizado");
+    qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
+    setData({ ...data, reclamo: { ...r, ...update } });
+  };
+
+  const guardarNotaCredito = async () => {
+    if (!notaCreditoId) { toast.error("Selecciona una nota de crédito"); return; }
+    const nc = data.notas.find((n: any) => n.id === notaCreditoId);
+    const { error } = await (supabase as any).from("inv_reclamos").update({
+      nota_credito_id: notaCreditoId, nota_credito_folio: nc?.folio || null, nota_credito_monto: nc?.total || null,
+    }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Nota de crédito guardada");
+    setData({ ...data, reclamo: { ...r, nota_credito_id: notaCreditoId, nota_credito_folio: nc?.folio, nota_credito_monto: nc?.total } });
+  };
+
+  const guardarResolucion = async () => {
+    await (supabase as any).from("inv_reclamos").update({ resolucion }).eq("id", id);
+    toast.success("Resolución guardada");
+  };
+
+  const buildEmailHtml = () => {
+    const filas = (data?.lineas || []).map((l: any) => `
+      <tr>
+        <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.tipo_producto)}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.codigo_producto)}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.nombre_producto)}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.empaque)}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.tipo_aviso)}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${l.cantidad_solicitada ?? ""}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${l.cantidad_recibida ?? ""}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd;text-align:right"><b>${l.diferencia ?? ""}</b> ${esc(l.unidad || "")}</td>
+      </tr>`).join("");
+    const archivosTxt = (data?.archivos || []).map((a: any) => `• ${esc(a.nombre_archivo)}`).join("<br/>") || "—";
+    return `
+      <div style="font-family:Arial,Helvetica,sans-serif;max-width:760px">
+        <h2 style="font-weight:300;color:#3b3b3b;margin:0 0 4px">Aviso de Reclamo</h2>
+        <p style="color:#777;font-size:12px;margin:0 0 14px">LUMAGGS · Enviado por ${esc(r.remitente_nombre)} (${esc(r.remitente_email)})</p>
+        <table style="border-collapse:collapse;font-size:13px;margin-bottom:16px">
+          <tr><td style="padding:4px 12px 4px 0;color:#888">No. Pedido (PO interno)</td><td><b>${esc(r.inv_pedidos?.numero_po_interno)}</b></td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#888">No. Pedido en Factura</td><td><b>${esc(r.no_pedido_factura)}</b></td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#888">Factura</td><td>${r.chevron_facturas_recibidas?.folio ? `Folio ${esc(r.chevron_facturas_recibidas.folio)}` : "—"}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#888">Fecha de reclamo</td><td>${fmtFecha(r.fecha_reclamo)}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#888">Fecha de recepción del pedido</td><td>${fmtFecha(r.fecha_recepcion)}</td></tr>
+        </table>
+        ${r.descripcion ? `<p style="font-size:13px;color:#555">${esc(r.descripcion)}</p>` : ""}
+        <table style="border-collapse:collapse;font-size:12px;width:100%">
+          <thead>
+            <tr style="background:#f3f0fa">
+              <th style="padding:6px 10px;border:1px solid #ddd;text-align:left">Tipo prod.</th>
+              <th style="padding:6px 10px;border:1px solid #ddd;text-align:left">Código</th>
+              <th style="padding:6px 10px;border:1px solid #ddd;text-align:left">Descripción</th>
+              <th style="padding:6px 10px;border:1px solid #ddd;text-align:left">Empaque</th>
+              <th style="padding:6px 10px;border:1px solid #ddd;text-align:left">Tipo aviso</th>
+              <th style="padding:6px 10px;border:1px solid #ddd;text-align:right">Cant. sol.</th>
+              <th style="padding:6px 10px;border:1px solid #ddd;text-align:right">Cant. rec.</th>
+              <th style="padding:6px 10px;border:1px solid #ddd;text-align:right">Diferencia</th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+        </table>
+        <p style="font-size:12px;color:#555;margin-top:14px"><b>Respaldo adjunto en el portal:</b><br/>${archivosTxt}</p>
+      </div>`;
+  };
+
+  const enviarAlProveedor = async () => {
+    setEnviando(true);
+    const asunto = `Aviso de Reclamo PROBID · ${r.no_pedido_factura || r.inv_pedidos?.numero_po_interno || ""} · ${fmtFecha(r.fecha_reclamo)}`;
+    const destinatarios = [PROVEEDOR_EMAIL];
+    const cc = [r.remitente_email].filter(Boolean);
+    let estatusEnvio = "enviado";
+    let errorMensaje: string | null = null;
+    try {
+      const { error: fnError } = await supabase.functions.invoke("send-email", {
+        body: { from: RECLAMOS_FROM, to: destinatarios, cc, subject: asunto, html: buildEmailHtml() },
+      });
+      if (fnError) throw new Error(typeof fnError === "string" ? fnError : fnError.message || "Error al enviar");
+    } catch (e: any) {
+      estatusEnvio = "error";
+      errorMensaje = e?.message || "Error desconocido";
+      toast.error(`No se pudo enviar el correo: ${errorMensaje}`);
+    }
+    await (supabase as any).from("inv_reclamo_seguimiento").insert({
+      reclamo_id: id, tipo: "envio", from_email: RECLAMOS_FROM_EMAIL,
+      destinatarios, cc, asunto, cuerpo: buildEmailHtml(),
+      estatus_envio: estatusEnvio, error_mensaje: errorMensaje, creado_por: (await supabase.auth.getUser()).data.user?.id ?? null,
+    });
+    if (estatusEnvio === "enviado") {
+      const update: any = { estatus: "enviado", fecha_envio: new Date().toISOString() };
+      await (supabase as any).from("inv_reclamos").update(update).eq("id", id);
+      setData({ ...data, reclamo: { ...r, ...update } });
+      toast.success("Correo enviado al proveedor");
+      qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
+    }
+    const { data: seg } = await (supabase as any).from("inv_reclamo_seguimiento").select("*").eq("reclamo_id", id).order("created_at", { ascending: false });
+    setNotas(seg || []);
+    setEnviando(false);
+  };
+
+  const labelCls = "text-[10px] uppercase tracking-wide text-muted-foreground";
+
+  return (
+    <Sheet open={!!id} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -mx-6 -mt-6 p-6">
+          <SheetTitle className="font-light">Aviso de Reclamo</SheetTitle>
+        </SheetHeader>
+        {r && (
+          <div className="space-y-5 mt-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><div className={labelCls}>Cliente</div><div>{r.cliente_nombre || "LUMAGGS"}</div></div>
+              <div><div className={labelCls}>Pedido</div><div className="font-mono text-xs">{r.inv_pedidos?.numero_po_interno || "—"}</div></div>
+              <div><div className={labelCls}>No. Pedido en Factura</div><div className="font-mono text-xs">{r.no_pedido_factura || "—"}</div></div>
+              <div><div className={labelCls}>Factura</div><div className="text-xs">{r.chevron_facturas_recibidas?.folio ? `Folio ${r.chevron_facturas_recibidas.folio}` : "—"}</div></div>
+              <div><div className={labelCls}>Fecha de reclamo</div><div>{fmtFecha(r.fecha_reclamo)}</div></div>
+              <div><div className={labelCls}>Fecha de recepción</div><div>{fmtFecha(r.fecha_recepcion)}</div></div>
+              <div><div className={labelCls}>Enviado por</div><div className="text-xs">{r.remitente_nombre || "—"}<br/><span className="text-muted-foreground">{r.remitente_email || ""}</span></div></div>
+              <div><div className={labelCls}>Estatus</div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className={estatusReclamoColor(r.estatus)}>{ESTATUS_LABEL[r.estatus] || r.estatus}</Badge>
+                  {r.estatus === "enviado" && r.fecha_envio && <span className="text-[10px] text-muted-foreground">{fmtFecha(r.fecha_envio)}</span>}
+                </div>
+              </div>
+              {r.descripcion && <div className="col-span-2"><div className={labelCls}>Descripción</div><div className="text-sm">{r.descripcion}</div></div>}
+            </div>
+
+            <div className="flex flex-wrap gap-2 items-center">
+              <Button size="sm" onClick={enviarAlProveedor} disabled={enviando}>
+                <Mail className="h-3.5 w-3.5 mr-1.5" />{enviando ? "Enviando..." : "Enviar al proveedor"}
+              </Button>
+              {ESTATUS_FLOW.filter((e) => e !== r.estatus && e !== "borrador").map((e) => (
+                <Button key={e} size="sm" variant="outline" onClick={() => cambiarEstatus(e)}>{ESTATUS_LABEL[e]}</Button>
+              ))}
+            </div>
+
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Productos reclamados</div>
+              <div className="border rounded overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/40"><TableRow>{["Tipo", "Código", "Descripción", "Empaque", "Aviso", "Sol.", "Rec.", "Dif.", "Unidad"].map((h) => <TableHead key={h} className="text-[10px] uppercase">{h}</TableHead>)}</TableRow></TableHeader>
+                  <TableBody>
+                    {data?.lineas.map((l: any) => (
+                      <TableRow key={l.id}>
+                        <TableCell className="text-xs">{l.tipo_producto || "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
+                        <TableCell className="text-xs max-w-[150px] truncate" title={l.nombre_producto || ""}>{l.nombre_producto || "—"}</TableCell>
+                        <TableCell className="text-xs">{l.empaque || "—"}</TableCell>
+                        <TableCell className="text-xs">{l.tipo_aviso || "—"}</TableCell>
+                        <TableCell className="text-right text-xs">{l.cantidad_solicitada ?? "—"}</TableCell>
+                        <TableCell className="text-right text-xs">{l.cantidad_recibida ?? "—"}</TableCell>
+                        <TableCell className="text-right text-xs font-medium">{l.diferencia ?? "—"}</TableCell>
+                        <TableCell className="text-xs">{l.unidad || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Nota de crédito (obligatoria al aceptar)</div>
+              <div className="flex gap-2 items-center">
+                <Select value={notaCreditoId || undefined} onValueChange={setNotaCreditoId}>
+                  <SelectTrigger className="w-[320px]"><SelectValue placeholder={r.nota_credito_folio ? `Folio ${r.nota_credito_folio}` : "Selecciona nota de crédito"} /></SelectTrigger>
+                  <SelectContent className="max-h-[220px]">
+                    {data?.notas.map((n: any) => (
+                      <SelectItem key={n.id} value={n.id}>Folio {n.folio} · {fmtFecha(n.fecha)} · {fmtMoney(n.total)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" onClick={guardarNotaCredito}>Guardar</Button>
+              </div>
+              {r.nota_credito_folio && <p className="text-[10px] text-muted-foreground mt-1">Registrada: Folio {r.nota_credito_folio} · {fmtMoney(r.nota_credito_monto)}</p>}
+            </div>
+
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Archivos de respaldo</div>
+              <div className="space-y-1 text-sm">
+                {data?.archivos.map((a: any) => (
+                  <div key={a.id} className="border rounded p-2 text-xs flex items-center gap-2"><FileText className="h-3.5 w-3.5" />{a.nombre_archivo}</div>
+                ))}
+                {!data?.archivos.length && <div className="text-xs text-muted-foreground">Sin archivos</div>}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Seguimiento de correos (reclamos@correo.lumaggs.com.mx)</div>
+              <div className="space-y-2">
+                {notas.map((s: any) => (
+                  <div key={s.id} className="border rounded p-2 text-xs">
+                    <div className="flex justify-between gap-2">
+                      <span className="font-medium">{s.asunto}</span>
+                      <Badge variant="outline" className={s.estatus_envio === "enviado" ? "text-green-700" : "text-red-700"}>{s.estatus_envio}</Badge>
+                    </div>
+                    <div className="text-muted-foreground mt-0.5">
+                      {fmtFechaHora(s.created_at)} · Para: {(s.destinatarios || []).join(", ")}{s.cc?.length ? ` · CC: ${s.cc.join(", ")}` : ""}
+                    </div>
+                    {s.error_mensaje && <div className="text-red-600 mt-0.5">{s.error_mensaje}</div>}
+                  </div>
+                ))}
+                {!notas.length && <div className="text-xs text-muted-foreground">Sin envíos registrados</div>}
+              </div>
+            </div>
+
+            <div>
+              <Label className={labelCls}>Resolución</Label>
+              <Textarea value={resolucion} onChange={(e) => setResolucion(e.target.value)} rows={3} />
+              <Button size="sm" className="mt-2" onClick={guardarResolucion}>Guardar resolución</Button>
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
