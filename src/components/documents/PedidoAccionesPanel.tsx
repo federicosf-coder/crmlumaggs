@@ -12,6 +12,14 @@ import { buildAutorizacionPrecioDraft, buildAutorizacionPrecioEmailFlow } from "
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 import AutorizacionPrecioDialog from "./AutorizacionPrecioDialog";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface AutorizacionFila {
   id: string;
@@ -80,6 +88,7 @@ export default function PedidoAccionesPanel({
   const [previewFlow, setPreviewFlow] = useState<any>(null);
   const [preparing, setPreparing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
   const { data: fila, refetch } = useQuery({
     queryKey: ["pedido-autorizacion-precio", documentoId],
     queryFn: async () => {
@@ -140,6 +149,7 @@ export default function PedidoAccionesPanel({
       await refetch();
       toast.success("Autorización de precio creada");
       onSolicitada?.();
+      setAskOpen(true);
     } catch (err: any) {
       toast.error(`No se pudo crear la autorización: ${err.message}`);
     } finally {
@@ -147,23 +157,77 @@ export default function PedidoAccionesPanel({
     }
   };
 
+  const askDialog = (
+    <Dialog open={askOpen} onOpenChange={setAskOpen}>
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 border-b px-6 py-4 text-left">
+          <DialogTitle className="text-base font-light tracking-tight">
+            ¿Solicitar ahora o revisar después?
+          </DialogTitle>
+          <DialogDescription className="text-xs font-light">
+            Ya se preparó la autorización con los productos y precios del pedido. Puedes completarla y
+            enviarla en este momento, o dejarla guardada para después.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex-col gap-2 bg-muted/40 px-6 py-4 sm:flex-row sm:justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setAskOpen(false);
+              toast.info("La autorización quedó guardada como pendiente de revisión.");
+            }}
+            className="text-[10px] font-semibold uppercase tracking-widest"
+          >
+            Revisar después
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setAskOpen(false);
+              setFormOpen(true);
+            }}
+            className="bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md hover:from-violet-600 hover:to-fuchsia-700 text-[10px] font-semibold uppercase tracking-widest"
+          >
+            <FileCheck2 className="mr-1.5 h-3.5 w-3.5" />
+            Solicitar ahora
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
 
   if (!fila) {
     return (
-      <Card className="mb-4 border border-slate-300 bg-slate-50">
-        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0 text-slate-600" />
-            <p className="text-sm font-medium text-slate-900">
-              Este pedido no tiene autorización de precio. Puedes solicitarla ahora.
-            </p>
-          </div>
-          <Button size="sm" onClick={solicitarAutorizacion} disabled={creando} className="shrink-0 self-start sm:self-center">
-            {creando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Solicitar autorización de precio
-          </Button>
-        </CardContent>
-      </Card>
+      <>
+        <Card className="mb-4 border border-slate-300 bg-slate-50">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0 text-slate-600" />
+              <p className="text-sm font-medium text-slate-900">
+                Este pedido no tiene autorización de precio. Puedes solicitarla ahora.
+              </p>
+            </div>
+            <Button size="sm" onClick={solicitarAutorizacion} disabled={creando} className="shrink-0 self-start sm:self-center">
+              {creando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Solicitar autorización de precio
+            </Button>
+          </CardContent>
+        </Card>
+        {askDialog}
+        <AutorizacionPrecioDialog
+          open={formOpen}
+          onOpenChange={(o) => {
+            setFormOpen(o);
+            if (!o) {
+              refetch();
+              qc.invalidateQueries({ queryKey: ["pedido-autorizacion-precio", documentoId] });
+            }
+          }}
+          documentoId={documentoId}
+        />
+      </>
     );
   }
 
@@ -187,7 +251,7 @@ export default function PedidoAccionesPanel({
           <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
             <Button size="sm" onClick={() => setFormOpen(true)}>
               <FileCheck2 className="mr-2 h-4 w-4" />
-              Abrir formulario de autorización
+              Completar y enviar solicitud
             </Button>
             <Button size="sm" variant="ghost" asChild className="text-xs">
               <Link to={`/autorizacion-precios?id=${fila.id}`} target="_self">
@@ -212,6 +276,9 @@ export default function PedidoAccionesPanel({
           </div>
         </div>
       </CardContent>
+
+      {askDialog}
+
 
       <AutorizacionPrecioDialog
         open={formOpen}
