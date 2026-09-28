@@ -722,6 +722,15 @@ export default function Directory() {
       </div>
 
       {/* Content */}
+      {activeTab === "grupos" && (
+        <GruposComercialesTab
+          onOpenCompany={(id) => {
+            const c = companies.find(x => x.id === id);
+            if (c) { setTab("companies"); setSelectedCompany(c); }
+          }}
+        />
+      )}
+      {activeTab !== "grupos" && (
       <Card className={`border-t-2 ${tabColor.border}`}>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row gap-2">
