@@ -465,6 +465,143 @@ Deno.serve(async (req) => {
           const comp = result?.['cfdi:Comprobante'] ?? result?.Comprobante;
           if (!comp) throw new Error('no_es_cfdi');
 
+          // ---- Facturas de compra emitidas por Chevron (buzón facturaschevron@) ----
+          const emisorChevron = comp['cfdi:Emisor'] ?? comp.Emisor ?? {};
+          const rfcEmisorRaw = String(emisorChevron.Rfc ?? emisorChevron.rfc ?? '').toUpperCase();
+          if (rfcEmisorRaw === 'PCM890601UH9') {
+            const m = (re: RegExp) => { const r = texto.match(re); return r ? r[1] : null; };
+            const uuidFiscalCvx = m(/<tfd:TimbreFiscalDigital[^>]*\sUUID="([0-9a-fA-F-]{36})"/);
+            if (!uuidFiscalCvx) throw new Error('cfdi_chevron_sin_uuid');
+            const tipoCvx = String(comp.TipoDeComprobante ?? '').toUpperCase();
+            if (!['I', 'E', 'P'].includes(tipoCvx)) throw new Error('tipo_comprobante_no_soportado');
+
+            const { data: yaExiste } = await admin
+              .from('chevron_facturas_recibidas')
+              .select('id')
+              .eq('folio_fiscal', uuidFiscalCvx)
+              .maybeSingle();
+            if (yaExiste) {
+              console.log('[facturaschevron] duplicado omitido, ya existe:', (yaExiste as any).id);
+              duplicadosOmitidosFact++;
+              continue;
+            }
+
+            const campoAddenda = (name: string) =>
+              m(new RegExp(`<ecfd:campoString name="${name}">([^<]*)</ecfd:campoString>`));
+            const uuidRelacionado =
+              tipoCvx === 'E'
+                ? m(/<cfdi:CfdiRelacionado\s+UUID="([0-9a-fA-F-]{36})"/)
+                : tipoCvx === 'P'
+                ? m(/\sIdDocumento="([0-9a-fA-F-]{36})"/)
+                : null;
+
+            const rutaXmlCvx = `${tipoCvx}/${uuidFiscalCvx}.xml`;
+            const { error: upXmlErr } = await admin.storage
+              .from('chevron-facturas')
+              .upload(rutaXmlCvx, new TextEncoder().encode(texto), {
+                contentType: 'application/xml',
+                upsert: true,
+              });
+            if (upXmlErr) throw new Error(`upload_xml_chevron: ${upXmlErr.message}`);
+
+            let rutaPdfCvx: string | null = null;
+            try {
+              const hermano = pdfs.find(
+                (p: any) => baseNombre(String(p?.filename ?? '')) === baseNombre(String(att?.filename ?? '')),
+              );
+              const pdfUrlCvx = hermano ? urlDe(hermano) : null;
+              if (pdfUrlCvx) {
+                const pdfDl = await fetch(pdfUrlCvx);
+                if (pdfDl.ok) {
+                  const bytes = new Uint8Array(await pdfDl.arrayBuffer());
+                  const ruta = `${tipoCvx}/${uuidFiscalCvx}.pdf`;
+                  const { error: pErr } = await admin.storage
+                    .from('chevron-facturas')
+                    .upload(ruta, bytes, { contentType: 'application/pdf', upsert: true });
+                  if (pErr) console.error('[facturaschevron] error subiendo PDF:', pErr.message);
+                  else rutaPdfCvx = ruta;
+                }
+              }
+            } catch (e) {
+              console.error('[facturaschevron] error con PDF hermano:', (e as Error).message);
+            }
+
+            const { data: insCvx, error: insCvxErr } = await admin
+              .from('chevron_facturas_recibidas')
+              .insert({
+                folio_fiscal: uuidFiscalCvx,
+                serie: asText(comp.Serie),
+                folio: asText(comp.Folio),
+                tipo_comprobante: tipoCvx,
+                fecha: asText(comp.Fecha),
+                rfc_emisor: rfcEmisorRaw,
+                nombre_emisor: asText(emisorChevron.Nombre ?? emisorChevron.nombre),
+                subtotal: asNumber(comp.SubTotal),
+                total: asNumber(comp.Total),
+                numero_pedido_proveedor: tipoCvx === 'I' ? campoAddenda('pNumeroPedido') : null,
+                numero_orden_cliente: tipoCvx === 'I' ? campoAddenda('pOrdenCliente') : null,
+                uuid_relacionado: uuidRelacionado,
+                xml_storage_path: rutaXmlCvx,
+                pdf_storage_path: rutaPdfCvx,
+                xml_raw: texto,
+                origen: 'email',
+                nombre_archivo_origen: String(att?.filename ?? ''),
+              })
+              .select('id, tipo_comprobante, numero_pedido_proveedor, uuid_relacionado, folio_fiscal')
+              .single();
+            if (insCvxErr) throw new Error(`insert_chevron: ${insCvxErr.message}`);
+
+            // Cruce automático
+            const cruzar = async (reg: any) => {
+              if (reg.tipo_comprobante === 'I') {
+                if (!reg.numero_pedido_proveedor) return;
+                const { data: pedido } = await admin
+                  .from('inv_pedidos')
+                  .select('id, factura_recibida_id')
+                  .eq('numero_orden_proveedor', reg.numero_pedido_proveedor)
+                  .maybeSingle();
+                if (pedido && !(pedido as any).factura_recibida_id) {
+                  await admin
+                    .from('chevron_facturas_recibidas')
+                    .update({ pedido_id: (pedido as any).id, estatus_match: 'automatico', procesado_at: new Date().toISOString() })
+                    .eq('id', reg.id);
+                  await admin
+                    .from('inv_pedidos')
+                    .update({ factura_recibida_id: reg.id, fecha_facturado: new Date().toISOString().slice(0, 10) })
+                    .eq('id', (pedido as any).id);
+                }
+              } else {
+                if (!reg.uuid_relacionado) return;
+                const { data: rel } = await admin
+                  .from('chevron_facturas_recibidas')
+                  .select('id')
+                  .eq('folio_fiscal', reg.uuid_relacionado)
+                  .eq('tipo_comprobante', 'I')
+                  .maybeSingle();
+                if (rel) {
+                  await admin
+                    .from('chevron_facturas_recibidas')
+                    .update({ factura_relacionada_id: (rel as any).id, estatus_match: 'automatico', procesado_at: new Date().toISOString() })
+                    .eq('id', reg.id);
+                }
+              }
+            };
+            await cruzar(insCvx);
+            if ((insCvx as any).tipo_comprobante === 'I') {
+              const { data: pendientes } = await admin
+                .from('chevron_facturas_recibidas')
+                .select('id, tipo_comprobante, numero_pedido_proveedor, uuid_relacionado')
+                .eq('uuid_relacionado', (insCvx as any).folio_fiscal)
+                .eq('estatus_match', 'sin_match');
+              for (const pend of pendientes || []) await cruzar(pend);
+            }
+
+            console.log('[facturaschevron] comprobante registrado:', tipoCvx, uuidFiscalCvx);
+            procesadosFact++;
+            continue;
+          }
+
+
           const emisor = comp['cfdi:Emisor'] ?? comp.Emisor ?? {};
           const receptor = comp['cfdi:Receptor'] ?? comp.Receptor ?? {};
           const conceptosNodo = comp['cfdi:Conceptos'] ?? comp.Conceptos ?? {};
