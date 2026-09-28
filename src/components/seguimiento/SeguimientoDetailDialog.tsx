@@ -629,6 +629,25 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                   Reasignar
                 </Button>
               </span>
+              <span className="inline-flex items-center gap-1">
+                <Badge variant="outline" className="text-xs bg-white/80 gap-1">
+                  <Users2 className="h-3 w-3" />
+                  Grupo: {grupoNombre || <span className="italic text-muted-foreground">Sin grupo</span>}
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs bg-white/80"
+                  onClick={() => setGrupoOpen(true)}
+                >
+                  {grupoNombre ? "Cambiar grupo" : "Asignar grupo"}
+                </Button>
+              </span>
+              {grupoUltimaCompra && (
+                <Badge variant="outline" className="text-xs bg-emerald-50 border-emerald-200 text-emerald-800">
+                  Grupo compró hace {grupoUltimaCompra.dias} d · {grupoUltimaCompra.empresa}
+                </Badge>
+              )}
               {ritmo && tieneVenta && (
                 <span
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-white shadow-sm"
