@@ -1,0 +1,1 @@
+ALTER TABLE public.inv_reclamo_lineas ADD COLUMN IF NOT EXISTS detalle_reclamacion text;
