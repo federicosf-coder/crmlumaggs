@@ -922,6 +922,40 @@ export default function ChevronFacturasRecibidas() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!pedDialog} onOpenChange={(o) => !o && setPedDialog(null)}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 p-5">
+            <DialogTitle className="text-base font-light">Vincular {pedDialog?.folio} con un pedido</DialogTitle>
+          </DialogHeader>
+          <div className="p-5 space-y-3">
+            <Input
+              placeholder="Buscar pedido por número interno o de proveedor…"
+              value={pedBusqueda}
+              onChange={(e) => setPedBusqueda(e.target.value)}
+            />
+            <div className="max-h-72 overflow-y-auto divide-y rounded-md border">
+              {pedidosParaVincular.length === 0 && (
+                <p className="p-4 text-sm text-muted-foreground font-light text-center">Sin resultados</p>
+              )}
+              {pedidosParaVincular.map((p) => (
+                <button
+                  key={p.id}
+                  className="w-full text-left p-3 hover:bg-blue-50/40 transition"
+                  onClick={() => vincularPedido(p.id)}
+                >
+                  <p className="text-sm font-mono">{p.numero_po_interno || "—"}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Orden proveedor: {p.numero_orden_proveedor || "—"} · {p.estatus}
+                    {p.factura_recibida_id ? " · ya tiene factura" : ""}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
