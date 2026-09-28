@@ -1,0 +1,9 @@
+---
+name: Buzón de reclamos
+description: Correo oficial de reclamos a proveedor — reclamos@correo.lumaggs.com.mx (Resend), destinatario cvxordensmexico@chevron.com
+type: feature
+---
+- El módulo de Reclamos de Pedidos (/inventario/pedidos/reclamos) envía el Aviso de Reclamo PROBID desde `Lumaggs Reclamos <reclamos@correo.lumaggs.com.mx>` vía Resend (edge function `send-email`).
+- Destinatario del proveedor: `cvxordensmexico@chevron.com`; CC al remitente del reclamo.
+- Cada envío queda registrado en `inv_reclamo_seguimiento` (destinatarios, asunto, estatus de envío, errores) y se muestra en la ficha del reclamo.
+- Nota: el buzón correcto es **reclamos** (plural), corregido a petición del usuario (antes reclamo@).
