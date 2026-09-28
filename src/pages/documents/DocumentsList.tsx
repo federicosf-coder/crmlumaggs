@@ -1227,9 +1227,9 @@ export default function DocumentsList() {
               </div>
             ) : (
               <>
-              <div className="w-full max-w-full overflow-x-auto">
+              <div className="w-full max-w-full overflow-auto max-h-[calc(100vh-260px)]">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-20 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
                     <TableRow>
                        <TableHead className="w-10 sticky left-0 z-10 bg-background">
                          <Checkbox
