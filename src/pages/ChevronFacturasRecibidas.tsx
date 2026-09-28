@@ -173,6 +173,9 @@ export default function ChevronFacturasRecibidas() {
   const [filtroFacturas, setFiltroFacturas] = useState("");
   const [empDialog, setEmpDialog] = useState<{ id: string; folio: string } | null>(null);
   const [empBusqueda, setEmpBusqueda] = useState("");
+  const [pedDialog, setPedDialog] = useState<{ id: string; folio: string } | null>(null);
+  const [pedBusqueda, setPedBusqueda] = useState("");
+
 
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ["chevron_facturas_recibidas"],
@@ -216,6 +219,28 @@ export default function ChevronFacturasRecibidas() {
   );
   const pagosCfdi = useMemo(() => registros.filter((r) => r.tipo_comprobante === "P"), [registros]);
   const notasCredito = useMemo(() => registros.filter((r) => r.tipo_comprobante === "E"), [registros]);
+  const sinClasificar = useMemo(
+    () =>
+      registros.filter((r) =>
+        r.tipo_comprobante === "I" ? !r.pedido_id : !r.factura_relacionada_id
+      ),
+    [registros]
+  );
+
+  const { data: pedidosDisponibles = [] } = useQuery({
+    queryKey: ["chevron_pedidos_disponibles"],
+    enabled: !!pedDialog,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("inv_pedidos")
+        .select("id, numero_po_interno, numero_orden_proveedor, estatus, factura_recibida_id")
+        .order("created_at", { ascending: false })
+        .limit(300);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
 
   const totalesPorFactura = useMemo(() => {
     const m = new Map<string, { pagado: number; notas: number }>();
@@ -427,6 +452,34 @@ export default function ChevronFacturasRecibidas() {
     qc.invalidateQueries({ queryKey: ["chevron_facturas_recibidas"] });
   };
 
+  const vincularPedido = async (pedidoId: string) => {
+    if (!pedDialog) return;
+    const { error } = await db
+      .from("chevron_facturas_recibidas")
+      .update({
+        pedido_id: pedidoId,
+        estatus_match: "manual",
+        procesado_at: new Date().toISOString(),
+        procesado_por: user?.id ?? null,
+      })
+      .eq("id", pedDialog.id);
+    if (error) {
+      toast.error("No se pudo vincular: " + error.message);
+      return;
+    }
+    const { error: pErr } = await db
+      .from("inv_pedidos")
+      .update({ factura_recibida_id: pedDialog.id, fecha_facturado: new Date().toISOString().slice(0, 10) })
+      .eq("id", pedidoId);
+    if (pErr) toast.error("Factura marcada, pero el pedido no se actualizó: " + pErr.message);
+    else toast.success("Factura vinculada al pedido");
+    setPedDialog(null);
+    setPedBusqueda("");
+    qc.invalidateQueries({ queryKey: ["chevron_facturas_recibidas"] });
+    qc.invalidateQueries({ queryKey: ["chevron_pedidos_disponibles"] });
+  };
+
+
   if (!hasRole("master" as any)) {
     return (
       <div className="p-6 flex justify-center">
@@ -445,6 +498,15 @@ export default function ChevronFacturasRecibidas() {
     if (!q) return true;
     return [f.serie, f.folio, f.folio_fiscal].filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q));
   });
+
+  const pedidosParaVincular = pedidosDisponibles.filter((p) => {
+    const q = pedBusqueda.trim().toLowerCase();
+    if (!q) return true;
+    return [p.numero_po_interno, p.numero_orden_proveedor]
+      .filter(Boolean)
+      .some((v: string) => String(v).toLowerCase().includes(q));
+  });
+
 
   const renderMovimientos = (items: any[], vacio: string) => (
     <Card>
@@ -539,12 +601,14 @@ export default function ChevronFacturasRecibidas() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="grid grid-cols-4 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
+        <TabsList className="grid grid-cols-5 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
           <TabsTrigger value="importar" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Importar</TabsTrigger>
           <TabsTrigger value="facturas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md text-blue-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Facturas ({facturas.length})</TabsTrigger>
           <TabsTrigger value="pagos" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md text-emerald-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Pagos ({pagosCfdi.length})</TabsTrigger>
           <TabsTrigger value="notas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md text-amber-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Notas de Crédito ({notasCredito.length})</TabsTrigger>
+          <TabsTrigger value="sin_clasificar" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-rose-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md text-rose-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Sin Clasificar ({sinClasificar.length})</TabsTrigger>
         </TabsList>
+
 
         {/* ---------------- Importar ---------------- */}
         <TabsContent value="importar" className="space-y-4">
@@ -739,7 +803,90 @@ export default function ChevronFacturasRecibidas() {
 
         {/* ---------------- Notas de Crédito ---------------- */}
         <TabsContent value="notas">{renderMovimientos(notasCredito, "Sin notas de crédito")}</TabsContent>
+
+        {/* ---------------- Sin Clasificar ---------------- */}
+        <TabsContent value="sin_clasificar">
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+                  <TableRow>
+                    {["Tipo", "Folio", "Fecha", "Total", "Motivo", ""].map((h, i) => (
+                      <TableHead key={i} className="uppercase tracking-wide text-xs font-medium">
+                        {h}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sinClasificar.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground font-light">
+                        Todos los comprobantes están clasificados
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {sinClasificar.map((m, i) => {
+                    const folio = [m.serie, m.folio].filter(Boolean).join("-") || m.folio_fiscal.slice(0, 8);
+                    const esFactura = m.tipo_comprobante === "I";
+                    const motivo = esFactura
+                      ? m.numero_pedido_proveedor
+                        ? `Pedido ${m.numero_pedido_proveedor} no encontrado`
+                        : "El XML no trae número de pedido"
+                      : m.uuid_relacionado
+                      ? "La factura relacionada aún no se importa"
+                      : "El XML no indica factura relacionada";
+                    return (
+                      <TableRow key={m.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              esFactura
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : m.tipo_comprobante === "E"
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            }
+                          >
+                            {esFactura ? "Factura" : m.tipo_comprobante === "E" ? "Nota de Crédito" : "Pago"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">{folio}</TableCell>
+                        <TableCell className="text-xs">{fechaFmt(m.fecha)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{money(Number(m.total))}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground font-light">{motivo}</TableCell>
+                        <TableCell className="space-x-1 whitespace-nowrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              esFactura ? setPedDialog({ id: m.id, folio }) : setEmpDialog({ id: m.id, folio })
+                            }
+                          >
+                            <Link2 className="h-3.5 w-3.5 mr-1" />
+                            {esFactura ? "Vincular pedido" : "Vincular factura"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={!m.pdf_storage_path}
+                            onClick={() => abrirPdf(m.pdf_storage_path)}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                            PDF
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
 
       <Dialog open={!!empDialog} onOpenChange={(o) => !o && setEmpDialog(null)}>
         <DialogContent className="max-w-lg p-0 overflow-hidden">
@@ -775,6 +922,40 @@ export default function ChevronFacturasRecibidas() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!pedDialog} onOpenChange={(o) => !o && setPedDialog(null)}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 p-5">
+            <DialogTitle className="text-base font-light">Vincular {pedDialog?.folio} con un pedido</DialogTitle>
+          </DialogHeader>
+          <div className="p-5 space-y-3">
+            <Input
+              placeholder="Buscar pedido por número interno o de proveedor…"
+              value={pedBusqueda}
+              onChange={(e) => setPedBusqueda(e.target.value)}
+            />
+            <div className="max-h-72 overflow-y-auto divide-y rounded-md border">
+              {pedidosParaVincular.length === 0 && (
+                <p className="p-4 text-sm text-muted-foreground font-light text-center">Sin resultados</p>
+              )}
+              {pedidosParaVincular.map((p) => (
+                <button
+                  key={p.id}
+                  className="w-full text-left p-3 hover:bg-blue-50/40 transition"
+                  onClick={() => vincularPedido(p.id)}
+                >
+                  <p className="text-sm font-mono">{p.numero_po_interno || "—"}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Orden proveedor: {p.numero_orden_proveedor || "—"} · {p.estatus}
+                    {p.factura_recibida_id ? " · ya tiene factura" : ""}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
