@@ -35,6 +35,7 @@ import { CompanyMetricsPanel } from "@/components/directory/CompanyMetricsPanel"
 import { CompanyCreditoCobranzaTab } from "@/components/directory/CompanyCreditoCobranzaTab";
 import { JustificacionPrecioBlock } from "@/components/directory/JustificacionPrecioBlock";
 import { GrupoComercialDialog } from "@/components/seguimiento/GrupoComercialDialog";
+import { GruposComercialesTab } from "@/components/directory/GruposComercialesTab";
 import { Users2 } from "lucide-react";
 
 interface Company {
