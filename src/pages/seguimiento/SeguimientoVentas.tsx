@@ -1139,9 +1139,17 @@ export default function SeguimientoVentas() {
     return m;
   }, [catalog]);
 
+  // Consolidación por grupo comercial: varias razones sociales = mismo cliente
+  const gruposResumen = useMemo(() => buildGruposResumen(rows), [rows]);
+
   const getEffectiveStatusId = (row: SeguimientoVentasRow): string | null => {
     if (tieneVenta) {
       if (row.estatus_manual && row.estatus_manual_id) return row.estatus_manual_id;
+      const g = diasCompraConGrupo(row, gruposResumen);
+      if (g.consolidado) {
+        const id = resolveRiesgoEstatusId(catalog, g.dias, row.ciclo_dias);
+        if (id) return id;
+      }
       return row.estatus_riesgo_id;
     }
     return row.etapa_prospecto_manual && row.etapa_prospecto_manual_id
