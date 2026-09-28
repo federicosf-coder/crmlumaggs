@@ -46,6 +46,7 @@ import {
   ArrowUp,
   ArrowDown,
   UserCog,
+  Building2,
   Loader2,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -75,6 +76,15 @@ function fmtNum(n: number | null | undefined): string {
 function fmtMoney(n: number | null | undefined): string {
   if (n == null) return "—";
   return Number(n).toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
+}
+
+function FichaDato({ label, value }: { label: string; value?: string | number | null }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="text-sm font-light break-words">{value || "—"}</p>
+    </div>
+  );
 }
 
 function digitCount(s: string | null | undefined): number {
