@@ -1373,6 +1373,15 @@ export default function DocumentsList() {
                             ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                           </TableCell>
                         )}
+                        {tipoFilter === "factura" && isColVisible("saldo") && (() => {
+                          const saldo = Number(doc.saldo_pendiente_cobranza ?? 0);
+                          return (
+                            <TableCell className={`whitespace-nowrap ${saldo > 0 ? "text-amber-700 font-medium" : "text-emerald-700"}`}>
+                              ${saldo.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                            </TableCell>
+                          );
+                        })()}
+
                         {isColVisible("estatus") && (
                           <TableCell>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(doc)}`}>
