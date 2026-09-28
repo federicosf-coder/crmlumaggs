@@ -520,6 +520,9 @@ export default function DocumentsList() {
       case "created_asc": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       case "total_desc": return Number(b.total) - Number(a.total);
       case "total_asc": return Number(a.total) - Number(b.total);
+      case "saldo_desc": return Number(b.saldo_pendiente_cobranza || 0) - Number(a.saldo_pendiente_cobranza || 0);
+      case "saldo_asc": return Number(a.saldo_pendiente_cobranza || 0) - Number(b.saldo_pendiente_cobranza || 0);
+
       case "client_asc": return ((a.companies as any)?.name || "").localeCompare((b.companies as any)?.name || "");
       case "client_desc": return ((b.companies as any)?.name || "").localeCompare((a.companies as any)?.name || "");
       case "numero_asc": {
