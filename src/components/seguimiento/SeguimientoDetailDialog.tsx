@@ -571,7 +571,27 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                 diasUltimaActividad={row.dias_ultima_actividad}
                 actividadesTotal={row.actividades_total}
                 proximaTareaFecha={row.proxima_tarea_fecha}
+                diasUltimaCotizacion={row.dias_ultima_cotizacion}
+                cotizacionesTotal={row.cotizaciones_total}
               />
+              <span className="inline-flex items-center gap-1">
+                <Badge variant="outline" className="text-xs bg-white/80 gap-1">
+                  <UserCog className="h-3 w-3" />
+                  Ejecutivo:{" "}
+                  {ejecutivoNombre || <span className="italic text-muted-foreground">Sin asignar</span>}
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs bg-white/80"
+                  onClick={() => {
+                    setReassignUserId(row.owner_id || "");
+                    setReassignOpen(true);
+                  }}
+                >
+                  Reasignar
+                </Button>
+              </span>
               {ritmo && tieneVenta && (
                 <span
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-white shadow-sm"
