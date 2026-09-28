@@ -1492,8 +1492,8 @@ export default function SeguimientoVentas() {
         const ua = ea?.es_urgente ? 1 : 0;
         const ub = eb?.es_urgente ? 1 : 0;
         if (ua !== ub) return ub - ua;
-        const da = tieneVenta ? (a.dias_ultima_compra ?? -1) : (a.dias_ultima_actividad ?? -1);
-        const db = tieneVenta ? (b.dias_ultima_compra ?? -1) : (b.dias_ultima_actividad ?? -1);
+        const da = tieneVenta ? (diasCompraConGrupo(a, gruposResumen).dias ?? -1) : (a.dias_ultima_actividad ?? -1);
+        const db = tieneVenta ? (diasCompraConGrupo(b, gruposResumen).dias ?? -1) : (b.dias_ultima_actividad ?? -1);
         return db - da;
       });
     }
