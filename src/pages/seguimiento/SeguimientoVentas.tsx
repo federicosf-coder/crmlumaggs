@@ -1208,6 +1208,8 @@ export default function SeguimientoVentas() {
                 diasUltimaActividad={r.dias_ultima_actividad}
                 actividadesTotal={r.actividades_total}
                 proximaTareaFecha={r.proxima_tarea_fecha}
+                diasUltimaCotizacion={r.dias_ultima_cotizacion}
+                cotizacionesTotal={r.cotizaciones_total}
               />
             </span>
           ),
@@ -1242,6 +1244,22 @@ export default function SeguimientoVentas() {
         { id: "acum_mes", label: "Acum. mes", sortKey: "acum_mes", align: "right", render: (r) => fmtNum(r.acum_mes) },
         { id: "acum_mes_anterior", label: "Mes ant.", sortKey: "acum_mes_anterior", align: "right", render: (r) => fmtNum(r.acum_mes_anterior) },
         { id: "acum_anio", label: "Acum. año", sortKey: "acum_anio", align: "right", render: (r) => fmtNum(r.acum_anio) },
+        { id: "cotizaciones", label: "Cotiz.", sortKey: "cotizaciones", align: "center", render: (r) => r.cotizaciones_total },
+        {
+          id: "ultima_cotizacion",
+          label: "Últ. cotización",
+          sortKey: "ultima_cotizacion",
+          render: (r) => (
+            <>
+              <span className={`font-medium ${daysColor(r.dias_ultima_cotizacion)}`}>
+                {r.dias_ultima_cotizacion != null ? `${r.dias_ultima_cotizacion} d` : "—"}
+              </span>
+              {r.ultima_cotizacion_fecha && (
+                <span className="block text-[10px] text-muted-foreground">{formatDate(r.ultima_cotizacion_fecha)}</span>
+              )}
+            </>
+          ),
+        },
         { id: "actividades", label: "Activ.", sortKey: "actividades", align: "center", render: (r) => <Badge variant="outline">{r.actividades_activas}</Badge> },
         { id: "proxima_tarea", label: "Próx. tarea", sortKey: "proxima_tarea", cellClassName: "text-xs text-muted-foreground", render: (r) => r.proxima_tarea_fecha ? formatDate(r.proxima_tarea_fecha) : "—" },
       ];
