@@ -103,6 +103,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
   const [registrarPerdidaOpen, setRegistrarPerdidaOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<{ phone: string; contact: any | null } | null>(null);
+  const [grupoOpen, setGrupoOpen] = useState(false);
   const [reassignOpen, setReassignOpen] = useState(false);
   const [reassignUserId, setReassignUserId] = useState("");
   const [reassigning, setReassigning] = useState(false);
