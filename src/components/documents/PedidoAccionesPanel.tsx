@@ -149,12 +149,53 @@ export default function PedidoAccionesPanel({
       await refetch();
       toast.success("Autorización de precio creada");
       onSolicitada?.();
+      setAskOpen(true);
     } catch (err: any) {
       toast.error(`No se pudo crear la autorización: ${err.message}`);
     } finally {
       setCreando(false);
     }
   };
+
+  const askDialog = (
+    <Dialog open={askOpen} onOpenChange={setAskOpen}>
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 border-b px-6 py-4 text-left">
+          <DialogTitle className="text-base font-light tracking-tight">
+            ¿Solicitar ahora o revisar después?
+          </DialogTitle>
+          <DialogDescription className="text-xs font-light">
+            Ya se preparó la autorización con los productos y precios del pedido. Puedes completarla y
+            enviarla en este momento, o dejarla guardada para después.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex-col gap-2 bg-muted/40 px-6 py-4 sm:flex-row sm:justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setAskOpen(false);
+              toast.info("La autorización quedó guardada como pendiente de revisión.");
+            }}
+            className="text-[10px] font-semibold uppercase tracking-widest"
+          >
+            Revisar después
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setAskOpen(false);
+              setFormOpen(true);
+            }}
+            className="bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md hover:from-violet-600 hover:to-fuchsia-700 text-[10px] font-semibold uppercase tracking-widest"
+          >
+            <FileCheck2 className="mr-1.5 h-3.5 w-3.5" />
+            Solicitar ahora
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
 
   if (!fila) {
