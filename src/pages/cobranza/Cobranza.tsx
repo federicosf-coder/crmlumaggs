@@ -39,6 +39,8 @@ import { generateCorteCajaPdf } from "@/lib/generateCorteCajaPdf";
 import { generateCorteCajaXlsx } from "@/lib/generateCorteCajaXlsx";
 import { useLastAutomationRuns } from "@/hooks/useLastAutomationRuns";
 import { LastSendStamp } from "@/components/automations/LastSendStamp";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { companyOptionConContpaq } from "@/lib/companyLabel";
 
 const FORMA_PAGO_TPL_LABEL: Record<string, string> = {
   contado: "Contado",
@@ -1857,6 +1859,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const [nuevaReferencia, setNuevaReferencia] = useState<string>((pago as any)?.referencia_pago || "");
   const [nuevoMonto, setNuevoMonto] = useState<string>(pago?.monto_total != null ? String(pago.monto_total) : "");
   const [nuevasObservaciones, setNuevasObservaciones] = useState<string>(pago?.observaciones || "");
+  const [nuevaEmpresaId, setNuevaEmpresaId] = useState<string>(pago?.empresa_id || "");
   const buttonKeys = [
     "cobranza.enviar_correo_contado",
     "cobranza.enviar_correo_credito_directo",
@@ -1867,6 +1870,13 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     queryKey: ["pago-edit-plazas"],
     queryFn: async () => {
       const { data } = await supabase.from("plazas").select("id,nombre").eq("is_active", true).order("nombre");
+      return data || [];
+    },
+  });
+  const { data: empresasEdit = [] } = useQuery({
+    queryKey: ["pago-edit-empresas"],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id,name,razon_social,id_contpaq").eq("is_active", true).order("name");
       return data || [];
     },
   });
@@ -1890,6 +1900,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     setNuevaReferencia((pago as any)?.referencia_pago || "");
     setNuevoMonto(pago?.monto_total != null ? String(pago.monto_total) : "");
     setNuevasObservaciones(pago?.observaciones || "");
+    setNuevaEmpresaId(pago?.empresa_id || "");
     setEditandoFormaPago(false);
   }, [pago?.id, pago?.tipo_pago, pago?.plaza_id, pago?.fecha_pago, (pago as any)?.banco, (pago as any)?.referencia_pago, pago?.monto_total, pago?.observaciones]);
 
