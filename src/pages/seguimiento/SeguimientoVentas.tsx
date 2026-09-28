@@ -2427,6 +2427,8 @@ export default function SeguimientoVentas() {
                         diasUltimaActividad={r.dias_ultima_actividad}
                         actividadesTotal={r.actividades_total}
                         proximaTareaFecha={r.proxima_tarea_fecha}
+                        diasUltimaCotizacion={r.dias_ultima_cotizacion}
+                        cotizacionesTotal={r.cotizaciones_total}
                       />
                     </span>
                   </div>
@@ -2459,6 +2461,12 @@ export default function SeguimientoVentas() {
                       <div>
                         <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Potencial</span>
                         <p>{fmtNum(r.potencial)}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Últ. cotización</span>
+                        <p className={`font-medium ${daysColor(r.dias_ultima_cotizacion)}`}>
+                          {r.dias_ultima_cotizacion != null ? `${r.dias_ultima_cotizacion} d` : "—"}
+                        </p>
                       </div>
                       <div>
                         <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Actividades</span>
