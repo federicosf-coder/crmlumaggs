@@ -1231,17 +1231,18 @@ export default function DocumentsList() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-10">
-                        <Checkbox
-                          checked={sortedDocs.length > 0 && selectedIds.size === sortedDocs.length}
-                          onCheckedChange={toggleSelectAll}
-                        />
-                      </TableHead>
-                      {!hidesNumber && isColVisible("numero") && (
-                        <SortableHead
-                          ascKey={tipoFilter === "factura" ? "numero_factura_asc" : "numero_asc"}
-                          descKey={tipoFilter === "factura" ? "numero_factura_desc" : "numero_desc"}
-                        >
+                       <TableHead className="w-10 sticky left-0 z-10 bg-background">
+                         <Checkbox
+                           checked={sortedDocs.length > 0 && selectedIds.size === sortedDocs.length}
+                           onCheckedChange={toggleSelectAll}
+                         />
+                       </TableHead>
+                       {!hidesNumber && isColVisible("numero") && (
+                         <SortableHead
+                           ascKey={tipoFilter === "factura" ? "numero_factura_asc" : "numero_asc"}
+                           descKey={tipoFilter === "factura" ? "numero_factura_desc" : "numero_desc"}
+                           className="sticky left-10 z-10 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]"
+                         >
                           {tipoFilter === "factura" ? "No. Factura" : "Número"}
                         </SortableHead>
                       )}
@@ -1294,7 +1295,7 @@ export default function DocumentsList() {
                         className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedIds.has(doc.id) ? "bg-muted/30" : ""}`}
                           onClick={() => navigate(`/documents/${doc.id}`)}
                       >
-                        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                        <TableCell className="w-10 sticky left-0 z-10 bg-background" onClick={e => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedIds.has(doc.id)}
                             onCheckedChange={() => {
@@ -1307,8 +1308,8 @@ export default function DocumentsList() {
                           />
                         </TableCell>
                         {!hidesNumber && isColVisible("numero") && (
-                          <TableCell className="font-medium whitespace-nowrap">
-                            {tipoFilter === "factura"
+                           <TableCell className="font-medium whitespace-nowrap sticky left-10 z-10 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">
+                             {tipoFilter === "factura"
                               ? (doc.numero_factura || "-")
                               : (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "-")}
                           </TableCell>
