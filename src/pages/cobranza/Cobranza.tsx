@@ -39,6 +39,8 @@ import { generateCorteCajaPdf } from "@/lib/generateCorteCajaPdf";
 import { generateCorteCajaXlsx } from "@/lib/generateCorteCajaXlsx";
 import { useLastAutomationRuns } from "@/hooks/useLastAutomationRuns";
 import { LastSendStamp } from "@/components/automations/LastSendStamp";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { companyOptionConContpaq } from "@/lib/companyLabel";
 
 const FORMA_PAGO_TPL_LABEL: Record<string, string> = {
   contado: "Contado",
@@ -1857,6 +1859,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
   const [nuevaReferencia, setNuevaReferencia] = useState<string>((pago as any)?.referencia_pago || "");
   const [nuevoMonto, setNuevoMonto] = useState<string>(pago?.monto_total != null ? String(pago.monto_total) : "");
   const [nuevasObservaciones, setNuevasObservaciones] = useState<string>(pago?.observaciones || "");
+  const [nuevaEmpresaId, setNuevaEmpresaId] = useState<string>(pago?.empresa_id || "");
   const buttonKeys = [
     "cobranza.enviar_correo_contado",
     "cobranza.enviar_correo_credito_directo",
@@ -1867,6 +1870,13 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     queryKey: ["pago-edit-plazas"],
     queryFn: async () => {
       const { data } = await supabase.from("plazas").select("id,nombre").eq("is_active", true).order("nombre");
+      return data || [];
+    },
+  });
+  const { data: empresasEdit = [] } = useQuery({
+    queryKey: ["pago-edit-empresas"],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id,name,razon_social,id_contpaq").eq("is_active", true).order("name");
       return data || [];
     },
   });
@@ -1890,6 +1900,7 @@ function DetallePagoSheet({ open, onOpenChange, pago, onChanged, onAplicar }: { 
     setNuevaReferencia((pago as any)?.referencia_pago || "");
     setNuevoMonto(pago?.monto_total != null ? String(pago.monto_total) : "");
     setNuevasObservaciones(pago?.observaciones || "");
+    setNuevaEmpresaId(pago?.empresa_id || "");
     setEditandoFormaPago(false);
   }, [pago?.id, pago?.tipo_pago, pago?.plaza_id, pago?.fecha_pago, (pago as any)?.banco, (pago as any)?.referencia_pago, pago?.monto_total, pago?.observaciones]);
 
@@ -2218,6 +2229,19 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
               <CardContent className="p-4 space-y-3">
                 <Label className="text-sm font-semibold">Editar Pago</Label>
                 <div>
+                  <Label className="text-xs">Empresa (cliente) *</Label>
+                  <SearchableSelect
+                    value={nuevaEmpresaId}
+                    onValueChange={setNuevaEmpresaId}
+                    options={empresasEdit.map((c: any) => companyOptionConContpaq(c))}
+                    placeholder="Buscar empresa..."
+                  />
+                  {!nuevaEmpresaId && <p className="text-xs text-destructive mt-1">La empresa es requerida</p>}
+                  {nuevaEmpresaId && nuevaEmpresaId !== pago?.empresa_id && (
+                    <p className="text-xs text-amber-600 mt-1">Las aplicaciones ya registradas seguirán ligadas a sus facturas; solo cambia la empresa del pago.</p>
+                  )}
+                </div>
+                <div>
                   <Label className="text-xs">Forma de Pago</Label>
                   <select
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -2268,12 +2292,14 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
                   <Button size="sm" variant="outline" onClick={() => setEditandoFormaPago(false)}>Cancelar</Button>
                   <Button size="sm" onClick={async () => {
                     if (!nuevaPlazaId) { toast.error("La plaza es requerida"); return; }
+                    if (!nuevaEmpresaId) { toast.error("La empresa es requerida"); return; }
                     const montoNum = Number(nuevoMonto);
                     if (!nuevoMonto || !Number.isFinite(montoNum) || montoNum <= 0) { toast.error("Monto inválido"); return; }
                     const { error } = await supabase
                       .from("cobranza_pagos")
                       .update({
                         tipo_pago: (nuevaFormaPago || null) as any,
+                        empresa_id: nuevaEmpresaId,
                         plaza_id: nuevaPlazaId,
                         fecha_pago: nuevaFecha,
                         banco: nuevoBanco || null,
