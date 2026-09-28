@@ -173,6 +173,9 @@ export default function ChevronFacturasRecibidas() {
   const [filtroFacturas, setFiltroFacturas] = useState("");
   const [empDialog, setEmpDialog] = useState<{ id: string; folio: string } | null>(null);
   const [empBusqueda, setEmpBusqueda] = useState("");
+  const [pedDialog, setPedDialog] = useState<{ id: string; folio: string } | null>(null);
+  const [pedBusqueda, setPedBusqueda] = useState("");
+
 
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ["chevron_facturas_recibidas"],
