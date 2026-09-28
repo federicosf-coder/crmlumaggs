@@ -320,9 +320,14 @@ export default function DocumentsList() {
       const raw = localStorage.getItem(colsStorageKey(user.id, tipoFilter));
       if (raw) {
         const arr = JSON.parse(raw) as ColumnKey[];
-        if (Array.isArray(arr)) setVisibleCols(new Set(arr));
-        else setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
+        if (Array.isArray(arr)) {
+          const next = new Set(arr);
+          // Asegurar que Saldo esté disponible en facturas aunque el usuario tenga columnas guardadas
+          if (tipoFilter === "factura" && !next.has("saldo")) next.add("saldo");
+          setVisibleCols(next);
+        } else setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
       } else {
+
         setVisibleCols(new Set(DEFAULT_COLS_BY_TIPO[tipoFilter] || []));
       }
     } catch {
