@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -215,6 +215,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
       diferencia: 0,
       unidad: l.presentacion?.toLowerCase().includes("tambor") ? "Litros" : "Piezas",
       unidad_otro: "",
+      detalle_reclamacion: "",
     }]);
   };
 
@@ -263,6 +264,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
         cantidad_afectada: Math.abs(Number(l.diferencia) || 0),
         diferencia: Number(l.diferencia),
         unidad: l.unidad === "otro" ? l.unidad_otro || "Piezas" : l.unidad,
+        detalle_reclamacion: l.detalle_reclamacion || "",
       })));
 
       if (facturaSel) {
@@ -378,7 +380,8 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
                   </TableHeader>
                   <TableBody>
                     {lineas.map((l, idx) => (
-                      <TableRow key={idx}>
+                      <Fragment key={idx}>
+                      <TableRow>
                         <TableCell>
                           <Select value={l.tipo_producto} onValueChange={(v) => updLinea(idx, "tipo_producto", v)}>
                             <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
@@ -420,6 +423,19 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
                         </TableCell>
                         <TableCell><Button variant="ghost" size="sm" onClick={() => setLineas(lineas.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
                       </TableRow>
+                      <TableRow>
+                        <TableCell colSpan={10} className="bg-muted/30 p-2">
+                          <Label className={labelCls}>Detalle de la reclamación</Label>
+                          <Textarea
+                            className="mt-1 bg-background"
+                            rows={3}
+                            placeholder="Describe qué tiene el producto y por qué se reclama (daño, falta, condiciones del empaque, etc.)"
+                            value={l.detalle_reclamacion || ""}
+                            onChange={(e) => updLinea(idx, "detalle_reclamacion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      </Fragment>
                     ))}
                   </TableBody>
                 </Table>
@@ -524,6 +540,12 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
         <td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${l.cantidad_solicitada ?? ""}</td>
         <td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${l.cantidad_recibida ?? ""}</td>
         <td style="padding:6px 10px;border:1px solid #ddd;text-align:right"><b>${l.diferencia ?? ""}</b> ${esc(l.unidad || "")}</td>
+      </tr>
+      <tr>
+        <td colspan="8" style="padding:6px 10px;border:1px solid #ddd;background:#fafafa">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#888">Detalle de la reclamación</div>
+          <div style="font-size:12px;white-space:pre-wrap">${esc(l.detalle_reclamacion || "—")}</div>
+        </td>
       </tr>`).join("");
     const archivosTxt = (data?.archivos || []).map((a: any) => `• ${esc(a.nombre_archivo)}`).join("<br/>") || "—";
     return `
@@ -634,7 +656,8 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                   <TableHeader className="bg-muted/40"><TableRow>{["Tipo", "Código", "Descripción", "Empaque", "Aviso", "Sol.", "Rec.", "Dif.", "Unidad"].map((h) => <TableHead key={h} className="text-[10px] uppercase">{h}</TableHead>)}</TableRow></TableHeader>
                   <TableBody>
                     {data?.lineas.map((l: any) => (
-                      <TableRow key={l.id}>
+                      <Fragment key={l.id}>
+                      <TableRow>
                         <TableCell className="text-xs">{l.tipo_producto || "—"}</TableCell>
                         <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate" title={l.nombre_producto || ""}>{l.nombre_producto || "—"}</TableCell>
@@ -645,6 +668,13 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                         <TableCell className="text-right text-xs font-medium">{l.diferencia ?? "—"}</TableCell>
                         <TableCell className="text-xs">{l.unidad || "—"}</TableCell>
                       </TableRow>
+                      <TableRow>
+                        <TableCell colSpan={9} className="bg-muted/30">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Detalle de la reclamación</div>
+                          <div className="text-xs whitespace-pre-wrap mt-0.5">{l.detalle_reclamacion || "—"}</div>
+                        </TableCell>
+                      </TableRow>
+                      </Fragment>
                     ))}
                   </TableBody>
                 </Table>
