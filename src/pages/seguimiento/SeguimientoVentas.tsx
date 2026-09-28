@@ -1535,8 +1535,8 @@ export default function SeguimientoVentas() {
           break;
         }
         case "ultima_compra":
-          va = a.dias_ultima_compra ?? -1;
-          vb = b.dias_ultima_compra ?? -1;
+          va = diasCompraConGrupo(a, gruposResumen).dias ?? -1;
+          vb = diasCompraConGrupo(b, gruposResumen).dias ?? -1;
           break;
         case "potencial":
           va = a.potencial ?? 0;
