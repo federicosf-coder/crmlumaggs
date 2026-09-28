@@ -254,6 +254,22 @@ export default function Directory() {
     enabled: !!selectedCompany?.id,
   });
 
+  // Catálogo de grupos comerciales (para mostrar nombre en la ficha)
+  const { data: gruposComerciales = [] } = useQuery({
+    queryKey: ["grupos_comerciales"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("grupos_comerciales")
+        .select("id, nombre")
+        .eq("activo", true)
+        .order("nombre");
+      return (data || []) as { id: string; nombre: string }[];
+    },
+    staleTime: 60_000,
+  });
+  const grupoNombre = (id?: string | null) =>
+    id ? gruposComerciales.find((g) => g.id === id)?.nombre || null : null;
+
   // Contactos vinculados a la empresa seleccionada (para vista detalle)
   const { data: selectedCompanyContacts = [] } = useQuery({
     queryKey: ["company_contacts_detail", selectedCompany?.id],
