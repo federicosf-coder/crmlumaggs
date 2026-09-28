@@ -66,7 +66,7 @@ export function useReclamos() {
     queryKey: ["inv_reclamos"],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("inv_reclamos")
-        .select("*, inv_pedidos(numero_po_interno, empresa_vendedora)")
+        .select("*, inv_pedidos(numero_po_interno, empresa_vendedora), chevron_facturas_recibidas(folio, fecha)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
