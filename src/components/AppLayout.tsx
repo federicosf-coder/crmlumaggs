@@ -10,6 +10,26 @@ import { usePendingFeedbackCount } from "@/hooks/usePendingFeedbackCount";
 import { MessageCircleQuestion } from "lucide-react";
 import { AlertasBell } from "@/components/AlertasBell";
 
+const SIDEBAR_PREF_KEY = "sidebar:open";
+
+function getStoredSidebarOpen(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const v = window.localStorage.getItem(SIDEBAR_PREF_KEY);
+    return v === null ? true : v === "true";
+  } catch {
+    return true;
+  }
+}
+
+function persistSidebarOpen(open: boolean) {
+  try {
+    window.localStorage.setItem(SIDEBAR_PREF_KEY, String(open));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function AppLayout({ children }: { children: ReactNode }) {
   const { roles, hasRole, hasAnyRole } = useAuth();
 
@@ -23,10 +43,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+    <SidebarProvider defaultOpen={getStoredSidebarOpen()} onOpenChange={persistSidebarOpen}>
+      <div className="min-h-screen flex w-full max-w-full overflow-x-hidden">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 min-w-0 flex flex-col">
           <header className="h-14 flex items-center border-b bg-card px-4 gap-3">
             <SidebarTrigger />
             <div className="flex-1" />
@@ -46,7 +66,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               ))}
             </div>
           </header>
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden p-3.5 md:p-5 xl:p-6">{children}</main>
           <FeedbackButton />
         </div>
       </div>
