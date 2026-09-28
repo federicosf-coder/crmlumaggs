@@ -219,6 +219,28 @@ export default function ChevronFacturasRecibidas() {
   );
   const pagosCfdi = useMemo(() => registros.filter((r) => r.tipo_comprobante === "P"), [registros]);
   const notasCredito = useMemo(() => registros.filter((r) => r.tipo_comprobante === "E"), [registros]);
+  const sinClasificar = useMemo(
+    () =>
+      registros.filter((r) =>
+        r.tipo_comprobante === "I" ? !r.pedido_id : !r.factura_relacionada_id
+      ),
+    [registros]
+  );
+
+  const { data: pedidosDisponibles = [] } = useQuery({
+    queryKey: ["chevron_pedidos_disponibles"],
+    enabled: !!pedDialog,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("inv_pedidos")
+        .select("id, numero_po_interno, numero_orden_proveedor, estatus, factura_recibida_id")
+        .order("created_at", { ascending: false })
+        .limit(300);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
 
   const totalesPorFactura = useMemo(() => {
     const m = new Map<string, { pagado: number; notas: number }>();
