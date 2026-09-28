@@ -200,20 +200,34 @@ export default function PedidoAccionesPanel({
 
   if (!fila) {
     return (
-      <Card className="mb-4 border border-slate-300 bg-slate-50">
-        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0 text-slate-600" />
-            <p className="text-sm font-medium text-slate-900">
-              Este pedido no tiene autorización de precio. Puedes solicitarla ahora.
-            </p>
-          </div>
-          <Button size="sm" onClick={solicitarAutorizacion} disabled={creando} className="shrink-0 self-start sm:self-center">
-            {creando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Solicitar autorización de precio
-          </Button>
-        </CardContent>
-      </Card>
+      <>
+        <Card className="mb-4 border border-slate-300 bg-slate-50">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0 text-slate-600" />
+              <p className="text-sm font-medium text-slate-900">
+                Este pedido no tiene autorización de precio. Puedes solicitarla ahora.
+              </p>
+            </div>
+            <Button size="sm" onClick={solicitarAutorizacion} disabled={creando} className="shrink-0 self-start sm:self-center">
+              {creando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Solicitar autorización de precio
+            </Button>
+          </CardContent>
+        </Card>
+        {askDialog}
+        <AutorizacionPrecioDialog
+          open={formOpen}
+          onOpenChange={(o) => {
+            setFormOpen(o);
+            if (!o) {
+              refetch();
+              qc.invalidateQueries({ queryKey: ["pedido-autorizacion-precio", documentoId] });
+            }
+          }}
+          documentoId={documentoId}
+        />
+      </>
     );
   }
 
