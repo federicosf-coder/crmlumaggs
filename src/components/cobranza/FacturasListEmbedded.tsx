@@ -596,11 +596,11 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox checked={sortedDocs.length > 0 && selectedIds.size === sortedDocs.length} onCheckedChange={toggleSelectAll} />
-                    </TableHead>
-                    {isColVisible("numero") && <SortableHead ascKey="numero_factura_asc" descKey="numero_factura_desc">No. Factura</SortableHead>}
-                    {isColVisible("cliente") && <SortableHead ascKey="client_asc" descKey="client_desc" className="min-w-[180px]">Cliente</SortableHead>}
+                     <TableHead className="w-10 sticky left-0 z-10 bg-background">
+                       <Checkbox checked={sortedDocs.length > 0 && selectedIds.size === sortedDocs.length} onCheckedChange={toggleSelectAll} />
+                     </TableHead>
+                     {isColVisible("numero") && <SortableHead ascKey="numero_factura_asc" descKey="numero_factura_desc" className="sticky left-10 z-10 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">No. Factura</SortableHead>}
+                     {isColVisible("cliente") && <SortableHead ascKey="client_asc" descKey="client_desc" className="min-w-[180px] max-w-[220px]">Cliente</SortableHead>}
                     {isColVisible("ejecutivo") && <TableHead className="hidden sm:table-cell">Ejecutivo</TableHead>}
                     {isColVisible("plaza") && <TableHead className="hidden md:table-cell">Plaza</TableHead>}
                     {isColVisible("fecha") && <SortableHead ascKey="date_asc" descKey="date_desc" className="whitespace-nowrap">Fecha Documento</SortableHead>}
@@ -622,7 +622,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                         className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedIds.has(doc.id) ? "bg-muted/30" : ""}`}
                         onClick={() => navigate(`/documents/${doc.id}`)}
                       >
-                        <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="w-10 sticky left-0 z-10 bg-background" onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedIds.has(doc.id)}
                             onCheckedChange={() => {
@@ -634,8 +634,14 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                             }}
                           />
                         </TableCell>
-                        {isColVisible("numero") && <TableCell className="font-medium whitespace-nowrap">{doc.numero_factura || "-"}</TableCell>}
-                        {isColVisible("cliente") && <TableCell>{(doc.companies as any)?.name || "-"}</TableCell>}
+                         {isColVisible("numero") && <TableCell className="font-medium whitespace-nowrap sticky left-10 z-10 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">{doc.numero_factura || "-"}</TableCell>}
+                         {isColVisible("cliente") && (
+                           <TableCell className="max-w-[220px]">
+                             <span className="block truncate" title={(doc.companies as any)?.name || ""}>
+                               {(doc.companies as any)?.name || "-"}
+                             </span>
+                           </TableCell>
+                         )}
                         {isColVisible("ejecutivo") && <TableCell className="hidden sm:table-cell">{getEjecutivoName(doc.ejecutivo_venta_id)}</TableCell>}
                         {isColVisible("plaza") && <TableCell className="hidden md:table-cell">{(doc.plazas as any)?.nombre || "-"}</TableCell>}
                         {isColVisible("fecha") && <TableCell className="whitespace-nowrap">{format(new Date(doc.fecha_documento + "T12:00:00"), "dd/MM/yyyy")}</TableCell>}
