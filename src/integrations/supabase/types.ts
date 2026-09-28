@@ -6704,34 +6704,61 @@ export type Database = {
       }
       inv_reclamo_lineas: {
         Row: {
-          cantidad_afectada: number
+          cantidad_afectada: number | null
+          cantidad_recibida: number | null
+          cantidad_solicitada: number | null
           codigo_producto: string
           created_at: string | null
+          descripcion: string | null
           descripcion_problema: string | null
+          diferencia: number
+          empaque: string | null
+          facturar_intercambiado: string | null
           id: string
           nombre_producto: string | null
           reclamo_id: string
+          tipo_aviso: string
           tipo_problema: string | null
+          tipo_producto: string
+          unidad: string
         }
         Insert: {
-          cantidad_afectada: number
+          cantidad_afectada?: number | null
+          cantidad_recibida?: number | null
+          cantidad_solicitada?: number | null
           codigo_producto: string
           created_at?: string | null
+          descripcion?: string | null
           descripcion_problema?: string | null
+          diferencia?: number
+          empaque?: string | null
+          facturar_intercambiado?: string | null
           id?: string
           nombre_producto?: string | null
           reclamo_id: string
+          tipo_aviso?: string
           tipo_problema?: string | null
+          tipo_producto?: string
+          unidad?: string
         }
         Update: {
-          cantidad_afectada?: number
+          cantidad_afectada?: number | null
+          cantidad_recibida?: number | null
+          cantidad_solicitada?: number | null
           codigo_producto?: string
           created_at?: string | null
+          descripcion?: string | null
           descripcion_problema?: string | null
+          diferencia?: number
+          empaque?: string | null
+          facturar_intercambiado?: string | null
           id?: string
           nombre_producto?: string | null
           reclamo_id?: string
+          tipo_aviso?: string
           tipo_problema?: string | null
+          tipo_producto?: string
+          unidad?: string
         }
         Relationships: [
           {
@@ -6743,56 +6770,198 @@ export type Database = {
           },
         ]
       }
+      inv_reclamo_opciones: {
+        Row: {
+          campo: string
+          created_at: string
+          id: string
+          is_active: boolean
+          orden: number
+          updated_at: string
+          valor: string
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          orden?: number
+          updated_at?: string
+          valor: string
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          orden?: number
+          updated_at?: string
+          valor?: string
+        }
+        Relationships: []
+      }
+      inv_reclamo_seguimiento: {
+        Row: {
+          asunto: string | null
+          cc: string[] | null
+          creado_por: string | null
+          created_at: string
+          cuerpo: string | null
+          destinatarios: string[] | null
+          error_mensaje: string | null
+          estatus_envio: string
+          from_email: string | null
+          id: string
+          nota: string | null
+          reclamo_id: string
+          tipo: string
+        }
+        Insert: {
+          asunto?: string | null
+          cc?: string[] | null
+          creado_por?: string | null
+          created_at?: string
+          cuerpo?: string | null
+          destinatarios?: string[] | null
+          error_mensaje?: string | null
+          estatus_envio?: string
+          from_email?: string | null
+          id?: string
+          nota?: string | null
+          reclamo_id: string
+          tipo?: string
+        }
+        Update: {
+          asunto?: string | null
+          cc?: string[] | null
+          creado_por?: string | null
+          created_at?: string
+          cuerpo?: string | null
+          destinatarios?: string[] | null
+          error_mensaje?: string | null
+          estatus_envio?: string
+          from_email?: string | null
+          id?: string
+          nota?: string | null
+          reclamo_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_reclamo_seguimiento_reclamo_id_fkey"
+            columns: ["reclamo_id"]
+            isOneToOne: false
+            referencedRelation: "inv_reclamos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inv_reclamos: {
         Row: {
+          cliente_nombre: string
+          contacto_recoleccion: string | null
+          correo_recoleccion: string | null
           creado_por: string | null
           created_at: string | null
           descripcion: string | null
+          domicilio_recoleccion: string | null
           empresa_vendedora: string
           estatus: string
+          factura_recibida_id: string | null
+          fecha_envio: string | null
           fecha_envio_proveedor: string | null
+          fecha_recepcion: string
+          fecha_reclamo: string
           fecha_resolucion: string | null
           id: string
+          no_pedido_factura: string | null
+          nota_credito_folio: string | null
+          nota_credito_id: string | null
+          nota_credito_monto: number | null
           pedido_id: string
-          recepcion_id: string
+          recepcion_id: string | null
+          remitente_email: string | null
+          remitente_nombre: string | null
           resolucion: string | null
           tipo_reclamo: string
           total_skus_afectados: number | null
           updated_at: string | null
         }
         Insert: {
+          cliente_nombre?: string
+          contacto_recoleccion?: string | null
+          correo_recoleccion?: string | null
           creado_por?: string | null
           created_at?: string | null
           descripcion?: string | null
+          domicilio_recoleccion?: string | null
           empresa_vendedora: string
           estatus?: string
+          factura_recibida_id?: string | null
+          fecha_envio?: string | null
           fecha_envio_proveedor?: string | null
+          fecha_recepcion?: string
+          fecha_reclamo?: string
           fecha_resolucion?: string | null
           id?: string
+          no_pedido_factura?: string | null
+          nota_credito_folio?: string | null
+          nota_credito_id?: string | null
+          nota_credito_monto?: number | null
           pedido_id: string
-          recepcion_id: string
+          recepcion_id?: string | null
+          remitente_email?: string | null
+          remitente_nombre?: string | null
           resolucion?: string | null
-          tipo_reclamo: string
+          tipo_reclamo?: string
           total_skus_afectados?: number | null
           updated_at?: string | null
         }
         Update: {
+          cliente_nombre?: string
+          contacto_recoleccion?: string | null
+          correo_recoleccion?: string | null
           creado_por?: string | null
           created_at?: string | null
           descripcion?: string | null
+          domicilio_recoleccion?: string | null
           empresa_vendedora?: string
           estatus?: string
+          factura_recibida_id?: string | null
+          fecha_envio?: string | null
           fecha_envio_proveedor?: string | null
+          fecha_recepcion?: string
+          fecha_reclamo?: string
           fecha_resolucion?: string | null
           id?: string
+          no_pedido_factura?: string | null
+          nota_credito_folio?: string | null
+          nota_credito_id?: string | null
+          nota_credito_monto?: number | null
           pedido_id?: string
-          recepcion_id?: string
+          recepcion_id?: string | null
+          remitente_email?: string | null
+          remitente_nombre?: string | null
           resolucion?: string | null
           tipo_reclamo?: string
           total_skus_afectados?: number | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inv_reclamos_factura_recibida_id_fkey"
+            columns: ["factura_recibida_id"]
+            isOneToOne: false
+            referencedRelation: "chevron_facturas_recibidas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inv_reclamos_nota_credito_id_fkey"
+            columns: ["nota_credito_id"]
+            isOneToOne: false
+            referencedRelation: "chevron_facturas_recibidas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inv_reclamos_pedido_id_fkey"
             columns: ["pedido_id"]
