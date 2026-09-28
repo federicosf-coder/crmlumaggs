@@ -277,6 +277,9 @@ export default function PedidoAccionesPanel({
         </div>
       </CardContent>
 
+      {askDialog}
+
+
       <AutorizacionPrecioDialog
         open={formOpen}
         onOpenChange={(o) => {
