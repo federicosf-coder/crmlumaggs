@@ -1181,6 +1181,11 @@ export default function DocumentsList() {
                   { value: "numero_asc", label: "Número ↑" },
                   { value: "total_desc", label: "Total ↓" },
                   { value: "total_asc", label: "Total ↑" },
+                  ...(tipoFilter === "factura" ? [
+                    { value: "saldo_desc", label: "Saldo ↓" },
+                    { value: "saldo_asc", label: "Saldo ↑" },
+                  ] : []),
+
                   { value: "client_asc", label: "Cliente A-Z" },
                   { value: "client_desc", label: "Cliente Z-A" },
                   { value: "ejecutivo_asc", label: "Ejecutivo A-Z" },
