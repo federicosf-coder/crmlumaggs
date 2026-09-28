@@ -1324,7 +1324,7 @@ export default function SeguimientoVentas() {
       { id: "actividades", label: "Activ.", sortKey: "actividades", align: "center", render: (r) => <Badge variant="outline">{r.actividades_activas}</Badge> },
       { id: "proxima_tarea", label: "Próx. tarea", sortKey: "proxima_tarea", cellClassName: "text-xs text-muted-foreground", render: (r) => r.proxima_tarea_fecha ? formatDate(r.proxima_tarea_fecha) : "—" },
     ];
-  }, [tieneVenta, profileMap, catalogMap, companyPlazaMap, plazaNameMap]);
+  }, [tieneVenta, profileMap, catalogMap, companyPlazaMap, plazaNameMap, gruposResumen, catalog]);
 
   const defaultOrderIds = useMemo(() => allColumns.map((c) => c.id), [allColumns]);
   const colsStorageKey = `seguimiento_cols_order_${tieneVenta ? "con_venta" : "sin_venta"}`;
