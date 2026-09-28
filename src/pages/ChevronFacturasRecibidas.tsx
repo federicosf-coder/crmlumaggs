@@ -452,6 +452,34 @@ export default function ChevronFacturasRecibidas() {
     qc.invalidateQueries({ queryKey: ["chevron_facturas_recibidas"] });
   };
 
+  const vincularPedido = async (pedidoId: string) => {
+    if (!pedDialog) return;
+    const { error } = await db
+      .from("chevron_facturas_recibidas")
+      .update({
+        pedido_id: pedidoId,
+        estatus_match: "manual",
+        procesado_at: new Date().toISOString(),
+        procesado_por: user?.id ?? null,
+      })
+      .eq("id", pedDialog.id);
+    if (error) {
+      toast.error("No se pudo vincular: " + error.message);
+      return;
+    }
+    const { error: pErr } = await db
+      .from("inv_pedidos")
+      .update({ factura_recibida_id: pedDialog.id, fecha_facturado: new Date().toISOString().slice(0, 10) })
+      .eq("id", pedidoId);
+    if (pErr) toast.error("Factura marcada, pero el pedido no se actualizó: " + pErr.message);
+    else toast.success("Factura vinculada al pedido");
+    setPedDialog(null);
+    setPedBusqueda("");
+    qc.invalidateQueries({ queryKey: ["chevron_facturas_recibidas"] });
+    qc.invalidateQueries({ queryKey: ["chevron_pedidos_disponibles"] });
+  };
+
+
   if (!hasRole("master" as any)) {
     return (
       <div className="p-6 flex justify-center">
