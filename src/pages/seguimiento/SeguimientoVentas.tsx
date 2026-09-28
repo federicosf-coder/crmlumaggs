@@ -1420,7 +1420,7 @@ export default function SeguimientoVentas() {
     }
     if (fDias.length > 0) {
       base = base.filter((r) => {
-        const d = tieneVenta ? r.dias_ultima_compra : r.dias_ultima_actividad;
+        const d = tieneVenta ? diasCompraConGrupo(r, gruposResumen).dias : r.dias_ultima_actividad;
         if (d == null) return false;
         return fDias.some((id) => {
           const range = DIAS_RANGES.find((x) => x.id === id);
