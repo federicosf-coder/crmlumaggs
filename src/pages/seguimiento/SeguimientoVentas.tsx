@@ -53,6 +53,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useToast } from "@/hooks/use-toast";
+import { buildGruposResumen, diasCompraConGrupo, resolveRiesgoEstatusId } from "@/lib/grupoComercial";
 
 type SortDir = "asc" | "desc";
 interface SortState {
