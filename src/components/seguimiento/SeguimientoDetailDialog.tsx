@@ -130,6 +130,40 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
     return profilesList.find((p) => p.user_id === row.owner_id)?.full_name || null;
   }, [profilesList, row?.owner_id]);
 
+  // ---- Grupo comercial (varias razones sociales = mismo cliente) ----
+  const grupoId = (row?.companies as any)?.grupo_comercial_id ?? null;
+  const grupoNombre = (row?.companies as any)?.grupos_comerciales?.nombre ?? null;
+
+  const { data: grupoHermanas = [] } = useQuery({
+    queryKey: ["seguimiento_grupo_hermanas", grupoId, empresaVendedora],
+    enabled: open && !!grupoId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("seguimiento_ventas")
+        .select("company_id, dias_ultima_compra, fecha_ultima_compra, companies!inner(id, name, grupo_comercial_id)")
+        .eq("companies.grupo_comercial_id", grupoId)
+        .eq("empresa_vendedora", empresaVendedora);
+      return (data || []) as {
+        company_id: string;
+        dias_ultima_compra: number | null;
+        fecha_ultima_compra: string | null;
+        companies: { id: string; name: string } | null;
+      }[];
+    },
+  });
+
+  const grupoUltimaCompra = useMemo(() => {
+    let best: { dias: number; fecha: string | null; empresa: string } | null = null;
+    for (const h of grupoHermanas) {
+      if (h.dias_ultima_compra == null) continue;
+      if (!best || h.dias_ultima_compra < best.dias) {
+        best = { dias: h.dias_ultima_compra, fecha: h.fecha_ultima_compra, empresa: h.companies?.name || "—" };
+      }
+    }
+    return best;
+  }, [grupoHermanas]);
+
+
   const handleReasignar = async () => {
     if (!row || !reassignUserId) return;
     setReassigning(true);
