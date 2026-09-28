@@ -683,6 +683,7 @@ export default function Directory() {
           {[
             { value: "companies", label: "Empresas", icon: Building2 },
             { value: "contacts", label: "Contactos", icon: User },
+            { value: "grupos", label: "Grupos", icon: Users2 },
           ].map((tab) => {
             const isActive = activeTab === tab.value;
             const colors = TAB_COLORS[tab.value];
