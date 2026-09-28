@@ -6711,6 +6711,7 @@ export type Database = {
           created_at: string | null
           descripcion: string | null
           descripcion_problema: string | null
+          detalle_reclamacion: string | null
           diferencia: number
           empaque: string | null
           facturar_intercambiado: string | null
@@ -6730,6 +6731,7 @@ export type Database = {
           created_at?: string | null
           descripcion?: string | null
           descripcion_problema?: string | null
+          detalle_reclamacion?: string | null
           diferencia?: number
           empaque?: string | null
           facturar_intercambiado?: string | null
@@ -6749,6 +6751,7 @@ export type Database = {
           created_at?: string | null
           descripcion?: string | null
           descripcion_problema?: string | null
+          detalle_reclamacion?: string | null
           diferencia?: number
           empaque?: string | null
           facturar_intercambiado?: string | null
