@@ -885,8 +885,29 @@ export default function Cobranza() {
       setPagoSel(found);
       setOpenDetalle(true);
       setPendingDetalleId(null);
+      return;
     }
-  }, [pendingDetalleId, pagos]);
+    // Fallback: el pago puede no estar en la lista filtrada (otra empresa/plaza)
+    let cancelled = false;
+    const id = pendingDetalleId;
+    (async () => {
+      const { data } = await supabase
+        .from("cobranza_pagos")
+        .select("*, empresa:companies(id,name,razon_social,id_contpaq,email), plaza:plazas(id,nombre)")
+        .eq("id", id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const ev = (data as any).empresa_vendedora;
+      if (ev && ev !== empresaVendedora) {
+        navigate(`/cobranza/${ev === "galsa_phillips66" ? "phillips66" : "chevron"}?pagoId=${id}`, { replace: true });
+        return;
+      }
+      setPagoSel(data as any);
+      setOpenDetalle(true);
+      setPendingDetalleId(null);
+    })();
+    return () => { cancelled = true; };
+  }, [pendingDetalleId, pagos, empresaVendedora]);
 
   const handleCancelarPago = async (p: CobranzaPago) => {
     if (!confirm("¿Cancelar este pago? Se revertirán todas sus aplicaciones.")) return;
