@@ -1220,6 +1220,38 @@ export default function Directory() {
                     </div>
                   </div>
 
+                  {/* Grupo comercial */}
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                        <Users2 className="h-3.5 w-3.5" /> Grupo comercial
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[10px] font-semibold uppercase tracking-widest border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100"
+                        onClick={() => setGrupoDialogOpen(true)}
+                      >
+                        {selectedCompany.grupo_comercial_id ? "Cambiar grupo" : "Asignar grupo"}
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={selectedCompany.grupo_comercial_id ? "secondary" : "outline"} className="text-xs">
+                        {grupoNombre(selectedCompany.grupo_comercial_id) || "Sin grupo"}
+                      </Badge>
+                    </div>
+                    {selectedCompany.grupo_comercial_id && (
+                      <div className="text-xs text-muted-foreground">
+                        Empresas del grupo:{" "}
+                        {companies
+                          .filter((c) => c.grupo_comercial_id === selectedCompany.grupo_comercial_id)
+                          .map((c) => c.name)
+                          .join(" · ") || "—"}
+                      </div>
+                    )}
+                  </div>
+
+
                   {/* Equipo comercial */}
                   <div className="rounded-lg border p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-primary">
