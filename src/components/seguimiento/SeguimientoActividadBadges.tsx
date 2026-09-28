@@ -1,10 +1,12 @@
 import { Badge } from "@/components/ui/badge";
-import { CalendarClock, CheckCircle2 } from "lucide-react";
+import { CalendarClock, CheckCircle2, FileSignature } from "lucide-react";
 
 interface Props {
   diasUltimaActividad: number | null | undefined;
   actividadesTotal: number | null | undefined;
   proximaTareaFecha: string | null | undefined;
+  diasUltimaCotizacion?: number | null;
+  cotizacionesTotal?: number | null;
 }
 
 function formatShortDate(value: string): string {
@@ -18,9 +20,16 @@ function formatShortDate(value: string): string {
 /**
  * Badges de seguimiento junto al pill de estatus.
  * No altera el cálculo del estatus: solo lee columnas ya calculadas
- * (dias_ultima_actividad, actividades_total, proxima_tarea_fecha).
+ * (dias_ultima_actividad, actividades_total, proxima_tarea_fecha,
+ * dias_ultima_cotizacion, cotizaciones_total).
  */
-export function SeguimientoActividadBadges({ diasUltimaActividad, actividadesTotal, proximaTareaFecha }: Props) {
+export function SeguimientoActividadBadges({
+  diasUltimaActividad,
+  actividadesTotal,
+  proximaTareaFecha,
+  diasUltimaCotizacion,
+  cotizacionesTotal,
+}: Props) {
   const gestionado = (actividadesTotal ?? 0) > 0 || diasUltimaActividad != null;
 
   const tareaVencida = (() => {
@@ -33,7 +42,12 @@ export function SeguimientoActividadBadges({ diasUltimaActividad, actividadesTot
     return startDia < startHoy;
   })();
 
-  if (!gestionado && !proximaTareaFecha) return null;
+  // Cotización reciente: verde ≤30 días, ámbar 31-60 días, oculto después.
+  const cotDias = diasUltimaCotizacion ?? null;
+  const tieneCotizacion = (cotizacionesTotal ?? 0) > 0 && cotDias != null;
+  const mostrarCotizacion = tieneCotizacion && (cotDias as number) <= 60;
+
+  if (!gestionado && !proximaTareaFecha && !mostrarCotizacion) return null;
 
   return (
     <span className="inline-flex items-center gap-1 align-middle">
@@ -48,6 +62,19 @@ export function SeguimientoActividadBadges({ diasUltimaActividad, actividadesTot
             : diasUltimaActividad === 0
             ? "Gestionado hoy"
             : `Gestionado hace ${diasUltimaActividad}d`}
+        </Badge>
+      )}
+      {mostrarCotizacion && (
+        <Badge
+          variant="outline"
+          className={`text-[10px] font-normal px-1.5 py-0 h-4 gap-0.5 whitespace-nowrap ${
+            (cotDias as number) <= 30
+              ? "border-emerald-200 bg-emerald-50/70 text-emerald-700"
+              : "border-amber-200 bg-amber-50 text-amber-800"
+          }`}
+        >
+          <FileSignature className="h-2.5 w-2.5" />
+          {cotDias === 0 ? "Cotizado hoy" : `Cotizado hace ${cotDias}d`}
         </Badge>
       )}
       {proximaTareaFecha && (

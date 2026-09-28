@@ -45,7 +45,10 @@ import {
   Package,
   ArrowUp,
   ArrowDown,
+  UserCog,
+  Loader2,
 } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatDate, formatRelativeDate } from "@/lib/formatters";
 import {
   type EmpresaVendedora,
@@ -98,9 +101,85 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
   const [registrarPerdidaOpen, setRegistrarPerdidaOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<{ phone: string; contact: any | null } | null>(null);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [reassignUserId, setReassignUserId] = useState("");
+  const [reassigning, setReassigning] = useState(false);
 
   const open = !!row;
   const tieneVenta = !!row?.tiene_venta;
+
+  // ---- Ejecutivos disponibles para reasignación ----
+  const { data: profilesList = [] } = useQuery({
+    queryKey: ["seguimiento_detail_profiles"],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .order("full_name");
+      return (data || []) as { user_id: string; full_name: string | null }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const ejecutivoNombre = useMemo(() => {
+    if (!row?.owner_id) return null;
+    return profilesList.find((p) => p.user_id === row.owner_id)?.full_name || null;
+  }, [profilesList, row?.owner_id]);
+
+  const handleReasignar = async () => {
+    if (!row || !reassignUserId) return;
+    setReassigning(true);
+    try {
+      // Titularidad del cliente
+      await (supabase as any).from("company_ejecutivos").delete().eq("company_id", row.company_id);
+      await (supabase as any)
+        .from("company_ejecutivos")
+        .insert({ company_id: row.company_id, user_id: reassignUserId });
+
+      // Tareas pendientes de este cliente
+      await (supabase as any)
+        .from("crm_tasks")
+        .update({ user_id: reassignUserId })
+        .eq("company_id", row.company_id)
+        .eq("completed", false);
+
+      // Pendientes del CRM de este cliente
+      await (supabase as any)
+        .from("crm_items")
+        .update({ assigned_to: reassignUserId })
+        .eq("company_id", row.company_id)
+        .is("fecha_terminacion", null);
+
+      // Recalcula el seguimiento del cliente
+      try {
+        await (supabase as any).rpc("recompute_seguimiento_ventas", {
+          _company_id: row.company_id,
+          _ev: empresaVendedora,
+        });
+      } catch (err) {
+        console.warn("[recompute] failed", row.company_id, err);
+      }
+
+      toast({
+        title: "Ejecutivo reasignado",
+        description: "Se transfirieron el cliente, sus tareas y pendientes abiertos.",
+      });
+      setReassignOpen(false);
+      setReassignUserId("");
+      qc.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+      qc.invalidateQueries({ queryKey: ["company_ejecutivos"] });
+      qc.invalidateQueries({ queryKey: ["seguimiento_tasks_linked"] });
+    } catch (e: any) {
+      toast({
+        title: "Error al reasignar",
+        description: e?.message || "Intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setReassigning(false);
+    }
+  };
 
   // ---- Contactos de la empresa ----
   const { data: contacts } = useQuery({
@@ -492,7 +571,27 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                 diasUltimaActividad={row.dias_ultima_actividad}
                 actividadesTotal={row.actividades_total}
                 proximaTareaFecha={row.proxima_tarea_fecha}
+                diasUltimaCotizacion={row.dias_ultima_cotizacion}
+                cotizacionesTotal={row.cotizaciones_total}
               />
+              <span className="inline-flex items-center gap-1">
+                <Badge variant="outline" className="text-xs bg-white/80 gap-1">
+                  <UserCog className="h-3 w-3" />
+                  Ejecutivo:{" "}
+                  {ejecutivoNombre || <span className="italic text-muted-foreground">Sin asignar</span>}
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs bg-white/80"
+                  onClick={() => {
+                    setReassignUserId(row.owner_id || "");
+                    setReassignOpen(true);
+                  }}
+                >
+                  Reasignar
+                </Button>
+              </span>
               {ritmo && tieneVenta && (
                 <span
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-white shadow-sm"
@@ -950,6 +1049,46 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
         userId={user?.id || null}
         onSaved={invalidatePerdidas}
       />
+
+      <Dialog open={reassignOpen} onOpenChange={(o) => { if (!reassigning) setReassignOpen(o); }}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                <UserCog className="h-4 w-4" /> Reasignar ejecutivo
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5 font-light">
+                Se transferirán el cliente, sus tareas pendientes y sus pendientes abiertos del CRM al nuevo ejecutivo.
+              </p>
+            </DialogHeader>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Nuevo ejecutivo</p>
+              <SearchableSelect
+                value={reassignUserId || "none"}
+                onValueChange={(v) => setReassignUserId(v === "none" ? "" : v)}
+                options={[
+                  { value: "none", label: "Selecciona…" },
+                  ...profilesList.map((p) => ({ value: p.user_id, label: p.full_name || p.user_id })),
+                ]}
+                placeholder="Buscar ejecutivo…"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground font-light">
+              Ejecutivo actual: {ejecutivoNombre || "Sin asignar"}
+            </p>
+          </div>
+          <DialogFooter className="px-5 py-3 bg-muted/30 border-t">
+            <Button variant="outline" onClick={() => setReassignOpen(false)} disabled={reassigning}>
+              Cancelar
+            </Button>
+            <Button disabled={!reassignUserId || reassigning} onClick={handleReasignar}>
+              {reassigning ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
