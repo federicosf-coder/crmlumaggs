@@ -1246,16 +1246,22 @@ export default function SeguimientoVentas() {
           id: "ultima_compra",
           label: "Última compra",
           sortKey: "ultima_compra",
-          render: (r) => (
-            <>
-              <span className={`font-medium ${daysColor(r.dias_ultima_compra)}`}>
-                {r.dias_ultima_compra != null ? `${r.dias_ultima_compra} d` : "—"}
-              </span>
-              {r.fecha_ultima_compra && (
-                <span className="block text-[10px] text-muted-foreground">{formatDate(r.fecha_ultima_compra)}</span>
-              )}
-            </>
-          ),
+          render: (r) => {
+            const g = diasCompraConGrupo(r, gruposResumen);
+            return (
+              <>
+                <span className={`font-medium ${daysColor(g.dias)}`}>
+                  {g.dias != null ? `${g.dias} d` : "—"}
+                </span>
+                {g.fecha && (
+                  <span className="block text-[10px] text-muted-foreground">{formatDate(g.fecha)}</span>
+                )}
+                {g.consolidado && (
+                  <span className="block text-[10px] font-light text-violet-700">Del grupo</span>
+                )}
+              </>
+            );
+          },
         },
         { id: "potencial", label: "Potencial", sortKey: "potencial", align: "right", render: (r) => fmtNum(r.potencial) },
         { id: "promedio_mensual", label: "Prom. mensual", sortKey: "promedio_mensual", align: "right", render: (r) => fmtNum(r.promedio_historico_mensual) },
