@@ -1049,6 +1049,46 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
         userId={user?.id || null}
         onSaved={invalidatePerdidas}
       />
+
+      <Dialog open={reassignOpen} onOpenChange={(o) => { if (!reassigning) setReassignOpen(o); }}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                <UserCog className="h-4 w-4" /> Reasignar ejecutivo
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5 font-light">
+                Se transferirán el cliente, sus tareas pendientes y sus pendientes abiertos del CRM al nuevo ejecutivo.
+              </p>
+            </DialogHeader>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Nuevo ejecutivo</p>
+              <SearchableSelect
+                value={reassignUserId || "none"}
+                onValueChange={(v) => setReassignUserId(v === "none" ? "" : v)}
+                options={[
+                  { value: "none", label: "Selecciona…" },
+                  ...profilesList.map((p) => ({ value: p.user_id, label: p.full_name || p.user_id })),
+                ]}
+                placeholder="Buscar ejecutivo…"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground font-light">
+              Ejecutivo actual: {ejecutivoNombre || "Sin asignar"}
+            </p>
+          </div>
+          <DialogFooter className="px-5 py-3 bg-muted/30 border-t">
+            <Button variant="outline" onClick={() => setReassignOpen(false)} disabled={reassigning}>
+              Cancelar
+            </Button>
+            <Button disabled={!reassignUserId || reassigning} onClick={handleReasignar}>
+              {reassigning ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
