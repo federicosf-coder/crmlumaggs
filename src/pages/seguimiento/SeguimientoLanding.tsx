@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageBanner } from "@/components/PageBanner";
@@ -60,6 +60,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { buildGruposResumen, diasCompraConGrupo, resolveRiesgoEstatusId } from "@/lib/grupoComercial";
 import {
   useSeguimientoVentas,
   useSeguimientoEstatusCatalogo,
@@ -502,14 +503,32 @@ export default function SeguimientoLanding() {
     () => new Set(catalogo.filter((c) => c.nombre === "Dormido").map((c) => c.id)),
     [catalogo]
   );
+  // Mismo estatus EFECTIVO que usa la tabla: manual si está activo, si no el
+  // calculado consolidando la compra más reciente del grupo comercial.
+  const gruposResumen = useMemo(() => buildGruposResumen(clientesRaw), [clientesRaw]);
+  const riesgoEfectivo = useCallback(
+    (row: SeguimientoVentasRow): string | null => {
+      if (row.estatus_manual && row.estatus_manual_id) return row.estatus_manual_id;
+      const g = diasCompraConGrupo(row, gruposResumen);
+      if (g.consolidado) {
+        const id = resolveRiesgoEstatusId(catalogo as any, g.dias, row.ciclo_dias);
+        if (id) return id;
+      }
+      return row.estatus_riesgo_id ?? null;
+    },
+    [gruposResumen, catalogo]
+  );
   const kpis = useMemo(
     () => ({
       prospectos: prospectos.length,
       clientes: clientes.length,
       nuevos: clientes.filter((c) => c.es_nuevo_cliente === true).length,
-      dormidos: clientes.filter((c) => c.estatus_riesgo_id && dormidoIds.has(c.estatus_riesgo_id)).length,
+      dormidos: clientes.filter((c) => {
+        const id = riesgoEfectivo(c);
+        return !!id && dormidoIds.has(id);
+      }).length,
     }),
-    [prospectos, clientes, dormidoIds]
+    [prospectos, clientes, dormidoIds, riesgoEfectivo]
   );
 
   const prospectosNuevosPeriodo = useMemo(
@@ -600,7 +619,7 @@ export default function SeguimientoLanding() {
         : (r.promedio_historico_mensual || 0);
     const cols: { id: string; nombre: string; color: string; count: number; unidades: number; totalHistoricoUnidades?: number }[] =
       etapasRiesgo.map((e) => {
-        const rows = clientes.filter((r) => r.estatus_riesgo_id === e.id);
+        const rows = clientes.filter((r) => riesgoEfectivo(r) === e.id);
         return {
           id: e.id,
           nombre: e.nombre,
@@ -610,7 +629,7 @@ export default function SeguimientoLanding() {
         };
       });
     const etapaIds = new Set(etapasRiesgo.map((e) => e.id));
-    const sinClasificarRows = clientes.filter((r) => !etapaIds.has(r.estatus_riesgo_id as string));
+    const sinClasificarRows = clientes.filter((r) => !etapaIds.has(riesgoEfectivo(r) as string));
     if (sinClasificarRows.length > 0) {
       cols.push({
         id: "sin-clasificar",
@@ -629,7 +648,7 @@ export default function SeguimientoLanding() {
       totalHistoricoUnidades: clientesIgnorados.reduce((s, r) => s + (r.total_historico_unidades || 0), 0),
     });
     return cols;
-  }, [etapasRiesgo, clientes, clientesIgnorados]);
+  }, [etapasRiesgo, clientes, clientesIgnorados, riesgoEfectivo]);
 
   const segMap = useMemo(
     () => new Map([...prospectos, ...clientes].map((r) => [r.company_id, r])),
