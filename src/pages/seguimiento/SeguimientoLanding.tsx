@@ -60,6 +60,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { buildGruposResumen, diasCompraConGrupo, resolveRiesgoEstatusId } from "@/lib/grupoComercial";
 import {
   useSeguimientoVentas,
   useSeguimientoEstatusCatalogo,
