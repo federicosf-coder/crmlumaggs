@@ -1585,6 +1585,19 @@ export default function Directory() {
         onOpenChange={setMergeContactsOpen}
         onMerged={fetchData}
       />
+      <GrupoComercialDialog
+        open={grupoDialogOpen}
+        companyId={selectedCompany?.id || null}
+        companyName={selectedCompany?.name || null}
+        currentGrupoId={selectedCompany?.grupo_comercial_id || null}
+        onOpenChange={(o) => {
+          setGrupoDialogOpen(o);
+          if (!o) {
+            fetchData();
+            setSelectedCompany((prev) => prev);
+          }
+        }}
+      />
     </div>
   );
 }
