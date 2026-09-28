@@ -214,6 +214,8 @@ export default function ChevronFacturasRecibidas() {
     () => registros.filter((r) => r.tipo_comprobante === "E" || r.tipo_comprobante === "P"),
     [registros]
   );
+  const pagosCfdi = useMemo(() => registros.filter((r) => r.tipo_comprobante === "P"), [registros]);
+  const notasCredito = useMemo(() => registros.filter((r) => r.tipo_comprobante === "E"), [registros]);
 
   const totalesPorFactura = useMemo(() => {
     const m = new Map<string, { pagado: number; notas: number }>();
@@ -444,6 +446,89 @@ export default function ChevronFacturasRecibidas() {
     return [f.serie, f.folio, f.folio_fiscal].filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q));
   });
 
+  const renderMovimientos = (items: any[], vacio: string) => (
+    <Card>
+      <CardContent className="p-0 overflow-x-auto">
+        <Table>
+          <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+            <TableRow>
+              {["Folio", "Fecha", "Total", "Factura relacionada", ""].map((h, i) => (
+                <TableHead key={i} className="uppercase tracking-wide text-xs font-medium">
+                  {h}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground font-light">
+                  {vacio}
+                </TableCell>
+              </TableRow>
+            )}
+            {items.map((m, i) => {
+              const rel = m.factura_relacionada_id ? facturas.find((f) => f.id === m.factura_relacionada_id) : null;
+              return (
+                <TableRow key={m.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                  <TableCell className="text-xs font-mono">
+                    {[m.serie, m.folio].filter(Boolean).join("-") || m.folio_fiscal.slice(0, 8)}
+                  </TableCell>
+                  <TableCell className="text-xs">{fechaFmt(m.fecha)}</TableCell>
+                  <TableCell className="text-xs text-right tabular-nums">{money(Number(m.total))}</TableCell>
+                  <TableCell>
+                    {rel ? (
+                      <button
+                        className="text-xs font-mono text-blue-700 hover:underline"
+                        onClick={() => {
+                          setFiltroFacturas(rel.folio_fiscal);
+                          setTab("facturas");
+                        }}
+                      >
+                        {[rel.serie, rel.folio].filter(Boolean).join("-") || rel.folio_fiscal.slice(0, 8)}
+                      </button>
+                    ) : (
+                      <div className="space-y-0.5">
+                        <p className="text-[11px] font-mono text-muted-foreground">{m.uuid_relacionado || "—"}</p>
+                        <p className="text-[11px] text-muted-foreground font-light">aún no importada</p>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="space-x-1 whitespace-nowrap">
+                    {!rel && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setEmpDialog({
+                            id: m.id,
+                            folio: [m.serie, m.folio].filter(Boolean).join("-") || m.folio_fiscal.slice(0, 8),
+                          })
+                        }
+                      >
+                        <Link2 className="h-3.5 w-3.5 mr-1" />
+                        Emparejar manual
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={!m.pdf_storage_path}
+                      onClick={() => abrirPdf(m.pdf_storage_path)}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                      PDF
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="p-6 space-y-4">
       <div>
@@ -454,10 +539,11 @@ export default function ChevronFacturasRecibidas() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="importar">Importar</TabsTrigger>
-          <TabsTrigger value="facturas">Facturas ({facturas.length})</TabsTrigger>
-          <TabsTrigger value="movimientos">Pagos y Notas de Crédito ({movimientos.length})</TabsTrigger>
+        <TabsList className="grid grid-cols-4 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
+          <TabsTrigger value="importar" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Importar</TabsTrigger>
+          <TabsTrigger value="facturas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md text-blue-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Facturas ({facturas.length})</TabsTrigger>
+          <TabsTrigger value="pagos" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md text-emerald-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Pagos ({pagosCfdi.length})</TabsTrigger>
+          <TabsTrigger value="notas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md text-amber-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Notas de Crédito ({notasCredito.length})</TabsTrigger>
         </TabsList>
 
         {/* ---------------- Importar ---------------- */}
@@ -648,101 +734,11 @@ export default function ChevronFacturasRecibidas() {
           </Card>
         </TabsContent>
 
-        {/* ---------------- Pagos y NC ---------------- */}
-        <TabsContent value="movimientos">
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
-                  <TableRow>
-                    {["Tipo", "Folio", "Fecha", "Total", "Factura relacionada", ""].map((h, i) => (
-                      <TableHead key={i} className="uppercase tracking-wide text-xs font-medium">
-                        {h}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {movimientos.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground font-light">
-                        Sin pagos ni notas de crédito
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {movimientos.map((m, i) => {
-                    const rel = m.factura_relacionada_id ? facturas.find((f) => f.id === m.factura_relacionada_id) : null;
-                    return (
-                      <TableRow key={m.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              m.tipo_comprobante === "P"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-violet-50 text-violet-700 border-violet-200"
-                            }
-                          >
-                            {m.tipo_comprobante === "P" ? "Pago" : "Nota de Crédito"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs font-mono">
-                          {[m.serie, m.folio].filter(Boolean).join("-") || m.folio_fiscal.slice(0, 8)}
-                        </TableCell>
-                        <TableCell className="text-xs">{fechaFmt(m.fecha)}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{money(Number(m.total))}</TableCell>
-                        <TableCell>
-                          {rel ? (
-                            <button
-                              className="text-xs font-mono text-blue-700 hover:underline"
-                              onClick={() => {
-                                setFiltroFacturas(rel.folio_fiscal);
-                                setTab("facturas");
-                              }}
-                            >
-                              {[rel.serie, rel.folio].filter(Boolean).join("-") || rel.folio_fiscal.slice(0, 8)}
-                            </button>
-                          ) : (
-                            <div className="space-y-0.5">
-                              <p className="text-[11px] font-mono text-muted-foreground">{m.uuid_relacionado || "—"}</p>
-                              <p className="text-[11px] text-muted-foreground font-light">aún no importada</p>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="space-x-1 whitespace-nowrap">
-                          {!rel && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setEmpDialog({
-                                  id: m.id,
-                                  folio: [m.serie, m.folio].filter(Boolean).join("-") || m.folio_fiscal.slice(0, 8),
-                                })
-                              }
-                            >
-                              <Link2 className="h-3.5 w-3.5 mr-1" />
-                              Emparejar manual
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={!m.pdf_storage_path}
-                            onClick={() => abrirPdf(m.pdf_storage_path)}
-                          >
-                            <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                            PDF
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* ---------------- Pagos ---------------- */}
+        <TabsContent value="pagos">{renderMovimientos(pagosCfdi, "Sin complementos de pago")}</TabsContent>
+
+        {/* ---------------- Notas de Crédito ---------------- */}
+        <TabsContent value="notas">{renderMovimientos(notasCredito, "Sin notas de crédito")}</TabsContent>
       </Tabs>
 
       <Dialog open={!!empDialog} onOpenChange={(o) => !o && setEmpDialog(null)}>
