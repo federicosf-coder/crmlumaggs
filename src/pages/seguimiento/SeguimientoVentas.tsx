@@ -1183,7 +1183,16 @@ export default function SeguimientoVentas() {
         label: "Empresa",
         sortKey: "empresa",
         cellClassName: "font-medium",
-        render: (r) => r.companies?.name || "—",
+        render: (r) => (
+          <span className="inline-flex flex-col">
+            <span>{r.companies?.name || "—"}</span>
+            {r.companies?.grupos_comerciales?.nombre && (
+              <span className="text-[10px] font-light text-violet-700">
+                Grupo: {r.companies.grupos_comerciales.nombre}
+              </span>
+            )}
+          </span>
+        ),
       },
       {
         id: "ejecutivo",
