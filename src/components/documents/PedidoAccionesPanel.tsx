@@ -251,7 +251,7 @@ export default function PedidoAccionesPanel({
           <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
             <Button size="sm" onClick={() => setFormOpen(true)}>
               <FileCheck2 className="mr-2 h-4 w-4" />
-              Abrir formulario de autorización
+              Completar y enviar solicitud
             </Button>
             <Button size="sm" variant="ghost" asChild className="text-xs">
               <Link to={`/autorizacion-precios?id=${fila.id}`} target="_self">
