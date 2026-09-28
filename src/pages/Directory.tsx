@@ -94,6 +94,7 @@ const listaPreciosLabel = (v?: string | null) => {
 const TAB_COLORS: Record<string, { active: string; border: string }> = {
   companies: { active: "bg-blue-600 text-white hover:bg-blue-700", border: "border-blue-500" },
   contacts: { active: "bg-emerald-600 text-white hover:bg-emerald-700", border: "border-emerald-500" },
+  grupos: { active: "bg-violet-600 text-white hover:bg-violet-700", border: "border-violet-500" },
 };
 
 export default function Directory() {
