@@ -12,6 +12,14 @@ import { buildAutorizacionPrecioDraft, buildAutorizacionPrecioEmailFlow } from "
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 import AutorizacionPrecioDialog from "./AutorizacionPrecioDialog";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface AutorizacionFila {
   id: string;
