@@ -54,7 +54,14 @@ export interface SeguimientoVentasRow {
   estatus_manual_id: string | null;
   owner_id: string | null;
   ultima_actualizacion: string;
-  companies?: { id: string; name: string; created_at?: string | null; volumen_mensual_estimado?: number | null } | null;
+  companies?: {
+    id: string;
+    name: string;
+    created_at?: string | null;
+    volumen_mensual_estimado?: number | null;
+    grupo_comercial_id?: string | null;
+    grupos_comerciales?: { id: string; nombre: string } | null;
+  } | null;
   perdido?: boolean | null;
   motivo_perdida_id?: string | null;
   fecha_perdida?: string | null;
