@@ -1227,7 +1227,7 @@ export default function DocumentsList() {
               </div>
             ) : (
               <>
-              <div className="w-full max-w-full overflow-x-auto">
+              <div className="w-full max-w-full overflow-auto max-h-[calc(100vh-260px)]">
                 <Table>
                   <TableHeader>
                     <TableRow>
