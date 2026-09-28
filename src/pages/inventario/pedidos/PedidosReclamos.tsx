@@ -137,3 +137,313 @@ export default function PedidosReclamos() {
     </div>
   );
 }
+
+function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) {
+  const { user, profile } = useAuth();
+  const qc = useQueryClient();
+  const [pedidos, setPedidos] = useState<any[]>([]);
+  const [pedidoSel, setPedidoSel] = useState<string>("");
+  const [pedidoData, setPedidoData] = useState<any>(null);
+  const [lineasPedido, setLineasPedido] = useState<any[]>([]);
+  const [facturas, setFacturas] = useState<any[]>([]);
+  const [facturaSel, setFacturaSel] = useState<string>("");
+  const [noPedidoFactura, setNoPedidoFactura] = useState("");
+  const [fechaReclamo, setFechaReclamo] = useState(hoyISO());
+  const [fechaRecepcion, setFechaRecepcion] = useState(hoyISO());
+  const [remitenteNombre, setRemitenteNombre] = useState("");
+  const [remitenteEmail, setRemitenteEmail] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [lineas, setLineas] = useState<any[]>([]);
+  const [archivos, setArchivos] = useState<File[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setRemitenteNombre(profile.full_name || "");
+      setRemitenteEmail(profile.email || user?.email || "");
+    }
+  }, [profile, user]);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data: peds } = await (supabase as any).from("inv_pedidos")
+        .select("id, numero_po_interno, numero_orden_proveedor, empresa_vendedora, fecha_pedido, estatus, factura_recibida_id")
+        .in("estatus", ["recibido", "cerrado", "recibido_parcial"])
+        .order("fecha_pedido", { ascending: false });
+      setPedidos(peds || []);
+      const { data: fact } = await (supabase as any).from("chevron_facturas_recibidas")
+        .select("id, folio, serie, fecha, total, numero_pedido_proveedor, pedido_id")
+        .eq("tipo_comprobante", "I")
+        .order("folio", { ascending: false });
+      setFacturas(fact || []);
+      if (pedidoId) setPedidoSel(pedidoId);
+    })();
+  }, [open, pedidoId]);
+
+  useEffect(() => {
+    if (!pedidoSel) { setPedidoData(null); setLineasPedido([]); setLineas([]); return; }
+    (async () => {
+      const { data: p } = await (supabase as any).from("inv_pedidos").select("*").eq("id", pedidoSel).single();
+      setPedidoData(p);
+      const { data: lns } = await (supabase as any).from("inv_pedido_lineas")
+        .select("codigo_producto, nombre_producto, presentacion, cantidad_solicitada")
+        .eq("pedido_id", pedidoSel).order("codigo_producto");
+      setLineasPedido(lns || []);
+      setLineas([]);
+      setNoPedidoFactura(p?.numero_orden_proveedor || p?.numero_po_interno || "");
+      if (recepcionId) {
+        const { data: rec } = await (supabase as any).from("inv_recepciones").select("fecha_recepcion").eq("id", recepcionId).maybeSingle();
+        if (rec?.fecha_recepcion) setFechaRecepcion(rec.fecha_recepcion);
+      }
+      if (p?.factura_recibida_id) setFacturaSel(p.factura_recibida_id);
+    })();
+  }, [pedidoSel, recepcionId]);
+
+  const addLinea = (codigo: string) => {
+    const l = lineasPedido.find((x) => x.codigo_producto === codigo);
+    if (!l || lineas.some((x) => x.codigo_producto === codigo)) return;
+    setLineas([...lineas, {
+      codigo_producto: l.codigo_producto,
+      descripcion: l.nombre_producto || "",
+      empaque: l.presentacion || "",
+      tipo_producto: l.presentacion?.toLowerCase().includes("tambor") || l.presentacion?.toLowerCase().includes("granel") ? "Granel" : "Empacado",
+      tipo_aviso: "Faltante",
+      tipo_aviso_otro: "",
+      cantidad_solicitada: Number(l.cantidad_solicitada || 0),
+      cantidad_recibida: Number(l.cantidad_solicitada || 0),
+      diferencia: 0,
+      unidad: l.presentacion?.toLowerCase().includes("tambor") ? "Litros" : "Piezas",
+      unidad_otro: "",
+    }]);
+  };
+
+  const updLinea = (idx: number, field: string, value: any) => {
+    const c = [...lineas];
+    c[idx] = { ...c[idx], [field]: value };
+    setLineas(c);
+  };
+
+  const onSave = async () => {
+    if (!pedidoSel) { toast.error("Selecciona el pedido"); return; }
+    if (!lineas.length) { toast.error("Agrega al menos un producto a reclamar"); return; }
+    if (lineas.some((l) => !l.diferencia || Number(l.diferencia) === 0)) { toast.error("La diferencia es obligatoria en cada producto"); return; }
+    if (!remitenteNombre || !remitenteEmail) { toast.error("Captura nombre y correo de quien envía"); return; }
+    setSaving(true);
+    try {
+      const { data: rec, error } = await (supabase as any).from("inv_reclamos").insert({
+        pedido_id: pedidoSel,
+        recepcion_id: recepcionId || null,
+        empresa_vendedora: pedidoData?.empresa_vendedora || "lumaggs",
+        tipo_reclamo: lineas[0]?.tipo_aviso === "Dañado" ? "dañado" : lineas[0]?.tipo_aviso === "Faltante" ? "faltante" : "otro",
+        cliente_nombre: "LUMAGGS",
+        no_pedido_factura: noPedidoFactura || null,
+        factura_recibida_id: facturaSel || null,
+        fecha_reclamo: fechaReclamo,
+        fecha_recepcion: fechaRecepcion,
+        remitente_nombre: remitenteNombre,
+        remitente_email: remitenteEmail,
+        descripcion,
+        estatus: "borrador",
+        total_skus_afectados: lineas.length,
+        creado_por: user?.id ?? null,
+      }).select().single();
+      if (error) throw error;
+
+      await (supabase as any).from("inv_reclamo_lineas").insert(lineas.map((l) => ({
+        reclamo_id: rec.id,
+        codigo_producto: l.codigo_producto,
+        nombre_producto: l.descripcion,
+        descripcion: l.descripcion_problema || "",
+        tipo_producto: l.tipo_producto === "otro" ? l.tipo_producto_otro || "otro" : l.tipo_producto,
+        empaque: l.empaque,
+        tipo_aviso: l.tipo_aviso === "otro" ? l.tipo_aviso_otro || "otro" : l.tipo_aviso.toLowerCase(),
+        cantidad_solicitada: l.cantidad_solicitada,
+        cantidad_recibida: l.cantidad_recibida,
+        cantidad_afectada: Math.abs(Number(l.diferencia) || 0),
+        diferencia: Number(l.diferencia),
+        unidad: l.unidad === "otro" ? l.unidad_otro || "Piezas" : l.unidad,
+      })));
+
+      if (facturaSel) {
+        await (supabase as any).from("inv_pedidos").update({ factura_recibida_id: facturaSel }).eq("id", pedidoSel);
+        await (supabase as any).from("chevron_facturas_recibidas").update({ pedido_id: pedidoSel, estatus_match: "manual" }).eq("id", facturaSel);
+      }
+
+      for (const f of archivos) {
+        const path = `${rec.id}/${Date.now()}_${f.name}`;
+        const { error: uErr } = await supabase.storage.from("inventario-reclamos").upload(path, f);
+        if (!uErr) await (supabase as any).from("inv_reclamo_archivos").insert({
+          reclamo_id: rec.id, nombre_archivo: f.name, url_archivo: path,
+          tipo_archivo: f.type, usuario_carga: user?.id ?? null,
+        });
+      }
+
+      toast.success("Reclamo creado");
+      qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
+      onOpenChange(false);
+      setLineas([]); setArchivos([]); setDescripcion(""); setFacturaSel(""); setPedidoSel("");
+    } catch (e: any) { toast.error(e?.message); }
+    finally { setSaving(false); }
+  };
+
+  const labelCls = "text-[10px] uppercase tracking-wide text-muted-foreground";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -mx-6 -mt-6 p-6 rounded-t-lg">
+          <DialogTitle className="font-light">Aviso de Reclamo</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="col-span-2 md:col-span-1">
+              <Label className={labelCls}>Pedido recibido</Label>
+              <Select value={pedidoSel} onValueChange={setPedidoSel}>
+                <SelectTrigger><SelectValue placeholder="Selecciona pedido" /></SelectTrigger>
+                <SelectContent>
+                  {pedidos.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.numero_po_interno} · {fmtFecha(p.fecha_pedido)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className={labelCls}>Nombre de cliente</Label>
+              <Input value="LUMAGGS" readOnly disabled className="bg-muted" />
+            </div>
+            <div>
+              <Label className={labelCls}>No. Pedido en Factura</Label>
+              <Input value={noPedidoFactura} onChange={(e) => setNoPedidoFactura(e.target.value)} placeholder="Automático del pedido" />
+            </div>
+            <div className="col-span-2 md:col-span-1">
+              <Label className={labelCls}>Factura</Label>
+              <Select value={facturaSel || undefined} onValueChange={setFacturaSel}>
+                <SelectTrigger><SelectValue placeholder="Selecciona factura" /></SelectTrigger>
+                <SelectContent className="max-h-[260px]">
+                  {facturas.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      Folio {f.folio} · {fmtFecha(f.fecha)} · {fmtMoney(f.total)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">Se liga de manera definitiva al pedido.</p>
+            </div>
+            <div>
+              <Label className={labelCls}>Fecha de reclamo</Label>
+              <Input type="date" value={fechaReclamo} onChange={(e) => setFechaReclamo(e.target.value)} />
+            </div>
+            <div>
+              <Label className={labelCls}>Fecha de recepción del pedido</Label>
+              <Input type="date" value={fechaRecepcion} onChange={(e) => setFechaRecepcion(e.target.value)} />
+            </div>
+            <div>
+              <Label className={labelCls}>Enviado por (nombre)</Label>
+              <Input value={remitenteNombre} onChange={(e) => setRemitenteNombre(e.target.value)} />
+            </div>
+            <div>
+              <Label className={labelCls}>Correo del remitente</Label>
+              <Input value={remitenteEmail} onChange={(e) => setRemitenteEmail(e.target.value)} />
+            </div>
+            <div className="col-span-2 md:col-span-3">
+              <Label className={labelCls}>Descripción general</Label>
+              <Textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} rows={2} />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-xs uppercase tracking-wide">Productos a reclamar</Label>
+              <Select onValueChange={(v) => { addLinea(v); }} value="">
+                <SelectTrigger className="w-[280px] h-8"><SelectValue placeholder="+ Agregar producto del pedido" /></SelectTrigger>
+                <SelectContent className="max-h-[260px]">
+                  {lineasPedido.filter((l) => !lineas.some((x) => x.codigo_producto === l.codigo_producto)).map((l) => (
+                    <SelectItem key={l.codigo_producto} value={l.codigo_producto}>
+                      {l.codigo_producto} · {l.nombre_producto}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {lineas.length > 0 && (
+              <div className="border rounded overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/40">
+                    <TableRow>{["Tipo prod.", "Código", "Descripción", "Empaque", "Tipo aviso", "Cant. solicitada", "Cant. recibida", "Diferencia", "Unidad", ""].map((h) =>
+                      <TableHead key={h} className="text-[10px] uppercase">{h}</TableHead>)}</TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {lineas.map((l, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>
+                          <Select value={l.tipo_producto} onValueChange={(v) => updLinea(idx, "tipo_producto", v)}>
+                            <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Empacado">Empacado</SelectItem>
+                              <SelectItem value="Granel">Granel</SelectItem>
+                              <SelectItem value="otro">Otro…</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {l.tipo_producto === "otro" && <Input className="h-7 mt-1 w-24" value={l.tipo_producto_otro || ""} onChange={(e) => updLinea(idx, "tipo_producto_otro", e.target.value)} />}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
+                        <TableCell className="text-xs max-w-[160px] truncate" title={l.descripcion}>{l.descripcion}</TableCell>
+                        <TableCell className="text-xs">{l.empaque || "—"}</TableCell>
+                        <TableCell>
+                          <Select value={l.tipo_aviso} onValueChange={(v) => updLinea(idx, "tipo_aviso", v)}>
+                            <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Faltante">Faltante</SelectItem>
+                              <SelectItem value="Dañado">Dañado</SelectItem>
+                              <SelectItem value="otro">Otro…</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {l.tipo_aviso === "otro" && <Input className="h-7 mt-1 w-24" value={l.tipo_aviso_otro || ""} onChange={(e) => updLinea(idx, "tipo_aviso_otro", e.target.value)} />}
+                        </TableCell>
+                        <TableCell><Input type="number" value={l.cantidad_solicitada} className="w-20 h-8" onChange={(e) => updLinea(idx, "cantidad_solicitada", e.target.value)} /></TableCell>
+                        <TableCell><Input type="number" value={l.cantidad_recibida} className="w-20 h-8" onChange={(e) => updLinea(idx, "cantidad_recibida", e.target.value)} /></TableCell>
+                        <TableCell><Input type="number" value={l.diferencia} className={`w-20 h-8 ${!l.diferencia || Number(l.diferencia) === 0 ? "border-red-300" : ""}`} onChange={(e) => updLinea(idx, "diferencia", e.target.value)} /></TableCell>
+                        <TableCell>
+                          <Select value={l.unidad} onValueChange={(v) => updLinea(idx, "unidad", v)}>
+                            <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Litros">Litros</SelectItem>
+                              <SelectItem value="Piezas">Piezas</SelectItem>
+                              <SelectItem value="otro">Otro…</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {l.unidad === "otro" && <Input className="h-7 mt-1 w-24" value={l.unidad_otro || ""} onChange={(e) => updLinea(idx, "unidad_otro", e.target.value)} />}
+                        </TableCell>
+                        <TableCell><Button variant="ghost" size="sm" onClick={() => setLineas(lineas.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <Label className={labelCls}>Fotos y documentos de respaldo</Label>
+            <div className="flex items-center gap-2">
+              <label className="inline-block">
+                <input type="file" multiple className="hidden" onChange={(e) => setArchivos([...archivos, ...Array.from(e.target.files || [])])} />
+                <Button asChild size="sm" variant="outline"><span><Upload className="h-3.5 w-3.5 mr-1.5" />Agregar archivos</span></Button>
+              </label>
+              <span className="text-xs text-muted-foreground">{archivos.length} archivo(s)</span>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="bg-muted/30 -mx-6 -mb-6 p-4 rounded-b-lg">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={onSave} disabled={saving}>{saving ? "Guardando..." : "Crear reclamo"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
