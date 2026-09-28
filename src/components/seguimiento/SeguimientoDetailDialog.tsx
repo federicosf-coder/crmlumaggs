@@ -45,7 +45,10 @@ import {
   Package,
   ArrowUp,
   ArrowDown,
+  UserCog,
+  Loader2,
 } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatDate, formatRelativeDate } from "@/lib/formatters";
 import {
   type EmpresaVendedora,
@@ -98,9 +101,85 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
   const [registrarPerdidaOpen, setRegistrarPerdidaOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<{ phone: string; contact: any | null } | null>(null);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [reassignUserId, setReassignUserId] = useState("");
+  const [reassigning, setReassigning] = useState(false);
 
   const open = !!row;
   const tieneVenta = !!row?.tiene_venta;
+
+  // ---- Ejecutivos disponibles para reasignación ----
+  const { data: profilesList = [] } = useQuery({
+    queryKey: ["seguimiento_detail_profiles"],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .order("full_name");
+      return (data || []) as { user_id: string; full_name: string | null }[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const ejecutivoNombre = useMemo(() => {
+    if (!row?.owner_id) return null;
+    return profilesList.find((p) => p.user_id === row.owner_id)?.full_name || null;
+  }, [profilesList, row?.owner_id]);
+
+  const handleReasignar = async () => {
+    if (!row || !reassignUserId) return;
+    setReassigning(true);
+    try {
+      // Titularidad del cliente
+      await (supabase as any).from("company_ejecutivos").delete().eq("company_id", row.company_id);
+      await (supabase as any)
+        .from("company_ejecutivos")
+        .insert({ company_id: row.company_id, user_id: reassignUserId });
+
+      // Tareas pendientes de este cliente
+      await (supabase as any)
+        .from("crm_tasks")
+        .update({ user_id: reassignUserId })
+        .eq("company_id", row.company_id)
+        .eq("completed", false);
+
+      // Pendientes del CRM de este cliente
+      await (supabase as any)
+        .from("crm_items")
+        .update({ assigned_to: reassignUserId })
+        .eq("company_id", row.company_id)
+        .is("fecha_terminacion", null);
+
+      // Recalcula el seguimiento del cliente
+      try {
+        await (supabase as any).rpc("recompute_seguimiento_ventas", {
+          _company_id: row.company_id,
+          _ev: empresaVendedora,
+        });
+      } catch (err) {
+        console.warn("[recompute] failed", row.company_id, err);
+      }
+
+      toast({
+        title: "Ejecutivo reasignado",
+        description: "Se transfirieron el cliente, sus tareas y pendientes abiertos.",
+      });
+      setReassignOpen(false);
+      setReassignUserId("");
+      qc.invalidateQueries({ queryKey: ["seguimiento_ventas"] });
+      qc.invalidateQueries({ queryKey: ["company_ejecutivos"] });
+      qc.invalidateQueries({ queryKey: ["seguimiento_tasks_linked"] });
+    } catch (e: any) {
+      toast({
+        title: "Error al reasignar",
+        description: e?.message || "Intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setReassigning(false);
+    }
+  };
 
   // ---- Contactos de la empresa ----
   const { data: contacts } = useQuery({
