@@ -905,6 +905,79 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
               )}
             </div>
 
+            {/* Datos del cliente (ficha unificada) */}
+            <div className="rounded-lg shadow-sm bg-muted/30 p-4">
+              <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
+                <Building2 className="h-4 w-4" /> Datos del cliente
+              </h4>
+              <Tabs defaultValue="fiscal" className="w-full">
+                <TabsList className="grid grid-cols-3 w-full h-9">
+                  <TabsTrigger value="fiscal" className="text-xs">Facturación / Fiscal</TabsTrigger>
+                  <TabsTrigger value="direcciones" className="text-xs">
+                    Direcciones <span className="text-[10px] opacity-70 ml-1">({companyAddresses.length})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="perfil" className="text-xs">Perfil comercial</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="fiscal" className="mt-3">
+                  <div className="grid grid-cols-2 gap-3 text-sm font-light">
+                    <FichaDato label="Razón Social" value={companyInfo?.razon_social} />
+                    <FichaDato label="RFC" value={companyInfo?.rfc} />
+                    <FichaDato label="ID Contpaq" value={companyInfo?.id_contpaq} />
+                    <FichaDato label="Plaza" value={companyInfo?.plazas?.nombre} />
+                    <FichaDato label="Tipo de cliente" value={companyInfo?.tipo_cliente_comercial} />
+                    <FichaDato label="Tipo de pago" value={companyInfo?.tipo_pago} />
+                    <FichaDato label="Forma de pago" value={companyInfo?.forma_pago} />
+                    <FichaDato label="Método de pago" value={companyInfo?.metodo_pago} />
+                    <FichaDato label="Uso CFDI" value={companyInfo?.uso_cfdi} />
+                    <FichaDato
+                      label="Límite de crédito"
+                      value={companyInfo?.limite_credito != null ? fmtMoney(Number(companyInfo.limite_credito)) : null}
+                    />
+                    <FichaDato label="Lista de precios" value={companyInfo?.lista_precios} />
+                    <FichaDato label="Correo" value={companyInfo?.email} />
+                    <FichaDato label="Teléfono" value={companyInfo?.phone} />
+                    <FichaDato label="Sitio web" value={companyInfo?.website} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="direcciones" className="mt-3">
+                  {companyAddresses.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sin direcciones registradas.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {companyAddresses.map((a: any) => (
+                        <div key={a.id} className="rounded-md border bg-background px-3 py-2 text-xs">
+                          <div className="font-medium">{a.nombre || a.direccion_completa || a.calle || "Dirección"}</div>
+                          <div className="text-muted-foreground font-light">
+                            {[a.direccion_completa || a.calle, a.ciudad, a.estado, a.codigo_postal].filter(Boolean).join(", ") || "—"}
+                          </div>
+                          {a.referencia && <div className="text-muted-foreground italic font-light">Ref: {a.referencia}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="perfil" className="mt-3">
+                  <div className="grid grid-cols-2 gap-3 text-sm font-light">
+                    <FichaDato label="Industria" value={companyInfo?.industry} />
+                    <FichaDato label="Potencial de unidades" value={companyInfo?.potencial_unidades} />
+                    <FichaDato label="Tomador de decisión" value={companyInfo?.tomador_decision} />
+                    <FichaDato label="Riesgo de cambio de marca" value={companyInfo?.riesgo_cambio_marca} />
+                    <FichaDato label="Ciudad" value={companyInfo?.city} />
+                    <FichaDato label="Estado" value={companyInfo?.state} />
+                  </div>
+                  {companyInfo?.notes && (
+                    <div className="mt-3 rounded-md border bg-background px-3 py-2 text-xs font-light whitespace-pre-wrap">
+                      {companyInfo.notes}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+
+
             {/* Documentos relacionados — Tabs (empresa + marca) */}
             <div className="rounded-lg shadow-sm bg-muted/30 p-4">
               <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
