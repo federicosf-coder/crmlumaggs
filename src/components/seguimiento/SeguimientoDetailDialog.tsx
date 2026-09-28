@@ -46,6 +46,7 @@ import {
   ArrowUp,
   ArrowDown,
   UserCog,
+  Building2,
   Loader2,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -75,6 +76,15 @@ function fmtNum(n: number | null | undefined): string {
 function fmtMoney(n: number | null | undefined): string {
   if (n == null) return "—";
   return Number(n).toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
+}
+
+function FichaDato({ label, value }: { label: string; value?: string | number | null }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="text-sm font-light break-words">{value || "—"}</p>
+    </div>
+  );
 }
 
 function digitCount(s: string | null | undefined): number {
@@ -234,6 +244,36 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
   });
 
   const primaryContact = contacts?.[0] || null;
+
+  // ---- Ficha del cliente: datos fiscales / comerciales ----
+  const { data: companyInfo } = useQuery({
+    queryKey: ["seguimiento_company_info", row?.company_id],
+    enabled: !!row?.company_id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("companies")
+        .select(
+          "id, name, razon_social, rfc, id_contpaq, industry, lista_precios, tipo_cliente_comercial, tipo_pago, forma_pago, metodo_pago, uso_cfdi, limite_credito, address, city, state, zip_code, email, phone, website, notes, potencial_unidades, tomador_decision, riesgo_cambio_marca, plazas(nombre)"
+        )
+        .eq("id", row!.company_id)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  // ---- Direcciones de entrega ----
+  const { data: companyAddresses = [] } = useQuery({
+    queryKey: ["seguimiento_company_addresses", row?.company_id],
+    enabled: !!row?.company_id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("direcciones_empresa")
+        .select("id, nombre, tipo, tipos, direccion_completa, calle, ciudad, estado, codigo_postal, referencia")
+        .eq("empresa_id", row!.company_id)
+        .eq("is_active", true);
+      return (data || []) as any[];
+    },
+  });
 
   // ---- Actividades y tareas vinculadas a ESTE seguimiento (tablas puente) ----
   const { data: linkedActivities } = useQuery({
@@ -874,6 +914,79 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                 </div>
               )}
             </div>
+
+            {/* Datos del cliente (ficha unificada) */}
+            <div className="rounded-lg shadow-sm bg-muted/30 p-4">
+              <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
+                <Building2 className="h-4 w-4" /> Datos del cliente
+              </h4>
+              <Tabs defaultValue="fiscal" className="w-full">
+                <TabsList className="grid grid-cols-3 w-full h-9">
+                  <TabsTrigger value="fiscal" className="text-xs">Facturación / Fiscal</TabsTrigger>
+                  <TabsTrigger value="direcciones" className="text-xs">
+                    Direcciones <span className="text-[10px] opacity-70 ml-1">({companyAddresses.length})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="perfil" className="text-xs">Perfil comercial</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="fiscal" className="mt-3">
+                  <div className="grid grid-cols-2 gap-3 text-sm font-light">
+                    <FichaDato label="Razón Social" value={companyInfo?.razon_social} />
+                    <FichaDato label="RFC" value={companyInfo?.rfc} />
+                    <FichaDato label="ID Contpaq" value={companyInfo?.id_contpaq} />
+                    <FichaDato label="Plaza" value={companyInfo?.plazas?.nombre} />
+                    <FichaDato label="Tipo de cliente" value={companyInfo?.tipo_cliente_comercial} />
+                    <FichaDato label="Tipo de pago" value={companyInfo?.tipo_pago} />
+                    <FichaDato label="Forma de pago" value={companyInfo?.forma_pago} />
+                    <FichaDato label="Método de pago" value={companyInfo?.metodo_pago} />
+                    <FichaDato label="Uso CFDI" value={companyInfo?.uso_cfdi} />
+                    <FichaDato
+                      label="Límite de crédito"
+                      value={companyInfo?.limite_credito != null ? fmtMoney(Number(companyInfo.limite_credito)) : null}
+                    />
+                    <FichaDato label="Lista de precios" value={companyInfo?.lista_precios} />
+                    <FichaDato label="Correo" value={companyInfo?.email} />
+                    <FichaDato label="Teléfono" value={companyInfo?.phone} />
+                    <FichaDato label="Sitio web" value={companyInfo?.website} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="direcciones" className="mt-3">
+                  {companyAddresses.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sin direcciones registradas.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {companyAddresses.map((a: any) => (
+                        <div key={a.id} className="rounded-md border bg-background px-3 py-2 text-xs">
+                          <div className="font-medium">{a.nombre || a.direccion_completa || a.calle || "Dirección"}</div>
+                          <div className="text-muted-foreground font-light">
+                            {[a.direccion_completa || a.calle, a.ciudad, a.estado, a.codigo_postal].filter(Boolean).join(", ") || "—"}
+                          </div>
+                          {a.referencia && <div className="text-muted-foreground italic font-light">Ref: {a.referencia}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="perfil" className="mt-3">
+                  <div className="grid grid-cols-2 gap-3 text-sm font-light">
+                    <FichaDato label="Industria" value={companyInfo?.industry} />
+                    <FichaDato label="Potencial de unidades" value={companyInfo?.potencial_unidades} />
+                    <FichaDato label="Tomador de decisión" value={companyInfo?.tomador_decision} />
+                    <FichaDato label="Riesgo de cambio de marca" value={companyInfo?.riesgo_cambio_marca} />
+                    <FichaDato label="Ciudad" value={companyInfo?.city} />
+                    <FichaDato label="Estado" value={companyInfo?.state} />
+                  </div>
+                  {companyInfo?.notes && (
+                    <div className="mt-3 rounded-md border bg-background px-3 py-2 text-xs font-light whitespace-pre-wrap">
+                      {companyInfo.notes}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+
 
             {/* Documentos relacionados — Tabs (empresa + marca) */}
             <div className="rounded-lg shadow-sm bg-muted/30 p-4">

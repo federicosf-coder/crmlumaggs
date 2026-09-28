@@ -34,6 +34,8 @@ import { MergeContactsDialog } from "@/components/directory/MergeContactsDialog"
 import { CompanyMetricsPanel } from "@/components/directory/CompanyMetricsPanel";
 import { CompanyCreditoCobranzaTab } from "@/components/directory/CompanyCreditoCobranzaTab";
 import { JustificacionPrecioBlock } from "@/components/directory/JustificacionPrecioBlock";
+import { GrupoComercialDialog } from "@/components/seguimiento/GrupoComercialDialog";
+import { Users2 } from "lucide-react";
 
 interface Company {
   id: string; name: string; razon_social: string | null; industry: string | null; phone: string | null;
@@ -46,6 +48,7 @@ interface Company {
   origen_contacto: string | null; evaluacion_lubricante: string | null;
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
   id_contpaq: string | null;
+  grupo_comercial_id?: string | null;
   tipo_pago: string | null; forma_pago: string | null; metodo_pago: string | null; uso_cfdi: string | null;
   plazas?: { nombre: string } | null;
   contacts?: { id: string }[];
@@ -126,6 +129,7 @@ export default function Directory() {
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [grupoDialogOpen, setGrupoDialogOpen] = useState(false);
 
   // Filtros avanzados (contactos)
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -249,6 +253,22 @@ export default function Directory() {
     },
     enabled: !!selectedCompany?.id,
   });
+
+  // Catálogo de grupos comerciales (para mostrar nombre en la ficha)
+  const { data: gruposComerciales = [] } = useQuery({
+    queryKey: ["grupos_comerciales"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("grupos_comerciales")
+        .select("id, nombre")
+        .eq("activo", true)
+        .order("nombre");
+      return (data || []) as { id: string; nombre: string }[];
+    },
+    staleTime: 60_000,
+  });
+  const grupoNombre = (id?: string | null) =>
+    id ? gruposComerciales.find((g) => g.id === id)?.nombre || null : null;
 
   // Contactos vinculados a la empresa seleccionada (para vista detalle)
   const { data: selectedCompanyContacts = [] } = useQuery({
@@ -1200,6 +1220,38 @@ export default function Directory() {
                     </div>
                   </div>
 
+                  {/* Grupo comercial */}
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                        <Users2 className="h-3.5 w-3.5" /> Grupo comercial
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[10px] font-semibold uppercase tracking-widest border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100"
+                        onClick={() => setGrupoDialogOpen(true)}
+                      >
+                        {selectedCompany.grupo_comercial_id ? "Cambiar grupo" : "Asignar grupo"}
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={selectedCompany.grupo_comercial_id ? "secondary" : "outline"} className="text-xs">
+                        {grupoNombre(selectedCompany.grupo_comercial_id) || "Sin grupo"}
+                      </Badge>
+                    </div>
+                    {selectedCompany.grupo_comercial_id && (
+                      <div className="text-xs text-muted-foreground">
+                        Empresas del grupo:{" "}
+                        {companies
+                          .filter((c) => c.grupo_comercial_id === selectedCompany.grupo_comercial_id)
+                          .map((c) => c.name)
+                          .join(" · ") || "—"}
+                      </div>
+                    )}
+                  </div>
+
+
                   {/* Equipo comercial */}
                   <div className="rounded-lg border p-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-primary">
@@ -1532,6 +1584,24 @@ export default function Directory() {
         open={mergeContactsOpen}
         onOpenChange={setMergeContactsOpen}
         onMerged={fetchData}
+      />
+      <GrupoComercialDialog
+        open={grupoDialogOpen}
+        companyId={selectedCompany?.id || null}
+        companyName={selectedCompany?.name || null}
+        currentGrupoId={selectedCompany?.grupo_comercial_id || null}
+        onOpenChange={async (o) => {
+          setGrupoDialogOpen(o);
+          if (!o && selectedCompany?.id) {
+            const { data } = await supabase
+              .from("companies")
+              .select("*, plazas(nombre), contacts!contacts_company_id_fkey(id)")
+              .eq("id", selectedCompany.id)
+              .maybeSingle();
+            if (data) setSelectedCompany(data as any);
+            fetchData();
+          }
+        }}
       />
     </div>
   );

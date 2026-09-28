@@ -180,6 +180,7 @@ export interface CompanyData {
   tarjeta_ultimos4?: string | null;
   limite_credito?: number | null;
   justificacion_precio_default?: string | null;
+  grupo_comercial_id?: string | null;
 }
 
 
@@ -205,6 +206,7 @@ const emptyForm = {
   tarjeta_ultimos4: "",
   limite_credito: 0,
   justificacion_precio_default: "",
+  grupo_comercial_id: "",
   plaza_ids: [] as string[],
   ejecutivo_ids: [] as string[],
 };
@@ -302,6 +304,37 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   });
   const labelTipoDireccion = (clave: string) =>
     tiposDireccionCatalog.find((t) => t.clave === clave)?.etiqueta || clave;
+
+  // Grupos comerciales (para unir varias razones sociales del mismo cliente)
+  const { data: gruposComerciales = [], refetch: refetchGrupos } = useQuery({
+    queryKey: ["grupos_comerciales"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("grupos_comerciales")
+        .select("id, nombre")
+        .eq("activo", true)
+        .order("nombre");
+      return (data || []) as { id: string; nombre: string }[];
+    },
+    enabled: open,
+    staleTime: 60_000,
+  });
+
+  const crearGrupoComercial = async () => {
+    const nombre = (window.prompt("Nombre del grupo comercial nuevo") || "").trim();
+    if (!nombre) return;
+    const { data, error } = await (supabase as any)
+      .from("grupos_comerciales")
+      .insert({ nombre })
+      .select("id")
+      .single();
+    if (error) {
+      toast.error("No se pudo crear el grupo");
+      return;
+    }
+    await refetchGrupos();
+    setAndSaveNow("grupo_comercial_id", data.id);
+  };
 
   // Contactos disponibles para vincular al crear empresa (sin company_id o seleccionados)
   const { data: pendingContactsData = [], refetch: refetchPendingContacts } = useQuery({
@@ -490,6 +523,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
         limite_credito: Number((editData as any).limite_credito ?? 0),
         justificacion_precio_default: (editData as any).justificacion_precio_default || "",
+        grupo_comercial_id: (editData as any).grupo_comercial_id || "",
         plaza_ids: [],
         ejecutivo_ids: [],
       });
@@ -522,6 +556,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
         tarjeta_ultimos4: (editData as any).tarjeta_ultimos4 || "",
         limite_credito: Number((editData as any).limite_credito ?? 0),
         justificacion_precio_default: (editData as any).justificacion_precio_default || "",
+        grupo_comercial_id: (editData as any).grupo_comercial_id || "",
         plaza_ids: [],
         ejecutivo_ids: [],
       });
@@ -616,6 +651,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       tarjeta_ultimos4: form.tarjeta_ultimos4?.trim() || null,
       limite_credito: Number((form as any).limite_credito ?? 0),
       justificacion_precio_default: form.justificacion_precio_default?.trim() || null,
+      grupo_comercial_id: form.grupo_comercial_id || null,
     } as any;
 
 
@@ -816,6 +852,31 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
                   )}
                 </div>
               </div>
+
+              {/* Grupo comercial */}
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Grupo comercial
+                  </Label>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={crearGrupoComercial}>
+                    <Plus className="h-3.5 w-3.5 mr-1" />Crear grupo
+                  </Button>
+                </div>
+                <SearchableSelect
+                  value={form.grupo_comercial_id || ""}
+                  onValueChange={v => setAndSaveNow("grupo_comercial_id", v)}
+                  options={[
+                    { value: "", label: "Sin grupo" },
+                    ...gruposComerciales.map(g => ({ value: g.id, label: g.nombre })),
+                  ]}
+                  placeholder="Sin grupo"
+                />
+                <p className="text-xs text-muted-foreground font-light">
+                  Une varias razones sociales que en realidad son el mismo cliente; el seguimiento toma la compra más reciente del grupo.
+                </p>
+              </div>
+
 
               {/* Sitio Web + Ejecutivo(s) de Venta */}
               <div className="grid grid-cols-2 gap-3">
