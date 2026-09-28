@@ -88,6 +88,7 @@ export default function PedidoAccionesPanel({
   const [previewFlow, setPreviewFlow] = useState<any>(null);
   const [preparing, setPreparing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
   const { data: fila, refetch } = useQuery({
     queryKey: ["pedido-autorizacion-precio", documentoId],
     queryFn: async () => {
