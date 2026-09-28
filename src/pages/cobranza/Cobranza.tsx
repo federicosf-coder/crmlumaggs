@@ -2229,6 +2229,19 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
               <CardContent className="p-4 space-y-3">
                 <Label className="text-sm font-semibold">Editar Pago</Label>
                 <div>
+                  <Label className="text-xs">Empresa (cliente) *</Label>
+                  <SearchableSelect
+                    value={nuevaEmpresaId}
+                    onValueChange={setNuevaEmpresaId}
+                    options={empresasEdit.map((c: any) => companyOptionConContpaq(c))}
+                    placeholder="Buscar empresa..."
+                  />
+                  {!nuevaEmpresaId && <p className="text-xs text-destructive mt-1">La empresa es requerida</p>}
+                  {nuevaEmpresaId && nuevaEmpresaId !== pago?.empresa_id && (
+                    <p className="text-xs text-amber-600 mt-1">Las aplicaciones ya registradas seguirán ligadas a sus facturas; solo cambia la empresa del pago.</p>
+                  )}
+                </div>
+                <div>
                   <Label className="text-xs">Forma de Pago</Label>
                   <select
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -2279,12 +2292,14 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
                   <Button size="sm" variant="outline" onClick={() => setEditandoFormaPago(false)}>Cancelar</Button>
                   <Button size="sm" onClick={async () => {
                     if (!nuevaPlazaId) { toast.error("La plaza es requerida"); return; }
+                    if (!nuevaEmpresaId) { toast.error("La empresa es requerida"); return; }
                     const montoNum = Number(nuevoMonto);
                     if (!nuevoMonto || !Number.isFinite(montoNum) || montoNum <= 0) { toast.error("Monto inválido"); return; }
                     const { error } = await supabase
                       .from("cobranza_pagos")
                       .update({
                         tipo_pago: (nuevaFormaPago || null) as any,
+                        empresa_id: nuevaEmpresaId,
                         plaza_id: nuevaPlazaId,
                         fecha_pago: nuevaFecha,
                         banco: nuevoBanco || null,
