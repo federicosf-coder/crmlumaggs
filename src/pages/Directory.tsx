@@ -34,6 +34,8 @@ import { MergeContactsDialog } from "@/components/directory/MergeContactsDialog"
 import { CompanyMetricsPanel } from "@/components/directory/CompanyMetricsPanel";
 import { CompanyCreditoCobranzaTab } from "@/components/directory/CompanyCreditoCobranzaTab";
 import { JustificacionPrecioBlock } from "@/components/directory/JustificacionPrecioBlock";
+import { GrupoComercialDialog } from "@/components/seguimiento/GrupoComercialDialog";
+import { Users2 } from "lucide-react";
 
 interface Company {
   id: string; name: string; razon_social: string | null; industry: string | null; phone: string | null;
@@ -46,6 +48,7 @@ interface Company {
   origen_contacto: string | null; evaluacion_lubricante: string | null;
   rol_lubricante: string | null; tipo_cliente_comercial: string | null;
   id_contpaq: string | null;
+  grupo_comercial_id?: string | null;
   tipo_pago: string | null; forma_pago: string | null; metodo_pago: string | null; uso_cfdi: string | null;
   plazas?: { nombre: string } | null;
   contacts?: { id: string }[];
@@ -126,6 +129,7 @@ export default function Directory() {
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [grupoDialogOpen, setGrupoDialogOpen] = useState(false);
 
   // Filtros avanzados (contactos)
   const [filtersOpen, setFiltersOpen] = useState(false);
