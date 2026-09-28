@@ -27,7 +27,7 @@ import { fetchAllRows } from "@/lib/supabasePagination";
 import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 
 // Column visibility config per document type
-type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "estatus" | "pdf" | "oc_cliente" | "tipo_pago";
+type ColumnKey = "numero" | "cliente" | "ejecutivo" | "plaza" | "fecha" | "fecha_vencimiento" | "fecha_programada" | "total" | "saldo" | "estatus" | "pdf" | "oc_cliente" | "tipo_pago";
 const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "numero", label: "Número" },
   { key: "cliente", label: "Cliente" },
@@ -39,16 +39,18 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "oc_cliente", label: "Núm. OC Cliente" },
   { key: "tipo_pago", label: "Tipo de Pago" },
   { key: "total", label: "Total" },
+  { key: "saldo", label: "Saldo" },
   { key: "estatus", label: "Estatus" },
   { key: "pdf", label: "PDF" },
 ];
 const DEFAULT_COLS_BY_TIPO: Record<string, ColumnKey[]> = {
   cotizacion: ["numero", "cliente", "ejecutivo", "fecha", "tipo_pago", "total", "estatus", "pdf"],
   pedido: ["cliente", "ejecutivo", "fecha", "fecha_programada", "tipo_pago", "total", "estatus", "pdf"],
-  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "tipo_pago", "total", "estatus", "pdf"],
+  factura: ["numero", "cliente", "ejecutivo", "plaza", "fecha", "fecha_vencimiento", "tipo_pago", "total", "saldo", "estatus", "pdf"],
   entrega_corporativa: ["cliente", "ejecutivo", "fecha", "fecha_programada", "oc_cliente", "estatus"],
 };
 const colsStorageKey = (userId: string, tipo: string) => `doc-cols:${userId}:${tipo}`;
+
 
 const ESTATUS_COT_LABELS: Record<string, string> = {
   borrador: "Borrador", impresa: "Impresa", enviada: "Enviada",
