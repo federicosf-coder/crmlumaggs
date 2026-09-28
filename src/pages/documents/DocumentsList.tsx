@@ -1274,6 +1274,10 @@ export default function DocumentsList() {
                       {isColVisible("total") && (
                         <SortableHead ascKey="total_asc" descKey="total_desc">Total</SortableHead>
                       )}
+                      {tipoFilter === "factura" && isColVisible("saldo") && (
+                        <SortableHead ascKey="saldo_asc" descKey="saldo_desc">Saldo</SortableHead>
+                      )}
+
                       {isColVisible("estatus") && (
                         <SortableHead ascKey="estatus_asc" descKey="estatus_desc">
                           {tipoFilter === "factura" ? "Estatus Factura" : "Estatus"}
