@@ -2511,7 +2511,15 @@ export default function CreditoDetail() {
                   aval: "text-rose-700",
                   otros: "text-slate-700",
                 };
-                const groupFor = (dt: any): { key: string; label: string } => {
+                 const docLabel = (dt: any): string => {
+                   const n = (dt.nombre || "").toLowerCase();
+                   if (n.includes("identificación oficial")) {
+                     const tpl = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
+                     return tpl === "fisica" ? "Identificación oficial del solicitante" : "Identidad del representante legal";
+                   }
+                   return dt.nombre;
+                 };
+                 const groupFor = (dt: any): { key: string; label: string } => {
                   const n = (dt.nombre || "").toLowerCase();
                   if (dt.aplica_si_aval_distinto || n.includes("aval")) return { key: "aval", label: "Aval / Obligado solidario" };
                   if (n.includes("csf") || n.includes("situación fiscal") || n.includes("opinión") || n.includes("32-d")) return { key: "fiscal", label: "Documentos fiscales" };
@@ -2583,8 +2591,8 @@ export default function CreditoDetail() {
                           <div className={`h-5 w-5 rounded flex items-center justify-center shrink-0 ${palette.iconBg}`}>
                             <Icon className={`h-3 w-3 ${palette.iconColor}`} />
                           </div>
-                          <p className="text-xs font-medium leading-tight truncate flex-1 min-w-0" title={dt.nombre}>
-                            {dt.nombre} {isRequerido(dt) && <span className="text-red-600">*</span>}
+                           <p className="text-xs font-medium leading-tight truncate flex-1 min-w-0" title={docLabel(dt)}>
+                             {docLabel(dt)} {isRequerido(dt) && <span className="text-red-600">*</span>}
                           </p>
                           {dt.instrucciones_cliente && (
                             <Tooltip>
@@ -2598,7 +2606,7 @@ export default function CreditoDetail() {
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent side="bottom" align="start" className="max-w-[260px] text-[11px] leading-snug p-2.5">
-                                <p className="font-semibold mb-0.5">{dt.nombre}</p>
+                                <p className="font-semibold mb-0.5">{docLabel(dt)}</p>
                                 <p className="font-normal text-muted-foreground">{dt.instrucciones_cliente}</p>
                               </TooltipContent>
                             </Tooltip>
