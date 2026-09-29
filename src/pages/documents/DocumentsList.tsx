@@ -857,8 +857,8 @@ export default function DocumentsList() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="flex h-[calc(100svh-5.25rem)] min-h-0 w-full min-w-0 flex-col gap-3 md:h-[calc(100svh-6rem)]">
+      <div className="flex shrink-0 items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Documentos</h1>
           <p className="text-muted-foreground text-sm">Cotizaciones, pedidos y facturas</p>
@@ -902,7 +902,7 @@ export default function DocumentsList() {
       </div>
 
       {/* Empresa filter */}
-      <div className="flex gap-2">
+      <div className="flex shrink-0 gap-2 overflow-x-auto pb-1">
         {[
           { value: "lumaggs_chevron", label: "Lumaggs Chevron" },
           { value: "galsa_phillips66", label: "Galsa Phillips 66" },
@@ -925,8 +925,8 @@ export default function DocumentsList() {
       </div>
 
       {/* Tipo tabs with color coding + view toggle */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+      <div className="flex shrink-0 items-center justify-between gap-2">
+        <div className="flex min-w-0 gap-2 overflow-x-auto pb-1">
           {[
             { value: "cotizacion", label: "Cotizaciones" },
             { value: "pedido", label: "Pedidos" },
@@ -1046,8 +1046,8 @@ export default function DocumentsList() {
           )}
         </div>
       ) : (
-        <Card className={`border-t-2 ${tabColor.border}`}>
-          <CardHeader className="pb-3">
+        <Card className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t-2 ${tabColor.border}`}>
+          <CardHeader className="shrink-0 p-3 pb-3 sm:p-4 sm:pb-3">
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -1195,7 +1195,7 @@ export default function DocumentsList() {
             </div>
             {/* Filter toolbar */}
           </CardHeader>
-          <CardContent className="px-0 sm:px-6">
+          <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col px-0 pb-0 sm:px-4">
             {/* Bulk action bar */}
             {selectedIds.size > 0 && (
               <div className="flex items-center gap-3 px-4 py-2 mb-2 bg-muted rounded-md">
@@ -1227,11 +1227,11 @@ export default function DocumentsList() {
               </div>
             ) : (
               <>
-              <div className="w-full max-w-full min-w-0 overflow-auto max-h-[min(70vh,calc(100vh-330px))] min-h-[260px] overscroll-x-contain rounded-xl border border-border/60 [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&>div]:bg-transparent [&>div]:backdrop-blur-none">
-                <Table>
+              <div className="w-full max-w-full min-w-0 flex-1 overflow-auto overscroll-contain rounded-xl border border-border/60 [scrollbar-gutter:stable] [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&>div]:bg-transparent [&>div]:backdrop-blur-none">
+                <Table className="min-w-max">
                   <TableHeader className="sticky top-0 z-20 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
                     <TableRow>
-                       <TableHead className="w-10 sticky left-0 z-10 bg-background">
+                       <TableHead className="sticky left-0 top-0 z-30 w-10 bg-background">
                          <Checkbox
                            checked={sortedDocs.length > 0 && selectedIds.size === sortedDocs.length}
                            onCheckedChange={toggleSelectAll}
@@ -1241,7 +1241,7 @@ export default function DocumentsList() {
                          <SortableHead
                            ascKey={tipoFilter === "factura" ? "numero_factura_asc" : "numero_asc"}
                            descKey={tipoFilter === "factura" ? "numero_factura_desc" : "numero_desc"}
-                           className="sticky left-10 z-10 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]"
+                            className="sticky left-10 top-0 z-30 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]"
                          >
                           {tipoFilter === "factura" ? "No. Factura" : "Número"}
                         </SortableHead>
@@ -1441,7 +1441,7 @@ export default function DocumentsList() {
                 </Table>
               </div>
               {totalDocs > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t text-sm">
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-sm">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Mostrar</span>
                     <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
