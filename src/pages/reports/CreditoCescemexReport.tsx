@@ -961,7 +961,12 @@ export default function CreditoCescemexReport() {
                               <TableCell>
                                 {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               </TableCell>
-                              <TableCell className="font-medium">{c.cliente}</TableCell>
+                              <TableCell className="font-medium">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span>{c.cliente}</span>
+                                  <GrupoComercialBadge nombre={grupoNombre(c.empresaId)} />
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className={cn(cat.text)}>
                                   {cat.label}
