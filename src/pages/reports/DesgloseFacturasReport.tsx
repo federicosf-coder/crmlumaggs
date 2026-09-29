@@ -175,7 +175,12 @@ export default function DesgloseFacturasReport() {
                         {lineas.length === 0 ? (
                           <TableRow key={f.id}>
                             <TableCell rowSpan={span} className="align-top font-medium">{f.numero_factura || "—"}</TableCell>
-                            <TableCell rowSpan={span} className="align-top">{f.companies?.name || "—"}</TableCell>
+                            <TableCell rowSpan={span} className="align-top">
+                              <div className="flex flex-col gap-1">
+                                <span>{f.companies?.name || "—"}</span>
+                                <GrupoComercialBadge nombre={grupoNombre(f.empresa_id)} className="w-fit" />
+                              </div>
+                            </TableCell>
                             <TableCell rowSpan={span} className="align-top">{ESTATUS_LABEL[f.estatus_factura ?? ""] ?? f.estatus_factura ?? "—"}</TableCell>
                             <TableCell colSpan={3} className="text-destructive font-medium">Sin productos capturados</TableCell>
                           </TableRow>
