@@ -1002,7 +1002,12 @@ export default function ReporteDiario() {
                     reporte.actividades.map((a) => (
                       <TableRow key={a.id}>
                         <TableCell className="whitespace-nowrap">{nombreDe(a.userId)}</TableCell>
-                        <TableCell className="font-medium">{a.cliente}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span>{a.cliente}</span>
+                            <GrupoComercialBadge nombre={grupoNombre(a.empresaId)} />
+                          </div>
+                        </TableCell>
                         <TableCell>{a.tipo}</TableCell>
                         <TableCell className="whitespace-pre-wrap">{a.descripcion}</TableCell>
                       </TableRow>
@@ -1039,7 +1044,12 @@ export default function ReporteDiario() {
                     reporte.cotizaciones.map((c) => (
                       <TableRow key={c.id}>
                         <TableCell>{EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora}</TableCell>
-                        <TableCell className="font-medium">{c.cliente}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span>{c.cliente}</span>
+                            <GrupoComercialBadge nombre={grupoNombre(c.empresaId)} />
+                          </div>
+                        </TableCell>
                         <TableCell>{c.folio}</TableCell>
                         <TableCell className="text-right">{num(c.unidades)}</TableCell>
                         <TableCell className="text-right">{money(c.total)}</TableCell>
@@ -1087,7 +1097,12 @@ export default function ReporteDiario() {
                           <>
                             {rows.map((f) => (
                               <TableRow key={f.id}>
-                                <TableCell className="font-medium">{f.cliente}</TableCell>
+                                <TableCell className="font-medium">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span>{f.cliente}</span>
+                                    <GrupoComercialBadge nombre={grupoNombre(f.empresaId)} />
+                                  </div>
+                                </TableCell>
                                 <TableCell>{f.folio}</TableCell>
                                 <TableCell className="text-right">{num(f.unidades)}</TableCell>
                                 <TableCell className="text-right">{money(f.total)}</TableCell>
@@ -1134,7 +1149,12 @@ export default function ReporteDiario() {
                   ) : (
                     reporte.cobranza.map((c) => (
                       <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.cliente}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span>{c.cliente}</span>
+                            <GrupoComercialBadge nombre={grupoNombre(c.empresaId)} />
+                          </div>
+                        </TableCell>
                         <TableCell>{c.metodoPago}</TableCell>
                         <TableCell className="text-right">{money(c.importe)}</TableCell>
                         <TableCell>{c.facturas.length ? c.facturas.join(", ") : "Sin aplicar"}</TableCell>
