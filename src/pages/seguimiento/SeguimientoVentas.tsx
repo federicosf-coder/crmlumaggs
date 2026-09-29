@@ -1197,16 +1197,34 @@ export default function SeguimientoVentas() {
         label: "Empresa",
         sortKey: "empresa",
         cellClassName: "font-medium",
-        render: (r) => (
-          <span className="inline-flex flex-col">
-            <span>{r.companies?.name || "—"}</span>
-            {r.companies?.grupos_comerciales?.nombre && (
-              <span className="text-[10px] font-light text-violet-700">
-                Grupo: {r.companies.grupos_comerciales.nombre}
+        render: (r) => {
+          const g = (r as SeguimientoRowConsolidada).__grupo;
+          if (g) {
+            return (
+              <span className="inline-flex flex-col">
+                <span className="inline-flex items-center gap-1.5">
+                  {g.nombre}
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-widest border border-violet-200 bg-violet-50 text-violet-700">
+                    Grupo · {g.empresas.length}
+                  </span>
+                </span>
+                <span className="text-[10px] font-light text-muted-foreground truncate max-w-[260px]" title={g.empresas.join(" · ")}>
+                  {g.empresas.join(" · ")}
+                </span>
               </span>
-            )}
-          </span>
-        ),
+            );
+          }
+          return (
+            <span className="inline-flex flex-col">
+              <span>{r.companies?.name || "—"}</span>
+              {r.companies?.grupos_comerciales?.nombre && (
+                <span className="text-[10px] font-light text-violet-700">
+                  Grupo: {r.companies.grupos_comerciales.nombre}
+                </span>
+              )}
+            </span>
+          );
+        },
       },
       {
         id: "ejecutivo",
