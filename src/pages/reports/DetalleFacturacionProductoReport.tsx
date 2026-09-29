@@ -295,32 +295,38 @@ export default function DetalleFacturacionProductoReport() {
   }, [lineasFiltradas, empresaSel, companyPlazaMap, plazaNameMap]);
 
   const clientesRows = useMemo(() => {
-    const m = new Map<string, ClienteRow & { folios: Set<string> }>();
+    const m = new Map<string, ClienteRow & { folios: Set<string>; empresas: Set<string> }>();
     for (const l of lineasFiltradas) {
-      const k = l.companyId ?? l.cliente;
+      const gid = agruparGrupo ? grupoId(l.companyId) : null;
+      const gname = gid ? grupoNombre(l.companyId) : null;
+      const k = gid ?? l.companyId ?? l.cliente;
       let row = m.get(k);
       if (!row) {
         row = {
           key: k,
-          cliente: l.cliente,
+          cliente: gname ?? l.cliente,
+          grupo: agruparGrupo ? null : grupoNombre(l.companyId),
+          empresasGrupo: 0,
           marca: EMPRESA_LABEL[empresaSel],
           plaza: plazaLabel(l.companyId),
           facturas: 0,
           unidades: 0,
           importe: 0,
           folios: new Set<string>(),
+          empresas: new Set<string>(),
         };
         m.set(k, row);
       }
       row.folios.add(l.numeroFactura);
+      row.empresas.add(l.cliente);
       row.unidades += l.unidadesEquivalentes;
       row.importe += l.importe;
     }
     return Array.from(m.values())
-      .map((r) => ({ ...r, facturas: r.folios.size }))
+      .map((r) => ({ ...r, facturas: r.folios.size, empresasGrupo: r.empresas.size }))
       .sort((a, b) => b.importe - a.importe);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lineasFiltradas, empresaSel, companyPlazaMap, plazaNameMap]);
+  }, [lineasFiltradas, empresaSel, companyPlazaMap, plazaNameMap, agruparGrupo, grupoId, grupoNombre]);
 
   const sortRows = <T extends Record<string, any>>(rows: T[]) => {
     if (!sortKey) return rows;
