@@ -1538,6 +1538,8 @@ export default function DocumentForm() {
               </Table>
             </div>
             </>
+          )}
+
 
           <div className="flex justify-start mt-4">
             <Button size="sm" onClick={addItem}><Plus className="mr-1 h-4 w-4" /> Agregar producto</Button>
