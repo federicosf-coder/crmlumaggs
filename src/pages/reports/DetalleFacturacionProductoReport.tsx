@@ -421,10 +421,28 @@ export default function DetalleFacturacionProductoReport() {
     } else {
       nombre = `facturacion_por_cliente_${desde}_${hasta}.xlsx`;
       aoa = [
-        ["Cliente", "Empresa", "Plaza", "Número de Facturas", "Unidades Totales", "Importe Total"],
-        ...clientesOrdenados.map((c) => [c.cliente, c.marca, c.plaza, c.facturas, c.unidades, c.importe]),
+        [
+          agruparGrupo ? "Cliente / Grupo Comercial" : "Cliente",
+          "Grupo Comercial",
+          "Razones Sociales",
+          "Empresa",
+          "Plaza",
+          "Número de Facturas",
+          "Unidades Totales",
+          "Importe Total",
+        ],
+        ...clientesOrdenados.map((c) => [
+          c.cliente,
+          agruparGrupo ? (c.empresasGrupo > 1 ? c.cliente : "") : c.grupo ?? "",
+          c.empresasGrupo,
+          c.marca,
+          c.plaza,
+          c.facturas,
+          c.unidades,
+          c.importe,
+        ]),
         [],
-        ["Totales", "", "", "", totales.unidades, totales.importe],
+        ["Totales", "", "", "", "", "", totales.unidades, totales.importe],
       ];
     }
     const ws = XLSX.utils.aoa_to_sheet(aoa);
