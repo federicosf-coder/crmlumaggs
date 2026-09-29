@@ -1885,19 +1885,12 @@ export default function SeguimientoVentas() {
               width="w-full sm:w-56"
             />
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Plaza</p>
-            <MultiSelectFilter
-              label="Plaza"
-              options={[
-                { id: "__none__", label: "Sin plaza", color: "#64748b" },
-                ...plazaOptions.map((p) => ({ id: p.id, label: p.name, color: p.color })),
-              ]}
-              selected={fPlaza}
-              onToggle={(id) => setFPlaza((arr) => toggleInArray(arr, id))}
-              onClear={() => setFPlaza([])}
-              emptyText="Sin plazas"
-              width="w-full sm:w-56"
+          <div className="min-w-0 flex-1">
+            <FiltroChipsMulti
+              titulo="Plaza"
+              opciones={plazaOpcionesLabels}
+              seleccion={plazaLabelsFromIds}
+              onChange={setFPlazaFromLabels}
             />
           </div>
         </div>
@@ -2005,20 +1998,12 @@ export default function SeguimientoVentas() {
                   />
                 </div>
 
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
-                    Plaza
-                  </p>
-                  <MultiSelectFilter
-                    label="Plaza"
-                    options={[
-                      { id: "__none__", label: "Sin plaza", color: "#64748b" },
-                      ...plazaOptions.map((p) => ({ id: p.id, label: p.name, color: p.color })),
-                    ]}
-                    selected={fPlaza}
-                    onToggle={(id) => setFPlaza((arr) => toggleInArray(arr, id))}
-                    onClear={() => setFPlaza([])}
-                    emptyText="Sin plazas"
+                <div className="min-w-0">
+                  <FiltroChipsMulti
+                    titulo="Plaza"
+                    opciones={plazaOpcionesLabels}
+                    seleccion={plazaLabelsFromIds}
+                    onChange={setFPlazaFromLabels}
                   />
                 </div>
 
