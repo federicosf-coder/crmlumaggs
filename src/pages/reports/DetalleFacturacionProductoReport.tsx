@@ -757,7 +757,7 @@ export default function DetalleFacturacionProductoReport() {
                     <Table>
                       <TableHeader className="sticky top-0 z-20 [&_th]:bg-background">
                         <TableRow>
-                          <SortHead label="Cliente" k="cliente" />
+                          <SortHead label={agruparGrupo ? "Cliente / Grupo" : "Cliente"} k="cliente" />
                           <SortHead label="Empresa" k="marca" />
                           <SortHead label="Plaza" k="plaza" />
                           <SortHead label="Número de Facturas" k="facturas" right />
@@ -768,7 +768,15 @@ export default function DetalleFacturacionProductoReport() {
                       <TableBody>
                         {clientesOrdenados.map((c) => (
                           <TableRow key={c.key}>
-                            <TableCell className="text-sm font-medium">{c.cliente}</TableCell>
+                            <TableCell className="text-sm font-medium">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span>{c.cliente}</span>
+                                {agruparGrupo && c.empresasGrupo > 1 && (
+                                  <GrupoComercialBadge nombre={c.cliente} empresas={c.empresasGrupo} />
+                                )}
+                                {!agruparGrupo && <GrupoComercialBadge nombre={c.grupo} />}
+                              </div>
+                            </TableCell>
                             <TableCell className="text-sm">{c.marca}</TableCell>
                             <TableCell className="text-sm">{c.plaza}</TableCell>
                             <TableCell className="text-right tabular-nums">{c.facturas}</TableCell>
@@ -778,7 +786,7 @@ export default function DetalleFacturacionProductoReport() {
                         ))}
                         <TableRow className="bg-muted/60 font-semibold sticky bottom-0">
                           <TableCell colSpan={3} className="text-xs uppercase tracking-wide">
-                            Totales ({clientesRows.length} clientes)
+                            Totales ({clientesRows.length} {agruparGrupo ? "clientes / grupos" : "clientes"})
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {clientesRows.reduce((s, c) => s + c.facturas, 0)}
