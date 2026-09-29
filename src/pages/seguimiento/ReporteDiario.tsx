@@ -682,7 +682,7 @@ export default function ReporteDiario() {
       if (acts.length === 0) aoa.push(["Sin registros", "", "", ""]);
       acts.forEach((a) =>
         aoa.push([
-          a.cliente,
+          clienteConGrupo(a.cliente, a.empresaId),
           tipoLabel(a.tipo),
           a.descripcion,
           a.promedioHistorico && a.promedioHistorico > 0 ? a.promedioHistorico : "",
@@ -695,7 +695,12 @@ export default function ReporteDiario() {
       aoa.push(["Empresa", "Folio", "Cliente", "Unidades"]);
       if (cots.length === 0) aoa.push(["Sin registros", "", "", 0]);
       cots.forEach((c) =>
-        aoa.push([EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora, c.folio, c.cliente, c.unidades])
+        aoa.push([
+          EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora,
+          c.folio,
+          clienteConGrupo(c.cliente, c.empresaId),
+          c.unidades,
+        ])
       );
       aoa.push([]);
 
@@ -704,7 +709,12 @@ export default function ReporteDiario() {
       aoa.push(["Empresa", "Folio", "Cliente", "Unidades"]);
       if (facts.length === 0) aoa.push(["Sin registros", "", "", 0]);
       facts.forEach((f) =>
-        aoa.push([EMPRESA_LABELS[f.empresaVendedora] || f.empresaVendedora, f.folio, f.cliente, f.unidades])
+        aoa.push([
+          EMPRESA_LABELS[f.empresaVendedora] || f.empresaVendedora,
+          f.folio,
+          clienteConGrupo(f.cliente, f.empresaId),
+          f.unidades,
+        ])
       );
       aoa.push([]);
 
@@ -712,7 +722,7 @@ export default function ReporteDiario() {
       aoa.push(["Cobrado"]);
       aoa.push(["Cliente", "Tipo de pago", "Importe"]);
       if (cobs.length === 0) aoa.push(["Sin registros", "", 0]);
-      cobs.forEach((c) => aoa.push([c.cliente, c.tipoPago, c.importe]));
+      cobs.forEach((c) => aoa.push([clienteConGrupo(c.cliente, c.empresaId), c.tipoPago, c.importe]));
       if (cobs.length > 0) aoa.push(["Total", cobs.reduce((sum, c) => sum + c.importe, 0)]);
       aoa.push([]);
       aoa.push([]);
@@ -801,7 +811,7 @@ export default function ReporteDiario() {
         "Actividades",
         ["Cliente", "Tipo", "Descripción", "Promedio histórico"],
         acts.map((a) => [
-          a.cliente,
+          clienteConGrupo(a.cliente, a.empresaId),
           tipoLabel(a.tipo),
           a.descripcion,
           a.promedioHistorico && a.promedioHistorico > 0 ? `${num(a.promedioHistorico)} uds/mes` : "",
@@ -815,7 +825,7 @@ export default function ReporteDiario() {
         cots.map((c) => [
           EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora,
           c.folio,
-          c.cliente,
+          clienteConGrupo(c.cliente, c.empresaId),
           num(c.unidades),
         ])
       );
@@ -827,13 +837,17 @@ export default function ReporteDiario() {
         facts.map((f) => [
           EMPRESA_LABELS[f.empresaVendedora] || f.empresaVendedora,
           f.folio,
-          f.cliente,
+          clienteConGrupo(f.cliente, f.empresaId),
           num(f.unidades),
         ])
       );
 
       const cobs = (reporte.cobranza || []).filter((c) => c.ejecutivoIds.includes(id));
-      const cuerpoCob: (string | number)[][] = cobs.map((c) => [c.cliente, c.tipoPago, money(c.importe)]);
+      const cuerpoCob: (string | number)[][] = cobs.map((c) => [
+        clienteConGrupo(c.cliente, c.empresaId),
+        c.tipoPago,
+        money(c.importe),
+      ]);
       if (cobs.length > 0)
         cuerpoCob.push(["Total", "", money(cobs.reduce((sum, c) => sum + c.importe, 0))]);
       sec("Cobrado", ["Cliente", "Tipo de pago", "Importe"], cuerpoCob);
