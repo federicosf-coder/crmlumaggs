@@ -1227,7 +1227,7 @@ export default function DocumentsList() {
               </div>
             ) : (
               <>
-              <div className="w-full max-w-full overflow-auto max-h-[calc(100vh-260px)]">
+              <div className="w-full max-w-full min-w-0 overflow-auto max-h-[min(70vh,calc(100vh-330px))] min-h-[260px] overscroll-x-contain rounded-xl border border-border/60 [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&>div]:bg-transparent [&>div]:backdrop-blur-none">
                 <Table>
                   <TableHeader className="sticky top-0 z-20 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
                     <TableRow>
