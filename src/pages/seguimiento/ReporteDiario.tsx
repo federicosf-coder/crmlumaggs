@@ -525,7 +525,7 @@ export default function ReporteDiario() {
           : "";
       L.push(
         div(
-          `<strong>${escapeHtml(a.cliente)}</strong> - ${escapeHtml(tipoLabel(a.tipo))} - ${escapeHtml(a.descripcion)}${escapeHtml(prom)}`
+          `<strong>${escapeHtml(clienteConGrupo(a.cliente, a.empresaId))}</strong> - ${escapeHtml(tipoLabel(a.tipo))} - ${escapeHtml(a.descripcion)}${escapeHtml(prom)}`
         )
       );
       if (index < acts.length - 1) L.push("<div>&nbsp;</div>");
@@ -542,7 +542,7 @@ export default function ReporteDiario() {
     for (const c of cots)
       L.push(
         div(
-          `${escapeHtml(EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora)} - ${escapeHtml(c.folio)} - ${escapeHtml(c.cliente)} - ${num(c.unidades)} uds`
+          `${escapeHtml(EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora)} - ${escapeHtml(c.folio)} - ${escapeHtml(clienteConGrupo(c.cliente, c.empresaId))} - ${num(c.unidades)} uds`
         )
       );
     L.push("<br>");
@@ -550,13 +550,15 @@ export default function ReporteDiario() {
     const facts = ordenMarca((reporte?.facturas || []).filter((f) => f.ejecutivoId === ejecutivoId));
     L.push(div("<strong>Facturado</strong>"));
     if (facts.length === 0) L.push(div("Sin registros"));
-    for (const f of facts) L.push(div(`${escapeHtml(f.folio)} - ${escapeHtml(f.cliente)} - ${num(f.unidades)} uds`));
+    for (const f of facts)
+      L.push(div(`${escapeHtml(f.folio)} - ${escapeHtml(clienteConGrupo(f.cliente, f.empresaId))} - ${num(f.unidades)} uds`));
     L.push("<br>");
 
     const cobs = (reporte?.cobranza || []).filter((c) => c.ejecutivoIds.includes(ejecutivoId));
     L.push(div("<strong>Cobrado</strong>"));
     if (cobs.length === 0) L.push(div("Sin registros"));
-    for (const c of cobs) L.push(div(`${escapeHtml(c.cliente)} - ${escapeHtml(c.tipoPago)} - ${money(c.importe)}`));
+    for (const c of cobs)
+      L.push(div(`${escapeHtml(clienteConGrupo(c.cliente, c.empresaId))} - ${escapeHtml(c.tipoPago)} - ${money(c.importe)}`));
     if (cobs.length > 0) L.push(div(`<strong>Total: ${money(cobs.reduce((s, c) => s + c.importe, 0))}</strong>`));
 
     return L.join("");
