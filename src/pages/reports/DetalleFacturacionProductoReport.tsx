@@ -525,6 +525,28 @@ export default function DetalleFacturacionProductoReport() {
             ))}
           </div>
 
+          {vista === "cliente" && (
+            <div className="inline-flex rounded-full border overflow-hidden">
+              {([
+                { id: true, label: "Por Grupo Comercial" },
+                { id: false, label: "Por Razón Social" },
+              ] as const).map((o) => (
+                <button
+                  key={String(o.id)}
+                  type="button"
+                  onClick={() => setAgruparGrupo(o.id)}
+                  className={cn(
+                    "px-4 py-1.5 text-xs font-semibold transition-all",
+                    agruparGrupo === o.id ? pill.active : pill.idle
+                  )}
+                  aria-pressed={agruparGrupo === o.id}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <Button variant="outline" size="sm" className="h-8 text-xs" onClick={exportarExcel}>
             <Download className="h-3.5 w-3.5 mr-1" />
             Exportar a Excel
