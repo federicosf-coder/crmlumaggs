@@ -21,6 +21,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
+import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
+import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
 
 const EMPRESA_LABELS: Record<string, string> = {
   lumaggs_chevron: "Lumaggs (Chevron)",
@@ -49,6 +51,7 @@ interface DocRow {
 interface CobranzaRow {
   id: string;
   cliente: string;
+  empresaId: string | null;
   empresaVendedora: string;
   tipoPago: string;
   metodoPago: string;
@@ -107,6 +110,7 @@ const fechaCorta = (iso: string) => {
 export default function ReporteDiario() {
   const { user, hasAnyRole } = useAuth();
   const esGerencia = hasAnyRole(["admin", "manager"]);
+  const { grupoNombre } = useGruposEmpresas();
 
   type PeriodoKey = "ayer" | "hoy" | "semana" | "mes" | "periodo";
   const [periodo, setPeriodo] = useState<PeriodoKey>("hoy");
@@ -298,6 +302,7 @@ export default function ReporteDiario() {
       const cobranza: CobranzaRow[] = pagos.map((p) => ({
         id: p.id,
         cliente: p.companies?.name || "Sin empresa",
+        empresaId: p.empresa_id || null,
         empresaVendedora: p.empresa_vendedora || "sin_empresa",
         tipoPago: tipoPagoCobranzaLabel(p.tipo_pago),
         metodoPago: p.metodo_pago || "—",
