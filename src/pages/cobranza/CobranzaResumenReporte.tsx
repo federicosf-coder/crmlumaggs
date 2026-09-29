@@ -499,7 +499,12 @@ export default function CobranzaResumenReporte() {
                       {TIPO_PAGO_LABEL[f.tipo]}
                     </Badge>
                   </TableCell>
-                  <TableCell>{f.cliente}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span>{f.cliente}</span>
+                      {agrupacion !== "grupo" && <GrupoComercialBadge nombre={grupoNombre(f.empresaId)} />}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {f.metodo}
                     {f.referencia && (
