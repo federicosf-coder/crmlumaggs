@@ -17,6 +17,8 @@ import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, ChevronUp, ArrowUpDown, ExternalLink, ShieldCheck, Wallet, HelpCircle, Download } from "lucide-react";
 import { generateCreditoCescemexPdf } from "@/lib/generateCreditoCescemexPdf";
+import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
+import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
 import * as XLSX from "xlsx";
 import {
   Bar,
@@ -274,6 +276,7 @@ export default function CreditoCescemexReport() {
   const [catsSel, setCatsSel] = useState<Cat[]>(["cescemex", "directo", "sin_clasificar"]);
   const [sortField, setSortField] = useState<"cliente" | "cat" | "ue" | "monto" | "utilidad">("monto");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const { grupoNombre } = useGruposEmpresas();
 
   const reclasificar = async (empresaId: string | null, cliente: string, nuevo: "credito_cescemex" | "credito_directo") => {
     if (!empresaId) return;
@@ -958,7 +961,12 @@ export default function CreditoCescemexReport() {
                               <TableCell>
                                 {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               </TableCell>
-                              <TableCell className="font-medium">{c.cliente}</TableCell>
+                              <TableCell className="font-medium">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span>{c.cliente}</span>
+                                  <GrupoComercialBadge nombre={grupoNombre(c.empresaId)} />
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className={cn(cat.text)}>
                                   {cat.label}

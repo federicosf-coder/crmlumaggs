@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
+import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
+import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
 
 const MARCAS = [
   { v: "lumaggs_chevron", l: "Chevron" },
@@ -36,6 +38,7 @@ interface FacturaRow {
   numero_factura: string | null;
   estatus_factura: string | null;
   unidades_equivalentes_total: number | null;
+  empresa_id: string | null;
   companies: { name: string | null } | null;
   documento_productos: LineaRow[] | null;
 }
@@ -49,6 +52,7 @@ export default function DesgloseFacturasReport() {
   const [marca, setMarca] = useState("lumaggs_chevron");
   const [mes, setMes] = useState(now.getMonth());
   const [anio, setAnio] = useState(now.getFullYear());
+  const { grupoNombre } = useGruposEmpresas();
 
   const desde = `${anio}-${pad(mes + 1)}-01`;
   const hasta = mes === 11 ? `${anio + 1}-01-01` : `${anio}-${pad(mes + 2)}-01`;
@@ -64,7 +68,7 @@ export default function DesgloseFacturasReport() {
       const { data, error } = await supabase
         .from("documentos")
         .select(
-          "id, numero_factura, estatus_factura, unidades_equivalentes_total, companies(name), documento_productos(cantidad, unidades_equivalentes, productos(codigo, nombre_producto))"
+          "id, numero_factura, estatus_factura, unidades_equivalentes_total, empresa_id, companies(name), documento_productos(cantidad, unidades_equivalentes, productos(codigo, nombre_producto))"
         )
         .eq("empresa_vendedora", marca as any)
         .eq("tipo_documento", "factura")
@@ -171,7 +175,12 @@ export default function DesgloseFacturasReport() {
                         {lineas.length === 0 ? (
                           <TableRow key={f.id}>
                             <TableCell rowSpan={span} className="align-top font-medium">{f.numero_factura || "—"}</TableCell>
-                            <TableCell rowSpan={span} className="align-top">{f.companies?.name || "—"}</TableCell>
+                            <TableCell rowSpan={span} className="align-top">
+                              <div className="flex flex-col gap-1">
+                                <span>{f.companies?.name || "—"}</span>
+                                <GrupoComercialBadge nombre={grupoNombre(f.empresa_id)} className="w-fit" />
+                              </div>
+                            </TableCell>
                             <TableCell rowSpan={span} className="align-top">{ESTATUS_LABEL[f.estatus_factura ?? ""] ?? f.estatus_factura ?? "—"}</TableCell>
                             <TableCell colSpan={3} className="text-destructive font-medium">Sin productos capturados</TableCell>
                           </TableRow>
@@ -181,7 +190,12 @@ export default function DesgloseFacturasReport() {
                               {i === 0 && (
                                 <>
                                   <TableCell rowSpan={span} className="align-top font-medium">{f.numero_factura || "—"}</TableCell>
-                                  <TableCell rowSpan={span} className="align-top">{f.companies?.name || "—"}</TableCell>
+                                  <TableCell rowSpan={span} className="align-top">
+                                    <div className="flex flex-col gap-1">
+                                      <span>{f.companies?.name || "—"}</span>
+                                      <GrupoComercialBadge nombre={grupoNombre(f.empresa_id)} className="w-fit" />
+                                    </div>
+                                  </TableCell>
                                   <TableCell rowSpan={span} className="align-top">{ESTATUS_LABEL[f.estatus_factura ?? ""] ?? f.estatus_factura ?? "—"}</TableCell>
                                 </>
                               )}

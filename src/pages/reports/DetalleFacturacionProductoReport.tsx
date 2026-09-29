@@ -12,6 +12,8 @@ import { BackButton } from "@/components/BackButton";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowUp, CalendarIcon, Download } from "lucide-react";
+import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
+import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
 import { format } from "date-fns";
 import { es as esLocale } from "date-fns/locale";
 import {
@@ -95,6 +97,8 @@ interface FacturaRow {
 interface ClienteRow {
   key: string;
   cliente: string;
+  grupo: string | null;
+  empresasGrupo: number;
   marca: string;
   plaza: string;
   facturas: number;
@@ -112,6 +116,8 @@ export default function DetalleFacturacionProductoReport() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [estatusSel, setEstatusSel] = useState<string[]>(["vigente", "pendiente", "pagada", "parcial", "vencida", "refacturacion_rfc"]);
   const [plazaSel, setPlazaSel] = useState<string[]>([]);
+  const [agruparGrupo, setAgruparGrupo] = useState(true);
+  const { grupoNombre, grupoId } = useGruposEmpresas();
   const incluirCanceladas = estatusSel.includes("cancelada");
 
   const { periodoStart, periodoEnd } = useMemo(() => {
@@ -289,32 +295,38 @@ export default function DetalleFacturacionProductoReport() {
   }, [lineasFiltradas, empresaSel, companyPlazaMap, plazaNameMap]);
 
   const clientesRows = useMemo(() => {
-    const m = new Map<string, ClienteRow & { folios: Set<string> }>();
+    const m = new Map<string, ClienteRow & { folios: Set<string>; empresas: Set<string> }>();
     for (const l of lineasFiltradas) {
-      const k = l.companyId ?? l.cliente;
+      const gid = agruparGrupo ? grupoId(l.companyId) : null;
+      const gname = gid ? grupoNombre(l.companyId) : null;
+      const k = gid ?? l.companyId ?? l.cliente;
       let row = m.get(k);
       if (!row) {
         row = {
           key: k,
-          cliente: l.cliente,
+          cliente: gname ?? l.cliente,
+          grupo: agruparGrupo ? null : grupoNombre(l.companyId),
+          empresasGrupo: 0,
           marca: EMPRESA_LABEL[empresaSel],
           plaza: plazaLabel(l.companyId),
           facturas: 0,
           unidades: 0,
           importe: 0,
           folios: new Set<string>(),
+          empresas: new Set<string>(),
         };
         m.set(k, row);
       }
       row.folios.add(l.numeroFactura);
+      row.empresas.add(l.cliente);
       row.unidades += l.unidadesEquivalentes;
       row.importe += l.importe;
     }
     return Array.from(m.values())
-      .map((r) => ({ ...r, facturas: r.folios.size }))
+      .map((r) => ({ ...r, facturas: r.folios.size, empresasGrupo: r.empresas.size }))
       .sort((a, b) => b.importe - a.importe);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lineasFiltradas, empresaSel, companyPlazaMap, plazaNameMap]);
+  }, [lineasFiltradas, empresaSel, companyPlazaMap, plazaNameMap, agruparGrupo, grupoId, grupoNombre]);
 
   const sortRows = <T extends Record<string, any>>(rows: T[]) => {
     if (!sortKey) return rows;
@@ -409,10 +421,28 @@ export default function DetalleFacturacionProductoReport() {
     } else {
       nombre = `facturacion_por_cliente_${desde}_${hasta}.xlsx`;
       aoa = [
-        ["Cliente", "Empresa", "Plaza", "Número de Facturas", "Unidades Totales", "Importe Total"],
-        ...clientesOrdenados.map((c) => [c.cliente, c.marca, c.plaza, c.facturas, c.unidades, c.importe]),
+        [
+          agruparGrupo ? "Cliente / Grupo Comercial" : "Cliente",
+          "Grupo Comercial",
+          "Razones Sociales",
+          "Empresa",
+          "Plaza",
+          "Número de Facturas",
+          "Unidades Totales",
+          "Importe Total",
+        ],
+        ...clientesOrdenados.map((c) => [
+          c.cliente,
+          agruparGrupo ? (c.empresasGrupo > 1 ? c.cliente : "") : c.grupo ?? "",
+          c.empresasGrupo,
+          c.marca,
+          c.plaza,
+          c.facturas,
+          c.unidades,
+          c.importe,
+        ]),
         [],
-        ["Totales", "", "", "", totales.unidades, totales.importe],
+        ["Totales", "", "", "", "", "", totales.unidades, totales.importe],
       ];
     }
     const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -494,6 +524,28 @@ export default function DetalleFacturacionProductoReport() {
               </button>
             ))}
           </div>
+
+          {vista === "cliente" && (
+            <div className="inline-flex rounded-full border overflow-hidden">
+              {([
+                { id: true, label: "Por Grupo Comercial" },
+                { id: false, label: "Por Razón Social" },
+              ] as const).map((o) => (
+                <button
+                  key={String(o.id)}
+                  type="button"
+                  onClick={() => setAgruparGrupo(o.id)}
+                  className={cn(
+                    "px-4 py-1.5 text-xs font-semibold transition-all",
+                    agruparGrupo === o.id ? pill.active : pill.idle
+                  )}
+                  aria-pressed={agruparGrupo === o.id}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <Button variant="outline" size="sm" className="h-8 text-xs" onClick={exportarExcel}>
             <Download className="h-3.5 w-3.5 mr-1" />
@@ -705,7 +757,7 @@ export default function DetalleFacturacionProductoReport() {
                     <Table>
                       <TableHeader className="sticky top-0 z-20 [&_th]:bg-background">
                         <TableRow>
-                          <SortHead label="Cliente" k="cliente" />
+                          <SortHead label={agruparGrupo ? "Cliente / Grupo" : "Cliente"} k="cliente" />
                           <SortHead label="Empresa" k="marca" />
                           <SortHead label="Plaza" k="plaza" />
                           <SortHead label="Número de Facturas" k="facturas" right />
@@ -716,7 +768,15 @@ export default function DetalleFacturacionProductoReport() {
                       <TableBody>
                         {clientesOrdenados.map((c) => (
                           <TableRow key={c.key}>
-                            <TableCell className="text-sm font-medium">{c.cliente}</TableCell>
+                            <TableCell className="text-sm font-medium">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span>{c.cliente}</span>
+                                {agruparGrupo && c.empresasGrupo > 1 && (
+                                  <GrupoComercialBadge nombre={c.cliente} empresas={c.empresasGrupo} />
+                                )}
+                                {!agruparGrupo && <GrupoComercialBadge nombre={c.grupo} />}
+                              </div>
+                            </TableCell>
                             <TableCell className="text-sm">{c.marca}</TableCell>
                             <TableCell className="text-sm">{c.plaza}</TableCell>
                             <TableCell className="text-right tabular-nums">{c.facturas}</TableCell>
@@ -726,7 +786,7 @@ export default function DetalleFacturacionProductoReport() {
                         ))}
                         <TableRow className="bg-muted/60 font-semibold sticky bottom-0">
                           <TableCell colSpan={3} className="text-xs uppercase tracking-wide">
-                            Totales ({clientesRows.length} clientes)
+                            Totales ({clientesRows.length} {agruparGrupo ? "clientes / grupos" : "clientes"})
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {clientesRows.reduce((s, c) => s + c.facturas, 0)}

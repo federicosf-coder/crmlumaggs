@@ -14,9 +14,11 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import { companyLabel } from "@/lib/companyLabel";
 import { Wallet, Download, FileText } from "lucide-react";
 import { generateCobranzaResumenPdf } from "@/lib/generateCobranzaResumenPdf";
+import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
+import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
 
 type PeriodoKey = "hoy" | "ayer" | "semana" | "mes" | "periodo";
-type AgrupacionKey = "plaza" | "tipo_pago" | "cliente";
+type AgrupacionKey = "plaza" | "tipo_pago" | "cliente" | "grupo";
 type EmpresaFiltro = "todas" | "lumaggs_chevron" | "galsa_phillips66";
 
 const PERIODOS: { key: PeriodoKey; label: string }[] = [
@@ -31,6 +33,7 @@ const AGRUPACIONES: { key: AgrupacionKey; label: string }[] = [
   { key: "plaza", label: "Por plaza" },
   { key: "tipo_pago", label: "Por tipo de pago" },
   { key: "cliente", label: "Por cliente" },
+  { key: "grupo", label: "Por grupo comercial" },
 ];
 
 const EMPRESAS_FILTRO: { key: EmpresaFiltro; label: string }[] = [
@@ -77,6 +80,7 @@ interface Fila {
   plazaId: string | null;
   plaza: string;
   cliente: string;
+  empresaId: string | null;
   metodo: string;
   referencia: string;
   facturas: string[];
@@ -93,6 +97,7 @@ export default function CobranzaResumenReporte() {
   const [agrupacion, setAgrupacion] = useState<AgrupacionKey>("plaza");
   const [empresaFiltro, setEmpresaFiltro] = useState<EmpresaFiltro>("todas");
   const [plazaSel, setPlazaSel] = useState<string>("todas");
+  const { grupoNombre } = useGruposEmpresas();
 
   // Alcance total: master y crédito/cobranza ven todas las plazas.
   const verTodo = hasAnyRole(["master", "accounting", "manager"]);
@@ -211,6 +216,7 @@ export default function CobranzaResumenReporte() {
         plazaId: p.plaza_id ?? null,
         plaza: p.plaza_id ? plazaNombre[p.plaza_id] || "Sin plaza" : "Sin plaza",
         cliente: companyLabel(p.companies) || "Sin cliente",
+        empresaId: p.empresa_id ?? null,
         metodo: METODO_LABEL[p.metodo_pago] || p.metodo_pago || "—",
         referencia: p.referencia_pago || "",
         facturas: Array.from(new Set(facturasPorPago[p.id] ?? [])),
@@ -231,7 +237,14 @@ export default function CobranzaResumenReporte() {
   const grupos = useMemo(() => {
     const m = new Map<string, Fila[]>();
     filas.forEach((f) => {
-      const k = agrupacion === "plaza" ? f.plaza : agrupacion === "tipo_pago" ? TIPO_PAGO_LABEL[f.tipo] : f.cliente;
+      const k =
+        agrupacion === "plaza"
+          ? f.plaza
+          : agrupacion === "tipo_pago"
+            ? TIPO_PAGO_LABEL[f.tipo]
+            : agrupacion === "grupo"
+              ? grupoNombre(f.empresaId) ?? f.cliente
+              : f.cliente;
       const arr = m.get(k) ?? [];
       arr.push(f);
       m.set(k, arr);
@@ -247,7 +260,7 @@ export default function CobranzaResumenReporte() {
         }, {}),
       }))
       .sort((a, b) => b.total - a.total);
-  }, [filas, agrupacion]);
+  }, [filas, agrupacion, grupoNombre]);
 
   const exportar = () => {
     const rows: any[] = [];
@@ -259,6 +272,7 @@ export default function CobranzaResumenReporte() {
           Plaza: f.plaza,
           "Tipo de pago": TIPO_PAGO_LABEL[f.tipo],
           Cliente: f.cliente,
+          "Grupo comercial": grupoNombre(f.empresaId) ?? "",
           "Método de pago": f.metodo,
           Referencia: f.referencia,
           "Facturas aplicadas": f.facturas.join(", "),
@@ -485,7 +499,12 @@ export default function CobranzaResumenReporte() {
                       {TIPO_PAGO_LABEL[f.tipo]}
                     </Badge>
                   </TableCell>
-                  <TableCell>{f.cliente}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span>{f.cliente}</span>
+                      {agrupacion !== "grupo" && <GrupoComercialBadge nombre={grupoNombre(f.empresaId)} />}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {f.metodo}
                     {f.referencia && (

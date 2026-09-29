@@ -21,6 +21,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
+import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
+import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
 
 const EMPRESA_LABELS: Record<string, string> = {
   lumaggs_chevron: "Lumaggs (Chevron)",
@@ -49,6 +51,7 @@ interface DocRow {
 interface CobranzaRow {
   id: string;
   cliente: string;
+  empresaId: string | null;
   empresaVendedora: string;
   tipoPago: string;
   metodoPago: string;
@@ -107,6 +110,11 @@ const fechaCorta = (iso: string) => {
 export default function ReporteDiario() {
   const { user, hasAnyRole } = useAuth();
   const esGerencia = hasAnyRole(["admin", "manager"]);
+  const { grupoNombre } = useGruposEmpresas();
+  const clienteConGrupo = (nombre: string, empresaId: string | null | undefined) => {
+    const g = grupoNombre(empresaId ?? null);
+    return g ? `${nombre} (Grupo: ${g})` : nombre;
+  };
 
   type PeriodoKey = "ayer" | "hoy" | "semana" | "mes" | "periodo";
   const [periodo, setPeriodo] = useState<PeriodoKey>("hoy");
@@ -298,6 +306,7 @@ export default function ReporteDiario() {
       const cobranza: CobranzaRow[] = pagos.map((p) => ({
         id: p.id,
         cliente: p.companies?.name || "Sin empresa",
+        empresaId: p.empresa_id || null,
         empresaVendedora: p.empresa_vendedora || "sin_empresa",
         tipoPago: tipoPagoCobranzaLabel(p.tipo_pago),
         metodoPago: p.metodo_pago || "—",
@@ -516,7 +525,7 @@ export default function ReporteDiario() {
           : "";
       L.push(
         div(
-          `<strong>${escapeHtml(a.cliente)}</strong> - ${escapeHtml(tipoLabel(a.tipo))} - ${escapeHtml(a.descripcion)}${escapeHtml(prom)}`
+          `<strong>${escapeHtml(clienteConGrupo(a.cliente, a.empresaId))}</strong> - ${escapeHtml(tipoLabel(a.tipo))} - ${escapeHtml(a.descripcion)}${escapeHtml(prom)}`
         )
       );
       if (index < acts.length - 1) L.push("<div>&nbsp;</div>");
@@ -533,7 +542,7 @@ export default function ReporteDiario() {
     for (const c of cots)
       L.push(
         div(
-          `${escapeHtml(EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora)} - ${escapeHtml(c.folio)} - ${escapeHtml(c.cliente)} - ${num(c.unidades)} uds`
+          `${escapeHtml(EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora)} - ${escapeHtml(c.folio)} - ${escapeHtml(clienteConGrupo(c.cliente, c.empresaId))} - ${num(c.unidades)} uds`
         )
       );
     L.push("<br>");
@@ -541,13 +550,15 @@ export default function ReporteDiario() {
     const facts = ordenMarca((reporte?.facturas || []).filter((f) => f.ejecutivoId === ejecutivoId));
     L.push(div("<strong>Facturado</strong>"));
     if (facts.length === 0) L.push(div("Sin registros"));
-    for (const f of facts) L.push(div(`${escapeHtml(f.folio)} - ${escapeHtml(f.cliente)} - ${num(f.unidades)} uds`));
+    for (const f of facts)
+      L.push(div(`${escapeHtml(f.folio)} - ${escapeHtml(clienteConGrupo(f.cliente, f.empresaId))} - ${num(f.unidades)} uds`));
     L.push("<br>");
 
     const cobs = (reporte?.cobranza || []).filter((c) => c.ejecutivoIds.includes(ejecutivoId));
     L.push(div("<strong>Cobrado</strong>"));
     if (cobs.length === 0) L.push(div("Sin registros"));
-    for (const c of cobs) L.push(div(`${escapeHtml(c.cliente)} - ${escapeHtml(c.tipoPago)} - ${money(c.importe)}`));
+    for (const c of cobs)
+      L.push(div(`${escapeHtml(clienteConGrupo(c.cliente, c.empresaId))} - ${escapeHtml(c.tipoPago)} - ${money(c.importe)}`));
     if (cobs.length > 0) L.push(div(`<strong>Total: ${money(cobs.reduce((s, c) => s + c.importe, 0))}</strong>`));
 
     return L.join("");
@@ -671,7 +682,7 @@ export default function ReporteDiario() {
       if (acts.length === 0) aoa.push(["Sin registros", "", "", ""]);
       acts.forEach((a) =>
         aoa.push([
-          a.cliente,
+          clienteConGrupo(a.cliente, a.empresaId),
           tipoLabel(a.tipo),
           a.descripcion,
           a.promedioHistorico && a.promedioHistorico > 0 ? a.promedioHistorico : "",
@@ -684,7 +695,12 @@ export default function ReporteDiario() {
       aoa.push(["Empresa", "Folio", "Cliente", "Unidades"]);
       if (cots.length === 0) aoa.push(["Sin registros", "", "", 0]);
       cots.forEach((c) =>
-        aoa.push([EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora, c.folio, c.cliente, c.unidades])
+        aoa.push([
+          EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora,
+          c.folio,
+          clienteConGrupo(c.cliente, c.empresaId),
+          c.unidades,
+        ])
       );
       aoa.push([]);
 
@@ -693,7 +709,12 @@ export default function ReporteDiario() {
       aoa.push(["Empresa", "Folio", "Cliente", "Unidades"]);
       if (facts.length === 0) aoa.push(["Sin registros", "", "", 0]);
       facts.forEach((f) =>
-        aoa.push([EMPRESA_LABELS[f.empresaVendedora] || f.empresaVendedora, f.folio, f.cliente, f.unidades])
+        aoa.push([
+          EMPRESA_LABELS[f.empresaVendedora] || f.empresaVendedora,
+          f.folio,
+          clienteConGrupo(f.cliente, f.empresaId),
+          f.unidades,
+        ])
       );
       aoa.push([]);
 
@@ -701,7 +722,7 @@ export default function ReporteDiario() {
       aoa.push(["Cobrado"]);
       aoa.push(["Cliente", "Tipo de pago", "Importe"]);
       if (cobs.length === 0) aoa.push(["Sin registros", "", 0]);
-      cobs.forEach((c) => aoa.push([c.cliente, c.tipoPago, c.importe]));
+      cobs.forEach((c) => aoa.push([clienteConGrupo(c.cliente, c.empresaId), c.tipoPago, c.importe]));
       if (cobs.length > 0) aoa.push(["Total", cobs.reduce((sum, c) => sum + c.importe, 0)]);
       aoa.push([]);
       aoa.push([]);
@@ -790,7 +811,7 @@ export default function ReporteDiario() {
         "Actividades",
         ["Cliente", "Tipo", "Descripción", "Promedio histórico"],
         acts.map((a) => [
-          a.cliente,
+          clienteConGrupo(a.cliente, a.empresaId),
           tipoLabel(a.tipo),
           a.descripcion,
           a.promedioHistorico && a.promedioHistorico > 0 ? `${num(a.promedioHistorico)} uds/mes` : "",
@@ -804,7 +825,7 @@ export default function ReporteDiario() {
         cots.map((c) => [
           EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora,
           c.folio,
-          c.cliente,
+          clienteConGrupo(c.cliente, c.empresaId),
           num(c.unidades),
         ])
       );
@@ -816,13 +837,17 @@ export default function ReporteDiario() {
         facts.map((f) => [
           EMPRESA_LABELS[f.empresaVendedora] || f.empresaVendedora,
           f.folio,
-          f.cliente,
+          clienteConGrupo(f.cliente, f.empresaId),
           num(f.unidades),
         ])
       );
 
       const cobs = (reporte.cobranza || []).filter((c) => c.ejecutivoIds.includes(id));
-      const cuerpoCob: (string | number)[][] = cobs.map((c) => [c.cliente, c.tipoPago, money(c.importe)]);
+      const cuerpoCob: (string | number)[][] = cobs.map((c) => [
+        clienteConGrupo(c.cliente, c.empresaId),
+        c.tipoPago,
+        money(c.importe),
+      ]);
       if (cobs.length > 0)
         cuerpoCob.push(["Total", "", money(cobs.reduce((sum, c) => sum + c.importe, 0))]);
       sec("Cobrado", ["Cliente", "Tipo de pago", "Importe"], cuerpoCob);
@@ -977,7 +1002,12 @@ export default function ReporteDiario() {
                     reporte.actividades.map((a) => (
                       <TableRow key={a.id}>
                         <TableCell className="whitespace-nowrap">{nombreDe(a.userId)}</TableCell>
-                        <TableCell className="font-medium">{a.cliente}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span>{a.cliente}</span>
+                            <GrupoComercialBadge nombre={grupoNombre(a.empresaId)} />
+                          </div>
+                        </TableCell>
                         <TableCell>{a.tipo}</TableCell>
                         <TableCell className="whitespace-pre-wrap">{a.descripcion}</TableCell>
                       </TableRow>
@@ -1014,7 +1044,12 @@ export default function ReporteDiario() {
                     reporte.cotizaciones.map((c) => (
                       <TableRow key={c.id}>
                         <TableCell>{EMPRESA_LABELS[c.empresaVendedora] || c.empresaVendedora}</TableCell>
-                        <TableCell className="font-medium">{c.cliente}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span>{c.cliente}</span>
+                            <GrupoComercialBadge nombre={grupoNombre(c.empresaId)} />
+                          </div>
+                        </TableCell>
                         <TableCell>{c.folio}</TableCell>
                         <TableCell className="text-right">{num(c.unidades)}</TableCell>
                         <TableCell className="text-right">{money(c.total)}</TableCell>
@@ -1062,7 +1097,12 @@ export default function ReporteDiario() {
                           <>
                             {rows.map((f) => (
                               <TableRow key={f.id}>
-                                <TableCell className="font-medium">{f.cliente}</TableCell>
+                                <TableCell className="font-medium">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span>{f.cliente}</span>
+                                    <GrupoComercialBadge nombre={grupoNombre(f.empresaId)} />
+                                  </div>
+                                </TableCell>
                                 <TableCell>{f.folio}</TableCell>
                                 <TableCell className="text-right">{num(f.unidades)}</TableCell>
                                 <TableCell className="text-right">{money(f.total)}</TableCell>
@@ -1109,7 +1149,12 @@ export default function ReporteDiario() {
                   ) : (
                     reporte.cobranza.map((c) => (
                       <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.cliente}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span>{c.cliente}</span>
+                            <GrupoComercialBadge nombre={grupoNombre(c.empresaId)} />
+                          </div>
+                        </TableCell>
                         <TableCell>{c.metodoPago}</TableCell>
                         <TableCell className="text-right">{money(c.importe)}</TableCell>
                         <TableCell>{c.facturas.length ? c.facturas.join(", ") : "Sin aplicar"}</TableCell>
