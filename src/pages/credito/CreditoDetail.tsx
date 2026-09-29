@@ -1792,20 +1792,30 @@ export default function CreditoDetail() {
                 placeholder={form.contact_id ? "10 dígitos" : "Selecciona un contacto primero"}
                 value={(() => {
                   const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
-                  return cc?.phone ?? "";
+                  // Jerarquía: WhatsApp → Celular → Teléfono fijo
+                  return cc?.whatsapp_phone || cc?.mobile || cc?.phone || "";
                 })()}
                 onChange={(e) => {
                   const val = e.target.value;
                   qc.setQueryData(["credit-company-contacts", companyId], (old: any) =>
-                    Array.isArray(old) ? old.map((c: any) => c.id === form.contact_id ? { ...c, phone: val } : c) : old
+                    Array.isArray(old) ? old.map((c: any) => {
+                      if (c.id !== form.contact_id) return c;
+                      const field = c.whatsapp_phone ? "whatsapp_phone" : (c.mobile ? "mobile" : "phone");
+                      return { ...c, [field]: val };
+                    }) : old
                   );
+                  set("telefono", val);
                 }}
                 onBlur={async (e) => {
                   if (!form.contact_id) return;
                   const val = e.target.value || null;
-                  const { error } = await supabase.from("contacts").update({ phone: val }).eq("id", form.contact_id);
+                  const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
+                  const field: "whatsapp_phone" | "mobile" | "phone" =
+                    cc?.whatsapp_phone ? "whatsapp_phone" : (cc?.mobile ? "mobile" : "phone");
+                  const { error } = await (supabase as any).from("contacts").update({ [field]: val }).eq("id", form.contact_id);
                   if (error) toast.error(error.message);
                   else qc.invalidateQueries({ queryKey: ["credit-company-contacts", companyId] });
+                  if (id) await supabase.from("credit_requests").update({ telefono: val }).eq("id", id);
                 }}
               />
             </div>
