@@ -1498,6 +1498,10 @@ export default function SeguimientoVentas() {
       });
     }
 
+    if (agruparGrupo) {
+      base = consolidarPorGrupo(base);
+    }
+
     if (!sort) {
       // Default: urgencia primero, luego recencia
       return [...base].sort((a, b) => {
@@ -1519,8 +1523,8 @@ export default function SeguimientoVentas() {
 
       switch (sort.key) {
         case "empresa":
-          va = (a.companies?.name || "").toLowerCase();
-          vb = (b.companies?.name || "").toLowerCase();
+          va = ((a as SeguimientoRowConsolidada).__grupo?.nombre || a.companies?.name || "").toLowerCase();
+          vb = ((b as SeguimientoRowConsolidada).__grupo?.nombre || b.companies?.name || "").toLowerCase();
           break;
         case "ejecutivo":
           va = (a.owner_id ? profileMap.get(a.owner_id) || "" : "").toLowerCase();
