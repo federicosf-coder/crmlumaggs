@@ -53,7 +53,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useToast } from "@/hooks/use-toast";
-import { buildGruposResumen, diasCompraConGrupo, resolveRiesgoEstatusId } from "@/lib/grupoComercial";
+import { buildGruposResumen, consolidarPorGrupo, diasCompraConGrupo, resolveRiesgoEstatusId, type SeguimientoRowConsolidada } from "@/lib/grupoComercial";
 
 type SortDir = "asc" | "desc";
 interface SortState {
@@ -438,6 +438,20 @@ export default function SeguimientoVentas() {
 
   // Ignorar clientes (Clientes con Venta / sin Venta)
   const [viewIgnorados, setViewIgnorados] = useState(false);
+  const [agruparGrupo, setAgruparGrupo] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("seguimiento:agrupar") !== "razon_social";
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("seguimiento:agrupar", agruparGrupo ? "grupo" : "razon_social");
+    } catch {
+      /* noop */
+    }
+  }, [agruparGrupo]);
   const [ignoreDialogOpen, setIgnoreDialogOpen] = useState(false);
   const [ignoreRazon, setIgnoreRazon] = useState("");
   const [ignoreSaving, setIgnoreSaving] = useState(false);
@@ -1183,16 +1197,34 @@ export default function SeguimientoVentas() {
         label: "Empresa",
         sortKey: "empresa",
         cellClassName: "font-medium",
-        render: (r) => (
-          <span className="inline-flex flex-col">
-            <span>{r.companies?.name || "—"}</span>
-            {r.companies?.grupos_comerciales?.nombre && (
-              <span className="text-[10px] font-light text-violet-700">
-                Grupo: {r.companies.grupos_comerciales.nombre}
+        render: (r) => {
+          const g = (r as SeguimientoRowConsolidada).__grupo;
+          if (g) {
+            return (
+              <span className="inline-flex flex-col">
+                <span className="inline-flex items-center gap-1.5">
+                  {g.nombre}
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-widest border border-violet-200 bg-violet-50 text-violet-700">
+                    Grupo · {g.empresas.length}
+                  </span>
+                </span>
+                <span className="text-[10px] font-light text-muted-foreground truncate max-w-[260px]" title={g.empresas.join(" · ")}>
+                  {g.empresas.join(" · ")}
+                </span>
               </span>
-            )}
-          </span>
-        ),
+            );
+          }
+          return (
+            <span className="inline-flex flex-col">
+              <span>{r.companies?.name || "—"}</span>
+              {r.companies?.grupos_comerciales?.nombre && (
+                <span className="text-[10px] font-light text-violet-700">
+                  Grupo: {r.companies.grupos_comerciales.nombre}
+                </span>
+              )}
+            </span>
+          );
+        },
       },
       {
         id: "ejecutivo",
@@ -1484,6 +1516,10 @@ export default function SeguimientoVentas() {
       });
     }
 
+    if (agruparGrupo) {
+      base = consolidarPorGrupo(base);
+    }
+
     if (!sort) {
       // Default: urgencia primero, luego recencia
       return [...base].sort((a, b) => {
@@ -1505,8 +1541,8 @@ export default function SeguimientoVentas() {
 
       switch (sort.key) {
         case "empresa":
-          va = (a.companies?.name || "").toLowerCase();
-          vb = (b.companies?.name || "").toLowerCase();
+          va = ((a as SeguimientoRowConsolidada).__grupo?.nombre || a.companies?.name || "").toLowerCase();
+          vb = ((b as SeguimientoRowConsolidada).__grupo?.nombre || b.companies?.name || "").toLowerCase();
           break;
         case "ejecutivo":
           va = (a.owner_id ? profileMap.get(a.owner_id) || "" : "").toLowerCase();
@@ -1586,7 +1622,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, isPerdidos, viewIgnorados, clientesIgnoradosMap, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, fRegistroFrom, fRegistroTo, fConversionFrom, fConversionTo, tab, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
+  }, [rows, search, catalogMap, tieneVenta, isPerdidos, viewIgnorados, clientesIgnoradosMap, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, fRegistroFrom, fRegistroTo, fConversionFrom, fConversionTo, tab, profileMap, companyPlazaMap, plazaNameMap, agruparGrupo, access.accessLevel, access.teamMemberIds, access.userId]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
@@ -1789,6 +1825,22 @@ export default function SeguimientoVentas() {
               {viewIgnorados ? <><Eye className="h-4 w-4" /> Ver activos</> : <><EyeOff className="h-4 w-4" /> Ver ignorados</>}
             </Button>
           )}
+          <div className="inline-flex items-center rounded-full border border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 p-0.5 h-9">
+            <button
+              type="button"
+              onClick={() => setAgruparGrupo(true)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest transition ${agruparGrupo ? "bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-sm" : "text-violet-700"}`}
+            >
+              Por grupo
+            </button>
+            <button
+              type="button"
+              onClick={() => setAgruparGrupo(false)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest transition ${!agruparGrupo ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm" : "text-blue-700"}`}
+            >
+              Por razón social
+            </button>
+          </div>
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <div>

@@ -76,3 +76,96 @@ export function diasCompraConGrupo(
   }
   return { dias: propio, fecha: row.fecha_ultima_compra, grupo, consolidado: false };
 }
+
+export interface GrupoConsolidadoInfo {
+  nombre: string;
+  empresas: string[];
+  companyIds: string[];
+}
+
+export type SeguimientoRowConsolidada = SeguimientoVentasRow & {
+  __grupo?: GrupoConsolidadoInfo;
+};
+
+function maxFecha(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return new Date(a).getTime() >= new Date(b).getTime() ? a : b;
+}
+
+function minDias(a: number | null, b: number | null): number | null {
+  if (a == null) return b;
+  if (b == null) return a;
+  return Math.min(a, b);
+}
+
+/**
+ * Consolida las filas que pertenecen al mismo grupo comercial en una sola fila:
+ * suma volúmenes/importes y toma la recencia más favorable del grupo.
+ * Las empresas sin grupo se devuelven tal cual.
+ */
+export function consolidarPorGrupo(rows: SeguimientoVentasRow[]): SeguimientoRowConsolidada[] {
+  const sinGrupo: SeguimientoRowConsolidada[] = [];
+  const porGrupo = new Map<string, SeguimientoVentasRow[]>();
+
+  for (const r of rows) {
+    const grupoId = r.companies?.grupos_comerciales?.id || r.companies?.grupo_comercial_id;
+    if (!grupoId) {
+      sinGrupo.push(r);
+      continue;
+    }
+    const arr = porGrupo.get(grupoId) || [];
+    arr.push(r);
+    porGrupo.set(grupoId, arr);
+  }
+
+  const consolidadas: SeguimientoRowConsolidada[] = [];
+  for (const [, grupoRows] of porGrupo) {
+    if (grupoRows.length === 1) {
+      consolidadas.push(grupoRows[0]);
+      continue;
+    }
+    const base = [...grupoRows].sort((a, b) => (b.acum_anio ?? 0) - (a.acum_anio ?? 0))[0];
+    const nombre = base.companies?.grupos_comerciales?.nombre || "Grupo";
+    const sum = (sel: (r: SeguimientoVentasRow) => number | null | undefined) =>
+      grupoRows.reduce((acc, r) => acc + (sel(r) ?? 0), 0);
+
+    const merged: SeguimientoRowConsolidada = {
+      ...base,
+      potencial: sum((r) => r.potencial),
+      promedio_historico_mensual: sum((r) => r.promedio_historico_mensual),
+      acum_mes: sum((r) => r.acum_mes),
+      acum_mes_anterior: sum((r) => r.acum_mes_anterior),
+      acum_mes_anterior_mismo_dia: sum((r) => r.acum_mes_anterior_mismo_dia),
+      importe_mes: sum((r) => r.importe_mes),
+      importe_mes_anterior: sum((r) => r.importe_mes_anterior),
+      importe_mes_anterior_mismo_dia: sum((r) => r.importe_mes_anterior_mismo_dia),
+      acum_anio: sum((r) => r.acum_anio),
+      total_historico: sum((r) => r.total_historico),
+      total_historico_unidades: sum((r) => r.total_historico_unidades),
+      cotizaciones_total: sum((r) => r.cotizaciones_total),
+      actividades_activas: sum((r) => r.actividades_activas),
+      actividades_total: sum((r) => r.actividades_total),
+      dias_ultima_compra: grupoRows.reduce<number | null>((acc, r) => minDias(acc, r.dias_ultima_compra), null),
+      fecha_ultima_compra: grupoRows.reduce<string | null>((acc, r) => maxFecha(acc, r.fecha_ultima_compra), null),
+      dias_ultima_cotizacion: grupoRows.reduce<number | null>((acc, r) => minDias(acc, r.dias_ultima_cotizacion), null),
+      ultima_cotizacion_fecha: grupoRows.reduce<string | null>((acc, r) => maxFecha(acc, r.ultima_cotizacion_fecha), null),
+      dias_ultima_actividad: grupoRows.reduce<number | null>((acc, r) => minDias(acc, r.dias_ultima_actividad), null),
+      ultima_actividad_fecha: grupoRows.reduce<string | null>((acc, r) => maxFecha(acc, r.ultima_actividad_fecha), null),
+      proxima_tarea_fecha: grupoRows.reduce<string | null>((acc, r) => {
+        const f = r.proxima_tarea_fecha;
+        if (!f) return acc;
+        if (!acc) return f;
+        return new Date(f).getTime() <= new Date(acc).getTime() ? f : acc;
+      }, null),
+      __grupo: {
+        nombre,
+        empresas: grupoRows.map((r) => r.companies?.name || "—"),
+        companyIds: grupoRows.map((r) => r.company_id),
+      },
+    };
+    consolidadas.push(merged);
+  }
+
+  return [...consolidadas, ...sinGrupo];
+}
