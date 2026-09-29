@@ -1382,8 +1382,80 @@ export default function DocumentForm() {
           {items.length === 0 ? (
             <p className="text-center py-6 text-muted-foreground">Sin productos. Haz clic en "Agregar" para añadir.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Vista de tarjetas en celular */}
+            <div className="space-y-3 sm:hidden">
+              {items.map((item, idx) => {
+                const prod = productos.find((p: any) => p.id === item.producto_id);
+                return (
+                  <div key={idx} className="rounded-xl border border-border/60 bg-background/80 p-3 shadow-sm space-y-3">
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <SearchableSelect
+                          value={item.producto_id}
+                          onValueChange={v => updateItem(idx, "producto_id", v)}
+                          placeholder="Seleccionar producto"
+                          options={filteredProductos.map((p: any) => {
+                            const pres = (p.presentaciones as any)?.nombre || '';
+                            const label = `${p.codigo} - ${p.nombre_producto}`;
+                            const searchStr = `${p.codigo} ${p.nombre_producto} ${p.descripcion || ''} ${pres}`;
+                            return { value: p.id, label, detail: pres || undefined, searchText: searchStr };
+                          })}
+                          popoverClassName="min-w-[260px]"
+                          className="w-full text-left"
+                        />
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeItem(idx)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                    {prod && (
+                      <div className="flex flex-wrap gap-1">
+                        {[1, 2, 3, 4].map(n => (
+                          <span key={`uf${n}`} className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground">
+                            UF{n}: {Number((prod as any)[n === 1 ? "precio_base_uf1" : `precio_uf${n}`]).toFixed(0)}
+                          </span>
+                        ))}
+                        {[1, 2, 3, 4].map(n => (
+                          <span key={`r${n}`} className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground">
+                            R{n}: {Number((prod as any)[`precio_r${n}`]).toFixed(0)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Cant.</Label>
+                        <Input type="number" className="h-9 text-right text-sm" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Precio</Label>
+                        <Input
+                          type="number"
+                          className="h-9 text-right text-sm"
+                          value={isEntregaCorp ? 0 : item.precio_unitario}
+                          disabled={isEntregaCorp}
+                          readOnly={isEntregaCorp}
+                          onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Desc. %</Label>
+                        <Input type="number" className="h-9 text-right text-sm" value={item.descuento_porcentaje} onChange={e => updateItem(idx, "descuento_porcentaje", Number(e.target.value))} />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-border/40 pt-2 text-sm">
+                      <span className="text-xs text-muted-foreground">Unid. Equiv.: {item.unidades_equivalentes}</span>
+                      <span className="font-medium">${item.subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Tabla en tableta y computadora */}
+            <div className="hidden sm:block overflow-x-auto">
               <Table>
+
                 <TableHeader>
                   <TableRow>
                     <TableHead className="sticky left-0 z-20 bg-background min-w-[220px] border-r">Producto</TableHead>
