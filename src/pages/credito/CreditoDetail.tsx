@@ -1382,12 +1382,11 @@ export default function CreditoDetail() {
     const upd: any = { contact_id: contactId };
     if (cc) {
       const fullName = `${cc.first_name || ""} ${cc.last_name || ""}`.trim();
-      if (cc.email && !form.correo_contacto) { upd.correo_contacto = cc.email; set("correo_contacto", cc.email); }
-      if ((cc.whatsapp_phone || cc.mobile || cc.phone) && !form.telefono) {
-        const t = cc.whatsapp_phone || cc.mobile || cc.phone;
-        upd.telefono = t; set("telefono", t);
-      }
-      if (fullName && !form.client_nombre_contacto) { upd.client_nombre_contacto = fullName; set("client_nombre_contacto", fullName); }
+      if (cc.email) { upd.correo_contacto = cc.email; set("correo_contacto", cc.email); }
+      // Jerarquía: WhatsApp → Celular → Teléfono fijo
+      const t = cc.whatsapp_phone || cc.mobile || cc.phone;
+      if (t) { upd.telefono = t; set("telefono", t); }
+      if (fullName) { upd.client_nombre_contacto = fullName; set("client_nombre_contacto", fullName); }
     }
     await supabase.from("credit_requests").update(upd).eq("id", id!);
     qc.invalidateQueries({ queryKey: ["credit_request", id] });
