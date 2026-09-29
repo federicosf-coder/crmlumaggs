@@ -237,7 +237,14 @@ export default function CobranzaResumenReporte() {
   const grupos = useMemo(() => {
     const m = new Map<string, Fila[]>();
     filas.forEach((f) => {
-      const k = agrupacion === "plaza" ? f.plaza : agrupacion === "tipo_pago" ? TIPO_PAGO_LABEL[f.tipo] : f.cliente;
+      const k =
+        agrupacion === "plaza"
+          ? f.plaza
+          : agrupacion === "tipo_pago"
+            ? TIPO_PAGO_LABEL[f.tipo]
+            : agrupacion === "grupo"
+              ? grupoNombre(f.empresaId) ?? f.cliente
+              : f.cliente;
       const arr = m.get(k) ?? [];
       arr.push(f);
       m.set(k, arr);
