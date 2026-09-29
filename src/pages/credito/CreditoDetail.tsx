@@ -2511,7 +2511,14 @@ export default function CreditoDetail() {
                   aval: "text-rose-700",
                   otros: "text-slate-700",
                 };
-                const groupFor = (dt: any): { key: string; label: string } => {
+                 const docLabel = (dt: any): string => {
+                   const n = (dt.nombre || "").toLowerCase();
+                   if (n.includes("identificación oficial")) {
+                     return tp === "fisica" ? "Identificación oficial del solicitante" : "Identidad del representante legal";
+                   }
+                   return dt.nombre;
+                 };
+                 const groupFor = (dt: any): { key: string; label: string } => {
                   const n = (dt.nombre || "").toLowerCase();
                   if (dt.aplica_si_aval_distinto || n.includes("aval")) return { key: "aval", label: "Aval / Obligado solidario" };
                   if (n.includes("csf") || n.includes("situación fiscal") || n.includes("opinión") || n.includes("32-d")) return { key: "fiscal", label: "Documentos fiscales" };
