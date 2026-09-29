@@ -335,13 +335,17 @@ export default function DocumentForm() {
     if (isEdit || !form.empresa_id || companies.length === 0) return;
     const c: any = companies.find((x: any) => x.id === form.empresa_id);
     if (!c) return;
-    setForm((prev) => ({
-      ...prev,
-      uso_cfdi: prev.uso_cfdi || c.uso_cfdi || "",
-      metodo_pago: prev.metodo_pago || c.metodo_pago || "",
-      tipo_pago: prev.tipo_pago || c.tipo_pago || "",
-      forma_pago: prev.forma_pago || c.forma_pago || "",
-    }));
+    setForm((prev) => {
+      const tp = prev.tipo_pago || c.tipo_pago || "";
+      const esCredito = tp === "credito_cescemex" || tp === "credito_directo";
+      return {
+        ...prev,
+        uso_cfdi: prev.uso_cfdi || c.uso_cfdi || "",
+        metodo_pago: esCredito ? "PPD" : (prev.metodo_pago || c.metodo_pago || ""),
+        tipo_pago: tp,
+        forma_pago: esCredito ? "99" : (prev.forma_pago || c.forma_pago || ""),
+      };
+    });
   }, [form.empresa_id, companies, isEdit]);
 
   // Auto-calculate fecha_vencimiento for Pedidos y Facturas based on tipo_pago
