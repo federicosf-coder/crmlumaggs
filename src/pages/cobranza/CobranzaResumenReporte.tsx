@@ -14,9 +14,11 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import { companyLabel } from "@/lib/companyLabel";
 import { Wallet, Download, FileText } from "lucide-react";
 import { generateCobranzaResumenPdf } from "@/lib/generateCobranzaResumenPdf";
+import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
+import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
 
 type PeriodoKey = "hoy" | "ayer" | "semana" | "mes" | "periodo";
-type AgrupacionKey = "plaza" | "tipo_pago" | "cliente";
+type AgrupacionKey = "plaza" | "tipo_pago" | "cliente" | "grupo";
 type EmpresaFiltro = "todas" | "lumaggs_chevron" | "galsa_phillips66";
 
 const PERIODOS: { key: PeriodoKey; label: string }[] = [
@@ -31,6 +33,7 @@ const AGRUPACIONES: { key: AgrupacionKey; label: string }[] = [
   { key: "plaza", label: "Por plaza" },
   { key: "tipo_pago", label: "Por tipo de pago" },
   { key: "cliente", label: "Por cliente" },
+  { key: "grupo", label: "Por grupo comercial" },
 ];
 
 const EMPRESAS_FILTRO: { key: EmpresaFiltro; label: string }[] = [
@@ -77,6 +80,7 @@ interface Fila {
   plazaId: string | null;
   plaza: string;
   cliente: string;
+  empresaId: string | null;
   metodo: string;
   referencia: string;
   facturas: string[];
