@@ -52,6 +52,7 @@ export default function DesgloseFacturasReport() {
   const [marca, setMarca] = useState("lumaggs_chevron");
   const [mes, setMes] = useState(now.getMonth());
   const [anio, setAnio] = useState(now.getFullYear());
+  const { grupoNombre } = useGruposEmpresas();
 
   const desde = `${anio}-${pad(mes + 1)}-01`;
   const hasta = mes === 11 ? `${anio + 1}-01-01` : `${anio}-${pad(mes + 2)}-01`;
