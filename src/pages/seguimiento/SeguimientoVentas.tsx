@@ -1825,6 +1825,22 @@ export default function SeguimientoVentas() {
               {viewIgnorados ? <><Eye className="h-4 w-4" /> Ver activos</> : <><EyeOff className="h-4 w-4" /> Ver ignorados</>}
             </Button>
           )}
+          <div className="inline-flex items-center rounded-full border border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 p-0.5 h-9">
+            <button
+              type="button"
+              onClick={() => setAgruparGrupo(true)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest transition ${agruparGrupo ? "bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-sm" : "text-violet-700"}`}
+            >
+              Por grupo
+            </button>
+            <button
+              type="button"
+              onClick={() => setAgruparGrupo(false)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest transition ${!agruparGrupo ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm" : "text-blue-700"}`}
+            >
+              Por razón social
+            </button>
+          </div>
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <div>
