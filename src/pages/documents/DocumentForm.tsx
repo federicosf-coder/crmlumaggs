@@ -1480,7 +1480,13 @@ export default function DocumentForm() {
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label>Tipo de Pago</Label>
-            <Select value={form.tipo_pago} onValueChange={v => set("tipo_pago", v)}>
+            <Select value={form.tipo_pago} onValueChange={v => {
+              if (v === "credito_cescemex" || v === "credito_directo") {
+                setForm(prev => ({ ...prev, tipo_pago: v, forma_pago: "99", metodo_pago: "PPD" }));
+              } else {
+                set("tipo_pago", v);
+              }
+            }}>
               <SelectTrigger className="text-left"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
               <SelectContent>{TIPO_PAGO_OPTS.map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
             </Select>
