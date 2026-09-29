@@ -54,6 +54,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useToast } from "@/hooks/use-toast";
 import { buildGruposResumen, consolidarPorGrupo, diasCompraConGrupo, resolveRiesgoEstatusId, type SeguimientoRowConsolidada } from "@/lib/grupoComercial";
+import { FiltroChipsMulti } from "@/pages/rvs/components/FiltroChipsMulti";
 
 type SortDir = "asc" | "desc";
 interface SortState {
@@ -963,6 +964,32 @@ export default function SeguimientoVentas() {
       .map((p, i) => ({ id: p.id, name: p.nombre, color: colorForIndex(i + 3) }));
   }, [rows, plazasData, companyPlazaMap]);
 
+  // Chips de plaza: "Todos" + opciones; selección vacía = todas
+  const PLAZA_NONE_LABEL = "Sin plaza";
+  const plazaOpcionesLabels = useMemo(
+    () => [PLAZA_NONE_LABEL, ...plazaOptions.map((p) => p.name)],
+    [plazaOptions]
+  );
+  const plazaLabelsFromIds = useMemo(() => {
+    if (fPlaza.length === 0) return [];
+    return fPlaza
+      .map((id) => (id === "__none__" ? PLAZA_NONE_LABEL : plazaNameMap.get(id) || ""))
+      .filter(Boolean);
+  }, [fPlaza, plazaNameMap]);
+  const setFPlazaFromLabels = (labels: string[]) => {
+    if (labels.length === 0 || labels.length === plazaOpcionesLabels.length) {
+      setFPlaza([]);
+      return;
+    }
+    setFPlaza(
+      labels.map((l) =>
+        l === PLAZA_NONE_LABEL
+          ? "__none__"
+          : plazaOptions.find((p) => p.name === l)?.id ?? l
+      )
+    );
+  };
+
   const ejecutivoOptions = useMemo(() => {
     const ids = new Set<string>();
     for (const r of rows) if (r.owner_id) ids.add(r.owner_id);
@@ -1858,19 +1885,12 @@ export default function SeguimientoVentas() {
               width="w-full sm:w-56"
             />
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">Plaza</p>
-            <MultiSelectFilter
-              label="Plaza"
-              options={[
-                { id: "__none__", label: "Sin plaza", color: "#64748b" },
-                ...plazaOptions.map((p) => ({ id: p.id, label: p.name, color: p.color })),
-              ]}
-              selected={fPlaza}
-              onToggle={(id) => setFPlaza((arr) => toggleInArray(arr, id))}
-              onClear={() => setFPlaza([])}
-              emptyText="Sin plazas"
-              width="w-full sm:w-56"
+          <div className="min-w-0 flex-1">
+            <FiltroChipsMulti
+              titulo="Plaza"
+              opciones={plazaOpcionesLabels}
+              seleccion={plazaLabelsFromIds}
+              onChange={setFPlazaFromLabels}
             />
           </div>
         </div>
@@ -1978,20 +1998,12 @@ export default function SeguimientoVentas() {
                   />
                 </div>
 
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
-                    Plaza
-                  </p>
-                  <MultiSelectFilter
-                    label="Plaza"
-                    options={[
-                      { id: "__none__", label: "Sin plaza", color: "#64748b" },
-                      ...plazaOptions.map((p) => ({ id: p.id, label: p.name, color: p.color })),
-                    ]}
-                    selected={fPlaza}
-                    onToggle={(id) => setFPlaza((arr) => toggleInArray(arr, id))}
-                    onClear={() => setFPlaza([])}
-                    emptyText="Sin plazas"
+                <div className="min-w-0">
+                  <FiltroChipsMulti
+                    titulo="Plaza"
+                    opciones={plazaOpcionesLabels}
+                    seleccion={plazaLabelsFromIds}
+                    onChange={setFPlazaFromLabels}
                   />
                 </div>
 
