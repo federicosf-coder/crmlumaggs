@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
+import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
+import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
 
 const MARCAS = [
   { v: "lumaggs_chevron", l: "Chevron" },
@@ -36,6 +38,7 @@ interface FacturaRow {
   numero_factura: string | null;
   estatus_factura: string | null;
   unidades_equivalentes_total: number | null;
+  empresa_id: string | null;
   companies: { name: string | null } | null;
   documento_productos: LineaRow[] | null;
 }
@@ -64,7 +67,7 @@ export default function DesgloseFacturasReport() {
       const { data, error } = await supabase
         .from("documentos")
         .select(
-          "id, numero_factura, estatus_factura, unidades_equivalentes_total, companies(name), documento_productos(cantidad, unidades_equivalentes, productos(codigo, nombre_producto))"
+          "id, numero_factura, estatus_factura, unidades_equivalentes_total, empresa_id, companies(name), documento_productos(cantidad, unidades_equivalentes, productos(codigo, nombre_producto))"
         )
         .eq("empresa_vendedora", marca as any)
         .eq("tipo_documento", "factura")
