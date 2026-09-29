@@ -480,12 +480,14 @@ export default function DocumentForm() {
     prevEmpresaIdRef.current = form.empresa_id;
     const company = companies.find((c: any) => c.id === form.empresa_id);
     if (company) {
+      const tpC = (company as any).tipo_pago || "";
+      const esCreditoC = tpC === "credito_cescemex" || tpC === "credito_directo";
       setForm(prev => ({
         ...prev,
         uso_cfdi: (company as any).uso_cfdi || "",
-        metodo_pago: (company as any).metodo_pago || "",
-        tipo_pago: (company as any).tipo_pago || "",
-        forma_pago: (company as any).forma_pago || "",
+        metodo_pago: esCreditoC ? "PPD" : ((company as any).metodo_pago || ""),
+        tipo_pago: tpC,
+        forma_pago: esCreditoC ? "99" : ((company as any).forma_pago || ""),
       }));
     }
   }, [form.empresa_id, companies]);
