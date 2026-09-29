@@ -260,7 +260,7 @@ export default function CobranzaResumenReporte() {
         }, {}),
       }))
       .sort((a, b) => b.total - a.total);
-  }, [filas, agrupacion]);
+  }, [filas, agrupacion, grupoNombre]);
 
   const exportar = () => {
     const rows: any[] = [];
@@ -272,6 +272,7 @@ export default function CobranzaResumenReporte() {
           Plaza: f.plaza,
           "Tipo de pago": TIPO_PAGO_LABEL[f.tipo],
           Cliente: f.cliente,
+          "Grupo comercial": grupoNombre(f.empresaId) ?? "",
           "Método de pago": f.metodo,
           Referencia: f.referencia,
           "Facturas aplicadas": f.facturas.join(", "),
