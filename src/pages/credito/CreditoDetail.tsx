@@ -2605,7 +2605,7 @@ export default function CreditoDetail() {
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent side="bottom" align="start" className="max-w-[260px] text-[11px] leading-snug p-2.5">
-                                <p className="font-semibold mb-0.5">{dt.nombre}</p>
+                                <p className="font-semibold mb-0.5">{docLabel(dt)}</p>
                                 <p className="font-normal text-muted-foreground">{dt.instrucciones_cliente}</p>
                               </TooltipContent>
                             </Tooltip>
