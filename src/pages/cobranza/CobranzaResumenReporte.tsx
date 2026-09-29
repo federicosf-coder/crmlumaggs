@@ -97,6 +97,7 @@ export default function CobranzaResumenReporte() {
   const [agrupacion, setAgrupacion] = useState<AgrupacionKey>("plaza");
   const [empresaFiltro, setEmpresaFiltro] = useState<EmpresaFiltro>("todas");
   const [plazaSel, setPlazaSel] = useState<string>("todas");
+  const { grupoNombre } = useGruposEmpresas();
 
   // Alcance total: master y crédito/cobranza ven todas las plazas.
   const verTodo = hasAnyRole(["master", "accounting", "manager"]);
@@ -215,6 +216,7 @@ export default function CobranzaResumenReporte() {
         plazaId: p.plaza_id ?? null,
         plaza: p.plaza_id ? plazaNombre[p.plaza_id] || "Sin plaza" : "Sin plaza",
         cliente: companyLabel(p.companies) || "Sin cliente",
+        empresaId: p.empresa_id ?? null,
         metodo: METODO_LABEL[p.metodo_pago] || p.metodo_pago || "—",
         referencia: p.referencia_pago || "",
         facturas: Array.from(new Set(facturasPorPago[p.id] ?? [])),
