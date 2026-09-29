@@ -2590,8 +2590,8 @@ export default function CreditoDetail() {
                           <div className={`h-5 w-5 rounded flex items-center justify-center shrink-0 ${palette.iconBg}`}>
                             <Icon className={`h-3 w-3 ${palette.iconColor}`} />
                           </div>
-                          <p className="text-xs font-medium leading-tight truncate flex-1 min-w-0" title={dt.nombre}>
-                            {dt.nombre} {isRequerido(dt) && <span className="text-red-600">*</span>}
+                           <p className="text-xs font-medium leading-tight truncate flex-1 min-w-0" title={docLabel(dt)}>
+                             {docLabel(dt)} {isRequerido(dt) && <span className="text-red-600">*</span>}
                           </p>
                           {dt.instrucciones_cliente && (
                             <Tooltip>
