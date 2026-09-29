@@ -2514,7 +2514,8 @@ export default function CreditoDetail() {
                  const docLabel = (dt: any): string => {
                    const n = (dt.nombre || "").toLowerCase();
                    if (n.includes("identificación oficial")) {
-                     return tp === "fisica" ? "Identificación oficial del solicitante" : "Identidad del representante legal";
+                     const tpl = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
+                     return tpl === "fisica" ? "Identificación oficial del solicitante" : "Identidad del representante legal";
                    }
                    return dt.nombre;
                  };
