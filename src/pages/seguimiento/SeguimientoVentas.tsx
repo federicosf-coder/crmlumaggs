@@ -53,7 +53,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useToast } from "@/hooks/use-toast";
-import { buildGruposResumen, diasCompraConGrupo, resolveRiesgoEstatusId } from "@/lib/grupoComercial";
+import { buildGruposResumen, consolidarPorGrupo, diasCompraConGrupo, resolveRiesgoEstatusId, type SeguimientoRowConsolidada } from "@/lib/grupoComercial";
 
 type SortDir = "asc" | "desc";
 interface SortState {
@@ -438,6 +438,20 @@ export default function SeguimientoVentas() {
 
   // Ignorar clientes (Clientes con Venta / sin Venta)
   const [viewIgnorados, setViewIgnorados] = useState(false);
+  const [agruparGrupo, setAgruparGrupo] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("seguimiento:agrupar") !== "razon_social";
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("seguimiento:agrupar", agruparGrupo ? "grupo" : "razon_social");
+    } catch {
+      /* noop */
+    }
+  }, [agruparGrupo]);
   const [ignoreDialogOpen, setIgnoreDialogOpen] = useState(false);
   const [ignoreRazon, setIgnoreRazon] = useState("");
   const [ignoreSaving, setIgnoreSaving] = useState(false);
