@@ -736,7 +736,15 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
   const renderEnumSelect = (label: string, value: string, key: string, options: { v: string; l: string }[]) => (
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>
-      <Select value={value} onValueChange={v => setAndSaveNow(key, v === "none" ? "" : v)}>
+      <Select value={value} onValueChange={v => {
+        const nv = v === "none" ? "" : v;
+        setAndSaveNow(key, nv);
+        // Crédito Cescemex / Crédito Directo => Forma de Pago 99 y Método de Pago PPD
+        if (key === "tipo_pago" && (nv === "credito_cescemex" || nv === "credito_directo")) {
+          setAndSaveNow("forma_pago", "99");
+          setAndSaveNow("metodo_pago", "PPD");
+        }
+      }}>
         <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
         <SelectContent>
           <SelectItem value="none">Sin asignar</SelectItem>

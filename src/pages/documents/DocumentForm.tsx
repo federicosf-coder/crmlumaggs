@@ -335,13 +335,17 @@ export default function DocumentForm() {
     if (isEdit || !form.empresa_id || companies.length === 0) return;
     const c: any = companies.find((x: any) => x.id === form.empresa_id);
     if (!c) return;
-    setForm((prev) => ({
-      ...prev,
-      uso_cfdi: prev.uso_cfdi || c.uso_cfdi || "",
-      metodo_pago: prev.metodo_pago || c.metodo_pago || "",
-      tipo_pago: prev.tipo_pago || c.tipo_pago || "",
-      forma_pago: prev.forma_pago || c.forma_pago || "",
-    }));
+    setForm((prev) => {
+      const tp = prev.tipo_pago || c.tipo_pago || "";
+      const esCredito = tp === "credito_cescemex" || tp === "credito_directo";
+      return {
+        ...prev,
+        uso_cfdi: prev.uso_cfdi || c.uso_cfdi || "",
+        metodo_pago: esCredito ? "PPD" : (prev.metodo_pago || c.metodo_pago || ""),
+        tipo_pago: tp,
+        forma_pago: esCredito ? "99" : (prev.forma_pago || c.forma_pago || ""),
+      };
+    });
   }, [form.empresa_id, companies, isEdit]);
 
   // Auto-calculate fecha_vencimiento for Pedidos y Facturas based on tipo_pago
@@ -476,12 +480,14 @@ export default function DocumentForm() {
     prevEmpresaIdRef.current = form.empresa_id;
     const company = companies.find((c: any) => c.id === form.empresa_id);
     if (company) {
+      const tpC = (company as any).tipo_pago || "";
+      const esCreditoC = tpC === "credito_cescemex" || tpC === "credito_directo";
       setForm(prev => ({
         ...prev,
         uso_cfdi: (company as any).uso_cfdi || "",
-        metodo_pago: (company as any).metodo_pago || "",
-        tipo_pago: (company as any).tipo_pago || "",
-        forma_pago: (company as any).forma_pago || "",
+        metodo_pago: esCreditoC ? "PPD" : ((company as any).metodo_pago || ""),
+        tipo_pago: tpC,
+        forma_pago: esCreditoC ? "99" : ((company as any).forma_pago || ""),
       }));
     }
   }, [form.empresa_id, companies]);
@@ -1480,7 +1486,13 @@ export default function DocumentForm() {
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label>Tipo de Pago</Label>
-            <Select value={form.tipo_pago} onValueChange={v => set("tipo_pago", v)}>
+            <Select value={form.tipo_pago} onValueChange={v => {
+              if (v === "credito_cescemex" || v === "credito_directo") {
+                setForm(prev => ({ ...prev, tipo_pago: v, forma_pago: "99", metodo_pago: "PPD" }));
+              } else {
+                set("tipo_pago", v);
+              }
+            }}>
               <SelectTrigger className="text-left"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
               <SelectContent>{TIPO_PAGO_OPTS.map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
             </Select>
