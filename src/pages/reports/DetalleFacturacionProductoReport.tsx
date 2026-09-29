@@ -12,6 +12,8 @@ import { BackButton } from "@/components/BackButton";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowUp, CalendarIcon, Download } from "lucide-react";
+import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
+import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
 import { format } from "date-fns";
 import { es as esLocale } from "date-fns/locale";
 import {
@@ -95,6 +97,8 @@ interface FacturaRow {
 interface ClienteRow {
   key: string;
   cliente: string;
+  grupo: string | null;
+  empresasGrupo: number;
   marca: string;
   plaza: string;
   facturas: number;
@@ -112,6 +116,8 @@ export default function DetalleFacturacionProductoReport() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [estatusSel, setEstatusSel] = useState<string[]>(["vigente", "pendiente", "pagada", "parcial", "vencida", "refacturacion_rfc"]);
   const [plazaSel, setPlazaSel] = useState<string[]>([]);
+  const [agruparGrupo, setAgruparGrupo] = useState(true);
+  const { grupoNombre, grupoId } = useGruposEmpresas();
   const incluirCanceladas = estatusSel.includes("cancelada");
 
   const { periodoStart, periodoEnd } = useMemo(() => {
