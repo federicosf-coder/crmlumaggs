@@ -111,6 +111,10 @@ export default function ReporteDiario() {
   const { user, hasAnyRole } = useAuth();
   const esGerencia = hasAnyRole(["admin", "manager"]);
   const { grupoNombre } = useGruposEmpresas();
+  const clienteConGrupo = (nombre: string, empresaId: string | null | undefined) => {
+    const g = grupoNombre(empresaId ?? null);
+    return g ? `${nombre} (Grupo: ${g})` : nombre;
+  };
 
   type PeriodoKey = "ayer" | "hoy" | "semana" | "mes" | "periodo";
   const [periodo, setPeriodo] = useState<PeriodoKey>("hoy");
