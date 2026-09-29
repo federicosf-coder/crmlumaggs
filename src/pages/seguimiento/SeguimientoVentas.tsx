@@ -54,6 +54,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useToast } from "@/hooks/use-toast";
 import { buildGruposResumen, consolidarPorGrupo, diasCompraConGrupo, resolveRiesgoEstatusId, type SeguimientoRowConsolidada } from "@/lib/grupoComercial";
+import { FiltroChipsMulti } from "@/pages/rvs/components/FiltroChipsMulti";
 
 type SortDir = "asc" | "desc";
 interface SortState {
@@ -962,6 +963,32 @@ export default function SeguimientoVentas() {
       .filter((p) => used.has(p.id))
       .map((p, i) => ({ id: p.id, name: p.nombre, color: colorForIndex(i + 3) }));
   }, [rows, plazasData, companyPlazaMap]);
+
+  // Chips de plaza: "Todos" + opciones; selección vacía = todas
+  const PLAZA_NONE_LABEL = "Sin plaza";
+  const plazaOpcionesLabels = useMemo(
+    () => [PLAZA_NONE_LABEL, ...plazaOptions.map((p) => p.name)],
+    [plazaOptions]
+  );
+  const plazaLabelsFromIds = useMemo(() => {
+    if (fPlaza.length === 0) return [];
+    return fPlaza
+      .map((id) => (id === "__none__" ? PLAZA_NONE_LABEL : plazaNameMap.get(id) || ""))
+      .filter(Boolean);
+  }, [fPlaza, plazaNameMap]);
+  const setFPlazaFromLabels = (labels: string[]) => {
+    if (labels.length === 0 || labels.length === plazaOpcionesLabels.length) {
+      setFPlaza([]);
+      return;
+    }
+    setFPlaza(
+      labels.map((l) =>
+        l === PLAZA_NONE_LABEL
+          ? "__none__"
+          : plazaOptions.find((p) => p.name === l)?.id ?? l
+      )
+    );
+  };
 
   const ejecutivoOptions = useMemo(() => {
     const ids = new Set<string>();
