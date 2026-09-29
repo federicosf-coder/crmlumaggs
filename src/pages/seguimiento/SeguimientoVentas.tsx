@@ -1604,7 +1604,7 @@ export default function SeguimientoVentas() {
       if (va > vb) return 1 * dir;
       return 0;
     });
-  }, [rows, search, catalogMap, tieneVenta, isPerdidos, viewIgnorados, clientesIgnoradosMap, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, fRegistroFrom, fRegistroTo, fConversionFrom, fConversionTo, tab, profileMap, companyPlazaMap, plazaNameMap, access.accessLevel, access.teamMemberIds, access.userId]);
+  }, [rows, search, catalogMap, tieneVenta, isPerdidos, viewIgnorados, clientesIgnoradosMap, sort, fEstatus, fAvance, fDias, fPotencial, fEjecutivo, fPlaza, fRegistroFrom, fRegistroTo, fConversionFrom, fConversionTo, tab, profileMap, companyPlazaMap, plazaNameMap, agruparGrupo, access.accessLevel, access.teamMemberIds, access.userId]);
 
   if (invalidBrand) return <Navigate to="/seguimiento" replace />;
 
