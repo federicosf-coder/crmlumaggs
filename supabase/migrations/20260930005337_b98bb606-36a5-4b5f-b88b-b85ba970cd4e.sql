@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.trg_documento_productos_sync_ue() FROM PUBLIC, anon, authenticated;
