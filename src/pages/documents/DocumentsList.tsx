@@ -874,6 +874,12 @@ export default function DocumentsList() {
     return fields;
   };
 
+  const filtrosActivosCount = [
+    plazaFilter !== "all",
+    estatusPedFilter !== "all",
+    revisionFilter !== "all",
+  ].filter(Boolean).length;
+
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-col gap-3 sm:h-[calc(100svh-5.25rem)] md:h-[calc(100svh-6rem)]">
       <div className="flex shrink-0 items-center justify-between gap-3">
