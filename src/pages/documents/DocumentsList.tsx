@@ -865,7 +865,7 @@ export default function DocumentsList() {
   };
 
   return (
-    <div className="flex h-[calc(100svh-5.25rem)] min-h-0 w-full min-w-0 flex-col gap-3 md:h-[calc(100svh-6rem)]">
+    <div className="flex min-h-0 w-full min-w-0 flex-col gap-3 sm:h-[calc(100svh-5.25rem)] md:h-[calc(100svh-6rem)]">
       <div className="flex shrink-0 items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Documentos</h1>
@@ -1054,7 +1054,7 @@ export default function DocumentsList() {
           )}
         </div>
       ) : (
-        <Card className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t-2 ${tabColor.border}`}>
+        <Card className={`flex min-h-0 min-w-0 flex-col border-t-2 sm:flex-1 sm:overflow-hidden ${tabColor.border}`}>
           <CardHeader className="shrink-0 p-3 pb-3 sm:p-4 sm:pb-3">
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
@@ -1203,7 +1203,7 @@ export default function DocumentsList() {
             </div>
             {/* Filter toolbar */}
           </CardHeader>
-          <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col px-0 pb-0 sm:px-4">
+          <CardContent className="flex min-h-0 min-w-0 flex-col px-0 pb-0 sm:flex-1 sm:px-4">
             {/* Bulk action bar */}
             {selectedIds.size > 0 && (
               <div className="flex items-center gap-3 px-4 py-2 mb-2 bg-muted rounded-md">
