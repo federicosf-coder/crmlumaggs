@@ -568,6 +568,8 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
   const [notas, setNotas] = useState<any[]>([]);
   const [notaCreditoId, setNotaCreditoId] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [idReclamo, setIdReclamo] = useState("");
+  const [guardandoId, setGuardandoId] = useState(false);
 
   useEffect(() => {
     if (!id) return;
