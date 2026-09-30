@@ -32,7 +32,6 @@ interface PortalFactura {
   numero_factura: string | null;
   estatus_factura: string | null;
   subtotal: number | null;
-  iva: number | null;
   total: number | null;
   fecha_documento: string | null;
   companies: { name: string | null; razon_social: string | null } | null;
@@ -76,7 +75,7 @@ export function ContpaqiConciliacionDialog({ open, onOpenChange, marca, desde, h
       const { data, error } = await supabase
         .from("documentos")
         .select(
-          "id, numero_factura, estatus_factura, subtotal, iva, total, fecha_documento, companies(name, razon_social), documento_productos(cantidad, precio_unitario, subtotal, productos(codigo, nombre_producto))"
+          "id, numero_factura, estatus_factura, subtotal, total, fecha_documento, companies(name, razon_social), documento_productos(cantidad, precio_unitario, subtotal, productos(codigo, nombre_producto))"
         )
         .eq("empresa_vendedora", marca as never)
         .eq("tipo_documento", "factura")
