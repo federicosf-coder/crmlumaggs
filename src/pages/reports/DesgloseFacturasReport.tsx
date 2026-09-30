@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +11,8 @@ import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
 import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
 import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
+import { ContpaqiConciliacionDialog } from "@/components/reports/ContpaqiConciliacionDialog";
+import { ExternalLink, ShieldCheck } from "lucide-react";
 
 const MARCAS = [
   { v: "lumaggs_chevron", l: "Chevron" },
@@ -21,6 +24,8 @@ const MESES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
+const ZONA_COSTA = ["tijuana", "ensenada", "san quintin"];
+
 const ESTATUS_LABEL: Record<string, string> = {
   pendiente: "Vigente",
   pagada: "Pagada",
@@ -29,6 +34,8 @@ const ESTATUS_LABEL: Record<string, string> = {
 
 interface LineaRow {
   cantidad: number | null;
+  precio_unitario: number | null;
+  subtotal: number | null;
   unidades_equivalentes: number | null;
   productos: { codigo: string | null; nombre_producto: string | null } | null;
 }
@@ -38,8 +45,11 @@ interface FacturaRow {
   numero_factura: string | null;
   estatus_factura: string | null;
   unidades_equivalentes_total: number | null;
+  subtotal: number | null;
+  total: number | null;
+  plaza_id: string | null;
   empresa_id: string | null;
-  companies: { name: string | null } | null;
+  companies: { name: string | null; razon_social: string | null } | null;
   documento_productos: LineaRow[] | null;
 }
 
@@ -47,36 +57,68 @@ function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
+const sinAcentos = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
 export default function DesgloseFacturasReport() {
   const now = new Date();
   const [marca, setMarca] = useState("lumaggs_chevron");
-  const [mes, setMes] = useState(now.getMonth());
-  const [anio, setAnio] = useState(now.getFullYear());
+  const [periodo, setPeriodo] = useState(`${now.getFullYear()}-${pad(now.getMonth() + 1)}`);
+  const [plazaSel, setPlazaSel] = useState("all");
+  const [auditOpen, setAuditOpen] = useState(false);
   const { grupoNombre } = useGruposEmpresas();
 
+  const [anio, mesNum] = periodo.split("-").map(Number);
+  const mes = mesNum - 1;
   const desde = `${anio}-${pad(mes + 1)}-01`;
   const hasta = mes === 11 ? `${anio + 1}-01-01` : `${anio}-${pad(mes + 2)}-01`;
+  const periodoLabel = `${MESES[mes]} ${anio}`;
 
-  const anios = useMemo(() => {
-    const y = now.getFullYear();
-    return [y - 3, y - 2, y - 1, y, y + 1];
+  const periodos = useMemo(() => {
+    const out: { v: string; l: string }[] = [];
+    const d = new Date(now.getFullYear(), now.getMonth(), 1);
+    for (let i = 0; i < 30; i++) {
+      out.push({
+        v: `${d.getFullYear()}-${pad(d.getMonth() + 1)}`,
+        l: `${MESES[d.getMonth()]} ${d.getFullYear()}`,
+      });
+      d.setMonth(d.getMonth() - 1);
+    }
+    return out;
   }, []);
 
-  const { data: facturas = [], isLoading } = useQuery({
-    queryKey: ["desglose-facturas", marca, desde, hasta],
+  const { data: plazas = [] } = useQuery({
+    queryKey: ["plazas-desglose"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await supabase.from("plazas").select("id, nombre").order("nombre");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const plazasFiltro = useMemo(() => {
+    if (plazaSel === "all") return null;
+    if (plazaSel === "costa")
+      return plazas.filter((p) => ZONA_COSTA.includes(sinAcentos(p.nombre ?? ""))).map((p) => p.id);
+    return [plazaSel];
+  }, [plazaSel, plazas]);
+
+  const { data: facturas = [], isLoading } = useQuery({
+    queryKey: ["desglose-facturas", marca, desde, hasta, plazasFiltro?.join(",") ?? "all"],
+    queryFn: async () => {
+      let q = supabase
         .from("documentos")
         .select(
-          "id, numero_factura, estatus_factura, unidades_equivalentes_total, empresa_id, companies(name), documento_productos(cantidad, unidades_equivalentes, productos(codigo, nombre_producto))"
+          "id, numero_factura, estatus_factura, unidades_equivalentes_total, subtotal, total, plaza_id, empresa_id, companies(name, razon_social), documento_productos(cantidad, precio_unitario, subtotal, unidades_equivalentes, productos(codigo, nombre_producto))"
         )
-        .eq("empresa_vendedora", marca as any)
+        .eq("empresa_vendedora", marca as never)
         .eq("tipo_documento", "factura")
         .neq("estatus_factura", "cancelada")
         .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
         .gte("fecha_documento", desde)
-        .lt("fecha_documento", hasta)
-        .order("numero_factura");
+        .lt("fecha_documento", hasta);
+      if (plazasFiltro) q = q.in("plaza_id", plazasFiltro.length ? plazasFiltro : ["00000000-0000-0000-0000-000000000000"]);
+      const { data, error } = await q.order("numero_factura").limit(5000);
       if (error) throw error;
       return (data ?? []) as unknown as FacturaRow[];
     },
@@ -86,8 +128,17 @@ export default function DesgloseFacturasReport() {
     () => facturas.reduce((acc, f) => acc + Number(f.unidades_equivalentes_total ?? 0), 0),
     [facturas]
   );
+  const totalImporte = useMemo(
+    () => facturas.reduce((acc, f) => acc + Number(f.subtotal ?? 0), 0),
+    [facturas]
+  );
+  const totalConIva = useMemo(
+    () => facturas.reduce((acc, f) => acc + Number(f.total ?? 0), 0),
+    [facturas]
+  );
 
   const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
+  const mxn = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 });
 
   return (
     <>
@@ -95,12 +146,12 @@ export default function DesgloseFacturasReport() {
         <BackButton fallback="/reports" label="Volver a Reportes" />
       </div>
       <PageBanner
-        title="Desglose de Facturas con Unidades"
-        description="Detalle de facturas del mes por producto para verificar su cuantificación."
+        title="Desglose de Facturas con Unidades e Importes"
+        description="Detalle por producto con importes acumulados y verificación contra ContPAQi."
       />
       <div className="container mx-auto p-4 space-y-4">
         <Card>
-          <CardContent className="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <CardContent className="pt-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Marca</Label>
               <Select value={marca} onValueChange={setMarca}>
@@ -111,42 +162,74 @@ export default function DesgloseFacturasReport() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mes</Label>
-              <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Periodo</Label>
+              <Select value={periodo} onValueChange={setPeriodo}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {MESES.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}
+                <SelectContent className="max-h-72">
+                  {periodos.map((p) => <SelectItem key={p.v} value={p.v}>{p.l}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Año</Label>
-              <Select value={String(anio)} onValueChange={(v) => setAnio(Number(v))}>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Plaza</Label>
+              <Select value={plazaSel} onValueChange={setPlazaSel}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {anios.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                  <SelectItem value="all">Todas las plazas</SelectItem>
+                  <SelectItem value="costa">Zona Costa (Tijuana, Ensenada, San Quintín)</SelectItem>
+                  {plazas.map((p) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5 flex flex-col justify-end">
+              <Button
+                onClick={() => setAuditOpen(true)}
+                className="bg-gradient-to-br from-violet-500 to-fuchsia-600 hover:from-violet-600 hover:to-fuchsia-700 text-white shadow-md text-[10px] font-semibold uppercase tracking-widest"
+              >
+                <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Auditar con ContPAQi
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-              Total de unidades equivalentes — {MESES[mes]} {anio}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-semibold tracking-tight">{fmt(totalUnidades)}</div>
-            <p className="text-xs text-muted-foreground mt-1 font-light">
-              {facturas.length} factura{facturas.length === 1 ? "" : "s"} consideradas (excluye canceladas)
-            </p>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card>
+            <CardHeader className="pb-1">
+              <CardTitle className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Unidades equivalentes — {periodoLabel}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-light tracking-tight tabular-nums">{fmt(totalUnidades)}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-light">
+                {facturas.length} factura{facturas.length === 1 ? "" : "s"} (excluye canceladas y RFC)
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-1">
+              <CardTitle className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Importe facturado (sin IVA)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-light tracking-tight tabular-nums">{mxn(totalImporte)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-1">
+              <CardTitle className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Total con IVA
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-light tracking-tight tabular-nums">{mxn(totalConIva)}</div>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-auto">
             {isLoading ? (
               <div className="p-8 text-center text-muted-foreground text-sm">Cargando...</div>
             ) : facturas.length === 0 ? (
@@ -160,58 +243,80 @@ export default function DesgloseFacturasReport() {
                     <TableHead>Estatus</TableHead>
                     <TableHead>Código</TableHead>
                     <TableHead>Producto</TableHead>
+                    <TableHead className="text-right">Cant.</TableHead>
                     <TableHead className="text-right">Unidades</TableHead>
+                    <TableHead className="text-right">Precio</TableHead>
+                    <TableHead className="text-right">Importe</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {facturas.map((f) => {
                     const lineas = f.documento_productos ?? [];
                     const suma = lineas.reduce((a, l) => a + Number(l.unidades_equivalentes ?? 0), 0);
+                    const sumaImporte = lineas.reduce((a, l) => a + Number(l.subtotal ?? 0), 0);
                     const total = Number(f.unidades_equivalentes_total ?? 0);
+                    const docSubtotal = Number(f.subtotal ?? 0);
                     const desfase = Math.abs(suma - total) > 0.01;
+                    const desfaseImporte = Math.abs(sumaImporte - docSubtotal) > 0.5;
                     const span = Math.max(lineas.length, 1) + 1;
+                    const cliente = (
+                      <div className="flex flex-col gap-1">
+                        <span>{f.companies?.name || f.companies?.razon_social || "—"}</span>
+                        {f.companies?.name && f.companies?.razon_social && (
+                          <span className="text-[11px] text-muted-foreground">{f.companies.razon_social}</span>
+                        )}
+                        <GrupoComercialBadge nombre={grupoNombre(f.empresa_id)} className="w-fit" />
+                      </div>
+                    );
+                    const numeroCell = (
+                      <a
+                        href={`/documents/${f.id}/edit`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                      >
+                        {f.numero_factura || "—"}<ExternalLink className="h-3 w-3" />
+                      </a>
+                    );
                     return (
                       <Fragment key={f.id}>
                         {lineas.length === 0 ? (
-                          <TableRow key={f.id}>
-                            <TableCell rowSpan={span} className="align-top font-medium">{f.numero_factura || "—"}</TableCell>
-                            <TableCell rowSpan={span} className="align-top">
-                              <div className="flex flex-col gap-1">
-                                <span>{f.companies?.name || "—"}</span>
-                                <GrupoComercialBadge nombre={grupoNombre(f.empresa_id)} className="w-fit" />
-                              </div>
-                            </TableCell>
+                          <TableRow>
+                            <TableCell rowSpan={span} className="align-top">{numeroCell}</TableCell>
+                            <TableCell rowSpan={span} className="align-top">{cliente}</TableCell>
                             <TableCell rowSpan={span} className="align-top">{ESTATUS_LABEL[f.estatus_factura ?? ""] ?? f.estatus_factura ?? "—"}</TableCell>
-                            <TableCell colSpan={3} className="text-destructive font-medium">Sin productos capturados</TableCell>
+                            <TableCell colSpan={6} className="text-destructive font-medium">Sin productos capturados</TableCell>
                           </TableRow>
                         ) : (
                           lineas.map((l, i) => (
                             <TableRow key={`${f.id}-${i}`}>
                               {i === 0 && (
                                 <>
-                                  <TableCell rowSpan={span} className="align-top font-medium">{f.numero_factura || "—"}</TableCell>
-                                  <TableCell rowSpan={span} className="align-top">
-                                    <div className="flex flex-col gap-1">
-                                      <span>{f.companies?.name || "—"}</span>
-                                      <GrupoComercialBadge nombre={grupoNombre(f.empresa_id)} className="w-fit" />
-                                    </div>
-                                  </TableCell>
+                                  <TableCell rowSpan={span} className="align-top">{numeroCell}</TableCell>
+                                  <TableCell rowSpan={span} className="align-top">{cliente}</TableCell>
                                   <TableCell rowSpan={span} className="align-top">{ESTATUS_LABEL[f.estatus_factura ?? ""] ?? f.estatus_factura ?? "—"}</TableCell>
                                 </>
                               )}
                               <TableCell className="font-mono text-xs">{l.productos?.codigo || "—"}</TableCell>
                               <TableCell className="text-sm">{l.productos?.nombre_producto || "—"}</TableCell>
+                              <TableCell className="text-right tabular-nums">{fmt(Number(l.cantidad ?? 0))}</TableCell>
                               <TableCell className="text-right tabular-nums">{fmt(Number(l.unidades_equivalentes ?? 0))}</TableCell>
+                              <TableCell className="text-right tabular-nums">{mxn(Number(l.precio_unitario ?? 0))}</TableCell>
+                              <TableCell className="text-right tabular-nums">{mxn(Number(l.subtotal ?? 0))}</TableCell>
                             </TableRow>
                           ))
                         )}
-                        <TableRow key={`${f.id}-sub`} className="bg-muted/40">
-                          <TableCell colSpan={2} className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Subtotal factura
+                        <TableRow className="bg-muted/40">
+                          <TableCell colSpan={3} className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                            Acumulado de la factura
                           </TableCell>
                           <TableCell className={cn("text-right font-semibold tabular-nums", desfase && "text-destructive")}>
                             {fmt(suma)}
                             {desfase && <span className="ml-2 text-xs font-normal">(doc: {fmt(total)})</span>}
+                          </TableCell>
+                          <TableCell colSpan={2} className={cn("text-right font-semibold tabular-nums", desfaseImporte && "text-destructive")}>
+                            {mxn(sumaImporte)}
+                            {desfaseImporte && <span className="ml-2 text-xs font-normal">(doc: {mxn(docSubtotal)})</span>}
                           </TableCell>
                         </TableRow>
                       </Fragment>
@@ -223,6 +328,15 @@ export default function DesgloseFacturasReport() {
           </CardContent>
         </Card>
       </div>
+
+      <ContpaqiConciliacionDialog
+        open={auditOpen}
+        onOpenChange={setAuditOpen}
+        marca={marca}
+        desde={desde}
+        hasta={hasta}
+        periodoLabel={periodoLabel}
+      />
     </>
   );
 }
