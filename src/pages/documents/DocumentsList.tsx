@@ -81,7 +81,7 @@ const PEDIDO_STATUS_ORDER = [
 ];
 const ESTATUS_FAC_LABELS: Record<string, string> = {
   vigente: "Vigente", pagada: "Pagada", parcial: "Parcial",
-  vencida: "Vencida", cancelada: "Cancelada",
+  vencida: "Vencida", refacturado_remision: "Refacturado o Remisión", cancelada: "Cancelada",
 };
 const ESTATUS_ENT_CORP_LABELS: Record<string, string> = {
   solicitada: "Solicitadas", programada: "Programadas",
