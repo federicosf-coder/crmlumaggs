@@ -941,7 +941,7 @@ export default function DocumentsList() {
       </div>
 
       {/* Empresa filter */}
-      <div className="flex shrink-0 gap-2 overflow-x-auto pb-1">
+      <div className={`${filtrosVisibles ? "flex" : "hidden"} shrink-0 gap-2 overflow-x-auto pb-1`}>
         {[
           { value: "lumaggs_chevron", label: "Lumaggs Chevron" },
           { value: "galsa_phillips66", label: "Galsa Phillips 66" },
