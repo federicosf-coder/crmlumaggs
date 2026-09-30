@@ -185,6 +185,14 @@ export default function PedidosReclamos() {
                 {ESTATUS_FLOW.map((e) => <SelectItem key={e} value={e}>{ESTATUS_LABEL[e]}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Button
+              variant={soloSinId ? "default" : "outline"}
+              size="sm"
+              className="h-9"
+              onClick={() => setSoloSinId(!soloSinId)}
+            >
+              Sin ID de Chevron{pendientesId ? ` (${pendientesId})` : ""}
+            </Button>
           </div>
           <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Nuevo reclamo</Button>
         </CardContent>
