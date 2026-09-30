@@ -19,6 +19,11 @@ const MARCAS = [
   { v: "galsa_phillips66", l: "Phillips 66" },
 ];
 
+const PILL: Record<string, { active: string; idle: string }> = {
+  lumaggs_chevron: { active: "bg-blue-600 text-white border-blue-600", idle: "bg-transparent text-blue-700 hover:bg-blue-50" },
+  galsa_phillips66: { active: "bg-orange-500 text-white border-orange-500", idle: "bg-transparent text-orange-600 hover:bg-orange-50" },
+};
+
 const MESES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
@@ -64,9 +69,10 @@ export default function DesgloseFacturasReport() {
   const now = new Date();
   const [marca, setMarca] = useState("lumaggs_chevron");
   const [periodo, setPeriodo] = useState(`${now.getFullYear()}-${pad(now.getMonth() + 1)}`);
-  const [plazaSel, setPlazaSel] = useState("all");
+  const [plazaSel, setPlazaSel] = useState<string[]>([]);
   const [auditOpen, setAuditOpen] = useState(false);
   const { grupoNombre } = useGruposEmpresas();
+  const pill = PILL[marca];
 
   const [anio, mesNum] = periodo.split("-").map(Number);
   const mes = mesNum - 1;
@@ -97,10 +103,9 @@ export default function DesgloseFacturasReport() {
   });
 
   const plazasFiltro = useMemo(() => {
-    if (plazaSel === "all") return null;
-    if (plazaSel === "costa")
-      return plazas.filter((p) => ZONA_COSTA.includes(sinAcentos(p.nombre ?? ""))).map((p) => p.id);
-    return [plazaSel];
+    if (plazaSel.length === 0) return null;
+    const costa = plazas.filter((p) => ZONA_COSTA.includes(sinAcentos(p.nombre ?? ""))).map((p) => p.id);
+    return Array.from(new Set(plazaSel.flatMap((id) => (id === "costa" ? costa : [id]))));
   }, [plazaSel, plazas]);
 
   const { data: facturas = [], isLoading } = useQuery({
@@ -150,47 +155,60 @@ export default function DesgloseFacturasReport() {
         description="Detalle por producto con importes acumulados y verificación contra ContPAQi."
       />
       <div className="container mx-auto p-4 space-y-4">
-        <Card>
-          <CardContent className="pt-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Marca</Label>
-              <Select value={marca} onValueChange={setMarca}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {MARCAS.map((m) => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Periodo</Label>
-              <Select value={periodo} onValueChange={setPeriodo}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {periodos.map((p) => <SelectItem key={p.v} value={p.v}>{p.l}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Plaza</Label>
-              <Select value={plazaSel} onValueChange={setPlazaSel}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las plazas</SelectItem>
-                  <SelectItem value="costa">Zona Costa (Tijuana, Ensenada, San Quintín)</SelectItem>
-                  {plazas.map((p) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5 flex flex-col justify-end">
-              <Button
-                onClick={() => setAuditOpen(true)}
-                className="bg-gradient-to-br from-violet-500 to-fuchsia-600 hover:from-violet-600 hover:to-fuchsia-700 text-white shadow-md text-[10px] font-semibold uppercase tracking-widest"
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-full border overflow-hidden">
+            {MARCAS.map((m) => (
+              <button
+                key={m.v}
+                type="button"
+                onClick={() => setMarca(m.v)}
+                aria-pressed={marca === m.v}
+                className={cn("px-4 py-1.5 text-xs font-semibold transition-all", marca === m.v ? PILL[m.v].active : PILL[m.v].idle)}
               >
-                <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Auditar con ContPAQi
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                {m.l}
+              </button>
+            ))}
+          </div>
+          <Select value={periodo} onValueChange={setPeriodo}>
+            <SelectTrigger className="h-8 w-44 rounded-full text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              {periodos.map((p) => <SelectItem key={p.v} value={p.v}>{p.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            onClick={() => setAuditOpen(true)}
+            className="ml-auto h-8 bg-gradient-to-br from-violet-500 to-fuchsia-600 hover:from-violet-600 hover:to-fuchsia-700 text-white shadow-md text-[10px] font-semibold uppercase tracking-widest"
+          >
+            <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Auditar con ContPAQi
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Plaza:</span>
+          <button
+            type="button"
+            onClick={() => setPlazaSel([])}
+            aria-pressed={plazaSel.length === 0}
+            className={cn("rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all", plazaSel.length === 0 ? pill.active : pill.idle)}
+          >
+            Todas
+          </button>
+          {[{ id: "costa", nombre: "Zona Costa" }, ...plazas.map((p) => ({ id: p.id, nombre: p.nombre ?? "" }))].map((p) => {
+            const active = plazaSel.includes(p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPlazaSel((s) => (s.includes(p.id) ? s.filter((x) => x !== p.id) : [...s, p.id]))}
+                aria-pressed={active}
+                className={cn("rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all", active ? pill.active : pill.idle)}
+              >
+                {p.nombre}
+              </button>
+            );
+          })}
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Card>
