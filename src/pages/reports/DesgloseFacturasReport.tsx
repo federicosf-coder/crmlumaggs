@@ -66,7 +66,7 @@ function pad(n: number) {
 const sinAcentos = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
-export default function DesgloseFacturasReport() {
+export default function DesgloseFacturasReport({ porDia = false }: { porDia?: boolean }) {
   const now = new Date();
   const [marca, setMarca] = useState("lumaggs_chevron");
   const [periodo, setPeriodo] = useState(`${now.getFullYear()}-${pad(now.getMonth() + 1)}`);
@@ -244,7 +244,7 @@ export default function DesgloseFacturasReport() {
         <BackButton fallback="/reports" label="Volver a Reportes" />
       </div>
       <PageBanner
-        title="Desglose de Facturas con Unidades e Importes"
+        title={porDia ? "Reporte de Unidades e Importes Vendidas — Agrupado por Día" : "Reporte de Unidades e Importes Vendidas"}
         description="Detalle por producto con importes acumulados y verificación contra ContPAQi."
       />
       <div className="container mx-auto p-4 space-y-4">
@@ -362,7 +362,26 @@ export default function DesgloseFacturasReport() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {facturasOrdenadas.map((f) => {
+                  {(porDia
+                    ? [...facturasOrdenadas].sort((a, b) => (b.fecha_documento ?? "").slice(0, 10).localeCompare((a.fecha_documento ?? "").slice(0, 10)))
+                    : facturasOrdenadas
+                  ).map((f, idx, arr) => {
+                    const dia = (f.fecha_documento ?? "").slice(0, 10);
+                    const nuevoDia = porDia && (idx === 0 || (arr[idx - 1].fecha_documento ?? "").slice(0, 10) !== dia);
+                    const delDia = nuevoDia ? arr.filter((x) => (x.fecha_documento ?? "").slice(0, 10) === dia) : [];
+                    const diaHeader = nuevoDia ? (
+                      <TableRow className="bg-primary/10 hover:bg-primary/10">
+                        <TableCell colSpan={7} className="font-semibold text-sm">
+                          {fechaTxt(dia)} · {delDia.length} factura{delDia.length === 1 ? "" : "s"}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">
+                          {fmt(delDia.reduce((a, x) => a + (x.documento_productos ?? []).reduce((s2, l) => s2 + Number(l.unidades_equivalentes ?? 0), 0), 0))}
+                        </TableCell>
+                        <TableCell colSpan={2} className="text-right font-semibold tabular-nums">
+                          {mxn(delDia.reduce((a, x) => a + (x.documento_productos ?? []).reduce((s2, l) => s2 + Number(l.subtotal ?? 0), 0), 0))}
+                        </TableCell>
+                      </TableRow>
+                    ) : null;
                     const lineas = f.documento_productos ?? [];
                     const suma = lineas.reduce((a, l) => a + Number(l.unidades_equivalentes ?? 0), 0);
                     const sumaImporte = lineas.reduce((a, l) => a + Number(l.subtotal ?? 0), 0);
@@ -392,6 +411,7 @@ export default function DesgloseFacturasReport() {
                     );
                     return (
                       <Fragment key={f.id}>
+                        {diaHeader}
                         {lineas.length === 0 ? (
                           <TableRow>
                             <TableCell rowSpan={span} className="align-top">{numeroCell}</TableCell>

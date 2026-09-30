@@ -26,9 +26,16 @@ const REPORTS = [
     category: "Operación",
   },
   {
-    title: "Desglose de Facturas con Unidades",
-    description: "Detalle de facturas del mes por producto, para verificar que todas estén cuantificadas correctamente.",
+    title: "Reporte de Unidades e Importes Vendidas",
+    description: "Detalle de facturas del mes por producto con unidades e importes, y verificación contra ContPAQi.",
     url: "/reports/desglose-facturas",
+    icon: ListChecks,
+    category: "Ventas",
+  },
+  {
+    title: "Reporte de Unidades e Importes Vendidas — Agrupado por Día",
+    description: "Mismo reporte, con las facturas agrupadas por día y totales diarios de unidades e importes.",
+    url: "/reports/desglose-facturas-dia",
     icon: ListChecks,
     category: "Ventas",
   },
