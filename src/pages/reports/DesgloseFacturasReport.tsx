@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useGruposEmpresas } from "@/hooks/useGruposEmpresas";
 import { GrupoComercialBadge } from "@/components/GrupoComercialBadge";
 import { ContpaqiConciliacionDialog } from "@/components/reports/ContpaqiConciliacionDialog";
-import { ExternalLink, ShieldCheck } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, ShieldCheck } from "lucide-react";
 
 const MARCAS = [
   { v: "lumaggs_chevron", l: "Chevron" },
@@ -49,6 +49,7 @@ interface FacturaRow {
   id: string;
   numero_factura: string | null;
   estatus_factura: string | null;
+  fecha_documento: string | null;
   unidades_equivalentes_total: number | null;
   subtotal: number | null;
   total: number | null;
@@ -114,7 +115,7 @@ export default function DesgloseFacturasReport() {
       let q = supabase
         .from("documentos")
         .select(
-          "id, numero_factura, estatus_factura, unidades_equivalentes_total, subtotal, total, plaza_id, empresa_id, companies(name, razon_social), documento_productos(cantidad, precio_unitario, subtotal, unidades_equivalentes, productos(codigo, nombre_producto))"
+          "id, numero_factura, estatus_factura, fecha_documento, unidades_equivalentes_total, subtotal, total, plaza_id, empresa_id, companies(name, razon_social), documento_productos(cantidad, precio_unitario, subtotal, unidades_equivalentes, productos(codigo, nombre_producto))"
         )
         .eq("empresa_vendedora", marca as never)
         .eq("tipo_documento", "factura")
