@@ -1315,10 +1315,21 @@ export default function DocumentsList() {
                           </TableCell>
                         )}
                         {isColVisible("cliente") && (
-                          <TableCell className="max-w-[220px]">
-                            <span className="block truncate" title={(doc.companies as any)?.name || ""}>
-                              {(doc.companies as any)?.name || "-"}
-                            </span>
+                          <TableCell className="max-w-[260px]">
+                            {(() => {
+                              const c: any = doc.companies || {};
+                              const nom = (c.name || "").trim();
+                              const rs = (c.razon_social || "").trim();
+                              const mostrarAmbos = nom && rs && nom.toUpperCase() !== rs.toUpperCase();
+                              return (
+                                <div className="min-w-0" title={clienteTexto(doc.companies)}>
+                                  <span className="block truncate">{nom || rs || "-"}</span>
+                                  {mostrarAmbos && (
+                                    <span className="block truncate text-[11px] font-light text-muted-foreground">{rs}</span>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                         )}
                         {isColVisible("ejecutivo") && (
