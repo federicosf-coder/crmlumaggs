@@ -624,6 +624,21 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     setData({ ...data, reclamo: { ...r, nota_credito_id: notaCreditoId, nota_credito_folio: nc?.folio, nota_credito_monto: nc?.total } });
   };
 
+  const guardarIdReclamo = async () => {
+    const v = idReclamo.trim();
+    setGuardandoId(true);
+    const update: any = {
+      id_reclamo_proveedor: v || null,
+      id_reclamo_fecha: v ? new Date().toISOString() : null,
+    };
+    const { error } = await (supabase as any).from("inv_reclamos").update(update).eq("id", id);
+    setGuardandoId(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(v ? "ID de reclamo guardado" : "ID de reclamo eliminado");
+    setData({ ...data, reclamo: { ...r, ...update } });
+    qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
+  };
+
   const guardarResolucion = async () => {
     await (supabase as any).from("inv_reclamos").update({ resolucion }).eq("id", id);
     toast.success("Resolución guardada");
