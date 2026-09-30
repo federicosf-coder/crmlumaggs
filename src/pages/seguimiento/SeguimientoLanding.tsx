@@ -764,7 +764,7 @@ export default function SeguimientoLanding() {
     const base = () =>
       supabase
         .from("documentos")
-        .select("id, total, unidades_equivalentes_total")
+        .select("id, subtotal, total, unidades_equivalentes_total")
         .eq("empresa_vendedora", empresaSel)
         .eq("tipo_documento", "factura")
         .eq("is_active", true)
@@ -776,7 +776,7 @@ export default function SeguimientoLanding() {
     const bloques: (string[] | null)[] = [];
     if (sinRestriccion) bloques.push(null);
     else for (let i = 0; i < visibleCompanyIds.length; i += 150) bloques.push(visibleCompanyIds.slice(i, i + 150));
-    const filas = new Map<string, { total: number | null; unidades_equivalentes_total: number | null }>();
+    const filas = new Map<string, { subtotal: number | null; total: number | null; unidades_equivalentes_total: number | null }>();
     for (const ids of bloques) {
       const rows = await fetchAllRows<any>((from, to) => {
         let q = base();
@@ -788,7 +788,8 @@ export default function SeguimientoLanding() {
     let importe = 0;
     let unidades = 0;
     for (const r of filas.values()) {
-      importe += Number(r.total || 0);
+      // Importe sin IVA, igual que el Reporte de Unidades e Importes Vendidas.
+      importe += r.subtotal != null ? Number(r.subtotal) : Math.round(((Number(r.total) || 0) / 1.16) * 100) / 100;
       unidades += Number(r.unidades_equivalentes_total || 0);
     }
     return { unidades, importe };
