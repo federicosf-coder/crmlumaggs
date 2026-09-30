@@ -970,6 +970,20 @@ export default function DocumentForm() {
                 <Download className="mr-2 h-4 w-4" /> Ver PDF
               </Button>
             )}
+            {tieneEntrega && (
+              <Button
+                variant="outline"
+                className="border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 hover:from-emerald-100 hover:to-teal-100 hover:text-emerald-800"
+                onClick={() => window.open(`/delivery/entrega/${id}`, "_blank", "noopener,noreferrer")}
+              >
+                <Truck className="mr-2 h-4 w-4" /> Ver Entrega / Evidencias
+                {(entregaInfo?.archivos ?? 0) > 0 && (
+                  <span className="ml-2 rounded-full bg-emerald-600 px-1.5 text-[10px] font-semibold text-white">
+                    {entregaInfo?.archivos}
+                  </span>
+                )}
+              </Button>
+            )}
             {form.tipo_documento === "cotizacion" && !existingDoc?.pdf_url && (
               <Button onClick={() => downloadCotizacionPdf(id!, () => {
                 qc.invalidateQueries({ queryKey: ["documento", id] });
