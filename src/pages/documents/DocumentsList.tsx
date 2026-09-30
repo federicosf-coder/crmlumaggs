@@ -466,7 +466,7 @@ export default function DocumentsList() {
       if (!access.canView || tipoFilter !== "pedido") return [];
       let q = supabase
         .from("documentos")
-        .select("estatus_pedido, numero_cotizacion, numero_pedido, numero_factura, companies(name)")
+        .select("estatus_pedido, numero_cotizacion, numero_pedido, numero_factura, companies(name, razon_social)")
         .eq("is_active", true)
         .eq("empresa_vendedora", empresaFilter as any)
         .eq("tipo_documento", "pedido" as any)
