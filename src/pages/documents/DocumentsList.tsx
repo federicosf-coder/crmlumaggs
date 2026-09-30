@@ -523,8 +523,8 @@ export default function DocumentsList() {
       case "saldo_desc": return Number(b.saldo_pendiente_cobranza || 0) - Number(a.saldo_pendiente_cobranza || 0);
       case "saldo_asc": return Number(a.saldo_pendiente_cobranza || 0) - Number(b.saldo_pendiente_cobranza || 0);
 
-      case "client_asc": return ((a.companies as any)?.name || "").localeCompare((b.companies as any)?.name || "");
-      case "client_desc": return ((b.companies as any)?.name || "").localeCompare((a.companies as any)?.name || "");
+      case "client_asc": return clienteTexto(a.companies).localeCompare(clienteTexto(b.companies));
+      case "client_desc": return clienteTexto(b.companies).localeCompare(clienteTexto(a.companies));
       case "numero_asc": {
         const na = a.numero_cotizacion || a.numero_pedido || a.numero_factura || "";
         const nb = b.numero_cotizacion || b.numero_pedido || b.numero_factura || "";
