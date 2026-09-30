@@ -190,7 +190,7 @@ export default function PedidosReclamos() {
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
-              <TableRow>{["Pedido", "Factura", "Cliente", "No. Pedido Factura", "Fecha Reclamo", "SKUs", "Estatus", "Enviado"].map((h) =>
+              <TableRow>{["Pedido", "Factura", "Cliente", "No. Pedido Factura", "ID Reclamo", "Fecha Reclamo", "SKUs", "Estatus", "Enviado"].map((h) =>
                 <TableHead key={h} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>)}</TableRow>
             </TableHeader>
             <TableBody>
