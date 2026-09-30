@@ -6877,6 +6877,8 @@ export type Database = {
           fecha_reclamo: string
           fecha_resolucion: string | null
           id: string
+          id_reclamo_fecha: string | null
+          id_reclamo_proveedor: string | null
           no_pedido_factura: string | null
           nota_credito_folio: string | null
           nota_credito_id: string | null
@@ -6907,6 +6909,8 @@ export type Database = {
           fecha_reclamo?: string
           fecha_resolucion?: string | null
           id?: string
+          id_reclamo_fecha?: string | null
+          id_reclamo_proveedor?: string | null
           no_pedido_factura?: string | null
           nota_credito_folio?: string | null
           nota_credito_id?: string | null
@@ -6937,6 +6941,8 @@ export type Database = {
           fecha_reclamo?: string
           fecha_resolucion?: string | null
           id?: string
+          id_reclamo_fecha?: string | null
+          id_reclamo_proveedor?: string | null
           no_pedido_factura?: string | null
           nota_credito_folio?: string | null
           nota_credito_id?: string | null

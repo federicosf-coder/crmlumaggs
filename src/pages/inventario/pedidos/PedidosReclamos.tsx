@@ -50,6 +50,90 @@ function fmtMoney(n?: number | null) {
   return `$${Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function diasDesde(d?: string | null) {
+  if (!d) return null;
+  const iso = d.length === 10 ? `${d}T00:00:00` : d;
+  const ms = Date.now() - new Date(iso).getTime();
+  return Math.max(0, Math.floor(ms / 86400000));
+}
+
+function esperaColor(dias: number) {
+  if (dias >= 7) return "bg-red-100 text-red-800";
+  if (dias >= 3) return "bg-amber-100 text-amber-800";
+  return "bg-slate-100 text-slate-700";
+}
+
+/** Celda con captura rápida del ID que proporciona Chevron */
+function IdReclamoCell({ reclamo }: { reclamo: any }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [valor, setValor] = useState(reclamo.id_reclamo_proveedor || "");
+  const [saving, setSaving] = useState(false);
+
+  const guardar = async () => {
+    const v = valor.trim();
+    setSaving(true);
+    const { error } = await (supabase as any).from("inv_reclamos").update({
+      id_reclamo_proveedor: v || null,
+      id_reclamo_fecha: v ? new Date().toISOString() : null,
+    }).eq("id", reclamo.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(v ? "ID de reclamo guardado" : "ID de reclamo eliminado");
+    setEditing(false);
+    qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <Input
+          autoFocus
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") guardar();
+            if (e.key === "Escape") { setValor(reclamo.id_reclamo_proveedor || ""); setEditing(false); }
+          }}
+          placeholder="ID de Chevron"
+          className="h-7 w-[130px] text-xs font-mono"
+        />
+        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={saving} onClick={guardar}>
+          {saving ? "..." : "OK"}
+        </Button>
+      </div>
+    );
+  }
+
+  if (reclamo.id_reclamo_proveedor) {
+    return (
+      <button
+        className="font-mono text-xs underline decoration-dotted underline-offset-2 hover:text-primary"
+        onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+        title="Editar ID de reclamo"
+      >
+        {reclamo.id_reclamo_proveedor}
+      </button>
+    );
+  }
+
+  const enviado = reclamo.fecha_envio;
+  const dias = diasDesde(enviado);
+  return (
+    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={() => setEditing(true)}>
+        <Plus className="h-3 w-3 mr-1" />Capturar ID
+      </Button>
+      {enviado && dias !== null && (
+        <Badge className={`${esperaColor(dias)} text-[10px]`}>
+          {dias === 0 ? "Hoy" : `${dias} día${dias === 1 ? "" : "s"}`}
+        </Badge>
+      )}
+    </div>
+  );
+}
+
+
 function estatusReclamoColor(e: string) {
   return {
     borrador: "bg-gray-100 text-gray-700", abierto: "bg-gray-100 text-gray-700",
@@ -68,14 +152,18 @@ export default function PedidosReclamos() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [empresa, setEmpresa] = useState("todas");
   const [estatus, setEstatus] = useState("todos");
+  const [soloSinId, setSoloSinId] = useState(false);
 
   useEffect(() => { if (params.get("recepcion")) setOpen(true); }, [params]);
 
-  const filtered = reclamos.filter((r) => {
+  const filtered = reclamos.filter((r: any) => {
     if (empresa !== "todas" && r.empresa_vendedora !== empresa) return false;
     if (estatus !== "todos" && r.estatus !== estatus) return false;
+    if (soloSinId && (r.id_reclamo_proveedor || !r.fecha_envio)) return false;
     return true;
   });
+
+  const pendientesId = reclamos.filter((r: any) => r.fecha_envio && !r.id_reclamo_proveedor).length;
 
   return (
     <div className="p-6 space-y-4">
@@ -97,6 +185,14 @@ export default function PedidosReclamos() {
                 {ESTATUS_FLOW.map((e) => <SelectItem key={e} value={e}>{ESTATUS_LABEL[e]}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Button
+              variant={soloSinId ? "default" : "outline"}
+              size="sm"
+              className="h-9"
+              onClick={() => setSoloSinId(!soloSinId)}
+            >
+              Sin ID de Chevron{pendientesId ? ` (${pendientesId})` : ""}
+            </Button>
           </div>
           <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Nuevo reclamo</Button>
         </CardContent>
@@ -106,7 +202,7 @@ export default function PedidosReclamos() {
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
-              <TableRow>{["Pedido", "Factura", "Cliente", "No. Pedido Factura", "Fecha Reclamo", "SKUs", "Estatus", "Enviado"].map((h) =>
+              <TableRow>{["Pedido", "Factura", "Cliente", "No. Pedido Factura", "ID Reclamo", "Fecha Reclamo", "SKUs", "Estatus", "Enviado"].map((h) =>
                 <TableHead key={h} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>)}</TableRow>
             </TableHeader>
             <TableBody>
@@ -116,6 +212,7 @@ export default function PedidosReclamos() {
                   <TableCell className="text-xs">{r.chevron_facturas_recibidas?.folio ? `Folio ${r.chevron_facturas_recibidas.folio}` : "—"}</TableCell>
                   <TableCell className="text-xs font-medium">{r.cliente_nombre || "LUMAGGS"}</TableCell>
                   <TableCell className="font-mono text-xs">{r.no_pedido_factura || "—"}</TableCell>
+                  <TableCell><IdReclamoCell reclamo={r} /></TableCell>
                   <TableCell className="text-xs">{fmtFecha(r.fecha_reclamo)}</TableCell>
                   <TableCell className="text-right">{r.total_skus_afectados ?? 0}</TableCell>
                   <TableCell>
@@ -125,7 +222,7 @@ export default function PedidosReclamos() {
                 </TableRow>
               ))}
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sin reclamos</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sin reclamos</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -471,6 +568,8 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
   const [notas, setNotas] = useState<any[]>([]);
   const [notaCreditoId, setNotaCreditoId] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [idReclamo, setIdReclamo] = useState("");
+  const [guardandoId, setGuardandoId] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -486,6 +585,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       setData({ reclamo: rec, lineas: lin || [], archivos: arc || [], notas: ncs || [] });
       setNotas(seg || []);
       setResolucion(rec?.resolucion || "");
+      setIdReclamo(rec?.id_reclamo_proveedor || "");
       setNotaCreditoId(rec?.nota_credito_id || "");
     })();
   }, [id]);
@@ -522,6 +622,21 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     if (error) { toast.error(error.message); return; }
     toast.success("Nota de crédito guardada");
     setData({ ...data, reclamo: { ...r, nota_credito_id: notaCreditoId, nota_credito_folio: nc?.folio, nota_credito_monto: nc?.total } });
+  };
+
+  const guardarIdReclamo = async () => {
+    const v = idReclamo.trim();
+    setGuardandoId(true);
+    const update: any = {
+      id_reclamo_proveedor: v || null,
+      id_reclamo_fecha: v ? new Date().toISOString() : null,
+    };
+    const { error } = await (supabase as any).from("inv_reclamos").update(update).eq("id", id);
+    setGuardandoId(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(v ? "ID de reclamo guardado" : "ID de reclamo eliminado");
+    setData({ ...data, reclamo: { ...r, ...update } });
+    qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
   };
 
   const guardarResolucion = async () => {
@@ -639,6 +754,40 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
               </div>
               {r.descripcion && <div className="col-span-2"><div className={labelCls}>Descripción</div><div className="text-sm">{r.descripcion}</div></div>}
             </div>
+
+            <div className="rounded-lg border bg-gradient-to-r from-violet-50/60 to-blue-50/60 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <Label className={labelCls}>ID Reclamo (Chevron)</Label>
+                {r.id_reclamo_proveedor ? (
+                  <Badge className="bg-green-100 text-green-800 text-[10px]">
+                    Recibido{r.id_reclamo_fecha ? ` · ${fmtFecha(r.id_reclamo_fecha)}` : ""}
+                  </Badge>
+                ) : r.fecha_envio ? (
+                  <Badge className={`${esperaColor(diasDesde(r.fecha_envio) ?? 0)} text-[10px]`}>
+                    En espera · {diasDesde(r.fecha_envio)} día(s) desde el envío
+                  </Badge>
+                ) : (
+                  <Badge className="bg-slate-100 text-slate-700 text-[10px]">Aún no se envía a Chevron</Badge>
+                )}
+              </div>
+              <div className="flex gap-2 items-center">
+                <Input
+                  value={idReclamo}
+                  onChange={(e) => setIdReclamo(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") guardarIdReclamo(); }}
+                  placeholder="Ej. 4500123456"
+                  className="h-8 w-[220px] font-mono text-sm bg-background"
+                />
+                <Button size="sm" variant="outline" disabled={guardandoId} onClick={guardarIdReclamo}>
+                  {guardandoId ? "Guardando..." : "Guardar ID"}
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                Chevron entrega este ID al recibir el reclamo; es el que se usa para darle seguimiento.
+              </p>
+            </div>
+
+
 
             <div className="flex flex-wrap gap-2 items-center">
               <Button size="sm" onClick={enviarAlProveedor} disabled={enviando}>
