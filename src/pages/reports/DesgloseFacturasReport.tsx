@@ -146,6 +146,98 @@ export default function DesgloseFacturasReport() {
   const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
   const mxn = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 });
 
+  // ---- Ordenamiento por columna ----
+  type SortCol =
+    | "factura" | "cliente" | "estatus" | "fecha"
+    | "codigo" | "producto" | "cantidad" | "unidades" | "precio" | "importe";
+  const [sortCol, setSortCol] = useState<SortCol | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (col: SortCol) => {
+    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
+
+  const LINE_COLS: SortCol[] = ["codigo", "producto", "cantidad", "unidades", "precio", "importe"];
+
+  const lineVal = (l: LineaRow, col: SortCol): string | number => {
+    switch (col) {
+      case "codigo": return (l.productos?.codigo ?? "").toLowerCase();
+      case "producto": return (l.productos?.nombre_producto ?? "").toLowerCase();
+      case "cantidad": return Number(l.cantidad ?? 0);
+      case "unidades": return Number(l.unidades_equivalentes ?? 0);
+      case "precio": return Number(l.precio_unitario ?? 0);
+      case "importe": return Number(l.subtotal ?? 0);
+      default: return 0;
+    }
+  };
+
+  const cmpVal = (a: string | number, b: string | number) =>
+    typeof a === "number" && typeof b === "number"
+      ? a - b
+      : String(a).localeCompare(String(b), "es");
+
+  const facturasOrdenadas = useMemo(() => {
+    if (!sortCol) return facturas;
+    const dir = sortDir === "asc" ? 1 : -1;
+    const isLine = LINE_COLS.includes(sortCol);
+    const conLineas = facturas.map((f) => {
+      const lineas = [...(f.documento_productos ?? [])];
+      if (isLine) lineas.sort((a, b) => dir * cmpVal(lineVal(a, sortCol), lineVal(b, sortCol)));
+      return { f, lineas };
+    });
+    const facKey = (f: FacturaRow, lineas: LineaRow[]): string | number => {
+      if (!isLine) {
+        switch (sortCol) {
+          case "factura": return (f.numero_factura ?? "").toLowerCase();
+          case "cliente": return (f.companies?.name || f.companies?.razon_social || "").toLowerCase();
+          case "estatus": return (ESTATUS_LABEL[f.estatus_factura ?? ""] ?? f.estatus_factura ?? "").toLowerCase();
+          case "fecha": return f.fecha_documento ?? "";
+          default: return "";
+        }
+      }
+      switch (sortCol) {
+        case "cantidad": return lineas.reduce((a, l) => a + Number(l.cantidad ?? 0), 0);
+        case "unidades": return lineas.reduce((a, l) => a + Number(l.unidades_equivalentes ?? 0), 0);
+        case "importe": return lineas.reduce((a, l) => a + Number(l.subtotal ?? 0), 0);
+        case "precio": return lineas.reduce((a, l) => Math.max(a, Number(l.precio_unitario ?? 0)), 0);
+        case "codigo": return lineas.length ? String(lineVal(lineas[0], sortCol)) : "";
+        case "producto": return lineas.length ? String(lineVal(lineas[0], sortCol)) : "";
+        default: return "";
+      }
+    };
+    conLineas.sort((a, b) => dir * cmpVal(facKey(a.f, a.lineas), facKey(b.f, b.lineas)));
+    return conLineas.map((x) => ({ ...x.f, documento_productos: x.lineas }));
+  }, [facturas, sortCol, sortDir]);
+
+  const fechaTxt = (v: string | null) => {
+    if (!v) return "—";
+    const d = v.includes("T") ? v.slice(0, 10) : v;
+    const [y, m, dd] = d.split("-");
+    return dd && m && y ? `${dd}/${m}/${y}` : v;
+  };
+
+  const SortHead = ({ col, right, children }: { col: SortCol; right?: boolean; children: React.ReactNode }) => (
+    <TableHead className={cn(right && "text-right")}>
+      <button
+        type="button"
+        onClick={() => toggleSort(col)}
+        className={cn("inline-flex items-center gap-1 transition-colors", right && "flex-row-reverse", "hover:text-foreground")}
+        title="Ordenar"
+      >
+        {children}
+        {sortCol === col ? (
+          sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-40" />
+        )}
+      </button>
+    </TableHead>
+  );
+
   return (
     <>
       <div className="container mx-auto px-4 pt-4">
