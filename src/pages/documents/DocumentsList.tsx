@@ -1235,7 +1235,54 @@ export default function DocumentsList() {
               </div>
             ) : (
               <>
-              <div className="w-full max-w-full min-w-0 flex-1 overflow-auto overscroll-contain rounded-xl border border-border/60 [scrollbar-gutter:stable] [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&>div]:bg-transparent [&>div]:backdrop-blur-none">
+              {/* Vista de tarjetas para celular */}
+              <div className="flex flex-col gap-2 px-3 pb-2 sm:hidden">
+                {pagedDocs.map((doc: any) => {
+                  const c: any = doc.companies || {};
+                  const nom = (c.name || "").trim();
+                  const rs = (c.razon_social || "").trim();
+                  const mostrarAmbos = nom && rs && nom.toUpperCase() !== rs.toUpperCase();
+                  const numero = tipoFilter === "factura"
+                    ? (doc.numero_factura || "-")
+                    : (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "-");
+                  return (
+                    <button
+                      key={doc.id}
+                      type="button"
+                      onClick={() => navigate(`/documents/${doc.id}`)}
+                      className="w-full rounded-xl border border-border/60 bg-background/80 p-3 text-left shadow-sm active:bg-muted/50"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-medium text-sm">{numero}</span>
+                        <span className={`inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusBadgeClass(doc)}`}>
+                          {getEstatusLabel(doc)}
+                        </span>
+                      </div>
+                      <div className="mt-1 min-w-0">
+                        <p className="truncate text-sm">{nom || rs || "-"}</p>
+                        {mostrarAmbos && (
+                          <p className="truncate text-[11px] font-light text-muted-foreground">{rs}</p>
+                        )}
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                        <span>{format(parseLocalDate(doc.fecha_documento), "dd/MM/yyyy")}</span>
+                        <span className="font-medium text-foreground">
+                          ${Number(doc.total).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      {tipoFilter === "factura" && (
+                        <div className="mt-1 text-xs">
+                          <span className="text-muted-foreground">Saldo: </span>
+                          <span className={Number(doc.saldo_pendiente_cobranza ?? 0) > 0 ? "text-amber-700 font-medium" : "text-emerald-700"}>
+                            ${Number(doc.saldo_pendiente_cobranza ?? 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="hidden w-full max-w-full min-w-0 flex-1 overflow-auto overscroll-contain rounded-xl border border-border/60 sm:block [scrollbar-gutter:stable] [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&>div]:bg-transparent [&>div]:backdrop-blur-none">
                 <Table className="min-w-max">
                   <TableHeader className="sticky top-0 z-20 bg-background shadow-[0_1px_0_0_hsl(var(--border))]">
                     <TableRow>
