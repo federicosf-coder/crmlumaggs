@@ -11141,6 +11141,7 @@ export type Database = {
         | "cancelada"
         | "vigente"
         | "refacturacion_rfc"
+        | "refacturado_remision"
       estatus_pago_cobranza:
         | "recibido"
         | "enviado_validar"
@@ -11512,6 +11513,7 @@ export const Constants = {
         "cancelada",
         "vigente",
         "refacturacion_rfc",
+        "refacturado_remision",
       ],
       estatus_pago_cobranza: [
         "recibido",

@@ -36,6 +36,7 @@ const FACTURA_COLUMNS = [
   { key: "pendiente", label: "Vigente", color: "bg-muted" },
   { key: "pagada", label: "Pagada", color: "bg-green-100 dark:bg-green-900/30" },
   { key: "vencida", label: "Vencida", color: "bg-orange-100 dark:bg-orange-900/30" },
+  { key: "refacturado_remision", label: "Refacturado o Remisión", color: "bg-purple-100 dark:bg-purple-900/30" },
   { key: "cancelada", label: "Cancelada", color: "bg-red-100 dark:bg-red-900/30" },
 ];
 

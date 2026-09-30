@@ -1,0 +1,1 @@
+ALTER TYPE public.estatus_factura ADD VALUE IF NOT EXISTS 'refacturado_remision';
