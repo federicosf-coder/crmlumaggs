@@ -200,6 +200,7 @@ export default function PedidosReclamos() {
                   <TableCell className="text-xs">{r.chevron_facturas_recibidas?.folio ? `Folio ${r.chevron_facturas_recibidas.folio}` : "—"}</TableCell>
                   <TableCell className="text-xs font-medium">{r.cliente_nombre || "LUMAGGS"}</TableCell>
                   <TableCell className="font-mono text-xs">{r.no_pedido_factura || "—"}</TableCell>
+                  <TableCell><IdReclamoCell reclamo={r} /></TableCell>
                   <TableCell className="text-xs">{fmtFecha(r.fecha_reclamo)}</TableCell>
                   <TableCell className="text-right">{r.total_skus_afectados ?? 0}</TableCell>
                   <TableCell>
