@@ -50,6 +50,90 @@ function fmtMoney(n?: number | null) {
   return `$${Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function diasDesde(d?: string | null) {
+  if (!d) return null;
+  const iso = d.length === 10 ? `${d}T00:00:00` : d;
+  const ms = Date.now() - new Date(iso).getTime();
+  return Math.max(0, Math.floor(ms / 86400000));
+}
+
+function esperaColor(dias: number) {
+  if (dias >= 7) return "bg-red-100 text-red-800";
+  if (dias >= 3) return "bg-amber-100 text-amber-800";
+  return "bg-slate-100 text-slate-700";
+}
+
+/** Celda con captura rápida del ID que proporciona Chevron */
+function IdReclamoCell({ reclamo }: { reclamo: any }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [valor, setValor] = useState(reclamo.id_reclamo_proveedor || "");
+  const [saving, setSaving] = useState(false);
+
+  const guardar = async () => {
+    const v = valor.trim();
+    setSaving(true);
+    const { error } = await (supabase as any).from("inv_reclamos").update({
+      id_reclamo_proveedor: v || null,
+      id_reclamo_fecha: v ? new Date().toISOString() : null,
+    }).eq("id", reclamo.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(v ? "ID de reclamo guardado" : "ID de reclamo eliminado");
+    setEditing(false);
+    qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <Input
+          autoFocus
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") guardar();
+            if (e.key === "Escape") { setValor(reclamo.id_reclamo_proveedor || ""); setEditing(false); }
+          }}
+          placeholder="ID de Chevron"
+          className="h-7 w-[130px] text-xs font-mono"
+        />
+        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={saving} onClick={guardar}>
+          {saving ? "..." : "OK"}
+        </Button>
+      </div>
+    );
+  }
+
+  if (reclamo.id_reclamo_proveedor) {
+    return (
+      <button
+        className="font-mono text-xs underline decoration-dotted underline-offset-2 hover:text-primary"
+        onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+        title="Editar ID de reclamo"
+      >
+        {reclamo.id_reclamo_proveedor}
+      </button>
+    );
+  }
+
+  const enviado = reclamo.fecha_envio;
+  const dias = diasDesde(enviado);
+  return (
+    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={() => setEditing(true)}>
+        <Plus className="h-3 w-3 mr-1" />Capturar ID
+      </Button>
+      {enviado && dias !== null && (
+        <Badge className={`${esperaColor(dias)} text-[10px]`}>
+          {dias === 0 ? "Hoy" : `${dias} día${dias === 1 ? "" : "s"}`}
+        </Badge>
+      )}
+    </div>
+  );
+}
+
+
 function estatusReclamoColor(e: string) {
   return {
     borrador: "bg-gray-100 text-gray-700", abierto: "bg-gray-100 text-gray-700",
