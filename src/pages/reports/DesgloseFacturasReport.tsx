@@ -362,7 +362,7 @@ export default function DesgloseFacturasReport() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {facturas.map((f) => {
+                  {facturasOrdenadas.map((f) => {
                     const lineas = f.documento_productos ?? [];
                     const suma = lineas.reduce((a, l) => a + Number(l.unidades_equivalentes ?? 0), 0);
                     const sumaImporte = lineas.reduce((a, l) => a + Number(l.subtotal ?? 0), 0);
@@ -397,6 +397,7 @@ export default function DesgloseFacturasReport() {
                             <TableCell rowSpan={span} className="align-top">{numeroCell}</TableCell>
                             <TableCell rowSpan={span} className="align-top">{cliente}</TableCell>
                             <TableCell rowSpan={span} className="align-top">{ESTATUS_LABEL[f.estatus_factura ?? ""] ?? f.estatus_factura ?? "—"}</TableCell>
+                            <TableCell rowSpan={span} className="align-top tabular-nums text-xs">{fechaTxt(f.fecha_documento)}</TableCell>
                             <TableCell colSpan={6} className="text-destructive font-medium">Sin productos capturados</TableCell>
                           </TableRow>
                         ) : (
@@ -407,6 +408,7 @@ export default function DesgloseFacturasReport() {
                                   <TableCell rowSpan={span} className="align-top">{numeroCell}</TableCell>
                                   <TableCell rowSpan={span} className="align-top">{cliente}</TableCell>
                                   <TableCell rowSpan={span} className="align-top">{ESTATUS_LABEL[f.estatus_factura ?? ""] ?? f.estatus_factura ?? "—"}</TableCell>
+                                  <TableCell rowSpan={span} className="align-top tabular-nums text-xs">{fechaTxt(f.fecha_documento)}</TableCell>
                                 </>
                               )}
                               <TableCell className="font-mono text-xs">{l.productos?.codigo || "—"}</TableCell>
@@ -419,9 +421,10 @@ export default function DesgloseFacturasReport() {
                           ))
                         )}
                         <TableRow className="bg-muted/40">
-                          <TableCell colSpan={3} className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                          <TableCell colSpan={4} className="text-[10px] uppercase tracking-widest text-muted-foreground">
                             Acumulado de la factura
                           </TableCell>
+                          <TableCell colSpan={3} />
                           <TableCell className={cn("text-right font-semibold tabular-nums", desfase && "text-destructive")}>
                             {fmt(suma)}
                             {desfase && <span className="ml-2 text-xs font-normal">(doc: {fmt(total)})</span>}
