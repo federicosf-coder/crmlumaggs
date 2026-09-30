@@ -997,7 +997,7 @@ export default function DocumentsList() {
       </div>
 
       {/* Pedido status chips */}
-      {tipoFilter === "pedido" && (
+      {filtrosVisibles && tipoFilter === "pedido" && (
         <div className="flex gap-1.5 flex-wrap">
           <button
             type="button"
@@ -1026,7 +1026,7 @@ export default function DocumentsList() {
       )}
 
       {/* Plaza filter buttons */}
-      {plazas.length > 0 && (
+      {filtrosVisibles && plazas.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
           <button
             type="button"
@@ -1053,7 +1053,7 @@ export default function DocumentsList() {
       )}
 
       {/* Cotización revision filter buttons */}
-      {tipoFilter === "cotizacion" && (
+      {filtrosVisibles && tipoFilter === "cotizacion" && (
         <div className="flex gap-1.5 flex-wrap">
           {[
             { value: "all", label: "Todas" },
