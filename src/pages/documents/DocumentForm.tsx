@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart, ExternalLink, MessageCircle, Send, Split } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Download, Pencil, Copy, FileText, ShoppingCart, ExternalLink, MessageCircle, Send, Split, Truck } from "lucide-react";
 import { downloadCotizacionPdf } from "@/lib/generateCotizacionPdf";
 import { WhatsAppActionDialog } from "@/components/whatsapp/WhatsAppActionDialog";
 import { format, addDays } from "date-fns";
@@ -302,6 +302,24 @@ export default function DocumentForm() {
     queryFn: async () => { if (!id) return []; const { data, error } = await supabase.from("documento_productos").select("*, productos(codigo, nombre_producto)").eq("documento_id", id); if (error) throw error; return data; },
     enabled: isEdit,
   });
+
+  // ¿Este documento tiene entrega registrada o evidencias/firmas cargadas?
+  const { data: entregaInfo } = useQuery({
+    queryKey: ["documento-entrega-evidencias", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const [prog, arch] = await Promise.all([
+        supabase.from("entregas_programadas").select("id, estatus, fecha_entrega_real").eq("documento_id", id).limit(1),
+        supabase.from("documento_archivos_firmados").select("id").eq("documento_id", id).limit(5),
+      ]);
+      return {
+        entrega: prog.data?.[0] || null,
+        archivos: arch.data?.length || 0,
+      };
+    },
+    enabled: isEdit,
+  });
+  const tieneEntrega = !!(entregaInfo?.entrega || (entregaInfo?.archivos ?? 0) > 0);
 
   // Set default ejecutivo for new documents
   useEffect(() => {
@@ -950,6 +968,20 @@ export default function DocumentForm() {
             {existingDoc?.pdf_url && (
               <Button variant="default" onClick={() => openDocFilesSignedUrl(existingDoc.pdf_url!)}>
                 <Download className="mr-2 h-4 w-4" /> Ver PDF
+              </Button>
+            )}
+            {tieneEntrega && (
+              <Button
+                variant="outline"
+                className="border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 hover:from-emerald-100 hover:to-teal-100 hover:text-emerald-800"
+                onClick={() => window.open(`/delivery/entrega/${id}`, "_blank", "noopener,noreferrer")}
+              >
+                <Truck className="mr-2 h-4 w-4" /> Ver Entrega / Evidencias
+                {(entregaInfo?.archivos ?? 0) > 0 && (
+                  <span className="ml-2 rounded-full bg-emerald-600 px-1.5 text-[10px] font-semibold text-white">
+                    {entregaInfo?.archivos}
+                  </span>
+                )}
               </Button>
             )}
             {form.tipo_documento === "cotizacion" && !existingDoc?.pdf_url && (
