@@ -1046,13 +1046,11 @@ export default function DocumentForm() {
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
             </Button>
-            {(!existingDoc?.pdf_url || puedeEditarConPdf) && (
-              <Button variant="outline" onClick={() => setViewMode(false)}>
-                <Pencil className="mr-2 h-4 w-4" /> Editar
-              </Button>
-            )}
+            <Button variant="outline" onClick={() => setViewMode(false)}>
+              <Pencil className="mr-2 h-4 w-4" /> Editar
+            </Button>
             {existingDoc?.pdf_url && !puedeEditarConPdf && (
-              <span className="text-sm text-muted-foreground italic">Documento con PDF — solo Admin puede editar</span>
+              <span className="text-xs text-muted-foreground italic self-center">El PDF generado no se modifica</span>
             )}
           </div>
         )}
