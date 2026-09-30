@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare, Columns3, Filter, X } from "lucide-react";
+import { Plus, Search, FileText, Download, Pencil, Copy, LayoutList, Columns, Truck, Upload, FileDown, Trash2, CheckSquare, Columns3, Filter, X, ChevronUp, ChevronDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SortMenu } from "@/components/SortMenu";
@@ -242,6 +242,16 @@ export default function DocumentsList() {
     setSortBy(tipoFilter === "factura" ? "numero_factura_desc" : "date_desc");
   }, [tipoFilter]);
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [filtrosVisibles, setFiltrosVisibles] = useState<boolean>(() => {
+    try { return localStorage.getItem("documentos:filtros_visibles") !== "0"; } catch { return true; }
+  });
+  const toggleFiltros = useCallback(() => {
+    setFiltrosVisibles((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("documentos:filtros_visibles", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  }, []);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -864,45 +874,66 @@ export default function DocumentsList() {
     return fields;
   };
 
+  const filtrosActivosCount = [
+    plazaFilter !== "all",
+    estatusPedFilter !== "all",
+    revisionFilter !== "all",
+  ].filter(Boolean).length;
+
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-col gap-3 sm:h-[calc(100svh-5.25rem)] md:h-[calc(100svh-6rem)]">
       <div className="flex shrink-0 items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Documentos</h1>
-          <p className="text-muted-foreground text-sm">Cotizaciones, pedidos y facturas</p>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-foreground sm:text-2xl">Documentos</h1>
+          {filtrosVisibles && (
+            <p className="text-muted-foreground text-sm">Cotizaciones, pedidos y facturas</p>
+          )}
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {isAdmin && (
+        <div className="flex gap-2 flex-wrap justify-end">
+          <Button variant="outline" size="sm" onClick={toggleFiltros}>
+            {filtrosVisibles ? <ChevronUp className="mr-1 h-4 w-4" /> : <ChevronDown className="mr-1 h-4 w-4" />}
+            {filtrosVisibles ? "Ocultar filtros" : "Mostrar filtros"}
+            {!filtrosVisibles && filtrosActivosCount > 0 && (
+              <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                {filtrosActivosCount}
+              </span>
+            )}
+          </Button>
+          {filtrosVisibles && (
             <>
-              <Button size="sm" onClick={handleImport}>
-                <Upload className="mr-1 h-4 w-4" /> Importar
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <FileDown className="mr-1 h-4 w-4" /> Exportar
+              {isAdmin && (
+                <>
+                  <Button size="sm" onClick={handleImport}>
+                    <Upload className="mr-1 h-4 w-4" /> Importar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleExport}>
+                    <FileDown className="mr-1 h-4 w-4" /> Exportar
+                  </Button>
+                </>
+              )}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Columns3 className="mr-1 h-4 w-4" /> Columnas
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56">
+                  <p className="text-sm font-medium mb-2">Columnas visibles</p>
+                  <div className="space-y-2">
+                    {ALL_COLUMNS.map((c) => (
+                      <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox checked={visibleCols.has(c.key)} onCheckedChange={() => toggleCol(c.key)} />
+                        <span>{c.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button variant="outline" size="sm" onClick={() => navigate("/delivery/schedule")}>
+                <Truck className="mr-1 h-4 w-4" /> Programar Entregas
               </Button>
             </>
           )}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Columns3 className="mr-1 h-4 w-4" /> Columnas
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-56">
-              <p className="text-sm font-medium mb-2">Columnas visibles</p>
-              <div className="space-y-2">
-                {ALL_COLUMNS.map((c) => (
-                  <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <Checkbox checked={visibleCols.has(c.key)} onCheckedChange={() => toggleCol(c.key)} />
-                    <span>{c.label}</span>
-                  </label>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Button variant="outline" size="sm" onClick={() => navigate("/delivery/schedule")}>
-            <Truck className="mr-1 h-4 w-4" /> Programar Entregas
-          </Button>
           <Button onClick={() => navigate(`/documents/new${tipoFilter && tipoFilter !== "all" ? `?tipo=${tipoFilter}` : ""}`)} size="sm">
             <Plus className="mr-1 h-4 w-4" /> Nuevo
           </Button>
@@ -910,7 +941,7 @@ export default function DocumentsList() {
       </div>
 
       {/* Empresa filter */}
-      <div className="flex shrink-0 gap-2 overflow-x-auto pb-1">
+      <div className={`${filtrosVisibles ? "flex" : "hidden"} shrink-0 gap-2 overflow-x-auto pb-1`}>
         {[
           { value: "lumaggs_chevron", label: "Lumaggs Chevron" },
           { value: "galsa_phillips66", label: "Galsa Phillips 66" },
@@ -966,7 +997,7 @@ export default function DocumentsList() {
       </div>
 
       {/* Pedido status chips */}
-      {tipoFilter === "pedido" && (
+      {filtrosVisibles && tipoFilter === "pedido" && (
         <div className="flex gap-1.5 flex-wrap">
           <button
             type="button"
@@ -995,7 +1026,7 @@ export default function DocumentsList() {
       )}
 
       {/* Plaza filter buttons */}
-      {plazas.length > 0 && (
+      {filtrosVisibles && plazas.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
           <button
             type="button"
@@ -1022,7 +1053,7 @@ export default function DocumentsList() {
       )}
 
       {/* Cotización revision filter buttons */}
-      {tipoFilter === "cotizacion" && (
+      {filtrosVisibles && tipoFilter === "cotizacion" && (
         <div className="flex gap-1.5 flex-wrap">
           {[
             { value: "all", label: "Todas" },
