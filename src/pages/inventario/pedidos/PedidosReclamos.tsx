@@ -585,6 +585,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       setData({ reclamo: rec, lineas: lin || [], archivos: arc || [], notas: ncs || [] });
       setNotas(seg || []);
       setResolucion(rec?.resolucion || "");
+      setIdReclamo(rec?.id_reclamo_proveedor || "");
       setNotaCreditoId(rec?.nota_credito_id || "");
     })();
   }, [id]);
