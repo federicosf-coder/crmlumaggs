@@ -449,8 +449,8 @@ export default function DocumentsList() {
         const s = search.toLowerCase();
         return data.filter((doc: any) => {
           const num = (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "").toLowerCase();
-          const clientName = ((doc.companies as any)?.name || "").toLowerCase();
-          return num.includes(s) || clientName.includes(s);
+          const cli = clienteTexto(doc.companies).toLowerCase();
+          return num.includes(s) || cli.includes(s);
         });
       }
       return data;
