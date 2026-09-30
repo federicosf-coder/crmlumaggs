@@ -212,6 +212,14 @@ function toYMD(d: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/** Texto del cliente: "Nombre Comercial / Razón Social" (o el único disponible). */
+function clienteTexto(c: any): string {
+  const nom = (c?.name || "").trim();
+  const rs = (c?.razon_social || "").trim();
+  if (nom && rs && nom.toUpperCase() !== rs.toUpperCase()) return `${nom} / ${rs}`;
+  return nom || rs || "";
+}
+
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
