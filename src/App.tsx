@@ -69,6 +69,7 @@ import DailyDeliveryReport from "@/pages/reports/DailyDeliveryReport";
 import DailyActivityReport from "@/pages/reports/DailyActivityReport";
 import DesgloseFacturasReport from "@/pages/reports/DesgloseFacturasReport";
 import DesgloseFacturasDiaReport from "@/pages/reports/DesgloseFacturasDiaReport";
+import DesgloseFacturasEjecutivoReport from "@/pages/reports/DesgloseFacturasEjecutivoReport";
 import DeloXLEReport from "@/pages/reports/DeloXLEReport";
 import Pareto8020Report from "@/pages/reports/Pareto8020Report";
 import CreditoCescemexReport from "@/pages/reports/CreditoCescemexReport";
@@ -208,6 +209,7 @@ const App = () => (
             <Route path="/reports/daily-activity" element={<ProtectedRoute><DailyActivityReport /></ProtectedRoute>} />
             <Route path="/reports/desglose-facturas" element={<ProtectedRoute><DesgloseFacturasReport /></ProtectedRoute>} />
             <Route path="/reports/desglose-facturas-dia" element={<ProtectedRoute><DesgloseFacturasDiaReport /></ProtectedRoute>} />
+            <Route path="/reports/desglose-facturas-ejecutivo" element={<ProtectedRoute><DesgloseFacturasEjecutivoReport /></ProtectedRoute>} />
             <Route path="/reports/delo-xle-15w40" element={<ProtectedRoute><DeloXLEReport /></ProtectedRoute>} />
             <Route path="/reports/pareto-8020" element={<ProtectedRoute><Pareto8020Report /></ProtectedRoute>} />
             <Route path="/reports/credito-cescemex" element={<ProtectedRoute><CreditoCescemexReport /></ProtectedRoute>} />

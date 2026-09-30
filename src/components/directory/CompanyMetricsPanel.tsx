@@ -129,8 +129,8 @@ export function CompanyMetricsPanel({ companyId }: Props) {
               <th className="px-3 py-2 text-left font-medium">Marca</th>
               <th className="px-3 py-2 text-right font-medium">Uds Total</th>
               <th className="px-3 py-2 text-right font-medium">Uds Mensual</th>
-              <th className="px-3 py-2 text-right font-medium">Importe Total</th>
-              <th className="px-3 py-2 text-right font-medium">Importe Mensual</th>
+              <th className="px-3 py-2 text-right font-medium">Importe Total (sin IVA)</th>
+              <th className="px-3 py-2 text-right font-medium">Importe Mensual (sin IVA)</th>
             </tr>
           </thead>
           <tbody>
@@ -171,7 +171,7 @@ export function CompanyMetricsPanel({ companyId }: Props) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b shrink-0">
-            <DialogTitle className="text-lg font-semibold tracking-tight">Histórico Mensual de Unidades</DialogTitle>
+            <DialogTitle className="text-lg font-semibold tracking-tight">Histórico Mensual de Unidades e Importes</DialogTitle>
           </DialogHeader>
           <div className="space-y-6 px-5 py-5 overflow-y-auto flex-1">
             <MonthlyHistoryTable
@@ -208,6 +208,7 @@ function MonthlyHistoryTable({ title, monthly }: { title: React.ReactNode; month
             <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
               <th className="px-3 py-2 text-left font-medium">Mes</th>
               <th className="px-3 py-2 text-right font-medium">Unidades</th>
+              <th className="px-3 py-2 text-right font-medium">Importe (sin IVA)</th>
               <th className="px-3 py-2 text-right font-medium">Variación %</th>
             </tr>
           </thead>
@@ -221,6 +222,7 @@ function MonthlyHistoryTable({ title, monthly }: { title: React.ReactNode; month
                 <tr key={m.mes} className="border-t">
                   <td className="px-3 py-2">{formatMes(m.mes)}</td>
                   <td className="px-3 py-2 text-right font-mono font-bold">{fmtUnits(m.u)}</td>
+                  <td className="px-3 py-2 text-right font-mono">{formatCurrency(m.s)}</td>
                   <td className="px-3 py-2 text-right">
                     {variacion === null ? (
                       <span className="text-muted-foreground">—</span>

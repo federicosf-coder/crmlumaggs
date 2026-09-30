@@ -764,7 +764,7 @@ export default function SeguimientoLanding() {
     const base = () =>
       supabase
         .from("documentos")
-        .select("id, total, unidades_equivalentes_total")
+        .select("id, subtotal, total, unidades_equivalentes_total")
         .eq("empresa_vendedora", empresaSel)
         .eq("tipo_documento", "factura")
         .eq("is_active", true)
@@ -776,7 +776,7 @@ export default function SeguimientoLanding() {
     const bloques: (string[] | null)[] = [];
     if (sinRestriccion) bloques.push(null);
     else for (let i = 0; i < visibleCompanyIds.length; i += 150) bloques.push(visibleCompanyIds.slice(i, i + 150));
-    const filas = new Map<string, { total: number | null; unidades_equivalentes_total: number | null }>();
+    const filas = new Map<string, { subtotal: number | null; total: number | null; unidades_equivalentes_total: number | null }>();
     for (const ids of bloques) {
       const rows = await fetchAllRows<any>((from, to) => {
         let q = base();
@@ -788,7 +788,8 @@ export default function SeguimientoLanding() {
     let importe = 0;
     let unidades = 0;
     for (const r of filas.values()) {
-      importe += Number(r.total || 0);
+      // Importe sin IVA, igual que el Reporte de Unidades e Importes Vendidas.
+      importe += r.subtotal != null ? Number(r.subtotal) : Math.round(((Number(r.total) || 0) / 1.16) * 100) / 100;
       unidades += Number(r.unidades_equivalentes_total || 0);
     }
     return { unidades, importe };
@@ -1339,7 +1340,7 @@ export default function SeguimientoLanding() {
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesActual.importe)}</p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesActual.importe)} <span className="text-[11px]">(sin IVA)</span></p>
             <p className="text-[11px] text-muted-foreground mt-0.5">{rangoMesActualLabel}</p>
             <div className="mt-auto pt-3 space-y-2">
               {pctUnidadesComp !== null && (
@@ -1358,7 +1359,7 @@ export default function SeguimientoLanding() {
               )}
               {pctImporteComp !== null && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe</span>
+                  <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe s/IVA</span>
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                     <div
                       className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctImporteComp))}
@@ -1382,7 +1383,7 @@ export default function SeguimientoLanding() {
             <p className="text-3xl font-bold mt-2 text-muted-foreground">
               {ventasMesAnteriorCompleto.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
             </p>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesAnteriorCompleto.importe)}</p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesAnteriorCompleto.importe)} <span className="text-[11px]">(sin IVA)</span></p>
             <p className="text-[11px] text-muted-foreground mt-0.5">{rangoMesAnteriorCompletoLabel}</p>
             <p className="text-[11px] text-muted-foreground/70 mt-1">
               Al mismo día del mes ({rangoMesAnteriorMismoDiaLabel}):{" "}

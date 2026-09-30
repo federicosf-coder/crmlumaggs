@@ -40,6 +40,13 @@ const REPORTS = [
     category: "Ventas",
   },
   {
+    title: "Reporte de Unidades e Importes Vendidas — Agrupado por Ejecutivo",
+    description: "Participación por responsable de venta con gráficas de pastel y barras, ranking y detalle por factura.",
+    url: "/reports/desglose-facturas-ejecutivo",
+    icon: PieChart,
+    category: "Ventas",
+  },
+  {
     title: "Ventas Delo XLE 15W40 — Comparativo Mensual",
     description: "Unidades equivalentes por mes de las 5 presentaciones de Delo XLE 15W40, últimos 12 meses.",
     url: "/reports/delo-xle-15w40",
