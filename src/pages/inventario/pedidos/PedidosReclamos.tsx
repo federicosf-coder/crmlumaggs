@@ -210,7 +210,7 @@ export default function PedidosReclamos() {
                 </TableRow>
               ))}
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sin reclamos</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sin reclamos</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
