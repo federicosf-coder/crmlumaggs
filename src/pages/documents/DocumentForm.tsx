@@ -303,6 +303,24 @@ export default function DocumentForm() {
     enabled: isEdit,
   });
 
+  // ¿Este documento tiene entrega registrada o evidencias/firmas cargadas?
+  const { data: entregaInfo } = useQuery({
+    queryKey: ["documento-entrega-evidencias", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const [prog, arch] = await Promise.all([
+        supabase.from("entregas_programadas").select("id, estatus, fecha_entrega_real").eq("documento_id", id).limit(1),
+        supabase.from("documento_archivos_firmados").select("id").eq("documento_id", id).limit(5),
+      ]);
+      return {
+        entrega: prog.data?.[0] || null,
+        archivos: arch.data?.length || 0,
+      };
+    },
+    enabled: isEdit,
+  });
+  const tieneEntrega = !!(entregaInfo?.entrega || (entregaInfo?.archivos ?? 0) > 0);
+
   // Set default ejecutivo for new documents
   useEffect(() => {
     if (!isEdit && user?.id && !form.ejecutivo_venta_id) {
