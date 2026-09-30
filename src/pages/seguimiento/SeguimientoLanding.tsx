@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/supabasePagination";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -758,42 +759,37 @@ export default function SeguimientoLanding() {
   const fetchVentasRango = async (desde: string, hasta: string) => {
     if (!sinRestriccion && visibleCompanyIds.length === 0) return { unidades: 0, importe: 0 };
 
-    let qImporte = supabase
-      .from("documentos")
-      .select("total")
-      .eq("empresa_vendedora", empresaSel)
-      .eq("tipo_documento", "factura")
-      .eq("is_active", true)
-      .neq("estatus_factura", "cancelada")
-      .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
-      .gte("fecha_documento", desde)
-      .lte("fecha_documento", hasta);
-    if (!sinRestriccion) qImporte = qImporte.in("empresa_id", visibleCompanyIds);
-
-    let qUnidades = supabase
-      .from("documento_productos")
-      .select(
-        "cantidad, documentos!inner(id, empresa_id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
-      )
-      .eq("documentos.tipo_documento", "factura")
-      .eq("documentos.is_active", true)
-      .eq("documentos.empresa_vendedora", empresaSel)
-      .neq("documentos.estatus_factura", "cancelada")
-      .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
-      .gte("documentos.fecha_documento", desde)
-      .lte("documentos.fecha_documento", hasta);
-    if (!sinRestriccion) qUnidades = qUnidades.in("documentos.empresa_id", visibleCompanyIds);
-
-    const [resImporte, resUnidades] = await Promise.all([qImporte, qUnidades]);
-    if (resImporte.error) throw resImporte.error;
-    if (resUnidades.error) throw resUnidades.error;
-
-    const importe = ((resImporte.data || []) as any[]).reduce((s, d) => s + Number(d.total || 0), 0);
+    // Misma fuente que el Reporte de Unidades e Importes: unidades guardadas en la factura.
+    // Se pagina (máx. 1000 filas por respuesta) y se parte la lista de empresas en bloques.
+    const base = () =>
+      supabase
+        .from("documentos")
+        .select("id, total, unidades_equivalentes_total")
+        .eq("empresa_vendedora", empresaSel)
+        .eq("tipo_documento", "factura")
+        .eq("is_active", true)
+        .neq("estatus_factura", "cancelada")
+        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
+        .gte("fecha_documento", desde)
+        .lte("fecha_documento", hasta)
+        .order("id");
+    const bloques: (string[] | null)[] = [];
+    if (sinRestriccion) bloques.push(null);
+    else for (let i = 0; i < visibleCompanyIds.length; i += 150) bloques.push(visibleCompanyIds.slice(i, i + 150));
+    const filas = new Map<string, { total: number | null; unidades_equivalentes_total: number | null }>();
+    for (const ids of bloques) {
+      const rows = await fetchAllRows<any>((from, to) => {
+        let q = base();
+        if (ids) q = q.in("empresa_id", ids);
+        return q.range(from, to);
+      });
+      for (const r of rows) filas.set(r.id, r);
+    }
+    let importe = 0;
     let unidades = 0;
-    for (const r of (resUnidades.data || []) as any[]) {
-      if (r.documentos?.estatus_factura === "cancelada") continue;
-      const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
-      unidades += Number(r.cantidad || 0) * ue;
+    for (const r of filas.values()) {
+      importe += Number(r.total || 0);
+      unidades += Number(r.unidades_equivalentes_total || 0);
     }
     return { unidades, importe };
   };
@@ -839,11 +835,11 @@ export default function SeguimientoLanding() {
 
   const pctUnidadesComp =
     ventasMesAnteriorMismoDia.unidades > 0
-      ? Math.min(150, (ventasMesActual.unidades / ventasMesAnteriorMismoDia.unidades) * 100)
+      ? ((ventasMesActual.unidades / ventasMesAnteriorMismoDia.unidades) * 100)
       : null;
   const pctImporteComp =
     ventasMesAnteriorMismoDia.importe > 0
-      ? Math.min(150, (ventasMesActual.importe / ventasMesAnteriorMismoDia.importe) * 100)
+      ? ((ventasMesActual.importe / ventasMesAnteriorMismoDia.importe) * 100)
       : null;
   const pctVariacionImporte =
     ventasMesAnteriorMismoDia.importe > 0
