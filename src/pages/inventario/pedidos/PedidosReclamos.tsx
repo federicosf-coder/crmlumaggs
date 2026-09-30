@@ -152,14 +152,18 @@ export default function PedidosReclamos() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [empresa, setEmpresa] = useState("todas");
   const [estatus, setEstatus] = useState("todos");
+  const [soloSinId, setSoloSinId] = useState(false);
 
   useEffect(() => { if (params.get("recepcion")) setOpen(true); }, [params]);
 
-  const filtered = reclamos.filter((r) => {
+  const filtered = reclamos.filter((r: any) => {
     if (empresa !== "todas" && r.empresa_vendedora !== empresa) return false;
     if (estatus !== "todos" && r.estatus !== estatus) return false;
+    if (soloSinId && (r.id_reclamo_proveedor || !r.fecha_envio)) return false;
     return true;
   });
+
+  const pendientesId = reclamos.filter((r: any) => r.fecha_envio && !r.id_reclamo_proveedor).length;
 
   return (
     <div className="p-6 space-y-4">
