@@ -349,15 +349,16 @@ export default function DesgloseFacturasReport() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Factura</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Estatus</TableHead>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Producto</TableHead>
-                    <TableHead className="text-right">Cant.</TableHead>
-                    <TableHead className="text-right">Unidades</TableHead>
-                    <TableHead className="text-right">Precio</TableHead>
-                    <TableHead className="text-right">Importe</TableHead>
+                    <SortHead col="factura">Factura</SortHead>
+                    <SortHead col="cliente">Cliente</SortHead>
+                    <SortHead col="estatus">Estatus</SortHead>
+                    <SortHead col="fecha">Fecha</SortHead>
+                    <SortHead col="codigo">Código</SortHead>
+                    <SortHead col="producto">Producto</SortHead>
+                    <SortHead col="cantidad" right>Cant.</SortHead>
+                    <SortHead col="unidades" right>Unidades</SortHead>
+                    <SortHead col="precio" right>Precio</SortHead>
+                    <SortHead col="importe" right>Importe</SortHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
