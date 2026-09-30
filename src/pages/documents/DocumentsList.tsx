@@ -212,6 +212,14 @@ function toYMD(d: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/** Texto del cliente: "Nombre Comercial / Razón Social" (o el único disponible). */
+function clienteTexto(c: any): string {
+  const nom = (c?.name || "").trim();
+  const rs = (c?.razon_social || "").trim();
+  if (nom && rs && nom.toUpperCase() !== rs.toUpperCase()) return `${nom} / ${rs}`;
+  return nom || rs || "";
+}
+
 export default function DocumentsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -401,7 +409,7 @@ export default function DocumentsList() {
       if (!access.canView) return [];
       let q = supabase
         .from("documentos")
-        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, numero_oc_cliente, fecha_documento, fecha_vencimiento, fecha_entrega_programada, total, tipo_pago, plaza_id, empresa_id, contacto_id, ejecutivo_venta_id, created_by, created_at, pdf_url, estatus_cotizacion, estatus_pedido, estatus_factura, estatus_entrega_corporativa, saldo_pendiente_cobranza, cotizacion_original_id, companies(name), contacts(first_name, last_name), plazas(nombre)")
+        .select("id, tipo_documento, numero_cotizacion, numero_pedido, numero_factura, numero_oc_cliente, fecha_documento, fecha_vencimiento, fecha_entrega_programada, total, tipo_pago, plaza_id, empresa_id, contacto_id, ejecutivo_venta_id, created_by, created_at, pdf_url, estatus_cotizacion, estatus_pedido, estatus_factura, estatus_entrega_corporativa, saldo_pendiente_cobranza, cotizacion_original_id, companies(name, razon_social), contacts(first_name, last_name), plazas(nombre)")
         .eq("is_active", true)
         .eq("empresa_vendedora", empresaFilter as any)
         .order("created_at", { ascending: false });
@@ -449,8 +457,8 @@ export default function DocumentsList() {
         const s = search.toLowerCase();
         return data.filter((doc: any) => {
           const num = (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "").toLowerCase();
-          const clientName = ((doc.companies as any)?.name || "").toLowerCase();
-          return num.includes(s) || clientName.includes(s);
+          const cli = clienteTexto(doc.companies).toLowerCase();
+          return num.includes(s) || cli.includes(s);
         });
       }
       return data;
@@ -466,7 +474,7 @@ export default function DocumentsList() {
       if (!access.canView || tipoFilter !== "pedido") return [];
       let q = supabase
         .from("documentos")
-        .select("estatus_pedido, numero_cotizacion, numero_pedido, numero_factura, companies(name)")
+        .select("estatus_pedido, numero_cotizacion, numero_pedido, numero_factura, companies(name, razon_social)")
         .eq("is_active", true)
         .eq("empresa_vendedora", empresaFilter as any)
         .eq("tipo_documento", "pedido" as any)
@@ -503,8 +511,8 @@ export default function DocumentsList() {
         const s = search.toLowerCase();
         return data.filter((doc: any) => {
           const num = (doc.numero_cotizacion || doc.numero_pedido || doc.numero_factura || "").toLowerCase();
-          const clientName = ((doc.companies as any)?.name || "").toLowerCase();
-          return num.includes(s) || clientName.includes(s);
+          const cli = clienteTexto(doc.companies).toLowerCase();
+          return num.includes(s) || cli.includes(s);
         });
       }
       return data;
@@ -523,8 +531,8 @@ export default function DocumentsList() {
       case "saldo_desc": return Number(b.saldo_pendiente_cobranza || 0) - Number(a.saldo_pendiente_cobranza || 0);
       case "saldo_asc": return Number(a.saldo_pendiente_cobranza || 0) - Number(b.saldo_pendiente_cobranza || 0);
 
-      case "client_asc": return ((a.companies as any)?.name || "").localeCompare((b.companies as any)?.name || "");
-      case "client_desc": return ((b.companies as any)?.name || "").localeCompare((a.companies as any)?.name || "");
+      case "client_asc": return clienteTexto(a.companies).localeCompare(clienteTexto(b.companies));
+      case "client_desc": return clienteTexto(b.companies).localeCompare(clienteTexto(a.companies));
       case "numero_asc": {
         const na = a.numero_cotizacion || a.numero_pedido || a.numero_factura || "";
         const nb = b.numero_cotizacion || b.numero_pedido || b.numero_factura || "";
@@ -1052,7 +1060,7 @@ export default function DocumentsList() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por número o cliente..."
+                  placeholder="Buscar por número, nombre comercial o razón social..."
                   className="pl-9"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -1315,10 +1323,21 @@ export default function DocumentsList() {
                           </TableCell>
                         )}
                         {isColVisible("cliente") && (
-                          <TableCell className="max-w-[220px]">
-                            <span className="block truncate" title={(doc.companies as any)?.name || ""}>
-                              {(doc.companies as any)?.name || "-"}
-                            </span>
+                          <TableCell className="max-w-[260px]">
+                            {(() => {
+                              const c: any = doc.companies || {};
+                              const nom = (c.name || "").trim();
+                              const rs = (c.razon_social || "").trim();
+                              const mostrarAmbos = nom && rs && nom.toUpperCase() !== rs.toUpperCase();
+                              return (
+                                <div className="min-w-0" title={clienteTexto(doc.companies)}>
+                                  <span className="block truncate">{nom || rs || "-"}</span>
+                                  {mostrarAmbos && (
+                                    <span className="block truncate text-[11px] font-light text-muted-foreground">{rs}</span>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                         )}
                         {isColVisible("ejecutivo") && (
