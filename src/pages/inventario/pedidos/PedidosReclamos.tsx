@@ -755,6 +755,40 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
               {r.descripcion && <div className="col-span-2"><div className={labelCls}>Descripción</div><div className="text-sm">{r.descripcion}</div></div>}
             </div>
 
+            <div className="rounded-lg border bg-gradient-to-r from-violet-50/60 to-blue-50/60 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <Label className={labelCls}>ID Reclamo (Chevron)</Label>
+                {r.id_reclamo_proveedor ? (
+                  <Badge className="bg-green-100 text-green-800 text-[10px]">
+                    Recibido{r.id_reclamo_fecha ? ` · ${fmtFecha(r.id_reclamo_fecha)}` : ""}
+                  </Badge>
+                ) : r.fecha_envio ? (
+                  <Badge className={`${esperaColor(diasDesde(r.fecha_envio) ?? 0)} text-[10px]`}>
+                    En espera · {diasDesde(r.fecha_envio)} día(s) desde el envío
+                  </Badge>
+                ) : (
+                  <Badge className="bg-slate-100 text-slate-700 text-[10px]">Aún no se envía a Chevron</Badge>
+                )}
+              </div>
+              <div className="flex gap-2 items-center">
+                <Input
+                  value={idReclamo}
+                  onChange={(e) => setIdReclamo(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") guardarIdReclamo(); }}
+                  placeholder="Ej. 4500123456"
+                  className="h-8 w-[220px] font-mono text-sm bg-background"
+                />
+                <Button size="sm" variant="outline" disabled={guardandoId} onClick={guardarIdReclamo}>
+                  {guardandoId ? "Guardando..." : "Guardar ID"}
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                Chevron entrega este ID al recibir el reclamo; es el que se usa para darle seguimiento.
+              </p>
+            </div>
+
+
+
             <div className="flex flex-wrap gap-2 items-center">
               <Button size="sm" onClick={enviarAlProveedor} disabled={enviando}>
                 <Mail className="h-3.5 w-3.5 mr-1.5" />{enviando ? "Enviando..." : "Enviar al proveedor"}
