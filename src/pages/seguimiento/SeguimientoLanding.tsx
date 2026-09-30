@@ -1340,7 +1340,7 @@ export default function SeguimientoLanding() {
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesActual.importe)}</p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesActual.importe)} <span className="text-[11px]">(sin IVA)</span></p>
             <p className="text-[11px] text-muted-foreground mt-0.5">{rangoMesActualLabel}</p>
             <div className="mt-auto pt-3 space-y-2">
               {pctUnidadesComp !== null && (
@@ -1359,7 +1359,7 @@ export default function SeguimientoLanding() {
               )}
               {pctImporteComp !== null && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe</span>
+                  <span className="text-[11px] text-muted-foreground w-16 shrink-0">Importe s/IVA</span>
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                     <div
                       className={cn("h-full rounded-full transition-all duration-500", colorAvance(pctImporteComp))}
@@ -1383,7 +1383,7 @@ export default function SeguimientoLanding() {
             <p className="text-3xl font-bold mt-2 text-muted-foreground">
               {ventasMesAnteriorCompleto.unidades.toLocaleString("es-MX", { maximumFractionDigits: 0 })} uds
             </p>
-            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesAnteriorCompleto.importe)}</p>
+            <p className="text-sm text-muted-foreground mt-1">{formatCurrency(ventasMesAnteriorCompleto.importe)} <span className="text-[11px]">(sin IVA)</span></p>
             <p className="text-[11px] text-muted-foreground mt-0.5">{rangoMesAnteriorCompletoLabel}</p>
             <p className="text-[11px] text-muted-foreground/70 mt-1">
               Al mismo día del mes ({rangoMesAnteriorMismoDiaLabel}):{" "}
