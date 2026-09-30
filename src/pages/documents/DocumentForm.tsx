@@ -950,7 +950,7 @@ export default function DocumentForm() {
           />
         </div>
       )}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4">
         <Button variant="ghost" size="icon" onClick={() => {
           if (backSeguimientoId && backBrand) {
             navigate(`/seguimiento/${backBrand}?seguimiento_id=${backSeguimientoId}`);
@@ -960,7 +960,7 @@ export default function DocumentForm() {
             navigate(-1);
           }
         }}><ArrowLeft className="h-5 w-5" /></Button>
-        <h1 className="text-2xl font-bold text-foreground">
+        <h1 className="text-lg font-bold text-foreground sm:text-2xl">
           {viewMode ? "Ver Documento" : isEdit ? "Editar Documento" : "Nuevo Documento"}
         </h1>
         {viewMode && (
@@ -1046,7 +1046,7 @@ export default function DocumentForm() {
             <Button variant="outline" onClick={handleDuplicate}>
               <Copy className="mr-2 h-4 w-4" /> Duplicar
             </Button>
-            <Button variant="outline" onClick={() => setViewMode(false)}>
+            <Button variant="default" className="order-first sm:order-none" onClick={() => setViewMode(false)}>
               <Pencil className="mr-2 h-4 w-4" /> Editar
             </Button>
             {existingDoc?.pdf_url && !puedeEditarConPdf && (
