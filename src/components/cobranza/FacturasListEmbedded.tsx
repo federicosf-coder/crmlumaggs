@@ -52,6 +52,7 @@ const ESTATUS_FAC_LABELS: Record<string, string> = {
   vigente: "Vigente",
   pagada: "Pagada",
   vencida: "Vencida",
+  refacturado_remision: "Refacturado o Remisión",
   cancelada: "Cancelada",
 };
 // Compat: facturas antiguas pueden tener estos valores en BD
@@ -68,6 +69,7 @@ function getStatusBadgeClass(st: string): string {
     pagada: "bg-green-50 text-green-700 border-green-200",
     parcial: "bg-amber-50 text-amber-700 border-amber-200",
     vencida: "bg-red-50 text-red-700 border-red-200",
+    refacturado_remision: "bg-purple-50 text-purple-700 border-purple-200",
     cancelada: "bg-red-50 text-red-700 border-red-200",
   };
   return map[st] || "bg-slate-100 text-slate-700 border-slate-300";
