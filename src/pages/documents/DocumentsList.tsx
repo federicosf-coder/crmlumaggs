@@ -242,6 +242,16 @@ export default function DocumentsList() {
     setSortBy(tipoFilter === "factura" ? "numero_factura_desc" : "date_desc");
   }, [tipoFilter]);
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [filtrosVisibles, setFiltrosVisibles] = useState<boolean>(() => {
+    try { return localStorage.getItem("documentos:filtros_visibles") !== "0"; } catch { return true; }
+  });
+  const toggleFiltros = useCallback(() => {
+    setFiltrosVisibles((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("documentos:filtros_visibles", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  }, []);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
