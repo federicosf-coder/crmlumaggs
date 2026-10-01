@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 import { format } from "date-fns";
 import { es as esLocale } from "date-fns/locale";
 import {
@@ -569,35 +569,57 @@ export default function SeguimientoLanding() {
     label: string,
     options: { id: string; name: string; color: string }[],
     selected: string[],
-    setSelected: (fn: (arr: string[]) => string[]) => void
-  ) => (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">{label}</span>
-      {options.length === 0 ? (
-        <span className="text-xs text-muted-foreground italic">Sin opciones</span>
-      ) : (
-        options.map((o) => {
-          const sel = selected.includes(o.id);
-          return (
-            <button
-              key={o.id}
-              type="button"
-              onClick={() => setSelected((arr) => toggleInArray(arr, o.id))}
-              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
-              style={
-                sel
-                  ? { backgroundColor: o.color, color: "white", borderColor: o.color }
-                  : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
-              }
-              aria-pressed={sel}
-            >
-              {o.name}
-            </button>
-          );
-        })
-      )}
-    </div>
-  );
+    setSelected: (fn: (arr: string[]) => string[]) => void,
+    withAllChip = false
+  ) => {
+    const todosActivo = options.length > 0 && options.every((o) => selected.includes(o.id));
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">{label}</span>
+        {options.length === 0 ? (
+          <span className="text-xs text-muted-foreground italic">Sin opciones</span>
+        ) : (
+          <>
+            {withAllChip && (
+              <button
+                type="button"
+                onClick={() => setSelected(() => (todosActivo ? [] : options.map((o) => o.id)))}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all",
+                  todosActivo
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
+                )}
+                aria-pressed={todosActivo}
+              >
+                Todos
+              </button>
+            )}
+            {options.map((o) => {
+              const sel = selected.includes(o.id);
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setSelected((arr) => toggleInArray(arr, o.id))}
+                  className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
+                  style={
+                    sel
+                      ? { backgroundColor: o.color, color: "white", borderColor: o.color }
+                      : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
+                  }
+                  aria-pressed={sel}
+                >
+                  {o.name}
+                </button>
+              );
+            })}
+          </>
+        )}
+      </div>
+    );
+  };
+
 
   const kanbanProspectoCols = useMemo(() => {
     const cols = etapasProspecto.map((e) => ({
@@ -679,6 +701,23 @@ export default function SeguimientoLanding() {
   // cientos/ miles de ids en la URL de cada consulta.
   const sinRestriccion = access.accessLevel === "todos" && fEjecutivo.length === 0 && fPlaza.length === 0;
 
+  // Cuando hay muchas empresas visibles, la lista de ids no cabe en la URL de una
+  // sola consulta (error 400). Se parte en bloques y se unen los resultados por id.
+  const enBloques = useCallback(
+    async (run: (ids: string[] | null) => Promise<any[]>) => {
+      const bloques: (string[] | null)[] = [];
+      if (sinRestriccion) bloques.push(null);
+      else for (let i = 0; i < visibleCompanyIds.length; i += 150) bloques.push(visibleCompanyIds.slice(i, i + 150));
+      const out = new Map<string, any>();
+      for (const ids of bloques) {
+        const rows = await run(ids);
+        for (const r of rows) out.set(r.id, r);
+      }
+      return Array.from(out.values());
+    },
+    [sinRestriccion, visibleCompanyIds]
+  );
+
   const periodoStartIso = periodoStart.toISOString();
   const periodoEndIso = periodoEnd.toISOString();
 
@@ -688,19 +727,24 @@ export default function SeguimientoLanding() {
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
       if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
-      let q = supabase
-        .from("crm_activities")
-        .select("id, type, title, description, activity_date, company_id, user_id, companies:company_id(id, name, volumen_mensual_estimado)")
-        .gte("activity_date", periodoStartIso)
-        .lte("activity_date", periodoEndIso)
-        .not("title", "ilike", "%Solicitud de validación de pago%")
-        .not("title", "ilike", "%Aplicación de pago%")
-        .not("title", "ilike", "%Cobranza ·%");
-      if (!sinRestriccion) q = q.in("company_id", visibleCompanyIds);
-      if (fEjecutivo.length > 0) q = q.in("user_id", fEjecutivo);
-      const { data, error } = await q.order("activity_date", { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
+      const rows = await enBloques(async (ids) => {
+        let q = supabase
+          .from("crm_activities")
+          .select("id, type, title, description, activity_date, company_id, user_id, companies:company_id(id, name, volumen_mensual_estimado)")
+          .gte("activity_date", periodoStartIso)
+          .lte("activity_date", periodoEndIso)
+          .not("title", "ilike", "%Solicitud de validación de pago%")
+          .not("title", "ilike", "%Aplicación de pago%")
+          .not("title", "ilike", "%Cobranza ·%");
+        if (ids) q = q.in("company_id", ids);
+        if (fEjecutivo.length > 0) q = q.in("user_id", fEjecutivo);
+        const { data, error } = await q.order("activity_date", { ascending: false });
+        if (error) throw error;
+        return (data || []) as any[];
+      });
+      return rows.sort(
+        (a, b) => new Date(b.activity_date).getTime() - new Date(a.activity_date).getTime()
+      );
     },
   });
 
@@ -859,27 +903,32 @@ export default function SeguimientoLanding() {
     queryKey: ["seg_ventas_periodo", periodoStartDate, periodoEndDate, empresaSel, actividadCompanyIds],
     enabled: actividadCompanyIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("documento_productos")
-        .select(
-          "cantidad, documentos!inner(id, empresa_id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
-        )
-        .eq("documentos.tipo_documento", "factura")
-        .eq("documentos.is_active", true)
-        .eq("documentos.empresa_vendedora", empresaSel)
-        .in("documentos.empresa_id", actividadCompanyIds)
-        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
-        .gte("documentos.fecha_documento", periodoStartDate)
-        .lte("documentos.fecha_documento", periodoEndDate);
-      if (error) throw error;
       const m = new Map<string, number>();
-      for (const r of (data || []) as any[]) {
-        const doc = r.documentos;
-        if (!doc?.empresa_id) continue;
-        if (doc.estatus_factura === "cancelada") continue;
-        const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
-        const uds = Number(r.cantidad || 0) * ue;
-        m.set(doc.empresa_id, (m.get(doc.empresa_id) || 0) + uds);
+      for (let i = 0; i < actividadCompanyIds.length; i += 150) {
+        const ids = actividadCompanyIds.slice(i, i + 150);
+        const rows = await fetchAllRows<any>((from, to) =>
+          supabase
+            .from("documento_productos")
+            .select(
+              "id, cantidad, documentos!inner(id, empresa_id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
+            )
+            .eq("documentos.tipo_documento", "factura")
+            .eq("documentos.is_active", true)
+            .eq("documentos.empresa_vendedora", empresaSel)
+            .in("documentos.empresa_id", ids)
+            .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
+            .gte("documentos.fecha_documento", periodoStartDate)
+            .lte("documentos.fecha_documento", periodoEndDate)
+            .order("id")
+            .range(from, to)
+        );
+        for (const r of rows) {
+          const doc = r.documentos;
+          if (!doc?.empresa_id) continue;
+          if (doc.estatus_factura === "cancelada") continue;
+          const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
+          m.set(doc.empresa_id, (m.get(doc.empresa_id) || 0) + Number(r.cantidad || 0) * ue);
+        }
       }
       return m;
     },
@@ -890,18 +939,21 @@ export default function SeguimientoLanding() {
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
       if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
-      let q = supabase
-        .from("documentos")
-        .select("id, numero_cotizacion, fecha_documento, companies:empresa_id(name)")
-        .eq("empresa_vendedora", empresaSel)
-        .eq("tipo_documento", "cotizacion")
-        .eq("is_active", true)
-        .gte("fecha_documento", periodoStartDate)
-        .lte("fecha_documento", periodoEndDate);
-      if (!sinRestriccion) q = q.in("empresa_id", visibleCompanyIds);
-      const { data, error } = await q.order("fecha_documento", { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
+      const rows = await enBloques(async (ids) => {
+        let q = supabase
+          .from("documentos")
+          .select("id, numero_cotizacion, fecha_documento, companies:empresa_id(name)")
+          .eq("empresa_vendedora", empresaSel)
+          .eq("tipo_documento", "cotizacion")
+          .eq("is_active", true)
+          .gte("fecha_documento", periodoStartDate)
+          .lte("fecha_documento", periodoEndDate);
+        if (ids) q = q.in("empresa_id", ids);
+        const { data, error } = await q.order("fecha_documento", { ascending: false });
+        if (error) throw error;
+        return (data || []) as any[];
+      });
+      return rows.sort((a, b) => String(b.fecha_documento).localeCompare(String(a.fecha_documento)));
     },
   });
 
@@ -910,20 +962,23 @@ export default function SeguimientoLanding() {
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
       if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
-      let q = supabase
-        .from("documentos")
-        .select("id, numero_factura, fecha_documento, companies:empresa_id(name)")
-        .eq("empresa_vendedora", empresaSel)
-        .eq("tipo_documento", "factura")
-        .eq("is_active", true)
-        .neq("estatus_factura", "cancelada")
-        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
-        .gte("fecha_documento", periodoStartDate)
-        .lte("fecha_documento", periodoEndDate);
-      if (!sinRestriccion) q = q.in("empresa_id", visibleCompanyIds);
-      const { data, error } = await q.order("fecha_documento", { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
+      const rows = await enBloques(async (ids) => {
+        let q = supabase
+          .from("documentos")
+          .select("id, numero_factura, fecha_documento, companies:empresa_id(name)")
+          .eq("empresa_vendedora", empresaSel)
+          .eq("tipo_documento", "factura")
+          .eq("is_active", true)
+          .neq("estatus_factura", "cancelada")
+          .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
+          .gte("fecha_documento", periodoStartDate)
+          .lte("fecha_documento", periodoEndDate);
+        if (ids) q = q.in("empresa_id", ids);
+        const { data, error } = await q.order("fecha_documento", { ascending: false });
+        if (error) throw error;
+        return (data || []) as any[];
+      });
+      return rows.sort((a, b) => String(b.fecha_documento).localeCompare(String(a.fecha_documento)));
     },
   });
 
@@ -932,16 +987,19 @@ export default function SeguimientoLanding() {
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
       if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
-      let q = supabase
-        .from("cobranza_pagos")
-        .select("id, monto_total, fecha_pago, empresa_id, companies:empresa_id(name)")
-        .eq("empresa_vendedora", empresaSel)
-        .gte("fecha_pago", periodoStartDate)
-        .lte("fecha_pago", periodoEndDate);
-      if (!sinRestriccion) q = q.in("empresa_id", visibleCompanyIds);
-      const { data, error } = await q.order("fecha_pago", { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
+      const rows = await enBloques(async (ids) => {
+        let q = supabase
+          .from("cobranza_pagos")
+          .select("id, monto_total, fecha_pago, empresa_id, companies:empresa_id(name)")
+          .eq("empresa_vendedora", empresaSel)
+          .gte("fecha_pago", periodoStartDate)
+          .lte("fecha_pago", periodoEndDate);
+        if (ids) q = q.in("empresa_id", ids);
+        const { data, error } = await q.order("fecha_pago", { ascending: false });
+        if (error) throw error;
+        return (data || []) as any[];
+      });
+      return rows.sort((a, b) => String(b.fecha_pago).localeCompare(String(a.fecha_pago)));
     },
   });
 
@@ -988,27 +1046,33 @@ export default function SeguimientoLanding() {
     queryKey: ["seg_docs_unidades_periodo", periodoStartDate, periodoEndDate, empresaSel, periodoDocIds],
     enabled: periodoDocIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("documento_productos")
-        .select(
-          "cantidad, documentos!inner(id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
-        )
-        .in("documentos.tipo_documento", ["cotizacion", "factura"])
-        .eq("documentos.is_active", true)
-        .eq("documentos.empresa_vendedora", empresaSel)
-        .in("documentos.id", periodoDocIds)
-        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
-        .gte("documentos.fecha_documento", periodoStartDate)
-        .lte("documentos.fecha_documento", periodoEndDate);
-      if (error) throw error;
       const m = new Map<string, number>();
-      for (const r of (data || []) as any[]) {
-        const doc = r.documentos;
-        if (!doc?.id) continue;
-        if (doc.tipo_documento === "factura" && doc.estatus_factura === "cancelada") continue;
-        const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
-        const uds = Number(r.cantidad || 0) * ue;
-        m.set(doc.id, (m.get(doc.id) || 0) + uds);
+      // Se parte la lista de documentos en bloques (URL) y se pagina (límite de 1000 filas).
+      for (let i = 0; i < periodoDocIds.length; i += 150) {
+        const ids = periodoDocIds.slice(i, i + 150);
+        const rows = await fetchAllRows<any>((from, to) =>
+          supabase
+            .from("documento_productos")
+            .select(
+              "id, cantidad, documentos!inner(id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
+            )
+            .in("documentos.tipo_documento", ["cotizacion", "factura"])
+            .eq("documentos.is_active", true)
+            .eq("documentos.empresa_vendedora", empresaSel)
+            .in("documentos.id", ids)
+            .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
+            .gte("documentos.fecha_documento", periodoStartDate)
+            .lte("documentos.fecha_documento", periodoEndDate)
+            .order("id")
+            .range(from, to)
+        );
+        for (const r of rows) {
+          const doc = r.documentos;
+          if (!doc?.id) continue;
+          if (doc.tipo_documento === "factura" && doc.estatus_factura === "cancelada") continue;
+          const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
+          m.set(doc.id, (m.get(doc.id) || 0) + Number(r.cantidad || 0) * ue);
+        }
       }
       return m;
     },
@@ -1311,7 +1375,7 @@ export default function SeguimientoLanding() {
                   </Popover>
                 )}
               </div>
-              {renderChips("Plaza", plazaOptions, fPlaza, setFPlaza)}
+              {renderChips("Plaza", plazaOptions, fPlaza, setFPlaza, true)}
             </div>
           )}
         </CardContent>
@@ -1719,7 +1783,7 @@ export default function SeguimientoLanding() {
                   {cotizacionesPeriodo.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="text-sm">
-                        {c.fecha_documento ? format(new Date(c.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
+                        {c.fecha_documento ? format(parseLocalDate(c.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
                       </TableCell>
                       <TableCell className="text-sm font-medium">{c.numero_cotizacion || "—"}</TableCell>
                       <TableCell className="text-sm">{c.companies?.name || "—"}</TableCell>
@@ -1770,7 +1834,7 @@ export default function SeguimientoLanding() {
                   {facturasPeriodo.map((f) => (
                     <TableRow key={f.id}>
                       <TableCell className="text-sm">
-                        {f.fecha_documento ? format(new Date(f.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
+                        {f.fecha_documento ? format(parseLocalDate(f.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
                       </TableCell>
                       <TableCell className="text-sm font-medium">{f.numero_factura || "—"}</TableCell>
                       <TableCell className="text-sm">{f.companies?.name || "—"}</TableCell>
@@ -1820,7 +1884,7 @@ export default function SeguimientoLanding() {
                   {cobranzaPagosPeriodo.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="text-sm">
-                        {p.fecha_pago ? format(new Date(p.fecha_pago), "d MMM yyyy", { locale: esLocale }) : "—"}
+                        {p.fecha_pago ? format(parseLocalDate(p.fecha_pago), "d MMM yyyy", { locale: esLocale }) : "—"}
                       </TableCell>
                       <TableCell className="text-sm">{p.companies?.name || "—"}</TableCell>
                       <TableCell className="text-sm font-medium">{formatCurrency(Number(p.monto_total || 0))}</TableCell>
