@@ -569,35 +569,57 @@ export default function SeguimientoLanding() {
     label: string,
     options: { id: string; name: string; color: string }[],
     selected: string[],
-    setSelected: (fn: (arr: string[]) => string[]) => void
-  ) => (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">{label}</span>
-      {options.length === 0 ? (
-        <span className="text-xs text-muted-foreground italic">Sin opciones</span>
-      ) : (
-        options.map((o) => {
-          const sel = selected.includes(o.id);
-          return (
-            <button
-              key={o.id}
-              type="button"
-              onClick={() => setSelected((arr) => toggleInArray(arr, o.id))}
-              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
-              style={
-                sel
-                  ? { backgroundColor: o.color, color: "white", borderColor: o.color }
-                  : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
-              }
-              aria-pressed={sel}
-            >
-              {o.name}
-            </button>
-          );
-        })
-      )}
-    </div>
-  );
+    setSelected: (fn: (arr: string[]) => string[]) => void,
+    withAllChip = false
+  ) => {
+    const todosActivo = options.length > 0 && options.every((o) => selected.includes(o.id));
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground w-16">{label}</span>
+        {options.length === 0 ? (
+          <span className="text-xs text-muted-foreground italic">Sin opciones</span>
+        ) : (
+          <>
+            {withAllChip && (
+              <button
+                type="button"
+                onClick={() => setSelected(() => (todosActivo ? [] : options.map((o) => o.id)))}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all",
+                  todosActivo
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
+                )}
+                aria-pressed={todosActivo}
+              >
+                Todos
+              </button>
+            )}
+            {options.map((o) => {
+              const sel = selected.includes(o.id);
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setSelected((arr) => toggleInArray(arr, o.id))}
+                  className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all"
+                  style={
+                    sel
+                      ? { backgroundColor: o.color, color: "white", borderColor: o.color }
+                      : { backgroundColor: `${o.color}14`, color: o.color, borderColor: `${o.color}55` }
+                  }
+                  aria-pressed={sel}
+                >
+                  {o.name}
+                </button>
+              );
+            })}
+          </>
+        )}
+      </div>
+    );
+  };
+
 
   const kanbanProspectoCols = useMemo(() => {
     const cols = etapasProspecto.map((e) => ({
