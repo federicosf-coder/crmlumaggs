@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Lock, Upload, FileText, Loader2, Link2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { ChevronFacturaDetalleDialog } from "./chevron/ChevronFacturaDetalleDialog";
+import { ChevronReporteProductos } from "./chevron/ChevronReporteProductos";
 
 const db = supabase as any;
 
@@ -175,6 +177,7 @@ export default function ChevronFacturasRecibidas() {
   const [empBusqueda, setEmpBusqueda] = useState("");
   const [pedDialog, setPedDialog] = useState<{ id: string; folio: string } | null>(null);
   const [pedBusqueda, setPedBusqueda] = useState("");
+  const [detalle, setDetalle] = useState<any | null>(null);
 
 
   const { data: registros = [], isLoading } = useQuery({
@@ -601,12 +604,13 @@ export default function ChevronFacturasRecibidas() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="grid grid-cols-5 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
+        <TabsList className="grid grid-cols-6 w-full sm:w-auto bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
           <TabsTrigger value="importar" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Importar</TabsTrigger>
           <TabsTrigger value="facturas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md text-blue-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Facturas ({facturas.length})</TabsTrigger>
           <TabsTrigger value="pagos" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md text-emerald-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Pagos ({pagosCfdi.length})</TabsTrigger>
           <TabsTrigger value="notas" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md text-amber-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Notas de Crédito ({notasCredito.length})</TabsTrigger>
           <TabsTrigger value="sin_clasificar" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-rose-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md text-rose-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Sin Clasificar ({sinClasificar.length})</TabsTrigger>
+          <TabsTrigger value="reporte" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-slate-600 data-[state=active]:to-slate-800 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-700 text-[10px] sm:text-xs px-1 sm:px-2 py-1.5 leading-tight text-center whitespace-normal break-words min-w-0 h-auto">Reporte Productos</TabsTrigger>
         </TabsList>
 
 
@@ -755,7 +759,7 @@ export default function ChevronFacturasRecibidas() {
                     const t = totalesPorFactura.get(f.id) || { pagado: 0, notas: 0 };
                     const saldo = Number(f.total || 0) - t.pagado - t.notas;
                     return (
-                      <TableRow key={f.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                      <TableRow key={f.id} className={`cursor-pointer ${i % 2 === 0 ? "" : "bg-muted/20"}`} onClick={() => setDetalle(f)}>
                         <TableCell className="text-xs font-mono">
                           {[f.serie, f.folio].filter(Boolean).join("-") || f.folio_fiscal.slice(0, 8)}
                         </TableCell>
@@ -778,7 +782,7 @@ export default function ChevronFacturasRecibidas() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -885,7 +889,23 @@ export default function ChevronFacturasRecibidas() {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="reporte">
+          <ChevronReporteProductos />
+        </TabsContent>
       </Tabs>
+
+      <ChevronFacturaDetalleDialog
+        factura={detalle}
+        pedidoLabel={detalle?.pedido_id ? pedidoMap.get(detalle.pedido_id) || null : null}
+        onClose={() => setDetalle(null)}
+        onPdf={abrirPdf}
+        onVincular={() => {
+          const folio = [detalle.serie, detalle.folio].filter(Boolean).join("-") || detalle.folio_fiscal.slice(0, 8);
+          setPedDialog({ id: detalle.id, folio });
+          setDetalle(null);
+        }}
+      />
+
 
 
       <Dialog open={!!empDialog} onOpenChange={(o) => !o && setEmpDialog(null)}>
