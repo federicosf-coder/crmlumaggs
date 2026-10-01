@@ -727,19 +727,24 @@ export default function SeguimientoLanding() {
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
       if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
-      let q = supabase
-        .from("crm_activities")
-        .select("id, type, title, description, activity_date, company_id, user_id, companies:company_id(id, name, volumen_mensual_estimado)")
-        .gte("activity_date", periodoStartIso)
-        .lte("activity_date", periodoEndIso)
-        .not("title", "ilike", "%Solicitud de validación de pago%")
-        .not("title", "ilike", "%Aplicación de pago%")
-        .not("title", "ilike", "%Cobranza ·%");
-      if (!sinRestriccion) q = q.in("company_id", visibleCompanyIds);
-      if (fEjecutivo.length > 0) q = q.in("user_id", fEjecutivo);
-      const { data, error } = await q.order("activity_date", { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
+      const rows = await enBloques(async (ids) => {
+        let q = supabase
+          .from("crm_activities")
+          .select("id, type, title, description, activity_date, company_id, user_id, companies:company_id(id, name, volumen_mensual_estimado)")
+          .gte("activity_date", periodoStartIso)
+          .lte("activity_date", periodoEndIso)
+          .not("title", "ilike", "%Solicitud de validación de pago%")
+          .not("title", "ilike", "%Aplicación de pago%")
+          .not("title", "ilike", "%Cobranza ·%");
+        if (ids) q = q.in("company_id", ids);
+        if (fEjecutivo.length > 0) q = q.in("user_id", fEjecutivo);
+        const { data, error } = await q.order("activity_date", { ascending: false });
+        if (error) throw error;
+        return (data || []) as any[];
+      });
+      return rows.sort(
+        (a, b) => new Date(b.activity_date).getTime() - new Date(a.activity_date).getTime()
+      );
     },
   });
 
