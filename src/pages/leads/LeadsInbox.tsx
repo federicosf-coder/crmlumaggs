@@ -23,6 +23,8 @@ import { NuevoLeadDialog } from "@/components/leads/NuevoLeadDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { Lock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ESTATUS_META: Record<LeadEstatus, { label: string; className: string }> = {
   nuevo: { label: "Nuevo", className: "bg-emerald-100 text-emerald-800 border-emerald-200" },
@@ -74,6 +76,20 @@ export default function LeadsInbox() {
   const [vincularLead, setVincularLead] = useState<Lead | null>(null);
   const [tab, setTab] = useState("bandeja");
   const esAdmin = hasAnyRole(["admin", "manager"]);
+  const puedeAsignar = hasAnyRole(["admin", "customer_service"]);
+  const { data: perfiles = [] } = useQuery({
+    queryKey: ["leads-ejecutivos"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name").order("full_name");
+      return (data ?? []) as { id: string; full_name: string | null }[];
+    },
+  });
+  const nombrePerfil = (id: string | null) => (id ? perfiles.find((p) => p.id === id)?.full_name ?? "—" : null);
+  const asignar = async (leadId: string, uid: string | null) => {
+    const { error } = await (supabase as any).from("leads").update({ responsable_id: uid }).eq("id", leadId);
+    if (error) toast.error(error.message);
+    else { toast.success("Ejecutivo actualizado"); qc.invalidateQueries({ queryKey: ["leads"] }); }
+  };
 
   const kpis = useMemo(() => ({
     nuevos: leads.filter((l) => l.estatus === "nuevo").length,
@@ -189,16 +205,17 @@ export default function LeadsInbox() {
                   <TableHead className="text-[11px] uppercase tracking-wide">Contacto</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Origen</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Interés / Mensaje</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Ejecutivo</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Estado</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">Cargando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">Cargando...</TableCell></TableRow>
                 )}
                 {!isLoading && filtrados.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">Sin prospectos en esta vista.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">Sin prospectos en esta vista.</TableCell></TableRow>
                 )}
                 {filtrados.map((l, i) => (
                   <TableRow key={l.id} className={i % 2 ? "bg-muted/30 hover:bg-blue-50/40" : "hover:bg-blue-50/40"}>
@@ -226,6 +243,19 @@ export default function LeadsInbox() {
                     <TableCell className="text-xs max-w-[240px]">
                       {l.interes && <p className="font-medium">{l.interes}</p>}
                       {l.mensaje && <p className="text-muted-foreground line-clamp-2">{l.mensaje}</p>}
+                    </TableCell>
+                    <TableCell className="text-xs min-w-[160px]">
+                      {puedeAsignar ? (
+                        <Select value={l.responsable_id ?? "none"} onValueChange={(v) => asignar(l.id, v === "none" ? null : v)}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Sin asignar" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sin asignar</SelectItem>
+                            {perfiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.full_name || "Sin nombre"}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        nombrePerfil(l.responsable_id) ?? <span className="text-muted-foreground">Sin asignar</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={ESTATUS_META[l.estatus]?.className}>

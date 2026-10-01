@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.leads_ejecutivo_guard() FROM PUBLIC, anon, authenticated;
