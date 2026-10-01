@@ -903,27 +903,32 @@ export default function SeguimientoLanding() {
     queryKey: ["seg_ventas_periodo", periodoStartDate, periodoEndDate, empresaSel, actividadCompanyIds],
     enabled: actividadCompanyIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("documento_productos")
-        .select(
-          "cantidad, documentos!inner(id, empresa_id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
-        )
-        .eq("documentos.tipo_documento", "factura")
-        .eq("documentos.is_active", true)
-        .eq("documentos.empresa_vendedora", empresaSel)
-        .in("documentos.empresa_id", actividadCompanyIds)
-        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
-        .gte("documentos.fecha_documento", periodoStartDate)
-        .lte("documentos.fecha_documento", periodoEndDate);
-      if (error) throw error;
       const m = new Map<string, number>();
-      for (const r of (data || []) as any[]) {
-        const doc = r.documentos;
-        if (!doc?.empresa_id) continue;
-        if (doc.estatus_factura === "cancelada") continue;
-        const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
-        const uds = Number(r.cantidad || 0) * ue;
-        m.set(doc.empresa_id, (m.get(doc.empresa_id) || 0) + uds);
+      for (let i = 0; i < actividadCompanyIds.length; i += 150) {
+        const ids = actividadCompanyIds.slice(i, i + 150);
+        const rows = await fetchAllRows<any>((from, to) =>
+          supabase
+            .from("documento_productos")
+            .select(
+              "id, cantidad, documentos!inner(id, empresa_id, empresa_vendedora, fecha_documento, tipo_documento, is_active, estatus_factura), productos!inner(presentacion_id, presentaciones!inner(unidades_equivalentes))"
+            )
+            .eq("documentos.tipo_documento", "factura")
+            .eq("documentos.is_active", true)
+            .eq("documentos.empresa_vendedora", empresaSel)
+            .in("documentos.empresa_id", ids)
+            .or("numero_factura.is.null,numero_factura.not.ilike.RFC*", { referencedTable: "documentos" })
+            .gte("documentos.fecha_documento", periodoStartDate)
+            .lte("documentos.fecha_documento", periodoEndDate)
+            .order("id")
+            .range(from, to)
+        );
+        for (const r of rows) {
+          const doc = r.documentos;
+          if (!doc?.empresa_id) continue;
+          if (doc.estatus_factura === "cancelada") continue;
+          const ue = Number(r.productos?.presentaciones?.unidades_equivalentes ?? 1) || 1;
+          m.set(doc.empresa_id, (m.get(doc.empresa_id) || 0) + Number(r.cantidad || 0) * ue);
+        }
       }
       return m;
     },
