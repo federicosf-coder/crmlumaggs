@@ -1333,7 +1333,7 @@ export default function SeguimientoLanding() {
                   </Popover>
                 )}
               </div>
-              {renderChips("Plaza", plazaOptions, fPlaza, setFPlaza)}
+              {renderChips("Plaza", plazaOptions, fPlaza, setFPlaza, true)}
             </div>
           )}
         </CardContent>
