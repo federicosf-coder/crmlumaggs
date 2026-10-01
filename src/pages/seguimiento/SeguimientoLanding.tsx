@@ -701,6 +701,23 @@ export default function SeguimientoLanding() {
   // cientos/ miles de ids en la URL de cada consulta.
   const sinRestriccion = access.accessLevel === "todos" && fEjecutivo.length === 0 && fPlaza.length === 0;
 
+  // Cuando hay muchas empresas visibles, la lista de ids no cabe en la URL de una
+  // sola consulta (error 400). Se parte en bloques y se unen los resultados por id.
+  const enBloques = useCallback(
+    async (run: (ids: string[] | null) => Promise<any[]>) => {
+      const bloques: (string[] | null)[] = [];
+      if (sinRestriccion) bloques.push(null);
+      else for (let i = 0; i < visibleCompanyIds.length; i += 150) bloques.push(visibleCompanyIds.slice(i, i + 150));
+      const out = new Map<string, any>();
+      for (const ids of bloques) {
+        const rows = await run(ids);
+        for (const r of rows) out.set(r.id, r);
+      }
+      return Array.from(out.values());
+    },
+    [sinRestriccion, visibleCompanyIds]
+  );
+
   const periodoStartIso = periodoStart.toISOString();
   const periodoEndIso = periodoEnd.toISOString();
 
