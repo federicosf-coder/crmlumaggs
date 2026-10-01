@@ -922,7 +922,7 @@ export default function DocumentForm() {
     <div className="space-y-6">
       {/* Sticky top save bar — only when editing */}
       {!viewMode && (
-        <div className="sticky top-0 z-30 -mx-4 md:-mx-6 px-4 md:px-6 py-2 bg-background/95 backdrop-blur border-b flex items-center justify-end gap-2">
+        <div className="sticky top-0 z-30 -mx-3.5 md:-mx-6 px-3.5 md:px-6 py-2 bg-background/95 backdrop-blur border-b flex items-center justify-end gap-2">
           <Button variant="outline" size="sm" onClick={() => isEdit ? setViewMode(true) : navigate("/documents")}>
             Cancelar
           </Button>
@@ -936,7 +936,7 @@ export default function DocumentForm() {
           <InstruccionesEspecialesCard documentoId={existingDoc.id} />
           <DivisionesPedidoCard documentoId={existingDoc.id} />
           <PedidoAccionesPanel documentoId={existingDoc.id} />
-          <PedidoStatusStepper estatus={form.estatus_pedido} />
+          <div className="min-w-0 max-w-full overflow-x-auto"><PedidoStatusStepper estatus={form.estatus_pedido} /></div>
           <UltimoCambioEstatus documentoId={existingDoc.id} />
           <AutorizacionPrecioDialog
             open={autorizacionOpen}
@@ -1401,14 +1401,14 @@ export default function DocumentForm() {
           )}
         </CardContent>
       </Card>
-      <fieldset disabled={viewMode} className="space-y-6">
+      <fieldset disabled={viewMode} className="space-y-6 min-w-0 w-full">
 
       {/* Products */}
       <Card>
         <CardHeader>
           <CardTitle>Productos</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3.5 sm:p-6 min-w-0">
           {items.length === 0 ? (
             <p className="text-center py-6 text-muted-foreground">Sin productos. Haz clic en "Agregar" para añadir.</p>
           ) : (
@@ -1418,7 +1418,7 @@ export default function DocumentForm() {
               {items.map((item, idx) => {
                 const prod = productos.find((p: any) => p.id === item.producto_id);
                 return (
-                  <div key={idx} className="rounded-xl border border-border/60 bg-background/80 p-3 shadow-sm space-y-3">
+                  <div key={idx} className="rounded-xl border border-border/60 bg-background/80 p-3 shadow-sm space-y-3 min-w-0">
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
                         <SearchableSelect
@@ -1453,25 +1453,25 @@ export default function DocumentForm() {
                         ))}
                       </div>
                     )}
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
+                    <div className="grid grid-cols-3 gap-2 min-w-0">
+                      <div className="min-w-0">
                         <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Cant.</Label>
-                        <Input type="number" className="h-9 text-right text-sm" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} />
+                        <Input type="number" className="h-9 w-full min-w-0 px-2 text-right text-xs" value={item.cantidad} onChange={e => updateItem(idx, "cantidad", Number(e.target.value))} />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Precio</Label>
                         <Input
                           type="number"
-                          className="h-9 text-right text-sm"
+                          className="h-9 w-full min-w-0 px-2 text-right text-xs"
                           value={isEntregaCorp ? 0 : item.precio_unitario}
                           disabled={isEntregaCorp}
                           readOnly={isEntregaCorp}
                           onChange={e => updateItem(idx, "precio_unitario", Number(e.target.value))}
                         />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Desc. %</Label>
-                        <Input type="number" className="h-9 text-right text-sm" value={item.descuento_porcentaje} onChange={e => updateItem(idx, "descuento_porcentaje", Number(e.target.value))} />
+                        <Input type="number" className="h-9 w-full min-w-0 px-2 text-right text-xs" value={item.descuento_porcentaje} onChange={e => updateItem(idx, "descuento_porcentaje", Number(e.target.value))} />
                       </div>
                     </div>
                     <div className="flex items-center justify-between border-t border-border/40 pt-2 text-sm">
