@@ -275,7 +275,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const { data: autorizacion, error: authError } = await (supabase as any)
     .from("documento_autorizaciones_precio")
     .select(
-      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, numero_factura, pdf_url, ejecutivo_venta_id, plaza_id, plazas(nombre), companies(name, razon_social, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
+      "id, documento_id, justificacion, costo_margen_snapshot, historico_snapshot, datos_cliente_snapshot, numero_pedido_ref, documentos(id, numero_pedido, numero_factura, pdf_url, ejecutivo_venta_id, plaza_id, plazas(nombre), companies(name, razon_social, id_contpaq, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi))"
     )
     .eq("id", autorizacionId)
     .maybeSingle();
@@ -486,6 +486,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const tplVars: Record<string, string> = {
     cliente: documento?.companies?.name || "—",
     razon_social: documento?.companies?.razon_social || "—",
+    id_contpaq: documento?.companies?.id_contpaq || "—",
     ejecutivo: ejecutivoNombre,
     correo_ejecutivo: ejecutivoEmail || "—",
     numero_pedido:
@@ -550,6 +551,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const bodyTemplate =
     tpl?.body ||
     `<p>Solicitud de autorización de precio para {cliente} — Pedido {numero_pedido}.</p>
+       <p>ID Contpaq: {id_contpaq}</p>
        <p><strong>Justificación:</strong></p>
        <pre style="white-space:pre-wrap;font-family:Arial,sans-serif">{justificacion}</pre>
        {factura_bloque}
