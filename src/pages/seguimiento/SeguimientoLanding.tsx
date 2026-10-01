@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 import { format } from "date-fns";
 import { es as esLocale } from "date-fns/locale";
 import {
@@ -1719,7 +1719,7 @@ export default function SeguimientoLanding() {
                   {cotizacionesPeriodo.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="text-sm">
-                        {c.fecha_documento ? format(new Date(c.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
+                        {c.fecha_documento ? format(parseLocalDate(c.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
                       </TableCell>
                       <TableCell className="text-sm font-medium">{c.numero_cotizacion || "—"}</TableCell>
                       <TableCell className="text-sm">{c.companies?.name || "—"}</TableCell>
@@ -1770,7 +1770,7 @@ export default function SeguimientoLanding() {
                   {facturasPeriodo.map((f) => (
                     <TableRow key={f.id}>
                       <TableCell className="text-sm">
-                        {f.fecha_documento ? format(new Date(f.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
+                        {f.fecha_documento ? format(parseLocalDate(f.fecha_documento), "d MMM yyyy", { locale: esLocale }) : "—"}
                       </TableCell>
                       <TableCell className="text-sm font-medium">{f.numero_factura || "—"}</TableCell>
                       <TableCell className="text-sm">{f.companies?.name || "—"}</TableCell>
@@ -1820,7 +1820,7 @@ export default function SeguimientoLanding() {
                   {cobranzaPagosPeriodo.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="text-sm">
-                        {p.fecha_pago ? format(new Date(p.fecha_pago), "d MMM yyyy", { locale: esLocale }) : "—"}
+                        {p.fecha_pago ? format(parseLocalDate(p.fecha_pago), "d MMM yyyy", { locale: esLocale }) : "—"}
                       </TableCell>
                       <TableCell className="text-sm">{p.companies?.name || "—"}</TableCell>
                       <TableCell className="text-sm font-medium">{formatCurrency(Number(p.monto_total || 0))}</TableCell>
