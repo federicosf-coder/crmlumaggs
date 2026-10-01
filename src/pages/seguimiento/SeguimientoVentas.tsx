@@ -1299,7 +1299,27 @@ export default function SeguimientoVentas() {
           id: "avance",
           label: "Avance",
           sortKey: "avance",
-          render: (r) => <StatusBadge estatus={r.estatus_ritmo_id ? catalogMap.get(r.estatus_ritmo_id) : null} />,
+          render: (r) => {
+            const prom = Number((r as any).promedio_historico_mensual) || 0;
+            const acum = Number((r as any).acum_mes) || 0;
+            const pct = prom > 0 ? Math.round((acum / prom) * 100) : 0;
+            const tone =
+              acum <= 0
+                ? "bg-muted text-muted-foreground border-border"
+                : pct >= 100
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : pct >= 50
+                    ? "bg-green-50 text-green-700 border-green-200"
+                    : "bg-blue-50 text-blue-700 border-blue-200";
+            return (
+              <div className="flex flex-col gap-0.5" title={`${acum.toFixed(1)} / ${prom.toFixed(1)} UE este mes`}>
+                <span className={`inline-flex w-fit items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-widest border ${tone}`}>
+                  {acum <= 0 ? "Sin compra este mes" : pct >= 100 ? `${pct}% · Meta` : `${pct}%`}
+                </span>
+                <span className="text-[10px] text-muted-foreground">{acum.toFixed(1)} / {prom.toFixed(1)} UE</span>
+              </div>
+            );
+          },
         },
         {
           id: "ultima_compra",
