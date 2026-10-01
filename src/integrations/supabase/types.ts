@@ -7479,6 +7479,7 @@ export type Database = {
           company_id: string | null
           contact_id: string | null
           created_at: string
+          created_by: string | null
           crm_task_id: string | null
           descartado_motivo: string | null
           email: string | null
@@ -7512,6 +7513,7 @@ export type Database = {
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
+          created_by?: string | null
           crm_task_id?: string | null
           descartado_motivo?: string | null
           email?: string | null
@@ -7545,6 +7547,7 @@ export type Database = {
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
+          created_by?: string | null
           crm_task_id?: string | null
           descartado_motivo?: string | null
           email?: string | null
