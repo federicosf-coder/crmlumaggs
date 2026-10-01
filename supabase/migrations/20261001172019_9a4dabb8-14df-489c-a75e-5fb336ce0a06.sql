@@ -1,0 +1,2 @@
+UPDATE public.seguimiento_estatus_catalogo SET nombre='Sin compra este mes', es_urgente=false, color='#94a3b8' WHERE id='a5bc758c-ad6b-4ee4-b75b-8a154af81e45';
+UPDATE public.seguimiento_estatus_catalogo SET color='#3b82f6' WHERE id='f85d100f-472d-4d60-8b39-ff50dd6f7a88';
