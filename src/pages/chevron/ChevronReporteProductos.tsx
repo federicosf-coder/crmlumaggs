@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -89,8 +89,8 @@ export function ChevronReporteProductos() {
             {isLoading && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Cargando…</TableCell></TableRow>}
             {!isLoading && visibles.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sin registros…</TableCell></TableRow>}
             {visibles.map((p) => (
-              <>
-                <TableRow key={p.key} className="bg-violet-50/60 hover:bg-violet-50/60">
+              <Fragment key={p.key}>
+                <TableRow className="bg-violet-50/60 hover:bg-violet-50/60">
                   <TableCell colSpan={2} className="font-semibold uppercase tracking-widest text-[11px] text-violet-700">{p.label}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{qty(p.cantidad)}</TableCell>
                   <TableCell />
@@ -105,7 +105,7 @@ export function ChevronReporteProductos() {
                     <TableCell className="text-right tabular-nums">{money(f.importe)}</TableCell>
                   </TableRow>
                 ))}
-              </>
+              </Fragment>
             ))}
           </TableBody>
         </Table>
