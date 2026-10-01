@@ -934,18 +934,21 @@ export default function SeguimientoLanding() {
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
       if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
-      let q = supabase
-        .from("documentos")
-        .select("id, numero_cotizacion, fecha_documento, companies:empresa_id(name)")
-        .eq("empresa_vendedora", empresaSel)
-        .eq("tipo_documento", "cotizacion")
-        .eq("is_active", true)
-        .gte("fecha_documento", periodoStartDate)
-        .lte("fecha_documento", periodoEndDate);
-      if (!sinRestriccion) q = q.in("empresa_id", visibleCompanyIds);
-      const { data, error } = await q.order("fecha_documento", { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
+      const rows = await enBloques(async (ids) => {
+        let q = supabase
+          .from("documentos")
+          .select("id, numero_cotizacion, fecha_documento, companies:empresa_id(name)")
+          .eq("empresa_vendedora", empresaSel)
+          .eq("tipo_documento", "cotizacion")
+          .eq("is_active", true)
+          .gte("fecha_documento", periodoStartDate)
+          .lte("fecha_documento", periodoEndDate);
+        if (ids) q = q.in("empresa_id", ids);
+        const { data, error } = await q.order("fecha_documento", { ascending: false });
+        if (error) throw error;
+        return (data || []) as any[];
+      });
+      return rows.sort((a, b) => String(b.fecha_documento).localeCompare(String(a.fecha_documento)));
     },
   });
 
@@ -954,20 +957,23 @@ export default function SeguimientoLanding() {
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
       if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
-      let q = supabase
-        .from("documentos")
-        .select("id, numero_factura, fecha_documento, companies:empresa_id(name)")
-        .eq("empresa_vendedora", empresaSel)
-        .eq("tipo_documento", "factura")
-        .eq("is_active", true)
-        .neq("estatus_factura", "cancelada")
-        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
-        .gte("fecha_documento", periodoStartDate)
-        .lte("fecha_documento", periodoEndDate);
-      if (!sinRestriccion) q = q.in("empresa_id", visibleCompanyIds);
-      const { data, error } = await q.order("fecha_documento", { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
+      const rows = await enBloques(async (ids) => {
+        let q = supabase
+          .from("documentos")
+          .select("id, numero_factura, fecha_documento, companies:empresa_id(name)")
+          .eq("empresa_vendedora", empresaSel)
+          .eq("tipo_documento", "factura")
+          .eq("is_active", true)
+          .neq("estatus_factura", "cancelada")
+          .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
+          .gte("fecha_documento", periodoStartDate)
+          .lte("fecha_documento", periodoEndDate);
+        if (ids) q = q.in("empresa_id", ids);
+        const { data, error } = await q.order("fecha_documento", { ascending: false });
+        if (error) throw error;
+        return (data || []) as any[];
+      });
+      return rows.sort((a, b) => String(b.fecha_documento).localeCompare(String(a.fecha_documento)));
     },
   });
 
@@ -976,16 +982,19 @@ export default function SeguimientoLanding() {
     enabled: sinRestriccion || visibleCompanyIds.length > 0,
     queryFn: async () => {
       if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
-      let q = supabase
-        .from("cobranza_pagos")
-        .select("id, monto_total, fecha_pago, empresa_id, companies:empresa_id(name)")
-        .eq("empresa_vendedora", empresaSel)
-        .gte("fecha_pago", periodoStartDate)
-        .lte("fecha_pago", periodoEndDate);
-      if (!sinRestriccion) q = q.in("empresa_id", visibleCompanyIds);
-      const { data, error } = await q.order("fecha_pago", { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
+      const rows = await enBloques(async (ids) => {
+        let q = supabase
+          .from("cobranza_pagos")
+          .select("id, monto_total, fecha_pago, empresa_id, companies:empresa_id(name)")
+          .eq("empresa_vendedora", empresaSel)
+          .gte("fecha_pago", periodoStartDate)
+          .lte("fecha_pago", periodoEndDate);
+        if (ids) q = q.in("empresa_id", ids);
+        const { data, error } = await q.order("fecha_pago", { ascending: false });
+        if (error) throw error;
+        return (data || []) as any[];
+      });
+      return rows.sort((a, b) => String(b.fecha_pago).localeCompare(String(a.fecha_pago)));
     },
   });
 
