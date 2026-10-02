@@ -875,10 +875,9 @@ export default function SeguimientoLanding() {
       mesActualStartDate,
       mesActualEndDate,
       empresaSel,
-      sinRestriccion,
-      visibleCompanyIdsKey,
+      docEjecutivoKey,
     ],
-    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    enabled: docEjecutivoIds === null || docEjecutivoIds.length > 0,
     queryFn: () => fetchVentasRango(mesActualStartDate, mesActualEndDate),
   });
 
@@ -888,10 +887,9 @@ export default function SeguimientoLanding() {
       mesAnteriorCompletoStartDate,
       mesAnteriorCompletoEndDate,
       empresaSel,
-      sinRestriccion,
-      visibleCompanyIdsKey,
+      docEjecutivoKey,
     ],
-    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    enabled: docEjecutivoIds === null || docEjecutivoIds.length > 0,
     queryFn: () => fetchVentasRango(mesAnteriorCompletoStartDate, mesAnteriorCompletoEndDate),
   });
 
@@ -901,10 +899,9 @@ export default function SeguimientoLanding() {
       mesAnteriorCompletoStartDate,
       mesAnteriorMismoDiaEndDate,
       empresaSel,
-      sinRestriccion,
-      visibleCompanyIdsKey,
+      docEjecutivoKey,
     ],
-    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    enabled: docEjecutivoIds === null || docEjecutivoIds.length > 0,
     queryFn: () => fetchVentasRango(mesAnteriorCompletoStartDate, mesAnteriorMismoDiaEndDate),
   });
 
