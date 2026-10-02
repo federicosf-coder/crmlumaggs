@@ -390,12 +390,12 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
-        <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -mx-6 -mt-6 p-6 rounded-t-lg">
-          <DialogTitle className="font-light">Aviso de Reclamo</DialogTitle>
+      <DialogContent className="max-h-[92vh] max-w-5xl flex flex-col overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-violet-50 to-blue-50 px-5 py-4 dark:from-violet-950/30 dark:to-blue-950/30">
+          <DialogTitle className="text-lg font-semibold tracking-tight">Aviso de Reclamo</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div className="col-span-2 md:col-span-1">
               <Label className={labelCls}>Pedido recibido</Label>
@@ -455,10 +455,10 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Label className="text-xs uppercase tracking-wide">Productos a reclamar</Label>
               <Select onValueChange={(v) => { addLinea(v); }} value="">
-                <SelectTrigger className="w-[280px] h-8"><SelectValue placeholder="+ Agregar producto del pedido" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-full min-w-0 sm:w-[280px]"><SelectValue placeholder="+ Agregar producto del pedido" /></SelectTrigger>
                 <SelectContent className="max-h-[260px]">
                   {lineasPedido.filter((l) => !lineas.some((x) => x.codigo_producto === l.codigo_producto)).map((l) => (
                     <SelectItem key={l.codigo_producto} value={l.codigo_producto}>
@@ -469,73 +469,98 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
               </Select>
             </div>
             {lineas.length > 0 && (
-              <div className="border rounded overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/40">
-                    <TableRow>{["Tipo prod.", "Código", "Descripción", "Empaque", "Tipo aviso", "Cant. solicitada", "Cant. recibida", "Diferencia", "Unidad", ""].map((h) =>
-                      <TableHead key={h} className="text-[10px] uppercase">{h}</TableHead>)}</TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lineas.map((l, idx) => (
-                      <Fragment key={idx}>
-                      <TableRow>
-                        <TableCell>
+              <div className="space-y-3">
+                {lineas.map((l, idx) => (
+                  <section key={`${l.codigo_producto}-${idx}`} className="overflow-hidden rounded-md border border-border/60">
+                    <div className="grid min-w-0 grid-cols-2 gap-3 bg-gradient-to-r from-violet-50/60 to-blue-50/60 p-3 md:grid-cols-12 dark:from-violet-950/20 dark:to-blue-950/20">
+                      <div className="min-w-0 md:col-span-2">
+                        <Label className={labelCls}>Tipo de producto</Label>
+                        <div className="mt-1">
                           <Select value={l.tipo_producto} onValueChange={(v) => updLinea(idx, "tipo_producto", v)}>
-                            <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-8 w-full min-w-0"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Empacado">Empacado</SelectItem>
                               <SelectItem value="Granel">Granel</SelectItem>
                               <SelectItem value="otro">Otro…</SelectItem>
                             </SelectContent>
                           </Select>
-                          {l.tipo_producto === "otro" && <Input className="h-7 mt-1 w-24" value={l.tipo_producto_otro || ""} onChange={(e) => updLinea(idx, "tipo_producto_otro", e.target.value)} />}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
-                        <TableCell className="text-xs max-w-[160px] truncate" title={l.descripcion}>{l.descripcion}</TableCell>
-                        <TableCell className="text-xs">{l.empaque || "—"}</TableCell>
-                        <TableCell>
+                          {l.tipo_producto === "otro" && <Input className="mt-1 h-7 w-full min-w-0" value={l.tipo_producto_otro || ""} onChange={(e) => updLinea(idx, "tipo_producto_otro", e.target.value)} />}
+                        </div>
+                      </div>
+                      <div className="min-w-0 md:col-span-2">
+                        <Label className={labelCls}>Código</Label>
+                        <p className="mt-2 truncate font-mono text-xs" title={l.codigo_producto}>{l.codigo_producto}</p>
+                      </div>
+                      <div className="col-span-2 min-w-0 md:col-span-4">
+                        <Label className={labelCls}>Descripción</Label>
+                        <p className="mt-2 break-words text-xs" title={l.descripcion}>{l.descripcion}</p>
+                      </div>
+                      <div className="min-w-0 md:col-span-2">
+                        <Label className={labelCls}>Empaque</Label>
+                        <p className="mt-2 break-words text-xs">{l.empaque || "—"}</p>
+                      </div>
+                      <div className="min-w-0 md:col-span-2">
+                        <Label className={labelCls}>Tipo de aviso</Label>
+                        <div className="mt-1">
                           <Select value={l.tipo_aviso} onValueChange={(v) => updLinea(idx, "tipo_aviso", v)}>
-                            <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-8 w-full min-w-0"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Faltante">Faltante</SelectItem>
                               <SelectItem value="Dañado">Dañado</SelectItem>
                               <SelectItem value="otro">Otro…</SelectItem>
                             </SelectContent>
                           </Select>
-                          {l.tipo_aviso === "otro" && <Input className="h-7 mt-1 w-24" value={l.tipo_aviso_otro || ""} onChange={(e) => updLinea(idx, "tipo_aviso_otro", e.target.value)} />}
-                        </TableCell>
-                        <TableCell><Input type="number" value={l.cantidad_solicitada} className="w-20 h-8" onChange={(e) => updLinea(idx, "cantidad_solicitada", e.target.value)} /></TableCell>
-                        <TableCell><Input type="number" value={l.cantidad_recibida} className="w-20 h-8" onChange={(e) => updLinea(idx, "cantidad_recibida", e.target.value)} /></TableCell>
-                        <TableCell><Input type="number" value={l.diferencia} className={`w-20 h-8 ${!l.diferencia || Number(l.diferencia) === 0 ? "border-red-300" : ""}`} onChange={(e) => updLinea(idx, "diferencia", e.target.value)} /></TableCell>
-                        <TableCell>
+                          {l.tipo_aviso === "otro" && <Input className="mt-1 h-7 w-full min-w-0" value={l.tipo_aviso_otro || ""} onChange={(e) => updLinea(idx, "tipo_aviso_otro", e.target.value)} />}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid min-w-0 grid-cols-2 gap-3 border-t p-3 sm:grid-cols-4 md:grid-cols-[repeat(4,minmax(0,1fr))_2.5rem]">
+                      <div className="min-w-0">
+                        <Label className={labelCls}>Cant. solicitada</Label>
+                        <Input type="number" value={l.cantidad_solicitada} className="mt-1 h-8 w-full min-w-0" onChange={(e) => updLinea(idx, "cantidad_solicitada", e.target.value)} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className={labelCls}>Cant. recibida</Label>
+                        <Input type="number" value={l.cantidad_recibida} className="mt-1 h-8 w-full min-w-0" onChange={(e) => updLinea(idx, "cantidad_recibida", e.target.value)} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className={labelCls}>Diferencia</Label>
+                        <Input type="number" value={l.diferencia} className={`mt-1 h-8 w-full min-w-0 ${!l.diferencia || Number(l.diferencia) === 0 ? "border-red-300" : ""}`} onChange={(e) => updLinea(idx, "diferencia", e.target.value)} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className={labelCls}>Unidad</Label>
+                        <div className="mt-1">
                           <Select value={l.unidad} onValueChange={(v) => updLinea(idx, "unidad", v)}>
-                            <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-8 w-full min-w-0"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Litros">Litros</SelectItem>
                               <SelectItem value="Piezas">Piezas</SelectItem>
                               <SelectItem value="otro">Otro…</SelectItem>
                             </SelectContent>
                           </Select>
-                          {l.unidad === "otro" && <Input className="h-7 mt-1 w-24" value={l.unidad_otro || ""} onChange={(e) => updLinea(idx, "unidad_otro", e.target.value)} />}
-                        </TableCell>
-                        <TableCell><Button variant="ghost" size="sm" onClick={() => setLineas(lineas.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell colSpan={10} className="bg-muted/30 p-2">
-                          <Label className={labelCls}>Detalle de la reclamación</Label>
-                          <Textarea
-                            className="mt-1 bg-background"
-                            rows={3}
-                            placeholder="Describe qué tiene el producto y por qué se reclama (daño, falta, condiciones del empaque, etc.)"
-                            value={l.detalle_reclamacion || ""}
-                            onChange={(e) => updLinea(idx, "detalle_reclamacion", e.target.value)}
-                          />
-                        </TableCell>
-                      </TableRow>
-                      </Fragment>
-                    ))}
-                  </TableBody>
-                </Table>
+                          {l.unidad === "otro" && <Input className="mt-1 h-7 w-full min-w-0" value={l.unidad_otro || ""} onChange={(e) => updLinea(idx, "unidad_otro", e.target.value)} />}
+                        </div>
+                      </div>
+                      <div className="col-span-2 flex items-end justify-end sm:col-span-4 md:col-span-1">
+                        <Button variant="ghost" size="icon" title="Eliminar producto" aria-label="Eliminar producto" onClick={() => setLineas(lineas.filter((_, i) => i !== idx))}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="border-t bg-muted/30 p-3">
+                      <Label className={labelCls}>Detalle de la reclamación</Label>
+                      <Textarea
+                        className="mt-1 bg-background"
+                        rows={3}
+                        placeholder="Describe qué tiene el producto y por qué se reclama (daño, falta, condiciones del empaque, etc.)"
+                        value={l.detalle_reclamacion || ""}
+                        onChange={(e) => updLinea(idx, "detalle_reclamacion", e.target.value)}
+                      />
+                    </div>
+                  </section>
+                ))}
               </div>
             )}
           </div>
@@ -552,7 +577,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
           </div>
         </div>
 
-        <DialogFooter className="bg-muted/30 -mx-6 -mb-6 p-4 rounded-b-lg">
+        <DialogFooter className="shrink-0 border-t bg-muted/30 px-5 py-3">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={onSave} disabled={saving}>{saving ? "Guardando..." : "Crear reclamo"}</Button>
         </DialogFooter>
