@@ -701,6 +701,36 @@ export default function SeguimientoLanding() {
   // cientos/ miles de ids en la URL de cada consulta.
   const sinRestriccion = access.accessLevel === "todos" && fEjecutivo.length === 0 && fPlaza.length === 0;
 
+  // Cotizaciones, facturas y ventas se atribuyen al ejecutivo del documento
+  // (ejecutivo_venta_id), no al dueño de la empresa en el Directorio.
+  // null = sin filtro por ejecutivo.
+  const docEjecutivoIds = useMemo<string[] | null>(() => {
+    let ids: string[] | null = null;
+    if (access.accessLevel === "ninguno") return [];
+    if (access.accessLevel === "propio") ids = access.userId ? [access.userId] : [];
+    else if (access.accessLevel === "equipo")
+      ids = Array.from(new Set([...(access.teamMemberIds || []), ...(access.userId ? [access.userId] : [])]));
+    if (fEjecutivo.length > 0) ids = ids ? ids.filter((i) => fEjecutivo.includes(i)) : [...fEjecutivo];
+    if (fPlaza.length > 0) {
+      const enPlaza = profiles.filter((p) => p.plaza_id && fPlaza.includes(p.plaza_id)).map((p) => p.user_id);
+      ids = ids ? ids.filter((i) => enPlaza.includes(i)) : enPlaza;
+    }
+    return ids;
+  }, [access.accessLevel, access.userId, access.teamMemberIds, fEjecutivo, fPlaza, profiles]);
+  const docEjecutivoKey = docEjecutivoIds ? [...docEjecutivoIds].sort().join(",") : "all";
+
+  const porEjecutivo = useCallback(
+    async (run: (ids: string[] | null) => Promise<any[]>) => {
+      if (docEjecutivoIds === null) return run(null);
+      const out = new Map<string, any>();
+      for (let i = 0; i < docEjecutivoIds.length; i += 150) {
+        for (const r of await run(docEjecutivoIds.slice(i, i + 150))) out.set(r.id, r);
+      }
+      return Array.from(out.values());
+    },
+    [docEjecutivoIds]
+  );
+
   // Cuando hay muchas empresas visibles, la lista de ids no cabe en la URL de una
   // sola consulta (error 400). Se parte en bloques y se unen los resultados por id.
   const enBloques = useCallback(
@@ -801,10 +831,10 @@ export default function SeguimientoLanding() {
   const mesAnteriorMismoDiaEndDate = format(mesAnteriorMismoDiaEnd, "yyyy-MM-dd");
 
   const fetchVentasRango = async (desde: string, hasta: string) => {
-    if (!sinRestriccion && visibleCompanyIds.length === 0) return { unidades: 0, importe: 0 };
+    if (docEjecutivoIds !== null && docEjecutivoIds.length === 0) return { unidades: 0, importe: 0 };
 
     // Misma fuente que el Reporte de Unidades e Importes: unidades guardadas en la factura.
-    // Se pagina (máx. 1000 filas por respuesta) y se parte la lista de empresas en bloques.
+    // Se atribuye por ejecutivo del documento; se pagina (máx. 1000 filas por respuesta).
     const base = () =>
       supabase
         .from("documentos")
@@ -818,13 +848,13 @@ export default function SeguimientoLanding() {
         .lte("fecha_documento", hasta)
         .order("id");
     const bloques: (string[] | null)[] = [];
-    if (sinRestriccion) bloques.push(null);
-    else for (let i = 0; i < visibleCompanyIds.length; i += 150) bloques.push(visibleCompanyIds.slice(i, i + 150));
+    if (docEjecutivoIds === null) bloques.push(null);
+    else for (let i = 0; i < docEjecutivoIds.length; i += 150) bloques.push(docEjecutivoIds.slice(i, i + 150));
     const filas = new Map<string, { subtotal: number | null; total: number | null; unidades_equivalentes_total: number | null }>();
     for (const ids of bloques) {
       const rows = await fetchAllRows<any>((from, to) => {
         let q = base();
-        if (ids) q = q.in("empresa_id", ids);
+        if (ids) q = q.in("ejecutivo_venta_id", ids);
         return q.range(from, to);
       });
       for (const r of rows) filas.set(r.id, r);
@@ -935,11 +965,10 @@ export default function SeguimientoLanding() {
   });
 
   const { data: cotizacionesPeriodo = [] } = useQuery({
-    queryKey: ["seg_cotizaciones_periodo", periodoStartDate, periodoEndDate, empresaSel, sinRestriccion, visibleCompanyIdsKey],
-    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    queryKey: ["seg_cotizaciones_periodo", periodoStartDate, periodoEndDate, empresaSel, docEjecutivoKey],
+    enabled: docEjecutivoIds === null || docEjecutivoIds.length > 0,
     queryFn: async () => {
-      if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
-      const rows = await enBloques(async (ids) => {
+      const rows = await porEjecutivo(async (ids) => {
         let q = supabase
           .from("documentos")
           .select("id, numero_cotizacion, fecha_documento, companies:empresa_id(name)")
@@ -948,7 +977,7 @@ export default function SeguimientoLanding() {
           .eq("is_active", true)
           .gte("fecha_documento", periodoStartDate)
           .lte("fecha_documento", periodoEndDate);
-        if (ids) q = q.in("empresa_id", ids);
+        if (ids) q = q.in("ejecutivo_venta_id", ids);
         const { data, error } = await q.order("fecha_documento", { ascending: false });
         if (error) throw error;
         return (data || []) as any[];
@@ -958,11 +987,10 @@ export default function SeguimientoLanding() {
   });
 
   const { data: facturasPeriodo = [] } = useQuery({
-    queryKey: ["seg_facturas_periodo", periodoStartDate, periodoEndDate, empresaSel, sinRestriccion, visibleCompanyIdsKey],
-    enabled: sinRestriccion || visibleCompanyIds.length > 0,
+    queryKey: ["seg_facturas_periodo", periodoStartDate, periodoEndDate, empresaSel, docEjecutivoKey],
+    enabled: docEjecutivoIds === null || docEjecutivoIds.length > 0,
     queryFn: async () => {
-      if (!sinRestriccion && visibleCompanyIds.length === 0) return [];
-      const rows = await enBloques(async (ids) => {
+      const rows = await porEjecutivo(async (ids) => {
         let q = supabase
           .from("documentos")
           .select("id, numero_factura, fecha_documento, companies:empresa_id(name)")
@@ -973,7 +1001,7 @@ export default function SeguimientoLanding() {
           .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
           .gte("fecha_documento", periodoStartDate)
           .lte("fecha_documento", periodoEndDate);
-        if (ids) q = q.in("empresa_id", ids);
+        if (ids) q = q.in("ejecutivo_venta_id", ids);
         const { data, error } = await q.order("fecha_documento", { ascending: false });
         if (error) throw error;
         return (data || []) as any[];
