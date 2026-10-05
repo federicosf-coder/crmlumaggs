@@ -774,6 +774,16 @@ function ComprobanteCard({
               Ver comprobante (PDF)
             </Button>
           )}
+          {row.remitente_email && (() => {
+            const email = (row.remitente_email.match(/[^\s<>,;]+@[^\s<>,;]+/)?.[0] || row.remitente_email).trim().toLowerCase();
+            const nombre = nombresRemitentes[email];
+            return (
+              <p className="text-xs text-muted-foreground break-all">
+                Enviado por: {nombre ? <span className="font-medium text-foreground">{nombre}</span> : null}
+                {nombre ? ` (${email})` : email}
+              </p>
+            );
+          })()}
         </div>
 
         <div className="space-y-3">
