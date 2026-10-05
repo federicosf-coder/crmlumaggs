@@ -8,7 +8,10 @@ const RFC_GENERICOS = new Set(['XAXX010101000']);
 // PSM891005QY7 = Procesadora de Servicios Maggs (Lumaggs / Chevron)
 // PGA850730EU0 = Proveedora Galsa (Galsa / Phillips 66)
 const EMISOR_RFC_MAP: Record<string, string> = { PSM891005QY7: 'lumaggs_chevron', PGA850730EU0: 'galsa_phillips66' };
-const SERIE_PLAZA_MAP: Record<string, string> = { TIJ: 'Tijuana', MXL: 'Mexicali', ENS: 'Ensenada', MOR: 'Morelos' };
+const SERIE_PLAZA_MAP: Record<string, string> = {
+  TIJ: 'Tijuana', MXL: 'Mexicali', ENS: 'Ensenada', MOR: 'Morelos', SLR: 'San Luis', SQN: 'San Quintin', PEN: 'Peñasco',
+  TJ: 'Tijuana', MX: 'Mexicali', EN: 'Ensenada', MR: 'Morelos', SL: 'San Luis', SQ: 'San Quintin', PE: 'Peñasco',
+};
 const STOPWORDS_CFDI = new Set([
   'SA', 'S', 'A', 'DE', 'CV', 'C', 'V', 'SAPI', 'SRL', 'RL', 'DEL', 'LA', 'EL',
   'LOS', 'LAS', 'Y', 'SC', 'S.A.', 'S.A', 'SADECV',
@@ -22,7 +25,7 @@ function mapEmisorAEmpresaVendedora(rfc: string): string | null {
 function mapSerieAPlaza(serie: string): string | null {
   if (!serie) return null;
   const s = serie.trim().toUpperCase();
-  for (const prefijo of Object.keys(SERIE_PLAZA_MAP)) {
+  for (const prefijo of Object.keys(SERIE_PLAZA_MAP).sort((a, b) => b.length - a.length)) {
     if (s.startsWith(prefijo)) return SERIE_PLAZA_MAP[prefijo];
   }
   return null;
@@ -776,7 +779,7 @@ Deno.serve(async (req) => {
             clienteEstatus === 'exacto_rfc' &&
             !!empresaIdMatched &&
             !!plazaId &&
-            empresaVendedora === 'lumaggs_chevron' &&
+            (empresaVendedora === 'lumaggs_chevron' || empresaVendedora === 'galsa_phillips66') &&
             productos.length > 0 &&
             productos.every((p) => p.matched === true && !!p.producto_id);
 
