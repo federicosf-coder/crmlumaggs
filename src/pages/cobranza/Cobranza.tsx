@@ -1281,7 +1281,7 @@ export default function Cobranza() {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => handleVerDetalle(p)}><Eye className="h-4 w-4" /></Button>
-                          {p.estado_pago !== "cancelado" && dispFact > 0 && (
+                          {p.estado_pago !== "cancelado" && (
                             <Button size="sm" variant="outline" onClick={() => handleAplicar(p)}>Aplicar</Button>
                           )}
                           {p.estado_pago !== "cancelado" && (
@@ -2373,7 +2373,7 @@ console.log("DEBUG replyTo:", profile?.email, user?.email);
 
           <div className="flex justify-between items-center">
             <h3 className="font-semibold">Aplicaciones</h3>
-            {pago.estado_pago !== "cancelado" && disponibleFacturas > 0 && (
+            {pago.estado_pago !== "cancelado" && (
               <Button size="sm" onClick={() => onAplicar(pago)}><Plus className="h-4 w-4 mr-1" /> Aplicar</Button>
             )}
           </div>
