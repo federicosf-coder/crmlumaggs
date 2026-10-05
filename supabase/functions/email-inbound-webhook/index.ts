@@ -2,6 +2,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1';
 import { XMLParser } from 'npm:fast-xml-parser@4';
+import { unzipSync } from 'npm:fflate@0.8.2';
 
 // --- Matching CFDI (réplica exacta de src/lib/xmlFacturaMatching.ts) ---
 const RFC_GENERICOS = new Set(['XAXX010101000']);
@@ -180,9 +181,32 @@ Deno.serve(async (req) => {
 
     const data = evt.data ?? {};
 
-    const destinatarios: string[] = Array.isArray(data.to)
-      ? data.to.map((t: unknown) => extraerEmail(String(t ?? '')))
-      : [extraerEmail(String(data.to ?? ''))];
+    // Destinatarios: To, CC, BCC y encabezados de reenvío/entrega
+    const aLista = (v: unknown): string[] => {
+      if (v == null) return [];
+      const arr = Array.isArray(v) ? v : String(v).split(',');
+      return arr
+        .map((t: any) => extraerEmail(typeof t === 'object' && t ? String(t.email ?? t.address ?? '') : String(t ?? '')))
+        .filter(Boolean);
+    };
+    const headersEmail: Record<string, unknown> = {};
+    if (data.headers && typeof data.headers === 'object') {
+      if (Array.isArray(data.headers)) {
+        for (const h of data.headers) if (h?.name) headersEmail[String(h.name).toLowerCase()] = h.value;
+      } else {
+        for (const [k, v] of Object.entries(data.headers)) headersEmail[k.toLowerCase()] = v;
+      }
+    }
+    const destinatarios: string[] = [
+      ...aLista(data.to),
+      ...aLista(data.cc),
+      ...aLista(data.bcc),
+      ...aLista(data.envelope_to ?? data.envelopeTo),
+      ...aLista(headersEmail['delivered-to']),
+      ...aLista(headersEmail['x-original-to']),
+      ...aLista(headersEmail['x-forwarded-to']),
+      ...aLista(headersEmail['envelope-to']),
+    ];
     const esComprobantes = destinatarios.some((d) => d.includes(BUZON_COMPROBANTES));
     const esCredito = !esComprobantes && destinatarios.some((d) => d.includes(BUZON_CREDITO));
     const esPrecios =
@@ -424,9 +448,11 @@ Deno.serve(async (req) => {
         return ct.includes('pdf') || fn.endsWith('.pdf');
       };
 
-      const xmls = attachments.filter(esXml);
-      const pdfs = attachments.filter(esPdf);
-      if (xmls.length === 0) return jsonRes({ ok: true, procesados: 0, motivo: 'sin_xml_valido' });
+      const esZip = (a: any) => {
+        const ct = String(a?.content_type ?? '').toLowerCase();
+        const fn = String(a?.filename ?? '').toLowerCase();
+        return ct.includes('zip') || fn.endsWith('.zip');
+      };
 
       let listadoFact: Array<any> = [];
       try {
@@ -448,9 +474,46 @@ Deno.serve(async (req) => {
       }
 
       const urlDe = (att: any) => {
+        if (att?._dataUrl) return att._dataUrl as string;
         const meta = listadoFact.find((l: any) => String(l?.id) === String(att?.id)) ?? null;
         return meta?.download_url ?? meta?.downloadUrl ?? null;
       };
+
+      // Descomprimir .zip y agregar sus XML/PDF como adjuntos virtuales
+      const adjuntosExpandidos: Array<any> = attachments.filter((a) => !esZip(a));
+      for (const z of attachments.filter(esZip)) {
+        try {
+          const zUrl = urlDe(z);
+          if (!zUrl) throw new Error('zip_sin_download_url');
+          const zRes = await fetch(zUrl);
+          if (!zRes.ok) throw new Error(`zip_descarga_${zRes.status}`);
+          const archivos = unzipSync(new Uint8Array(await zRes.arrayBuffer()));
+          for (const [ruta, bytes] of Object.entries(archivos)) {
+            const nombre = ruta.split('/').pop() ?? ruta;
+            const lower = nombre.toLowerCase();
+            if (!nombre || ruta.startsWith('__MACOSX') || nombre.startsWith('.')) continue;
+            const tipo = lower.endsWith('.xml') ? 'application/xml' : lower.endsWith('.pdf') ? 'application/pdf' : null;
+            if (!tipo) continue;
+            let bin = '';
+            for (let i = 0; i < bytes.length; i += 0x8000) {
+              bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+            }
+            adjuntosExpandidos.push({
+              id: `zip:${z?.id}:${ruta}`,
+              filename: nombre,
+              content_type: tipo,
+              _dataUrl: `data:${tipo};base64,${btoa(bin)}`,
+            });
+          }
+          console.log('[facturas] zip descomprimido:', z?.filename);
+        } catch (e) {
+          console.error('[facturas] error descomprimiendo zip:', z?.filename, (e as Error).message);
+        }
+      }
+
+      const xmls = adjuntosExpandidos.filter(esXml);
+      const pdfs = adjuntosExpandidos.filter(esPdf);
+      if (xmls.length === 0) return jsonRes({ ok: true, procesados: 0, motivo: 'sin_xml_valido' });
 
       let procesadosFact = 0;
       let duplicadosOmitidosFact = 0;
