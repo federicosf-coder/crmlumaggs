@@ -1281,9 +1281,11 @@ export default function Cobranza() {
                       <TableCell className="text-right sticky right-0 z-10 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                         <div className="flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => handleVerDetalle(p)}><Eye className="h-4 w-4" /></Button>
-                          {p.estado_pago !== "cancelado" && (
-                            <Button size="sm" variant="outline" onClick={() => handleAplicar(p)}>Aplicar</Button>
-                          )}
+                          {p.estado_pago !== "cancelado" && (p.estado_pago === "aplicado_total" ? (
+                              <Button size="sm" variant="default" onClick={() => handleAplicar(p)} title="Pago aplicado. Clic para re-aplicar">Aplicado</Button>
+                            ) : (
+                              <Button size="sm" variant="outline" onClick={() => handleAplicar(p)}>Aplicar</Button>
+                            ))}
                           {p.estado_pago !== "cancelado" && (
                             <Button size="sm" variant="ghost" onClick={() => handleCancelarPago(p)} title="Cancelar"><X className="h-4 w-4" /></Button>
                           )}
