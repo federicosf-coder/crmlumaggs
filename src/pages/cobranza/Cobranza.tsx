@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams, useNavigate, useParams, Navigate, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -924,6 +924,7 @@ export default function Cobranza() {
     refetchPagos(); refetchDocs();
   };
 
+  const queryClient = useQueryClient();
   const handleEliminarPago = async (p: CobranzaPago) => {
     if (!confirm("¿Eliminar permanentemente este pago? Se eliminarán también sus aplicaciones y archivos. Esta acción no se puede deshacer.")) return;
     const docIds = Array.from(new Set(((await supabase.from("cobranza_aplicaciones").select("documento_id").eq("pago_id", p.id)).data || []).map((a: any) => a.documento_id)));
@@ -936,6 +937,8 @@ export default function Cobranza() {
     }
     toast.success("Pago eliminado");
     refetchPagos(); refetchDocs();
+    queryClient.invalidateQueries({ queryKey: ["corte-caja-pagos"] });
+    queryClient.invalidateQueries({ queryKey: ["corte-caja-aplicaciones"] });
   };
 
   return (
@@ -1054,7 +1057,11 @@ export default function Cobranza() {
             />
           ) : (
           <>
-          <CorteCajaSection empresaVendedora={empresaVendedora} />
+          <CorteCajaSection
+            empresaVendedora={empresaVendedora}
+            onVerPago={(id) => { setActiveTab("pagos"); setPendingDetalleId(id); }}
+            onEliminarPago={canDelete ? (id) => handleEliminarPago({ id } as CobranzaPago) : undefined}
+          />
           {/* Fila 1: Cartera Total + Crédito Directo + Crédito Cescemex */}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1346,7 +1353,15 @@ export default function Cobranza() {
   );
 }
 
-function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_chevron" | "galsa_phillips66" }) {
+function CorteCajaSection({
+  empresaVendedora,
+  onVerPago,
+  onEliminarPago,
+}: {
+  empresaVendedora: "lumaggs_chevron" | "galsa_phillips66";
+  onVerPago: (id: string) => void;
+  onEliminarPago?: (id: string) => void;
+}) {
   const hoyStr = (() => {
     const d = new Date();
     const p = (n: number) => String(n).padStart(2, "0");
@@ -1430,17 +1445,41 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
     return { icon: HelpCircle, border: "border-t-slate-400", bg: "bg-slate-50/50 dark:bg-slate-900/30", text: "text-slate-700 dark:text-slate-300", iconColor: "text-slate-400/40" };
   };
 
-  const { duplicados, duplicadoPagoIds } = useMemo(() => {
-    const grupos: Record<string, { empresaName: string; monto: number; pagos: any[] }> = {};
-    for (const p of pagosDia as any[]) {
-      if (p.estado_pago === "cancelado") continue;
-      const key = `${p.empresa_id}::${Number(p.monto_total || 0)}`;
-      if (!grupos[key]) grupos[key] = { empresaName: p.empresa?.name ?? "—", monto: Number(p.monto_total || 0), pagos: [] };
-      grupos[key].pagos.push(p);
+  // Criterio de duplicados:
+  // 1) "seguro": misma referencia/número de operación (normalizada) el mismo día.
+  // 2) "posible": mismo cliente e importe, solo si al menos uno no tiene referencia
+  //    (si ambos traen referencias distintas, son comprobantes distintos → no se marca).
+  const { duplicados, duplicadoTipo } = useMemo(() => {
+    const normRef = (r: any) => String(r || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const activos = (pagosDia as any[]).filter((p) => p.estado_pago !== "cancelado");
+    const grupos: { tipo: "seguro" | "posible"; empresaName: string; monto: number; referencia?: string; pagos: any[] }[] = [];
+    const tipo = new Map<string, "seguro" | "posible">();
+    const porRef: Record<string, any[]> = {};
+    for (const p of activos) {
+      const r = normRef(p.referencia_pago);
+      if (r.length >= 4) (porRef[r] ||= []).push(p);
     }
-    const duplicados = Object.values(grupos).filter((g) => g.pagos.length >= 2);
-    const duplicadoPagoIds = new Set<string>(duplicados.flatMap((g) => g.pagos.map((p) => p.id as string)));
-    return { duplicados, duplicadoPagoIds };
+    for (const [r, ps] of Object.entries(porRef)) {
+      if (ps.length < 2) continue;
+      grupos.push({ tipo: "seguro", empresaName: ps[0].empresa?.name ?? "—", monto: Number(ps[0].monto_total || 0), referencia: r, pagos: ps });
+      ps.forEach((p) => tipo.set(p.id, "seguro"));
+    }
+    const porCliente: Record<string, any[]> = {};
+    for (const p of activos) {
+      const key = `${p.empresa_id}::${Number(p.monto_total || 0).toFixed(2)}`;
+      (porCliente[key] ||= []).push(p);
+    }
+    for (const ps of Object.values(porCliente)) {
+      if (ps.length < 2) continue;
+      const refs = ps.map((p) => normRef(p.referencia_pago));
+      const algunoSinRef = refs.some((r) => r.length < 4);
+      if (!algunoSinRef) continue; // todos con referencias → ya se evaluó por referencia
+      const nuevos = ps.filter((p) => !tipo.has(p.id));
+      if (nuevos.length === 0) continue;
+      grupos.push({ tipo: "posible", empresaName: ps[0].empresa?.name ?? "—", monto: Number(ps[0].monto_total || 0), pagos: ps });
+      ps.forEach((p) => { if (!tipo.has(p.id)) tipo.set(p.id, "posible"); });
+    }
+    return { duplicados: grupos, duplicadoTipo: tipo };
   }, [pagosDia]);
 
   const sinCazarCount = useMemo(() => {
@@ -1586,13 +1625,43 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
             <Alert variant="default" className="border-amber-400 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-100 dark:border-amber-700">
               <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <AlertTitle className="text-sm">Posible(s) pago(s) duplicado(s) detectado(s)</AlertTitle>
-              <AlertDescription className="text-xs">
+              <AlertDescription className="text-xs space-y-1.5 mt-1">
                 {duplicados.map((g, idx) => (
-                  <span key={idx}>
-                    {g.empresaName} — {g.pagos.length} pagos de {formatCurrency(g.monto)} el mismo día
-                    {idx < duplicados.length - 1 ? "; " : ""}
-                  </span>
+                  <div key={idx} className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant={g.tipo === "seguro" ? "destructive" : "outline"} className="text-[10px]">
+                      {g.tipo === "seguro" ? "Misma referencia" : "Posible"}
+                    </Badge>
+                    <span>
+                      {g.empresaName} — {g.pagos.length} pagos de {formatCurrency(g.monto)}
+                      {g.referencia ? ` con referencia ${g.referencia}` : " (sin referencia en al menos uno)"}:
+                    </span>
+                    {g.pagos.map((p: any) => (
+                      <span key={p.id} className="inline-flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => onVerPago(p.id)}
+                          className="underline underline-offset-2 font-medium hover:text-amber-700"
+                          title="Abrir detalle del pago"
+                        >
+                          {p.referencia_pago || `Pago ${String(p.id).slice(0, 6)}`}
+                        </button>
+                        {onEliminarPago && (
+                          <button
+                            type="button"
+                            onClick={() => onEliminarPago(p.id)}
+                            className="p-0.5 text-destructive hover:opacity-70"
+                            title="Eliminar este pago"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
                 ))}
+                {duplicados.some((g) => g.tipo === "posible") && (
+                  <p className="text-[11px] opacity-80">«Posible» = mismo cliente e importe sin referencia; puede ser una segunda compra real. Revisa el comprobante antes de eliminar.</p>
+                )}
               </AlertDescription>
             </Alert>
           )}
@@ -1622,19 +1691,20 @@ function CorteCajaSection({ empresaVendedora }: { empresaVendedora: "lumaggs_che
                 ) : (
                   pagosOrdenados.map((p: any) => {
                     const apps = aplicacionesPorPago[p.id] || [];
-                    const esDuplicado = duplicadoPagoIds.has(p.id) && p.estado_pago !== "cancelado";
+                    const dupTipo = p.estado_pago !== "cancelado" ? duplicadoTipo.get(p.id) : undefined;
+                    const esDuplicado = !!dupTipo;
                     return (
                       <TableRow key={p.id} className="odd:bg-muted/30">
                         <TableCell className="py-4">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{p.empresa?.name ?? "—"}</span>
+                            <button type="button" onClick={() => onVerPago(p.id)} className="font-medium text-left hover:underline underline-offset-2" title="Abrir detalle del pago">{p.empresa?.name ?? "—"}</button>
                             {esDuplicado && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 cursor-help" />
+                                  <AlertTriangle className={cn("h-4 w-4 shrink-0 cursor-help", dupTipo === "seguro" ? "text-destructive" : "text-amber-500")} />
                                 </TooltipTrigger>
                                 <TooltipContent side="top">
-                                  <p className="max-w-xs">Mismo cliente e importe que otro pago de hoy — revisa si es duplicado</p>
+                                  <p className="max-w-xs">{dupTipo === "seguro" ? "Misma referencia que otro pago del día — muy probablemente duplicado" : "Mismo cliente e importe sin referencia — revisa el comprobante"}</p>
                                 </TooltipContent>
                               </Tooltip>
                             )}
