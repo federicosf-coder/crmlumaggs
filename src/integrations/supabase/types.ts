@@ -10889,6 +10889,13 @@ export type Database = {
           token_expira_at: string
         }[]
       }
+      list_nombres_por_emails: {
+        Args: { _emails: string[] }
+        Returns: {
+          email: string
+          full_name: string
+        }[]
+      }
       match_bot_knowledge: {
         Args: {
           filter_source?: string
