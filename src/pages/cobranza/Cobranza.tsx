@@ -1256,7 +1256,7 @@ export default function Cobranza() {
                   <TableHead className="text-right">Disponible (facturas)</TableHead>
                   <TableHead>Forma</TableHead>
                   <TableHead>Estatus Pago</TableHead>
-                  <TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead>
+                  <TableHead>Estado</TableHead><TableHead className="text-right sticky right-0 z-10 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">Acciones</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {loadingPagos && <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
@@ -1278,7 +1278,7 @@ export default function Cobranza() {
                       <TableCell className="text-xs">{FORMA_PAGO_LABEL[p.tipo_pago || ""] || p.tipo_pago || "—"}</TableCell>
                       <TableCell><EstatusPagoEditor pagoId={p.id} value={p.estatus_pago} canEdit={canEditEstatus} compact onChanged={refetchPagos} /></TableCell>
                       <TableCell><EstadoPagoEditor pagoId={p.id} value={p.estado_pago} canEdit={canEditEstatus} compact onChanged={refetchPagos} /></TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right sticky right-0 z-10 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                         <div className="flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => handleVerDetalle(p)}><Eye className="h-4 w-4" /></Button>
                           {p.estado_pago !== "cancelado" && (
