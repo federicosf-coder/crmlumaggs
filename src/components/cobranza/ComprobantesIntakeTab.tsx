@@ -166,6 +166,32 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
     },
   });
 
+  // Nombres de usuarios registrados según el correo remitente del comprobante.
+  // Si el correo no pertenece a un usuario del portal, se muestra solo el correo.
+  const remitenteEmails = useMemo(() => {
+    const set = new Set<string>();
+    comprobantes.forEach((c) => {
+      if (!c.remitente_email) return;
+      const email = (c.remitente_email.match(/[^\s<>,;]+@[^\s<>,;]+/)?.[0] || c.remitente_email).trim().toLowerCase();
+      if (email) set.add(email);
+    });
+    return Array.from(set).sort();
+  }, [comprobantes]);
+
+  const { data: nombresRemitentes = {} } = useQuery({
+    queryKey: ["nombres-remitentes-intake", remitenteEmails.join(",")],
+    enabled: remitenteEmails.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("list_nombres_por_emails", { _emails: remitenteEmails });
+      if (error) return {} as Record<string, string>;
+      const map: Record<string, string> = {};
+      (data || []).forEach((r: { email: string; full_name: string | null }) => {
+        if (r.email && r.full_name) map[r.email.toLowerCase()] = r.full_name;
+      });
+      return map;
+    },
+  });
+
   // Filtro por plaza para roles operativos (mismo criterio que useAlertasPendientes):
   // admin/manager ven todo; el resto solo su plaza. Sin plaza asignada, ve todo.
   const [plazasResueltas, setPlazasResueltas] = useState<Record<string, string | null>>({});
