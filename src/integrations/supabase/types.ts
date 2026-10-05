@@ -10867,6 +10867,14 @@ export type Database = {
         Args: { _req_id: string; _user_id: string }
         Returns: boolean
       }
+      list_ejecutivos_activos: {
+        Args: never
+        Returns: {
+          full_name: string
+          plaza_id: string
+          user_id: string
+        }[]
+      }
       list_lead_integration_pages: {
         Args: never
         Returns: {

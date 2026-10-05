@@ -147,11 +147,8 @@ export default function ImportarFacturasXML() {
   const { data: profilesActivos = [] } = useQuery({
     queryKey: ["profiles-xml-import"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("profiles")
-        .select("user_id, full_name")
-        .eq("is_active", true)
-        .order("full_name");
+      // RPC: lista todos los ejecutivos activos (RLS de profiles solo deja ver el propio)
+      const { data, error } = await (supabase as any).rpc("list_ejecutivos_activos");
       if (error) throw error;
       return data || [];
     },
