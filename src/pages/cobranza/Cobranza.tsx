@@ -346,7 +346,7 @@ export default function Cobranza() {
   });
 
   const navigate = useNavigate();
-  const canDelete = hasAnyRole(["admin", "manager"]);
+  const canDelete = hasAnyRole(["admin", "manager", "accounting", "customer_service"]);
   const canEditEstatus = hasAnyRole(["admin", "manager", "accounting"]);
   const filterArgs = {
     empresaVendedora,
