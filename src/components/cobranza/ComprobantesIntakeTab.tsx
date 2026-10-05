@@ -242,7 +242,7 @@ export function ComprobantesIntakeTab({ empresaVendedora }: { empresaVendedora?:
   return (
     <div className="space-y-4">
       {comprobantesVisibles.map((c) => (
-        <ComprobanteCard key={c.id} row={c} companies={companies} plazas={plazas} empresaVendedora={empresaVendedora} onDone={() => refetch()} />
+        <ComprobanteCard key={c.id} row={c} companies={companies} plazas={plazas} empresaVendedora={empresaVendedora} nombresRemitentes={nombresRemitentes} onDone={() => refetch()} />
       ))}
     </div>
   );
@@ -253,12 +253,14 @@ function ComprobanteCard({
   companies,
   plazas,
   empresaVendedora,
+  nombresRemitentes,
   onDone,
 }: {
   row: IntakeRow;
   companies: { id: string; name: string; razon_social?: string | null }[];
   plazas: { id: string; nombre: string }[];
   empresaVendedora?: EmpresaVendedora;
+  nombresRemitentes: Record<string, string>;
   onDone: () => void;
 }) {
   const { user, profile } = useAuth();
