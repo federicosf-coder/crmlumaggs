@@ -1,0 +1,3 @@
+CREATE POLICY "Customer service can delete pagos" ON public.cobranza_pagos FOR DELETE TO authenticated USING (has_role(auth.uid(), 'customer_service'::app_role));
+CREATE POLICY "Customer service can delete aplicaciones" ON public.cobranza_aplicaciones FOR DELETE TO authenticated USING (has_role(auth.uid(), 'customer_service'::app_role));
+CREATE POLICY "Customer service can delete pago archivos" ON public.cobranza_pago_archivos FOR DELETE TO authenticated USING (has_role(auth.uid(), 'customer_service'::app_role));
