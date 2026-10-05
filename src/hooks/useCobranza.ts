@@ -102,11 +102,22 @@ export function useCobranzaPagos(filters: CobranzaFilters = {}) {
       setPagos(data as any);
       const ids = (data as any[]).map((p) => p.id);
       if (ids.length > 0) {
-        const { data: aplics } = await supabase
-          .from("cobranza_aplicaciones")
-          .select("pago_id,tipo_documento,monto_aplicado,estatus_aplicacion")
-          .in("pago_id", ids)
-          .eq("estatus_aplicacion", "activa");
+        // Consultar en bloques: con cientos de IDs la URL excede el límite y la consulta falla en silencio.
+        const aplics: any[] = [];
+        for (let i = 0; i < ids.length; i += 150) {
+          const chunk = ids.slice(i, i + 150);
+          for (let from = 0; ; from += 1000) {
+            const { data: part, error: aErr } = await supabase
+              .from("cobranza_aplicaciones")
+              .select("pago_id,tipo_documento,monto_aplicado,estatus_aplicacion")
+              .in("pago_id", chunk)
+              .eq("estatus_aplicacion", "activa")
+              .range(from, from + 999);
+            if (aErr) { console.error("aplicaciones", aErr); break; }
+            aplics.push(...(part || []));
+            if (!part || part.length < 1000) break;
+          }
+        }
         const map: Record<string, PagoBreakdown> = {};
         (data as any[]).forEach((p) => {
           map[p.id] = { aplicadoFacturas: 0, aplicadoOtros: 0, disponibleFacturas: Number(p.monto_total) };
