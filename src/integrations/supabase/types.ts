@@ -7475,6 +7475,7 @@ export type Database = {
       leads: {
         Row: {
           alerta_enviada_at: string | null
+          canal: string
           ciudad: string | null
           company_id: string | null
           contact_id: string | null
@@ -7509,6 +7510,7 @@ export type Database = {
         }
         Insert: {
           alerta_enviada_at?: string | null
+          canal?: string
           ciudad?: string | null
           company_id?: string | null
           contact_id?: string | null
@@ -7543,6 +7545,7 @@ export type Database = {
         }
         Update: {
           alerta_enviada_at?: string | null
+          canal?: string
           ciudad?: string | null
           company_id?: string | null
           contact_id?: string | null
@@ -10125,6 +10128,7 @@ export type Database = {
           last_inbound_at: string | null
           last_message_preview: string | null
           last_outbound_at: string | null
+          lead_id: string | null
           status: string
           unread_alert_sent_at: string | null
           unread_count: number
@@ -10142,6 +10146,7 @@ export type Database = {
           last_inbound_at?: string | null
           last_message_preview?: string | null
           last_outbound_at?: string | null
+          lead_id?: string | null
           status?: string
           unread_alert_sent_at?: string | null
           unread_count?: number
@@ -10159,6 +10164,7 @@ export type Database = {
           last_inbound_at?: string | null
           last_message_preview?: string | null
           last_outbound_at?: string | null
+          lead_id?: string | null
           status?: string
           unread_alert_sent_at?: string | null
           unread_count?: number
@@ -10813,6 +10819,31 @@ export type Database = {
       get_company_saldo_vencido: {
         Args: { _company_id: string }
         Returns: number
+      }
+      get_empresas_estado_compra: {
+        Args: { _empresa_ids: string[] }
+        Returns: {
+          empresa_id: string
+          num_facturas: number
+          primera_compra: string
+          ultima_compra: string
+        }[]
+      }
+      get_leads_conversion: {
+        Args: never
+        Returns: {
+          atribuible: boolean
+          canal: string
+          empresa_id: string
+          empresa_nombre: string
+          estado: string
+          facturacion: number
+          lead_id: string
+          leads_en_empresa: number
+          num_facturas: number
+          primera_compra: string
+          ultima_compra: string
+        }[]
       }
       get_or_create_deal_recompra_mes: {
         Args: { p_company_id: string; p_marca: string; p_mes?: string }
