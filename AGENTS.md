@@ -1,0 +1,1 @@
+- Lead conversion (Prospecto/Cliente convertido/Cliente previo) and revenue attribution come only from RPC get_leads_conversion via src/hooks/useLeadConversion.ts; no screen re-implements it — keeps one source of truth across channels.
