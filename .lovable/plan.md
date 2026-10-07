@@ -1,52 +1,68 @@
-# Métrica de conversión Prospecto → Cliente (auditoría + implementación)
+# Conversión Prospecto → Cliente centrada en la Bandeja de Prospectos
 
-## 1. Hallazgos de la auditoría (datos reales de hoy)
+## 1. Auditoría (datos reales)
 
 ```text
-Prospecto (leads) ──contact_id──> Contacto (contacts) ──company_id──> Empresa (companies)
-                  ──company_id──────────────────────────────────────> Empresa
-                  ──source_id───> Fuente (lead_sources)
-Conversación WhatsApp ──contact_id──> Contacto          (no crea prospecto)
-Documento (cotización/pedido/factura) ──empresa_id──> Empresa
-                                      ──contacto_id──> Contacto (opcional)
-Factura ──cotizacion_original_id──> Cotización ;  ──pedido_relacionado_id──> Pedido
+Prospecto (leads) ─contact_id─> Contacto ─company_id─> Empresa <─empresa_id─ Factura
+                  ─company_id──────────────────────────> Empresa
+                  ─source_id──> Fuente (lead_sources)
+Conversación WhatsApp ─contact_id─> Contacto   (hoy NO crea prospecto)
 ```
 
-| Relación | Estado real |
+| Relación | Estado hoy |
 |---|---|
-| Contacto → Empresa | 1,120 de 1,567 contactos (71%) tienen empresa |
-| Prospecto → Contacto | **2 de 685** prospectos |
-| Prospecto → Empresa | **1 de 685** prospectos |
-| Prospecto → Fuente | **681 de 685 sin fuente** registrada |
-| WhatsApp → Contacto | 24 de 164 conversaciones; 16 llegan a empresa |
-| WhatsApp → Prospecto | No existe: una conversación no genera registro de prospecto |
-| Factura → Empresa | Siempre (es la relación confiable) |
-| Factura → Contacto | 969 de 2,108 (46%) |
-| Factura → Cotización origen | 627 de 2,108 (30%) |
+| Prospecto → Contacto | 2 de 685 |
+| Prospecto → Empresa | 1 de 685 |
+| Prospecto con fuente | 4 de 685 (681 sin fuente) |
+| WhatsApp → Contacto → Empresa | 24 de 164 conversaciones con contacto; 16 con empresa |
+| Factura → Empresa | 100% (relación confiable) |
+| Factura → Contacto | 46% |
+| Factura → Cotización origen | 30% |
 
-**Respuesta directa:** hoy el sistema solo puede saber que alguien compró **a nivel empresa** (Prospecto → Empresa → Compra), y aun así casi ningún prospecto está ligado a una empresa ni tiene fuente. La trazabilidad Prospecto → Cotización → Venta no es confiable. Con los datos actuales la métrica por fuente daría casi cero, no porque no haya ventas sino porque falta el vínculo.
+**Conclusión:** la atribución posible hoy es **Prospecto → Empresa → Compra**, no Prospecto → Cotización → Venta. Los 685 históricos casi no tienen vínculos ni origen, así que la métrica arrancará prácticamente en cero y crecerá con los prospectos nuevos.
 
-## 2. Cambios mínimos para una atribución correcta
+## 2. Campos que se usarán
 
-1. **Fuente siempre registrada:** cada prospecto debe guardar su canal (WhatsApp, Facebook, Web, Formulario, Campaña, Carga manual, Otro). Agregar canal a los prospectos y rellenar los existentes según su origen conocido; los que no se puedan deducir quedan «Otro / desconocido».
-2. **WhatsApp usa el mismo modelo:** cuando entra un número nuevo por WhatsApp (dentro de cobertura), se crea/vincula un prospecto con canal WhatsApp ligado a la conversación y al contacto, igual que Facebook o Web.
-3. **Vinculación obligatoria al convertir:** al ligar un prospecto a un contacto/empresa (o crear la cotización desde él), se guarda el vínculo prospecto ↔ empresa. Herramienta para vincular manualmente los prospectos ya existentes (ya existe «Vincular prospecto», se reutiliza).
-4. **Atribución opcional a nivel venta:** campo opcional «prospecto de origen» en cotizaciones creadas desde un prospecto; la factura lo hereda vía su cotización origen. Permite medir después Prospecto → Cotización → Venta cuando exista; si no, cae a nivel empresa (indicado como tal).
+| Concepto | Dónde vive |
+|---|---|
+| Origen del prospecto | Nuevo campo **canal** en el prospecto: whatsapp, facebook, web, formulario, campaña, carga_manual, otro, desconocido. Obligatorio en nuevos. Históricos = **desconocido** (sin adivinar), salvo los 4 que ya tienen fuente registrada (carga manual / web demo). |
+| Prospecto ↔ Contacto | `contact_id` del prospecto (ya existe) |
+| Prospecto ↔ Empresa | `company_id` del prospecto; si está vacío, la empresa del contacto ligado |
+| Factura válida | Documento tipo factura con estatus vigente, vencida o pagada (se excluye **cancelada**; cotizaciones y pedidos no cuentan) |
+| Estado de conversión | Calculado al vuelo desde las facturas (sin copiar datos): Cliente si la empresa tiene ≥1 factura válida |
+| Facturación | Suma del total de facturas válidas de la empresa, contada **una sola vez por empresa** |
 
-## 3. Mecanismo central «Prospecto / Cliente» (una sola fuente de verdad)
+## 3. Reglas para evitar doble conteo
 
-- Una vista en base de datos que calcula por empresa: es cliente si tiene al menos una factura no cancelada; fecha de primera y última compra, número de facturas y monto total. Se deriva siempre de las facturas existentes, sin copiar datos.
-- Una consulta derivada por prospecto/contacto que lee esa vista a través de su empresa.
+- **Prospectos y clientes convertidos:** se cuentan por prospecto (un prospecto = una fila).
+- **Facturación atribuida:** se calcula por **empresa única**, nunca sumando por prospecto. Si una empresa tiene 3 prospectos, su factura cuenta una vez.
+- **Varias fuentes para la misma empresa:**
+  - Si todos sus prospectos son del mismo canal → la facturación va a ese canal.
+  - Si tiene prospectos de canales distintos → la empresa se marca **«Atribución ambigua»** y su facturación se reporta en un renglón aparte «Ambigua», no en WhatsApp, Facebook ni Web. Así ninguna venta se cuenta en dos fuentes.
+- **Ya era cliente antes de llegar como prospecto:** solo se atribuye la facturación con fecha **igual o posterior** a la llegada del primer prospecto de esa empresa. Si la empresa ya compraba antes, se muestra la etiqueta «Cliente previo» y esas compras anteriores no se atribuyen al canal.
+- La pantalla indica siempre «Conversión a nivel empresa» para no afirmar que esa persona compró personalmente.
 
-## 4. Lo que verá el usuario
+## 4. WhatsApp a partir de ahora
 
-- **Bandeja de Prospectos y Directorio de contactos:** etiqueta «Cliente» (verde) o «Prospecto», con primera/última compra, número de compras y monto total al pasar el cursor o abrir el detalle. Si no hay empresa ligada se muestra «Prospecto · sin empresa vinculada» para que se note la falta de vínculo.
-- **Bandeja de WhatsApp:** la misma etiqueta, leída del mismo mecanismo (sin lógica propia).
-- Sin dashboard por ahora; la estructura queda lista para el futuro reporte Fuente | Prospectos | Clientes | Conversión | Facturación con datos reales.
+Al primer mensaje de un número dentro de cobertura (respetando la regla geográfica vigente):
+1. Busca el contacto por teléfono; si no existe, lo crea (sin duplicar).
+2. Toma su empresa si la tiene.
+3. Crea o vincula el prospecto con canal **whatsapp** y lo liga a la conversación.
+Fuera de cobertura no se crea prospecto. La bandeja de WhatsApp solo muestra la etiqueta Cliente/Prospecto leída del mismo cálculo.
+
+Facebook, la API web y la carga manual graban su canal correspondiente.
+
+## 5. Bandeja de Prospectos
+
+- **Bloque de indicadores arriba:** Prospectos, Clientes convertidos, Tasa de conversión, Facturación atribuida (y Ambigua aparte). Responden al filtro de origen.
+- **Columnas nuevas:** Origen, Estado (Prospecto / Cliente / Cliente previo), Empresa, Última compra, Compras, Facturación. Las de compras se pueden ocultar con un selector de columnas; el detalle completo en el panel lateral del prospecto.
+- **Filtros:** Origen (todos los canales + desconocido), Estado (Todos / Prospectos / Clientes), Compra (Nunca ha comprado / Ya compró).
+- Prospectos sin empresa vinculada muestran «Sin empresa vinculada» como recordatorio para ligarlos (con el botón Vincular que ya existe).
 
 ## Detalles técnicos
-- Migración: columna `canal` (texto con valor por defecto 'otro') en `leads`; `lead_id` nullable en `whatsapp_conversations` y `origen_lead_id` nullable en `documentos`; vista `v_empresa_conversion` (security invoker, respeta permisos) sobre `documentos` tipo factura con estatus distinto de cancelada; RPC `get_conversion_por_contactos(ids)` / `por_empresas(ids)`.
-- Backfill de `canal` según `lead_sources` y `origen_lead` del contacto.
-- `whatsapp-webhook`: crear/vincular lead canal whatsapp al primer mensaje entrante en cobertura (respetando la regla de cobertura existente).
-- Hook compartido `useConversionStatus` + componente `ConversionBadge` usado en LeadsInbox, Directorio y WhatsAppInbox.
+- Migración: `leads.canal text not null default 'desconocido'` + validación por trigger de valores permitidos; `whatsapp_conversations.lead_id uuid null`; backfill solo de los 4 leads con `source_id` (según `lead_sources`).
+- Vista `v_empresa_compras` (security_invoker): por `empresa_id`, count, sum(total), min/max(fecha) de facturas no canceladas.
+- RPC `get_leads_conversion(filtros)` STABLE: une lead → empresa efectiva (`coalesce(lead.company_id, contact.company_id)`), estado, cliente previo, y devuelve totales con facturación deduplicada por empresa y canal/ambigua.
+- `lead-processing.ts`, `facebook-leads-webhook`, `NuevoLeadDialog`, `ImportarLeadsDialog`: grabar `canal`. `whatsapp-webhook`: alta/vínculo de lead canal whatsapp en cobertura.
+- Hook compartido `useConversion` + `ConversionBadge` usados en `LeadsInbox.tsx` y `WhatsAppInbox.tsx`.
 - Typecheck `bunx tsgo --noEmit -p tsconfig.app.json`.
