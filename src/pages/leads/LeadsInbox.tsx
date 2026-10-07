@@ -25,6 +25,14 @@ import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { Lock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  useLeadsConversion, computeConversionMetrics, CANALES, CANAL_LABEL, ESTADO_COMERCIAL_LABEL,
+  type Canal, type LeadConversionRow,
+} from "@/hooks/useLeadConversion";
+import { ConversionBadge } from "@/components/leads/ConversionBadge";
+
+const mxn = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
+const fmtFecha = (d: string | null) => (d ? new Date(d + "T12:00:00").toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 
 const ESTATUS_META: Record<LeadEstatus, { label: string; className: string }> = {
   nuevo: { label: "Nuevo", className: "bg-emerald-100 text-emerald-800 border-emerald-200" },
@@ -99,9 +107,33 @@ export default function LeadsInbox() {
     recuperacion: leads.filter((l) => l.estatus === "recuperacion").length,
   }), [leads]);
 
+  const { data: conv } = useLeadsConversion();
+  const [fCanal, setFCanal] = useState<string>("todos");
+  const [fEstado, setFEstado] = useState<string>("todos");
+  const [fCompra, setFCompra] = useState<string>("todos");
+  const canalDe = (l: Lead) => (conv?.get(l.id)?.canal ?? (l as any).canal ?? "desconocido") as Canal;
+  const pasaFiltrosComerciales = (l: Lead) => {
+    const c = conv?.get(l.id);
+    if (fCanal !== "todos" && canalDe(l) !== fCanal) return false;
+    if (fEstado !== "todos" && (c?.estado ?? "prospecto") !== fEstado) return false;
+    if (fCompra === "nunca" && (c?.num_facturas ?? 0) > 0) return false;
+    if (fCompra === "compro" && (c?.num_facturas ?? 0) === 0) return false;
+    return true;
+  };
+  const metricas = useMemo(() => {
+    if (!conv) return null;
+    const rows = leads
+      .filter((l) => fCanal === "todos" || canalDe(l) === fCanal)
+      .map((l) => conv.get(l.id))
+      .filter(Boolean) as LeadConversionRow[];
+    return computeConversionMetrics(rows);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conv, leads, fCanal]);
+
   const filtrados = useMemo(() => {
     const q = search.trim().toLowerCase();
     const base = leads.filter((l) => {
+      if (!pasaFiltrosComerciales(l)) return false;
       if (tab === "bandeja") return ["nuevo", "pendiente_atencion", "alerta", "frio"].includes(l.estatus);
       if (tab === "recuperacion") return l.estatus === "recuperacion";
       return ["atendido", "descartado"].includes(l.estatus);
@@ -110,7 +142,8 @@ export default function LeadsInbox() {
     return base.filter((l) =>
       [l.nombre, l.email, l.telefono, l.empresa_nombre, l.interes, l.utm_campaign, l.lead_sources?.nombre]
         .filter(Boolean).some((v) => String(v).toLowerCase().includes(q)));
-  }, [leads, search, tab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, search, tab, conv, fCanal, fEstado, fCompra]);
 
   const recalcular = async () => {
     const { error } = await (supabase as any).rpc("recompute_lead_sla");
