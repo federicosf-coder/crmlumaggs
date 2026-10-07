@@ -28,5 +28,6 @@
 - [Company Classification](mem://features/company-classification) — Detailed classification fields (Industries, potential, risks)
 - [Orders Management](mem://features/orders-management) — Delivery workflows, routing drag-and-drop, evidence tracking
 - [Email Infrastructure](mem://project/email-infrastructure) — Supabase Edge Function process-email-queue configuration
+- [Conversión de prospectos](mem://features/lead-conversion) — Cliente convertido vs previo, canal, atribución conservadora
 - [CRM Recompra Pipeline](mem://features/crm-recompra-pipeline) — 7 etapas fijas, 1 negocio/mes/empresa, cron mensual, contadores auto, bloques horizontales
 - [Buzón de reclamos](mem://features/reclamos-email) — reclamos@correo.lumaggs.com.mx vía Resend a Chevron, registro en inv_reclamo_seguimiento

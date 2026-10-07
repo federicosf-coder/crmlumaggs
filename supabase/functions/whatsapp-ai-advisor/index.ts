@@ -414,7 +414,40 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
         interes: profile.intent ?? undefined,
       }).eq("id", leadId);
     } else {
+      // Contacto: reutilizar si existe (por teléfono), si no crearlo. Nunca duplicar.
+      let contactId: string | null = ctx.contactId ?? null;
+      let companyId: string | null = null;
+      const last10 = String(ctx.waPhone ?? "").replace(/\D/g, "").slice(-10);
+      if (!contactId && last10.length === 10) {
+        const { data: c } = await admin.from("contacts").select("id, company_id")
+          .or(`phone.ilike.%${last10},mobile.ilike.%${last10},whatsapp_phone.ilike.%${last10}`)
+          .limit(1).maybeSingle();
+        if (c) { contactId = c.id; companyId = c.company_id ?? null; }
+      }
+      if (contactId && !companyId) {
+        const { data: c } = await admin.from("contacts").select("company_id").eq("id", contactId).maybeSingle();
+        companyId = c?.company_id ?? null;
+      }
+      if (!contactId) {
+        const full = String(profile.cliente_nombre ?? "Prospecto WhatsApp").trim().split(/\s+/);
+        const { data: nc, error: ncErr } = await admin.from("contacts").insert({
+          first_name: full.slice(0, Math.max(1, full.length - 1)).join(" ") || "Prospecto",
+          last_name: full.length > 1 ? full[full.length - 1] : "-",
+          mobile: ctx.waPhone ? `+${String(ctx.waPhone).replace(/\D/g, "")}` : null,
+          whatsapp_phone: ctx.waPhone ? `+${String(ctx.waPhone).replace(/\D/g, "")}` : null,
+          origen_lead: "WhatsApp",
+        }).select("id").maybeSingle();
+        if (ncErr) console.error("[wa-advisor] contact insert:", ncErr.message);
+        contactId = nc?.id ?? null;
+        if (contactId && profile.conversation_id) {
+          await admin.from("whatsapp_conversations").update({ contact_id: contactId })
+            .eq("id", profile.conversation_id).is("contact_id", null);
+        }
+      }
+      ctx = { ...ctx, contactId };
       const { data: lead, error } = await admin.from("leads").insert({
+        canal: "whatsapp",
+        company_id: companyId,
         nombre: profile.cliente_nombre ?? "Prospecto WhatsApp",
         telefono: ctx.waPhone,
         empresa_nombre: profile.empresa_nombre ?? null,
@@ -437,6 +470,9 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
       }).select("id").maybeSingle();
       if (error) console.error("[wa-advisor] lead insert:", error.message);
       leadId = lead?.id ?? null;
+      if (leadId && profile.conversation_id) {
+        await admin.from("whatsapp_conversations").update({ lead_id: leadId }).eq("id", profile.conversation_id);
+      }
     }
   } catch (e) {
     console.error("[wa-advisor] lead error:", e);

@@ -164,6 +164,7 @@ export default function WhatsAppInbox() {
   const [contactName, setContactName] = useState<string | null>(null);
   const [contactData, setContactData] = useState<ContactEditData | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+  const compraEmpresa = useEmpresasEstadoCompra([companyData?.id]);
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [editCompanyOpen, setEditCompanyOpen] = useState(false);
   const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
@@ -1357,6 +1358,13 @@ export default function WhatsAppInbox() {
               {companyData ? (
                 <div className="flex items-center gap-2 mt-1">
                   <div className="text-sm font-medium truncate">{companyData.name}</div>
+                  {(() => {
+                    const e = compraEmpresa.data?.get(companyData.id);
+                    if (compraEmpresa.isLoading) return null;
+                    return e && e.num_facturas > 0
+                      ? <ConversionBadge estado="cliente" title={`${e.num_facturas} facturas · última ${e.ultima_compra ?? "—"} (a nivel empresa)`} />
+                      : <ConversionBadge estado="prospecto" />;
+                  })()}
                   <Button size="sm" variant="outline" onClick={() => setEditCompanyOpen(true)}>
                     <Eye className="h-3 w-3 mr-1" /> Ver
                   </Button>
