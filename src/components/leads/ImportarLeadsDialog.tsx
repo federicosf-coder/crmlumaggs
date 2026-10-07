@@ -109,6 +109,7 @@ export function ImportarLeadsDialog({ open, onOpenChange }: Props) {
         .filter(({ m }) => m.nombre || m.empresa_nombre || m.telefono)
         .map(({ m, original }) => ({
           source_id: SOURCE_ID,
+          canal: "carga_manual",
           estatus: tipoLista,
           ...(tipoLista === "recuperacion" ? { alerta_enviada_at: new Date().toISOString() } : {}),
           nombre: m.nombre ?? m.empresa_nombre ?? m.telefono ?? "Sin nombre",

@@ -15,6 +15,7 @@ export type ProcessMeta = {
   user_agent?: string | null;
   referrer?: string | null;
   automationId?: string | null;
+  canal?: string;
   supabaseUrl?: string;
   serviceKey?: string;
 };
@@ -257,6 +258,7 @@ export async function processLead(
       payload: body,
       contact_id: contactId,
       company_id: companyId,
+      canal: meta.canal ?? "web",
       estatus: "nuevo",
     })
     .select("id")

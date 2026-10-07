@@ -84,6 +84,7 @@ export async function processLeadgen(
     utm_term: formRow?.form_name ?? detail.form_id ?? formId,
     page_url: `https://facebook.com/${pageId}`,
     referrer: "facebook_lead_ads",
+    canal: "facebook",
   };
 
   const { data: source } = await admin
@@ -99,6 +100,7 @@ export async function processLeadgen(
 
   const result = await processLead(admin, source as LeadSource, body, {
     referrer: "facebook_lead_ads",
+    canal: "facebook",
     automationId: integration.automation_id,
   });
 

@@ -59,6 +59,7 @@ export function NuevoLeadDialog({ open, onOpenChange }: Props) {
       const { data: userData } = await supabase.auth.getUser();
       const { error } = await (supabase as any).from("leads").insert({
         source_id: MANUAL_SOURCE_ID,
+        canal: "carga_manual",
         estatus: "nuevo",
         responsable_id: userData?.user?.id ?? null,
         nombre: form.nombre.trim(),
