@@ -215,6 +215,58 @@ export default function LeadsInbox() {
         <KPI icon={LifeBuoy} label="Recuperación" value={kpis.recuperacion} color="#8b5cf6" />
       </div>
 
+      <div className="rounded-md border p-4 space-y-3 bg-gradient-to-r from-violet-50/50 to-blue-50/50">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Conversión y facturación (a nivel empresa)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Select value={fCanal} onValueChange={setFCanal}>
+              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Origen: todos</SelectItem>
+                {CANALES.map((c) => <SelectItem key={c} value={c}>{CANAL_LABEL[c]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={fEstado} onValueChange={setFEstado}>
+              <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Estado: todos</SelectItem>
+                {(["prospecto", "convertido", "cliente_previo", "desconocido"] as const).map((e) => (
+                  <SelectItem key={e} value={e}>{ESTADO_COMERCIAL_LABEL[e]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={fCompra} onValueChange={setFCompra}>
+              <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Compra: todos</SelectItem>
+                <SelectItem value="nunca">Nunca ha comprado</SelectItem>
+                <SelectItem value="compro">Ya compró</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-6">
+          {[
+            ["Prospectos", metricas ? String(metricas.prospectos) : "—"],
+            ["Clientes convertidos", metricas ? String(metricas.convertidos) : "—"],
+            ["Clientes previos", metricas ? String(metricas.previos) : "—"],
+            ["Tasa de conversión", metricas?.tasa != null ? `${(metricas.tasa * 100).toFixed(1)}%` : "—"],
+            ["Facturación atribuida", metricas ? mxn(metricas.atribuida) : "—"],
+            ["Facturación no atribuida", metricas ? mxn(metricas.noAtribuida) : "—"],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-md bg-background border p-3">
+              <p className="text-xl font-light leading-none">{value}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-1">{label}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] font-light text-muted-foreground">
+          Conversión = clientes convertidos / prospectos elegibles (sin clientes previos ni desconocidos). La facturación se cuenta una vez por empresa; si una empresa tiene varios prospectos o el origen es desconocido, va a «no atribuida».
+        </p>
+      </div>
+
       <Tabs value={tab} onValueChange={setTab}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <TabsList>
@@ -237,6 +289,7 @@ export default function LeadsInbox() {
                   <TableHead className="text-[11px] uppercase tracking-wide">Prospecto</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Contacto</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Origen</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Estado comercial</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Interés / Mensaje</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Ejecutivo</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Estado</TableHead>
@@ -268,7 +321,29 @@ export default function LeadsInbox() {
                       {l.email && <p className="text-muted-foreground">{l.email}</p>}
                     </TableCell>
                     <TableCell className="text-xs">
-                      <p>{l.lead_sources?.nombre ?? "—"}</p>
+                      <p className="font-medium">{CANAL_LABEL[canalDe(l)]}</p>
+                      {l.lead_sources?.nombre && <p className="text-[11px] text-muted-foreground">{l.lead_sources.nombre}</p>}
+                    </TableCell>
+                    <TableCell className="text-xs min-w-[170px]">
+                      {(() => {
+                        const c = conv?.get(l.id);
+                        if (!c) return <span className="text-muted-foreground">—</span>;
+                        return (
+                          <div className="space-y-0.5">
+                            <ConversionBadge estado={c.estado} />
+                            {c.empresa_nombre ? (
+                              <p className="text-[11px] truncate max-w-[200px]" title={c.empresa_nombre}>{c.empresa_nombre}</p>
+                            ) : (
+                              <p className="text-[11px] text-muted-foreground italic">Sin empresa vinculada</p>
+                            )}
+                            {c.num_facturas > 0 && (
+                              <p className="text-[11px] text-muted-foreground" title={`Primera compra: ${fmtFecha(c.primera_compra)} · Conversión a nivel empresa`}>
+                                Últ. {fmtFecha(c.ultima_compra)} · {c.num_facturas} fact. · {mxn(c.facturacion)}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {(l.utm_source || l.utm_campaign) && (
                         <p className="text-[11px] text-muted-foreground">{[l.utm_source, l.utm_campaign].filter(Boolean).join(" / ")}</p>
                       )}
