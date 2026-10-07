@@ -326,6 +326,47 @@ async function actualizarFicha(admin: Admin, profile: any, args: Record<string, 
   return { ok: true, ficha: patch };
 }
 
+// ───────────────────── cobertura geográfica ─────────────────────
+// Solo Baja California y San Luis Río Colorado, Sonora.
+const MUNICIPIOS_BC = [
+  "tijuana", "mexicali", "ensenada", "tecate", "rosarito", "playas de rosarito",
+  "san quintin", "san felipe", "valle de guadalupe", "maneadero", "vicente guerrero",
+  "guadalupe victoria", "ciudad morelos", "los algodones", "algodones", "el sauzal",
+  "la rumorosa", "valle de la trinidad", "camalu", "el rosario",
+];
+function evaluarCobertura(municipio: string, estado: string): "dentro" | "fuera" | "desconocida" {
+  const m = norm(municipio);
+  const e = norm(estado);
+  const txt = `${m} ${e}`.trim();
+  if (!txt) return "desconocida";
+  if (/san luis rio colorado|\bslrc\b/.test(txt)) return "dentro";
+  if (/baja california sur|\bbcs\b|la paz|los cabos|cabo san lucas|comondu|loreto|mulege/.test(txt)) return "fuera";
+  if (/baja california|\bb\.?\s?c\.?\b/.test(e) || /baja california/.test(m)) return "dentro";
+  if (MUNICIPIOS_BC.some((x) => m === x || m.includes(x))) {
+    // Si el estado declarado contradice (otro estado/país), queda fuera
+    if (e && !/baja california|\bbc\b/.test(e)) return "fuera";
+    return "dentro";
+  }
+  if (e || m) return "fuera";
+  return "desconocida";
+}
+
+async function marcarFueraCobertura(admin: Admin, profile: any, ubicacion: string) {
+  await admin
+    .from("bot_lead_profiles")
+    .update({
+      conversation_stage: "closed",
+      notas_comerciales: `FUERA DE COBERTURA (${ubicacion || "ubicación indicada por el cliente"}). No es prospecto comercial.`,
+    })
+    .eq("id", profile.id);
+  profile.conversation_stage = "closed";
+  return {
+    ok: true,
+    fuera_de_cobertura: true,
+    instruccion: "Responde breve que la atención comercial está limitada a Baja California y San Luis Río Colorado. No prometas contacto ni seguimiento.",
+  };
+}
+
 async function transferirAsesor(admin: Admin, profile: any, args: Record<string, unknown>, ctx: {
   waPhone: string; contactId: string | null;
 }) {
@@ -455,7 +496,14 @@ ETAPAS (conversation_stage): information, consultation, product_identified, quot
 
 FICHA PROGRESIVA: en CADA turno donde aparezca información nueva llama a actualizar_ficha_lead con solo los campos nuevos (nombre, empresa, tipo de cliente, municipio, intención, productos, vehículos, contexto de negocio, recomendaciones, resumen, notas y la etapa). No esperes al final.
 
-TRANSFERENCIA: cuando haya intención comercial suficiente y ya tengas el municipio, llama a transferir_a_asesor y despídete diciendo que un asesor de Lumaggs continuará la conversación. No prometas tiempos. ANTES de transferir asegúrate de que la ficha tenga TODO lo conocido (empresa, contacto, producto con presentación y cantidad actualizadas, municipio, intención); el resumen debe permitir al asesor cotizar sin volver a preguntar nada.
+TRANSFERENCIA: cuando haya intención comercial suficiente y ya tengas el municipio Y el estado, y estén DENTRO DE COBERTURA, llama a transferir_a_asesor y despídete diciendo que un asesor de Lumaggs continuará la conversación. No prometas tiempos. ANTES de transferir asegúrate de que la ficha tenga TODO lo conocido (empresa, contacto, producto con presentación y cantidad actualizadas, municipio, intención); el resumen debe permitir al asesor cotizar sin volver a preguntar nada.
+
+REGLA CRÍTICA — COBERTURA GEOGRÁFICA (prioridad sobre cualquier otra regla comercial):
+- SOLO se atienden negocios/operaciones ubicados en BAJA CALIFORNIA (Tijuana, Mexicali, Ensenada, Tecate, Playas de Rosarito, San Quintín, San Felipe y sus localidades) y en SAN LUIS RÍO COLORADO, SONORA.
+- FUERA DE COBERTURA: resto de Sonora, Baja California Sur, Sinaloa, Chihuahua, Jalisco, CDMX, cualquier otro estado, Estados Unidos u otro país.
+- La ubicación se determina SOLO por lo que el cliente dice sobre dónde está su negocio u operación. Nunca la supongas por la lada o el número de teléfono.
+- Si aún no la conoces y vas a pasar a intención comercial, pregunta: "¿En qué ciudad y estado se encuentra tu negocio?" antes de registrar o transferir.
+- Si está FUERA DE COBERTURA: llama a marcar_fuera_de_cobertura y responde breve y amable, por ejemplo: "Gracias por contactarnos. Actualmente nuestra atención comercial está limitada a Baja California y San Luis Río Colorado, por lo que por el momento no podemos atender operaciones fuera de esta zona." NO transfieras, NO pidas más datos, NO ofrezcas contacto posterior y PROHIBIDO decir o insinuar "un asesor te contactará", "te canalizaremos", "registraremos tus datos" o similares.
 
 FICHA ACTUAL:
 ${JSON.stringify({
@@ -562,11 +610,28 @@ const TOOLS = [
     type: "function",
     function: {
       name: "transferir_a_asesor",
-      description: "Marca la conversación lista para el asesor humano y registra el prospecto. Requiere intención comercial y municipio. Si es cotización, procura tener producto, presentación y cantidad antes de llamarla.",
+      description: "Marca la conversación lista para el asesor humano y registra el prospecto. Requiere intención comercial, municipio y estado DENTRO de cobertura (Baja California o San Luis Río Colorado, Sonora). Si es cotización, procura tener producto, presentación y cantidad antes de llamarla.",
       parameters: {
         type: "object",
-        properties: { resumen: { type: "string" }, notas_comerciales: { type: "string" }, municipio: { type: "string" } },
-        required: ["resumen"],
+        properties: {
+          resumen: { type: "string" },
+          notas_comerciales: { type: "string" },
+          municipio: { type: "string" },
+          estado: { type: "string", description: "Estado/país donde está el negocio, tal como lo dijo el cliente." },
+        },
+        required: ["resumen", "municipio", "estado"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marcar_fuera_de_cobertura",
+      description: "Úsala cuando el cliente indique que su negocio está fuera de Baja California y de San Luis Río Colorado, Sonora. Cierra el flujo comercial sin crear prospecto.",
+      parameters: {
+        type: "object",
+        properties: { ubicacion: { type: "string", description: "Ciudad/estado/país que indicó el cliente." } },
+        required: ["ubicacion"],
       },
     },
   },
@@ -754,7 +819,17 @@ Deno.serve(async (req) => {
           else if (name === "buscar_conocimiento") result = await buscarConocimiento(admin, args as any);
           else if (name === "buscar_internet") result = await buscarInternet(args as any);
           else if (name === "actualizar_ficha_lead") result = await actualizarFicha(admin, profile, args);
-          else if (name === "transferir_a_asesor") result = await transferirAsesor(admin, profile, args, { waPhone, contactId });
+          else if (name === "transferir_a_asesor") {
+            const cob = evaluarCobertura(String(args.municipio ?? profile.municipio ?? ""), String(args.estado ?? ""));
+            if (cob === "fuera") {
+              result = await marcarFueraCobertura(admin, profile, `${args.municipio ?? ""} ${args.estado ?? ""}`.trim());
+            } else if (cob === "desconocida") {
+              result = { ok: false, error: "Ubicación no confirmada. Pregunta al cliente en qué ciudad y estado está su negocio antes de transferir. No digas que un asesor lo contactará." };
+            } else {
+              result = await transferirAsesor(admin, profile, args, { waPhone, contactId });
+            }
+          }
+          else if (name === "marcar_fuera_de_cobertura") result = await marcarFueraCobertura(admin, profile, String(args.ubicacion ?? ""));
         } catch (e) {
           result = { error: e instanceof Error ? e.message : "error de herramienta" };
         }
