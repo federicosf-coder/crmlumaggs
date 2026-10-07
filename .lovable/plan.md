@@ -34,13 +34,18 @@ Conversación WhatsApp ─contact_id─> Contacto   (hoy NO crea prospecto)
 
 ## 3. Reglas para evitar doble conteo
 
-- **Prospectos y clientes convertidos:** se cuentan por prospecto (un prospecto = una fila).
-- **Facturación atribuida:** se calcula por **empresa única**, nunca sumando por prospecto. Si una empresa tiene 3 prospectos, su factura cuenta una vez.
-- **Varias fuentes para la misma empresa:**
-  - Si todos sus prospectos son del mismo canal → la facturación va a ese canal.
-  - Si tiene prospectos de canales distintos → la empresa se marca **«Atribución ambigua»** y su facturación se reporta en un renglón aparte «Ambigua», no en WhatsApp, Facebook ni Web. Así ninguna venta se cuenta en dos fuentes.
-- **Ya era cliente antes de llegar como prospecto:** solo se atribuye la facturación con fecha **igual o posterior** a la llegada del primer prospecto de esa empresa. Si la empresa ya compraba antes, se muestra la etiqueta «Cliente previo» y esas compras anteriores no se atribuyen al canal.
-- La pantalla indica siempre «Conversión a nivel empresa» para no afirmar que esa persona compró personalmente.
+Conversión y facturación se calculan por separado.
+
+**Conversión (por prospecto):** un prospecto es Cliente si su empresa tiene al menos una factura válida, sin importar cuántos otros prospectos tenga esa empresa. Conversión = clientes / prospectos.
+
+**Facturación atribuida (conservadora, por empresa única):**
+- La empresa tiene **un solo prospecto**, con canal conocido → su facturación se atribuye a ese canal.
+- La empresa tiene **varios prospectos** de canales distintos, o el canal es **desconocido** → su facturación va a **«Facturación no atribuida»**, aunque sus prospectos sí cuentan como convertidos.
+- Al filtrar por un canal, una empresa con varias fuentes aparece en ese canal con atribuida $0 y su monto en no atribuida (ejemplo Empresa X: WhatsApp, Facebook y Web muestran 1 cliente, $0 atribuida, $100,000 no atribuida).
+- **Sin filtro:** prospectos y clientes se cuentan uno por uno, pero la facturación total (atribuida + no atribuida) se suma **una vez por empresa**, así la factura de Empresa X cuenta $100,000 una sola vez.
+- La pantalla indica «Conversión a nivel empresa» para no afirmar que esa persona compró personalmente.
+
+**Futuro:** cuando exista el vínculo Prospecto → Cotización → Pedido → Factura, la factura ligada se atribuirá directo a su prospecto y fuente. Por ahora no se crea ni se inventa esa relación.
 
 ## 4. WhatsApp a partir de ahora
 
