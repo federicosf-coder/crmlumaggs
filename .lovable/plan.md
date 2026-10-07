@@ -29,14 +29,22 @@ Conversación WhatsApp ─contact_id─> Contacto   (hoy NO crea prospecto)
 | Prospecto ↔ Contacto | `contact_id` del prospecto (ya existe) |
 | Prospecto ↔ Empresa | `company_id` del prospecto; si está vacío, la empresa del contacto ligado |
 | Factura válida | Documento tipo factura con estatus vigente, vencida o pagada (se excluye **cancelada**; cotizaciones y pedidos no cuentan) |
-| Estado de conversión | Calculado al vuelo desde las facturas (sin copiar datos): Cliente si la empresa tiene ≥1 factura válida |
+| Estado de conversión | Calculado al vuelo (sin copiar datos) comparando la fecha de la primera factura válida de la empresa con la fecha de creación del prospecto |
 | Facturación | Suma del total de facturas válidas de la empresa, contada **una sola vez por empresa** |
 
 ## 3. Reglas para evitar doble conteo
 
 Conversión y facturación se calculan por separado.
 
-**Conversión (por prospecto):** un prospecto es Cliente si su empresa tiene al menos una factura válida, sin importar cuántos otros prospectos tenga esa empresa. Conversión = clientes / prospectos.
+**Estado del prospecto (fecha de corte = fecha de creación del prospecto):**
+- **Prospecto:** la empresa no tiene factura válida, o no hay empresa ligada.
+- **Cliente convertido:** primera factura válida de la empresa **en o después** de la creación del prospecto.
+- **Cliente previo:** la empresa ya tenía factura válida **antes** de la creación del prospecto. No cuenta como conversión ni suma facturación atribuida al canal.
+- **Desconocido:** sin fecha de creación confiable; no cuenta como conversión.
+
+Tres preguntas separadas, cada una con su propio dato en pantalla: ¿ya era cliente? (Cliente previo), ¿este prospecto convirtió a la empresa? (Cliente convertido), ¿qué canal generó la venta? (Facturación atribuida / no atribuida).
+
+**Conversión = clientes convertidos / prospectos elegibles** (elegibles = todos menos clientes previos y desconocidos). Cuenta por prospecto, sin importar cuántos otros prospectos tenga esa empresa.
 
 **Facturación atribuida (conservadora, por empresa única):**
 - La empresa tiene **un solo prospecto**, con canal conocido → su facturación se atribuye a ese canal.
@@ -59,9 +67,9 @@ Facebook, la API web y la carga manual graban su canal correspondiente.
 
 ## 5. Bandeja de Prospectos
 
-- **Bloque de indicadores arriba:** Prospectos, Clientes convertidos, Tasa de conversión, Facturación atribuida (y Ambigua aparte). Responden al filtro de origen.
-- **Columnas nuevas:** Origen, Estado (Prospecto / Cliente / Cliente previo), Empresa, Última compra, Compras, Facturación. Las de compras se pueden ocultar con un selector de columnas; el detalle completo en el panel lateral del prospecto.
-- **Filtros:** Origen (todos los canales + desconocido), Estado (Todos / Prospectos / Clientes), Compra (Nunca ha comprado / Ya compró).
+- **Bloque de indicadores arriba:** Prospectos, Clientes convertidos, Clientes previos, Tasa de conversión, Facturación atribuida, Facturación no atribuida. Responden al filtro de origen.
+- **Columnas nuevas:** Origen, Estado (Prospecto / Cliente convertido / Cliente previo / Desconocido), Empresa, Primera y última compra, Compras, Facturación. Las de compras se pueden ocultar con un selector de columnas; el detalle completo en el panel lateral del prospecto.
+- **Filtros:** Origen (todos los canales + desconocido), Estado (Todos / Prospectos / Clientes convertidos / Clientes previos), Compra (Nunca ha comprado / Ya compró).
 - Prospectos sin empresa vinculada muestran «Sin empresa vinculada» como recordatorio para ligarlos (con el botón Vincular que ya existe).
 
 ## Detalles técnicos
