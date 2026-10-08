@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useEmpresasEstadoCompra } from "@/hooks/useLeadConversion";
+import { ConversionBadge } from "@/components/leads/ConversionBadge";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase: any = _supabaseTyped;
