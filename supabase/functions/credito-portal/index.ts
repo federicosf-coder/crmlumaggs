@@ -26,7 +26,7 @@ const sha256Hex = async (s: string) => toHex(new Uint8Array(await crypto.subtle.
 const AVISO_VERSION = '2026-10-v1'
 const AVISO_TEXTO = `AVISO DE PRIVACIDAD Y CONVENIO DE CONFIDENCIALIDAD
 
-1. RESPONSABLE. Lubricantes y Marcas del Golfo / Galsa (en adelante "el Responsable"), con domicilio en Baja California, México, es responsable del tratamiento de sus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP), su Reglamento y los Lineamientos del Aviso de Privacidad.
+1. RESPONSABLE. Lumaggs (distribuidor Chevron) y/o Galsa (distribuidor Phillips 66), según la marca con la que se solicite el crédito (en adelante "el Responsable"), con domicilio en Baja California, México, es responsable del tratamiento de sus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP), su Reglamento y los Lineamientos del Aviso de Privacidad.
 
 2. DATOS QUE SE RECABAN. Datos de identificación y contacto; datos fiscales (RFC, Constancia de Situación Fiscal); datos de representantes legales, socios, avales y obligados solidarios; documentos de identificación oficial y comprobantes de domicilio; datos patrimoniales y financieros (estados financieros, referencias bancarias y comerciales, historial crediticio). Se tratarán datos patrimoniales y financieros, para lo cual se requiere su consentimiento expreso.
 
