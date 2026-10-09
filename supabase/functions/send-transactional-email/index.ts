@@ -92,7 +92,8 @@ Deno.serve(async (req) => {
   let htmlOverride: string | undefined
   let cc: string[] | undefined
   let bcc: string[] | undefined
-  let replyTo: string | undefined
+  let replyTo: string | string[] | undefined
+  let replyToCreditRequestId: string | undefined
   let fromAddress: string | undefined
   try {
     const body = await req.json()
@@ -109,6 +110,8 @@ Deno.serve(async (req) => {
     if (Array.isArray(body.bcc)) bcc = body.bcc.filter((e: any) => typeof e === 'string' && e)
     if (typeof body.replyTo === 'string' && body.replyTo) replyTo = body.replyTo
     else if (typeof body.reply_to === 'string' && body.reply_to) replyTo = body.reply_to
+    else if (Array.isArray(body.replyTo)) replyTo = body.replyTo.filter((e: any) => typeof e === 'string' && e)
+    if (typeof body.replyToCreditRequestId === 'string' && /^[0-9a-f-]{36}$/i.test(body.replyToCreditRequestId)) replyToCreditRequestId = body.replyToCreditRequestId
     if (typeof body.from === 'string' && body.from.trim()) fromAddress = body.from.trim()
   } catch {
     return new Response(
@@ -165,6 +168,20 @@ Deno.serve(async (req) => {
 
   // Create Supabase client with service role (bypasses RLS)
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  // Reply-To = ejecutivos asignados a la solicitud de crédito (responsables + creador)
+  if (replyToCreditRequestId) {
+    const [{ data: cr }, { data: resp }] = await Promise.all([
+      supabase.from('credit_requests').select('created_by').eq('id', replyToCreditRequestId).maybeSingle(),
+      supabase.from('credit_request_responsables').select('user_id').eq('credit_request_id', replyToCreditRequestId),
+    ])
+    const ids = Array.from(new Set([...(resp || []).map((r: any) => r.user_id), (cr as any)?.created_by].filter(Boolean)))
+    if (ids.length) {
+      const { data: profs } = await supabase.from('profiles').select('email').in('user_id', ids)
+      const emails = Array.from(new Set((profs || []).map((p: any) => p.email).filter(Boolean)))
+      if (emails.length) replyTo = emails
+    }
+  }
 
   // Idempotency guard: if this exact send was already accepted recently, do not send again.
   if (idempotencyKey) {

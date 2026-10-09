@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Pencil, Trash2, Save, X, Eye } from "lucide-react";
 
 export function CrmActivityItem({ activity, onOpen }: { activity: CrmActivity; onOpen?: () => void }) {
@@ -14,6 +16,12 @@ export function CrmActivityItem({ activity, onOpen }: { activity: CrmActivity; o
   const updateActivity = useUpdateCrmActivity();
   const deleteActivity = useDeleteCrmActivity();
   const { toast } = useToast();
+  const { data: ejecutivos } = useQuery({
+    queryKey: ["ejecutivos-activos-rpc"],
+    queryFn: async () => ((await (supabase as any).rpc("list_ejecutivos_activos")).data || []) as any[],
+    staleTime: 10 * 60 * 1000,
+  });
+  const autor = ejecutivos?.find((p) => p.user_id === activity.user_id)?.full_name;
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(activity.title);
   const [editDescription, setEditDescription] = useState(activity.description || "");
@@ -72,6 +80,7 @@ export function CrmActivityItem({ activity, onOpen }: { activity: CrmActivity; o
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
           <span>{config.label}</span>
           {activity.contacts && <span>· {activity.contacts.first_name} {activity.contacts.last_name}</span>}
+          {autor && <span>· Por: {autor}</span>}
           <span className="ml-auto">{formatRelativeDate(activity.created_at)}</span>
         </div>
       </div>

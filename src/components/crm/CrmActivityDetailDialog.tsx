@@ -58,6 +58,14 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
     },
     enabled: open,
   });
+  const { data: autor } = useQuery({
+    queryKey: ["activity-autor", activity?.user_id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("list_ejecutivos_activos");
+      return ((data || []) as any[]).find((p) => p.user_id === activity?.user_id)?.full_name || null;
+    },
+    enabled: open && !!activity?.user_id,
+  });
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -184,6 +192,11 @@ export function CrmActivityDetailDialog({ activity, open, onOpenChange }: Props)
                   <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-muted-foreground">Fecha:</span>
                   <span>{format(parseISO(activity.activity_date || activity.created_at), "d MMM yyyy h:mm a", { locale: es })}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-muted-foreground">Registrada por:</span>
+                  <span>{autor || "Usuario inactivo"}</span>
                 </div>
                 {activity.companies && (
                   <div className="flex items-center gap-2">
