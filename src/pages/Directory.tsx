@@ -404,6 +404,8 @@ export default function Directory() {
     ]);
     setCompanies(co);
     setContacts(ct);
+    // Refrescar la ficha abierta con los datos recién guardados
+    setSelectedCompany(prev => (prev ? (co.find(c => c.id === prev.id) ?? prev) : prev));
     setLoading(false);
   };
 
