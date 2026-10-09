@@ -33,6 +33,7 @@ import { USO_CFDI_OPTS } from "@/components/CompanyFormDialog";
 import { SendCreditoLinkDialog } from "@/components/credito/SendCreditoLinkDialog";
 import { EnviarCescemexDialog } from "@/components/credito/EnviarCescemexDialog";
 import { CreditoResponsablesPanel } from "@/components/credito/CreditoResponsablesPanel";
+import { CreditoPaquetePanel } from "@/components/credito/CreditoPaquetePanel";
 
 // Bandera temporal para ocultar visualmente las secciones de
 // Beneficiario Controlador (LFPIORPI) sin eliminar el código.
@@ -2469,6 +2470,7 @@ export default function CreditoDetail() {
         {/* ============ DOCUMENTOS ============ */}
         <div className="order-first space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto pr-1">
           <Card><CardContent className="pt-6 space-y-4">
+            <CreditoPaquetePanel creditId={id!} docTypes={docTypes as any[]} docs={docs as any[]} onDocsChanged={() => refetchDocs()} />
             {docTypes.length === 0 ? (
               <p className="text-muted-foreground text-sm">No hay tipos de documento configurados.</p>
             ) : (
