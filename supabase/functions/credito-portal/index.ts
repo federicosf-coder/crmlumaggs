@@ -350,17 +350,22 @@ Deno.serve(async (req) => {
 
   try {
     if (action === 'get') {
-      const [{ data: request }, { data: parties }, { data: docTypes }, { data: docs }] = await Promise.all([
+      const [{ data: request }, { data: parties }, { data: docTypes }, { data: docs }, { data: paquetes }] = await Promise.all([
         supabase.from('credit_requests').select('*, companies(id, name, uso_cfdi, industrias)').eq('id', ctx.requestId).maybeSingle(),
         supabase.from('credit_request_parties').select('*').eq('credit_request_id', ctx.requestId),
         supabase.from('credit_doc_types').select('*').eq('is_active', true).order('sort_order'),
         supabase.from('credit_request_docs').select('*').eq('credit_request_id', ctx.requestId).eq('visibilidad', 'publica'),
+        supabase.from('credito_docs_intake').select('id, nombre_archivo, created_at')
+          .eq('credit_request_id', ctx.requestId)
+          .eq('origen', 'paquete_cliente')
+          .eq('estatus', 'pendiente')
+          .order('created_at', { ascending: false }),
       ])
       const { data: completeness } = await supabase.rpc('credit_request_completeness', { req_id: ctx.requestId })
       const { data: industrias } = await supabase
         .from('industrias_catalog').select('clave, etiqueta').eq('is_active', true).order('ordering').order('etiqueta')
       if (request) for (const k of ['portal_password_hash','portal_temp_password','portal_failed_attempts','portal_locked_until']) delete (request as any)[k]
-      return json({ request, parties: parties || [], docTypes: docTypes || [], docs: docs || [], completeness, industrias: industrias || [], ctx })
+      return json({ request, parties: parties || [], docTypes: docTypes || [], docs: docs || [], paquetes: paquetes || [], completeness, industrias: industrias || [], ctx })
     }
 
     if (action === 'update_form') {
@@ -467,6 +472,30 @@ Deno.serve(async (req) => {
       })
       if (insErr) return json({ error: insErr.message }, 500)
       return json({ ok: true, path })
+    }
+
+    if (action === 'upload_paquete') {
+      const filename = String(body.filename || 'expediente.pdf').replace(/[^\w.\-]+/g, '_')
+      const mime = String(body.mime || '')
+      const isPdf = mime === 'application/pdf' || /\.pdf$/i.test(filename)
+      if (!isPdf) return json({ error: 'solo_pdf' }, 400)
+      const b64 = String(body.file_b64 || '')
+      if (!b64) return json({ error: 'missing_file' }, 400)
+      const bytes = b64ToBytes(b64)
+      if (bytes.length > 15 * 1024 * 1024) return json({ error: 'file_too_large' }, 400)
+      const path = `${ctx.requestId}/paquetes/${crypto.randomUUID()}_${filename}`
+      const { error: upErr } = await supabase.storage.from('credit-docs').upload(path, bytes, { contentType: 'application/pdf', upsert: false })
+      if (upErr) return json({ error: upErr.message }, 500)
+      const { error: insErr } = await supabase.from('credito_docs_intake').insert({
+        credit_request_id: ctx.requestId,
+        storage_path: path,
+        nombre_archivo: filename,
+        mime_type: 'application/pdf',
+        origen: 'paquete_cliente',
+        estatus: 'pendiente',
+      })
+      if (insErr) return json({ error: insErr.message }, 500)
+      return json({ ok: true })
     }
 
     if (action === 'delete_doc') {

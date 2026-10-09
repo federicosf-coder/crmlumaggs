@@ -412,6 +412,7 @@ function CreditoPortalInner() {
   const [form, setForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
   const [parsingCsf, setParsingCsf] = useState(false);
+  const [uploadingPaq, setUploadingPaq] = useState(false);
   const [tab, setTab] = useState("docs");
   const [formTab, setFormTab] = useState("empresa");
   const [signingKey, setSigningKey] = useState<string | null>(null);
@@ -541,6 +542,26 @@ function CreditoPortalInner() {
       load();
     } catch (e: any) {
       toast.error(e.message || "Error al subir", { id: "up" });
+    }
+  };
+
+  const uploadPaquete = async (file: File) => {
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (!isPdf) { toast.error("Solo se aceptan archivos PDF", { id: "paq" }); return; }
+    if (file.size > 15 * 1024 * 1024) { toast.error("El archivo supera 15 MB. Envíalo por correo a tu ejecutivo.", { id: "paq" }); return; }
+    setUploadingPaq(true);
+    toast.loading("Subiendo...", { id: "paq" });
+    try {
+      const b64 = await fileToBase64(file);
+      await callPortal("upload_paquete", token!, {
+        file_b64: b64, filename: file.name, mime: file.type || "application/pdf",
+      });
+      toast.success("Expediente recibido. Tu ejecutivo lo revisará y separará.", { id: "paq" });
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Error al subir", { id: "paq" });
+    } finally {
+      setUploadingPaq(false);
     }
   };
 
@@ -1501,6 +1522,38 @@ function CreditoPortalInner() {
                     Subir CSF
                     <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={parsingCsf}
                       onChange={(e) => { const f = e.target.files?.[0]; if (f) parseCsf(f); e.currentTarget.value = ""; }} />
+                  </label>
+                </div>
+              </div>
+
+              {/* Expediente completo en un solo PDF */}
+              <div className="border-2 border-dashed rounded-md p-3 bg-blue-50/40">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex-1 min-w-[200px]">
+                    <p className="font-medium text-sm flex items-center gap-2">
+                      <Files className="h-4 w-4 text-blue-600" />
+                      ¿Tienes todos tus documentos en un solo PDF?
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Súbelo completo aquí. Tu ejecutivo lo separará por tipo de documento; no necesitas subirlos uno por uno.
+                    </p>
+                    {(data.paquetes || []).length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {(data.paquetes || []).map((p: any) => (
+                          <li key={p.id} className="flex items-center gap-2 text-xs">
+                            <Paperclip className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <span className="truncate">{p.nombre_archivo}</span>
+                            <span className="text-amber-700 text-[11px] shrink-0">Recibido · en revisión por tu ejecutivo</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <label className="cursor-pointer inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border bg-blue-600 text-white hover:bg-blue-700">
+                    {uploadingPaq ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+                    Subir expediente completo
+                    <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={uploadingPaq}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPaquete(f); e.currentTarget.value = ""; }} />
                   </label>
                 </div>
               </div>
