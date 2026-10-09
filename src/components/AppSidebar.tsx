@@ -1,3 +1,4 @@
+import { Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Users, ShoppingCart, FileText, Package, Truck,
@@ -98,7 +99,7 @@ export function AppSidebar() {
   const prospectosAccess = useModuleAccess("prospectos");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
   const [documentosOpen, setDocumentosOpen] = useState(
-    location.pathname.startsWith("/documents") || location.pathname.startsWith("/autorizacion-precios") || location.pathname.startsWith("/entregas-corporativas")
+    location.pathname.startsWith("/documents") || location.pathname.startsWith("/devoluciones") || location.pathname.startsWith("/autorizacion-precios") || location.pathname.startsWith("/entregas-corporativas")
   );
   const [pedidosOpen, setPedidosOpen] = useState(
     location.pathname.startsWith("/documents") && new URLSearchParams(location.search).get("tipo") === "pedido"
@@ -290,6 +291,14 @@ export function AppSidebar() {
                         <NavLink to="/autorizacion-precios" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <BadgeDollarSign className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Autorización de Precios</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/devoluciones" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <Undo2 className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Devoluciones</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

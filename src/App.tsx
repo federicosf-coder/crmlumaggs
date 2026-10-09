@@ -44,6 +44,7 @@ import ImportarFacturasXML from "@/pages/ImportarFacturasXML";
 import VincularPedidosFacturas from "@/pages/VincularPedidosFacturas";
 import ChevronFacturasRecibidas from "@/pages/ChevronFacturasRecibidas";
 import DocumentForm from "@/pages/documents/DocumentForm";
+import Devoluciones from "@/pages/documents/Devoluciones";
 import DeliverySchedule from "@/pages/documents/DeliverySchedule";
 import EntregaDetalle from "@/pages/documents/EntregaDetalle";
 import CrmActivitiesTasks from "@/pages/crm/CrmActivitiesTasks";
@@ -157,6 +158,7 @@ const App = () => (
             <Route path="/seguimiento/:brand" element={<ProtectedRoute><SeguimientoVentas /></ProtectedRoute>} />
             <Route path="/activities" element={<ProtectedRoute><CrmActivitiesTasks /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><DocumentsList /></ProtectedRoute>} />
+            <Route path="/devoluciones" element={<ProtectedRoute><Devoluciones /></ProtectedRoute>} />
             <Route path="/documents/new" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
             <Route path="/documents/:id/edit" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />

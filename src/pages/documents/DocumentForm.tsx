@@ -27,6 +27,7 @@ import { CompanyFormDialog } from "@/components/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/ContactFormDialog";
 import { Link } from "react-router-dom";
 import { DocumentPagosSection } from "@/components/documents/DocumentPagosSection";
+import { DevolucionesFacturaAviso } from "@/pages/documents/Devoluciones";
 import { fetchAllRows } from "@/lib/supabasePagination";
 import { openDocFilesSignedUrl } from "@/lib/storageSignedUrl";
 import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/components/AddressAutocompleteInput";
@@ -1689,6 +1690,9 @@ export default function DocumentForm() {
       {/* Pagos relacionados — solo en modo vista para Facturas/Pedidos/Cotizaciones */}
       {viewMode && isEdit && id && form.tipo_documento !== "entrega_corporativa" && (
         <DocumentPagosSection documentoId={id} empresaId={form.empresa_id || null} />
+      )}
+      {viewMode && isEdit && id && form.tipo_documento === "factura" && (
+        <DevolucionesFacturaAviso documentoId={id} />
       )}
 
       {/* Actions */}
