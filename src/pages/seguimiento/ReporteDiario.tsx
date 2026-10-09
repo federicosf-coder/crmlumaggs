@@ -383,7 +383,7 @@ export default function ReporteDiario() {
           .in("creado_por", ids),
       ]);
       if (docsRes.error) throw docsRes.error;
-      if (pagosRes.error) throw pagosRes.error;
+      void pagosRes;
 
       const rows = (docsRes.data || []) as any[];
       const docIds = rows.map((d) => d.id);
@@ -438,13 +438,31 @@ export default function ReporteDiario() {
         }
       }
 
-      for (const p of (pagosRes.data || []) as any[]) {
-        const imp = Number(p.monto_total) || 0;
-        const b = bucket(p.creado_por || null);
-        if (p.empresa_vendedora === "lumaggs_chevron") {
+      // Cobranza del mes atribuida al ejecutivo de la factura/documento al que se aplicó el pago
+      const aplics: any[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await (supabase as any)
+          .from("cobranza_aplicaciones")
+          .select(
+            "monto_aplicado, estatus_aplicacion, pago:pago_id!inner(fecha_pago, empresa_vendedora, estado_pago), doc:documento_id!inner(ejecutivo_venta_id)"
+          )
+          .eq("estatus_aplicacion", "activa")
+          .gte("pago.fecha_pago", mesStart)
+          .lte("pago.fecha_pago", hasta)
+          .neq("pago.estado_pago", "cancelado")
+          .in("doc.ejecutivo_venta_id", ids)
+          .range(from, from + 999);
+        if (error) throw error;
+        aplics.push(...(data || []));
+        if (!data || data.length < 1000) break;
+      }
+      for (const a of aplics) {
+        const imp = Number(a.monto_aplicado) || 0;
+        const b = bucket(a.doc?.ejecutivo_venta_id || null);
+        if (a.pago?.empresa_vendedora === "lumaggs_chevron") {
           agg.cobLumaggs += imp;
           b.cobLumaggs += imp;
-        } else if (p.empresa_vendedora === "galsa_phillips66") {
+        } else if (a.pago?.empresa_vendedora === "galsa_phillips66") {
           agg.cobGalsa += imp;
           b.cobGalsa += imp;
         }
