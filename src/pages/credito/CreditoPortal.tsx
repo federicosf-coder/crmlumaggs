@@ -421,6 +421,9 @@ function CreditoPortalInner() {
   const [autofillCollapsed, setAutofillCollapsed] = useState(true);
   const [instructionsOpen, setInstructionsOpen] = useState(true);
   const [company, setCompany] = useState<any>({});
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyMsg, setNotifyMsg] = useState("");
+  const [notifying, setNotifying] = useState(false);
 
   const load = async () => {
     if (!token) return;
@@ -1076,6 +1079,42 @@ function CreditoPortalInner() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Button asChild size="sm" variant="outline" className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest">
+            <a href="/guia-solicitud-credito.pdf" target="_blank" rel="noopener noreferrer" download><BookOpen className="h-3.5 w-3.5 mr-1.5" />Guía de llenado (PDF)</a>
+          </Button>
+          <Button size="sm" onClick={() => setNotifyOpen(true)} className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-md text-[10px] font-semibold uppercase tracking-widest">
+            <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />Ya terminé: avisar a mi ejecutivo
+          </Button>
+        </div>
+
+        <Dialog open={notifyOpen} onOpenChange={setNotifyOpen}>
+          <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
+            <DialogHeader className="bg-gradient-to-br from-violet-50 to-blue-50 px-6 py-4 border-b">
+              <DialogTitle className="text-base font-semibold tracking-tight">Avisar a mi ejecutivo</DialogTitle>
+              <DialogDescription className="text-xs">Confirma que ya subiste tus documentos y los formatos firmados. Tu ejecutivo recibirá un correo para revisar tu solicitud.</DialogDescription>
+            </DialogHeader>
+            <div className="px-6 py-5 space-y-2 font-light">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Mensaje (opcional)</Label>
+              <textarea className="w-full min-h-[90px] rounded-md border border-input bg-background px-3 py-2 text-sm" maxLength={1000} value={notifyMsg} onChange={(e) => setNotifyMsg(e.target.value)} placeholder="Ej. Ya subí todo, quedo atento." />
+            </div>
+            <DialogFooter className="bg-muted/40 px-6 py-3 border-t">
+              <Button variant="outline" onClick={() => setNotifyOpen(false)}>Cancelar</Button>
+              <Button disabled={notifying} onClick={async () => {
+                setNotifying(true);
+                try {
+                  await callPortal("notify_ejecutivo", token!, { mensaje: notifyMsg });
+                  toast.success("Listo, tu ejecutivo fue notificado");
+                  setNotifyOpen(false); setNotifyMsg("");
+                } catch (e: any) { toast.error(e.message || "No se pudo enviar el aviso"); }
+                finally { setNotifying(false); }
+              }}>
+                {notifying && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Enviar aviso
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">

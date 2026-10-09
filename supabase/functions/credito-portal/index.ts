@@ -415,6 +415,36 @@ Deno.serve(async (req) => {
       return json({ url: signed.signedUrl })
     }
 
+    if (action === 'notify_ejecutivo') {
+      const nota = String(body.mensaje || '').slice(0, 1000)
+      const { data: r } = await supabase.from('credit_requests')
+        .select('id, folio, estado, created_by, razon_social, client_nombre_contacto, companies(name)').eq('id', ctx.requestId).maybeSingle()
+      if (!r) return json({ error: 'not_found' }, 404)
+      const { data: resp } = await supabase.from('credit_request_responsables').select('user_id').eq('credit_request_id', r.id)
+      const ids = Array.from(new Set([r.created_by, ...(resp || []).map((x: any) => x.user_id)].filter(Boolean)))
+      const { data: profs } = ids.length ? await supabase.from('profiles').select('email').in('id', ids) : { data: [] as any[] }
+      const emails = Array.from(new Set((profs || []).map((p: any) => p.email).filter(Boolean)))
+      const empresa = r.razon_social || (r as any).companies?.name || ''
+      const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!))
+      const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222">
+        <p>El cliente <b>${esc(empresa)}</b> indicó que terminó de llenar y firmar su solicitud de crédito <b>${esc(r.folio || '')}</b>.</p>
+        ${r.client_nombre_contacto ? `<p>Contacto: ${esc(r.client_nombre_contacto)}</p>` : ''}
+        ${nota ? `<p>Mensaje del cliente:<br/>${esc(nota).replace(/\n/g, '<br/>')}</p>` : ''}
+        <p>Revisa la solicitud en el portal: https://portal.lumaggs.com.mx/credito/${r.id}</p></div>`
+      for (const e of emails) {
+        await supabase.functions.invoke('send-transactional-email', { body: {
+          templateName: 'raw-html', recipientEmail: e,
+          subjectOverride: `Solicitud de crédito lista para revisión ${r.folio || ''}`.trim(),
+          htmlOverride: html, idempotencyKey: `credito-notify-${r.id}-${e}-${Date.now()}`,
+        } }).catch((err) => console.error('notify email', err))
+      }
+      await supabase.from('credit_request_history').insert({
+        credit_request_id: r.id, estado_anterior: r.estado, estado_nuevo: r.estado,
+        nota: `El cliente notificó al ejecutivo que terminó la solicitud${nota ? ': ' + nota : ''}`,
+      })
+      return json({ ok: true, enviados: emails.length })
+    }
+
     if (action === 'print_data') {
       const keysRaw = Array.isArray(body.keys) ? body.keys : []
       const keys: string[] = keysRaw.map((k: any) => String(k))
