@@ -922,7 +922,9 @@ export default function CreditoDetail() {
 
   const handleSave = async () => {
     setSaving(true);
-    const { id: _id, created_at, updated_at, companies, folio, client_token, ...payload } = form;
+    const { id: _id, created_at, updated_at, companies, folio, client_token,
+      portal_password_hash, portal_temp_password, portal_must_change, portal_failed_attempts, portal_locked_until, portal_password_changed_at,
+      ...payload } = form;
     const { error } = await supabase.from("credit_requests").update(payload).eq("id", id!);
     setSaving(false);
     if (error) { toast.error("Error: " + error.message); return; }
@@ -2997,7 +2999,7 @@ export default function CreditoDetail() {
         <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
           <DialogHeader className="bg-gradient-to-br from-violet-50 to-blue-50 px-6 py-4 border-b">
             <DialogTitle className="text-base font-semibold tracking-tight">Enviar al cliente</DialogTitle>
-            <DialogDescription className="text-xs">Comparte esta liga única con el cliente. Le da acceso al portal sin necesidad de cuenta.</DialogDescription>
+            <DialogDescription className="text-xs">Comparte esta liga y la contraseña con el cliente. El portal pide contraseña para entrar.</DialogDescription>
           </DialogHeader>
           <div className="px-6 py-5 space-y-3 font-light">
             <div className="bg-muted rounded-md p-2 text-xs break-all font-mono">{portalUrl}</div>
@@ -3007,6 +3009,39 @@ export default function CreditoDetail() {
               </Button>
               <Button size="sm" variant="outline" className="flex-1" onClick={() => window.open(portalUrl, "_blank")}>
                 <ExternalLink className="h-4 w-4 mr-2" />Abrir
+              </Button>
+            </div>
+            <div className="rounded-md border border-violet-200 bg-gradient-to-br from-violet-50 to-blue-50 p-3 space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Contraseña del portal</p>
+              {(form as any).portal_must_change && (form as any).portal_temp_password ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm tracking-widest">{(form as any).portal_temp_password}</span>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { navigator.clipboard.writeText((form as any).portal_temp_password); toast.success("Clave copiada"); }}>
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Clave temporal. El cliente deberá crear su propia contraseña en el primer acceso.</p>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">El cliente ya creó su contraseña personal.</p>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full text-[10px] font-semibold uppercase tracking-widest"
+                onClick={async () => {
+                  const nueva = Array.from(crypto.getRandomValues(new Uint8Array(8))).map((b) => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 32]).join("");
+                  const { error } = await supabase.from("credit_requests").update({
+                    portal_temp_password: nueva, portal_password_hash: null, portal_must_change: true,
+                    portal_failed_attempts: 0, portal_locked_until: null, portal_password_changed_at: new Date().toISOString(),
+                  } as any).eq("id", id!);
+                  if (error) { toast.error(error.message); return; }
+                  setForm((f: any) => ({ ...f, portal_temp_password: nueva, portal_must_change: true, portal_password_hash: null }));
+                  toast.success("Nueva clave temporal generada");
+                }}
+              >
+                Restablecer contraseña
               </Button>
             </div>
             {form.correo_contacto && (
