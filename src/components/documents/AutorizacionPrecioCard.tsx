@@ -417,8 +417,38 @@ export default function AutorizacionPrecioCard({
   const abrirEnvio = async () => {
     setPreparing(true);
     try {
-      if ((justificacion || "") !== (row.justificacion || "")) {
-        await guardar();
+      // Guardar primero cualquier cambio pendiente para que el correo
+      // refleje lo que se ve en pantalla (justificación, datos del cliente
+      // y número de factura).
+      if (editable) {
+        const updates: Record<string, any> = {};
+        if ((justificacion || "") !== (row.justificacion || "")) {
+          updates.justificacion = justificacion;
+        }
+        const snapActual =
+          row.datos_cliente_snapshot && Object.keys(row.datos_cliente_snapshot).length > 0
+            ? normalizeDatosCliente(row.datos_cliente_snapshot)
+            : normalizeDatosCliente(companyRef);
+        if (JSON.stringify(datos) !== JSON.stringify(snapActual)) {
+          updates.datos_cliente_snapshot = datos;
+        }
+        if (Object.keys(updates).length > 0) {
+          const { error: upErr } = await (supabase as any)
+            .from("documento_autorizaciones_precio")
+            .update(updates)
+            .eq("id", row.id);
+          if (upErr) throw upErr;
+        }
+        if (
+          row.documento_id &&
+          (numeroFactura.trim() || "") !== (row.documentos?.numero_factura || "")
+        ) {
+          const { error: facErr } = await (supabase as any)
+            .from("documentos")
+            .update({ numero_factura: numeroFactura.trim() || null })
+            .eq("id", row.documento_id);
+          if (facErr) throw facErr;
+        }
       }
       const f = await buildAutorizacionPrecioEmailFlow(row.id);
       setFlow(f);
