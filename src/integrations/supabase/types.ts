@@ -2383,6 +2383,65 @@ export type Database = {
           },
         ]
       }
+      credit_privacy_consents: {
+        Row: {
+          aviso_hash: string
+          aviso_version: string
+          created_at: string
+          credit_request_id: string
+          evidencia_hash: string
+          evidencia_xml: string
+          firma_trazo: string
+          firmante_email: string | null
+          firmante_nombre: string
+          firmante_puesto: string | null
+          id: string
+          ip: string | null
+          signed_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          aviso_hash: string
+          aviso_version: string
+          created_at?: string
+          credit_request_id: string
+          evidencia_hash: string
+          evidencia_xml: string
+          firma_trazo: string
+          firmante_email?: string | null
+          firmante_nombre: string
+          firmante_puesto?: string | null
+          id?: string
+          ip?: string | null
+          signed_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          aviso_hash?: string
+          aviso_version?: string
+          created_at?: string
+          credit_request_id?: string
+          evidencia_hash?: string
+          evidencia_xml?: string
+          firma_trazo?: string
+          firmante_email?: string | null
+          firmante_nombre?: string
+          firmante_puesto?: string | null
+          id?: string
+          ip?: string | null
+          signed_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_privacy_consents_credit_request_id_fkey"
+            columns: ["credit_request_id"]
+            isOneToOne: false
+            referencedRelation: "credit_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_request_comments: {
         Row: {
           contenido: string

@@ -15,6 +15,13 @@
       "when": 1791558500460,
       "tag": "0001_credito_portal_password_lock",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791560203074,
+      "tag": "0002_credit_privacy_consents",
+      "breakpoints": true
     }
   ]
 }
