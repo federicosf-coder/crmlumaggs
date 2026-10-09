@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         navigateFallbackDenylist: [/^\/~/, /^\/\.lovable\//, /^\/\.well-known\//],
-        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fnqeicdqblkhfpyboxre\.supabase\.co/,
