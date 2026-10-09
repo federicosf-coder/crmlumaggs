@@ -270,13 +270,21 @@ export default function ReporteDiario() {
       const pagos = (pagosRes.data || []) as any[];
       const pagoIds = pagos.map((p) => p.id);
       const aplicMap = new Map<string, string[]>();
+      const aplicEjecMap = new Map<string, Set<string>>();
       if (pagoIds.length > 0) {
         const { data: aplic, error: aplicErr } = await supabase
           .from("cobranza_aplicaciones")
-          .select("pago_id, documento_id, documentos:documento_id(numero_factura)")
+          .select("pago_id, documento_id, estatus_aplicacion, documentos:documento_id(numero_factura, ejecutivo_venta_id)")
           .in("pago_id", pagoIds);
         if (aplicErr) throw aplicErr;
         for (const a of (aplic || []) as any[]) {
+          if (a.estatus_aplicacion && a.estatus_aplicacion !== "activa") continue;
+          const ej = a.documentos?.ejecutivo_venta_id;
+          if (ej) {
+            const s = aplicEjecMap.get(a.pago_id) || new Set<string>();
+            s.add(ej);
+            aplicEjecMap.set(a.pago_id, s);
+          }
           const folio = a.documentos?.numero_factura;
           if (!folio) continue;
           const arr = aplicMap.get(a.pago_id) || [];
@@ -285,9 +293,9 @@ export default function ReporteDiario() {
         }
       }
 
-      // Ejecutivos asignados por empresa (company_ejecutivos)
+      // Respaldo: ejecutivos de la empresa solo si el pago no está aplicado a documentos
       const pagoEmpresaIds = Array.from(
-        new Set(pagos.map((p) => p.empresa_id).filter(Boolean))
+        new Set(pagos.filter((p) => !aplicEjecMap.has(p.id)).map((p) => p.empresa_id).filter(Boolean))
       ) as string[];
       const empresaEjecutivosMap = new Map<string, string[]>();
       if (pagoEmpresaIds.length > 0) {
@@ -312,7 +320,9 @@ export default function ReporteDiario() {
         metodoPago: p.metodo_pago || "—",
         importe: Number(p.monto_total) || 0,
         facturas: aplicMap.get(p.id) || [],
-        ejecutivoIds: p.empresa_id ? empresaEjecutivosMap.get(p.empresa_id) || [] : [],
+        ejecutivoIds: aplicEjecMap.has(p.id)
+          ? Array.from(aplicEjecMap.get(p.id)!)
+          : p.empresa_id ? empresaEjecutivosMap.get(p.empresa_id) || [] : [],
       }));
 
       const actsRaw = (actsRes.data || []) as any[];
