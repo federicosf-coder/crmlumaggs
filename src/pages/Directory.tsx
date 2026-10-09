@@ -1139,7 +1139,7 @@ export default function Directory() {
       />
       <CompanyFormDialog
         open={!!editCompany}
-        onOpenChange={open => { if (!open) setEditCompany(null); }}
+        onOpenChange={open => { if (!open) { setEditCompany(null); fetchData(); } }}
         editData={editCompany}
         onCreated={() => {
           fetchData();
