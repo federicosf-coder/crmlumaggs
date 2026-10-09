@@ -3860,6 +3860,209 @@ export type Database = {
           },
         ]
       }
+      devolucion_archivos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          devolucion_id: string
+          id: string
+          mime_type: string | null
+          nombre_archivo: string | null
+          storage_path: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          devolucion_id: string
+          id?: string
+          mime_type?: string | null
+          nombre_archivo?: string | null
+          storage_path: string
+          tipo?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          devolucion_id?: string
+          id?: string
+          mime_type?: string | null
+          nombre_archivo?: string | null
+          storage_path?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucion_archivos_devolucion_id_fkey"
+            columns: ["devolucion_id"]
+            isOneToOne: false
+            referencedRelation: "devoluciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devolucion_lineas: {
+        Row: {
+          cantidad: number
+          cantidad_facturada: number | null
+          created_at: string
+          devolucion_id: string
+          documento_producto_id: string | null
+          id: string
+          lote: string | null
+          producto_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          cantidad_facturada?: number | null
+          created_at?: string
+          devolucion_id: string
+          documento_producto_id?: string | null
+          id?: string
+          lote?: string | null
+          producto_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          cantidad_facturada?: number | null
+          created_at?: string
+          devolucion_id?: string
+          documento_producto_id?: string | null
+          id?: string
+          lote?: string | null
+          producto_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucion_lineas_devolucion_id_fkey"
+            columns: ["devolucion_id"]
+            isOneToOne: false
+            referencedRelation: "devoluciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucion_lineas_documento_producto_id_fkey"
+            columns: ["documento_producto_id"]
+            isOneToOne: false
+            referencedRelation: "documento_productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devolucion_motivos: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          orden?: number
+        }
+        Relationships: []
+      }
+      devoluciones: {
+        Row: {
+          comentarios: string | null
+          created_at: string
+          created_by: string | null
+          documento_id: string
+          empresa_id: string | null
+          estado: string
+          fecha_solicitud: string
+          fecha_venta: string | null
+          folio: string | null
+          id: string
+          motivo_id: string | null
+          motivo_otro: string | null
+          plazo_excedido: boolean
+          recibido_almacen: boolean
+          recoleccion_fecha: string | null
+          recoleccion_responsable: string | null
+          resolucion_fecha: string | null
+          resolucion_monto: number | null
+          resolucion_notas: string | null
+          resolucion_ref: string | null
+          resolucion_tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          comentarios?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_id: string
+          empresa_id?: string | null
+          estado?: string
+          fecha_solicitud?: string
+          fecha_venta?: string | null
+          folio?: string | null
+          id?: string
+          motivo_id?: string | null
+          motivo_otro?: string | null
+          plazo_excedido?: boolean
+          recibido_almacen?: boolean
+          recoleccion_fecha?: string | null
+          recoleccion_responsable?: string | null
+          resolucion_fecha?: string | null
+          resolucion_monto?: number | null
+          resolucion_notas?: string | null
+          resolucion_ref?: string | null
+          resolucion_tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          comentarios?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_id?: string
+          empresa_id?: string | null
+          estado?: string
+          fecha_solicitud?: string
+          fecha_venta?: string | null
+          folio?: string | null
+          id?: string
+          motivo_id?: string | null
+          motivo_otro?: string | null
+          plazo_excedido?: boolean
+          recibido_almacen?: boolean
+          recoleccion_fecha?: string | null
+          recoleccion_responsable?: string | null
+          resolucion_fecha?: string | null
+          resolucion_monto?: number | null
+          resolucion_notas?: string | null
+          resolucion_ref?: string | null
+          resolucion_tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devoluciones_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devoluciones_motivo_id_fkey"
+            columns: ["motivo_id"]
+            isOneToOne: false
+            referencedRelation: "devolucion_motivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       direcciones_empresa: {
         Row: {
           calle: string
@@ -10862,6 +11065,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_view_devolucion: { Args: { _dev_doc: string }; Returns: boolean }
       can_view_documento: {
         Args: {
           _created_by: string
