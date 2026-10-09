@@ -3044,15 +3044,13 @@ export default function CreditoDetail() {
                 Restablecer contraseña
               </Button>
             </div>
-            {form.correo_contacto && (
-              <Button
-                size="sm"
-                className="w-full"
-                onClick={() => { setShareOpen(false); setSendEmailOpen(true); }}
-              >
-                <Send className="h-4 w-4 mr-2" />Enviar por correo
-              </Button>
-            )}
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={() => { setShareOpen(false); setSendEmailOpen(true); }}
+            >
+              <Send className="h-4 w-4 mr-2" />Enviar por correo o WhatsApp
+            </Button>
           </div>
           <DialogFooter className="bg-muted/40 px-6 py-3 border-t">
             <Button variant="outline" onClick={() => setShareOpen(false)}>Cerrar</Button>
