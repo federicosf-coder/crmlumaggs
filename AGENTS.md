@@ -1,1 +1,2 @@
 - Lead conversion (Prospecto/Cliente convertido/Cliente previo) and revenue attribution come only from RPC get_leads_conversion via src/hooks/useLeadConversion.ts; no screen re-implements it — keeps one source of truth across channels.
+- Credit email previews and delivery use the same escaped HTML renderer in SendCreditoLinkDialog; sandbox the preview to keep edits safe and identical to the outgoing message.
