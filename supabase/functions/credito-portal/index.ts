@@ -18,6 +18,27 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 
+const toHex = (b: Uint8Array) => Array.from(b).map((x) => x.toString(16).padStart(2, '0')).join('')
+const fromHex = (h: string) => new Uint8Array(h.match(/.{2}/g)!.map((x) => parseInt(x, 16)))
+async function pbkdf2(pwd: string, salt: Uint8Array, iter: number) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pwd), 'PBKDF2', false, ['deriveBits'])
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, key, 256)
+  return new Uint8Array(bits)
+}
+async function hashPassword(pwd: string) {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const iter = 100000
+  return `pbkdf2$${iter}$${toHex(salt)}$${toHex(await pbkdf2(pwd, salt, iter))}`
+}
+async function verifyPassword(pwd: string, stored: string) {
+  const [, it, s, h] = stored.split('$')
+  if (!it || !s || !h) return false
+  const got = toHex(await pbkdf2(pwd, fromHex(s), Number(it)))
+  let diff = got.length ^ h.length
+  for (let i = 0; i < Math.min(got.length, h.length); i++) diff |= got.charCodeAt(i) ^ h.charCodeAt(i)
+  return diff === 0
+}
+
 // Validate token → returns { requestId, partyId? }
 async function resolveToken(token: string): Promise<{ requestId: string; partyId: string | null } | null> {
   if (!token) return null
@@ -175,6 +196,83 @@ Deno.serve(async (req) => {
   const ctx = await resolveToken(String(token))
   if (!ctx) return json({ error: 'invalid_token' }, 401)
 
+  // ---------------- Candado con contraseña ----------------
+  const { data: lock } = await supabase
+    .from('credit_requests')
+    .select('folio, razon_social, portal_password_hash, portal_temp_password, portal_must_change, portal_failed_attempts, portal_locked_until, portal_password_changed_at, companies(name)')
+    .eq('id', ctx.requestId)
+    .maybeSingle()
+  if (!lock) return json({ error: 'invalid_token' }, 401)
+
+  const newSession = async (passwordOk: boolean) => {
+    const { data } = await supabase.from('credit_portal_sessions')
+      .insert({ credit_request_id: ctx.requestId, password_ok: passwordOk })
+      .select('session_token').single()
+    return data?.session_token as string
+  }
+
+  if (action === 'status') {
+    return json({
+      folio: lock.folio || '',
+      razon_social: lock.razon_social || (lock as any).companies?.name || '',
+    })
+  }
+
+  if (action === 'login') {
+    const pwd = String(body.password || '').trim()
+    if (!pwd || pwd.length > 128) return json({ error: 'Contraseña inválida' }, 400)
+    if (lock.portal_locked_until && new Date(lock.portal_locked_until).getTime() > Date.now()) {
+      return json({ error: 'Demasiados intentos. Intenta de nuevo en 15 minutos.' }, 429)
+    }
+    let ok = false
+    let mustChange = false
+    if (lock.portal_password_hash) ok = await verifyPassword(pwd, lock.portal_password_hash)
+    if (!ok && lock.portal_must_change && lock.portal_temp_password) {
+      ok = pwd.toUpperCase() === String(lock.portal_temp_password).toUpperCase()
+      mustChange = ok
+    }
+    if (!ok) {
+      const fails = (lock.portal_failed_attempts || 0) + 1
+      await supabase.from('credit_requests').update({
+        portal_failed_attempts: fails >= 5 ? 0 : fails,
+        portal_locked_until: fails >= 5 ? new Date(Date.now() + 15 * 60_000).toISOString() : null,
+      }).eq('id', ctx.requestId)
+      return json({ error: 'Contraseña incorrecta' }, 401)
+    }
+    await supabase.from('credit_requests').update({ portal_failed_attempts: 0, portal_locked_until: null }).eq('id', ctx.requestId)
+    const session = await newSession(!mustChange)
+    return json({ session, must_change: mustChange })
+  }
+
+  // Validar sesión para cualquier otra acción
+  const sessionToken = String(body.session || '')
+  if (!/^[0-9a-f-]{36}$/i.test(sessionToken)) return json({ error: 'auth_required' }, 401)
+  const { data: sess } = await supabase.from('credit_portal_sessions')
+    .select('password_ok, created_at, expires_at')
+    .eq('session_token', sessionToken).eq('credit_request_id', ctx.requestId).maybeSingle()
+  if (!sess || new Date(sess.expires_at).getTime() < Date.now()
+    || new Date(sess.created_at).getTime() < new Date(lock.portal_password_changed_at).getTime() - 1000) {
+    return json({ error: 'auth_required' }, 401)
+  }
+
+  if (action === 'change_password') {
+    const np = String(body.new_password || '')
+    if (np.length < 8 || np.length > 64 || !/[A-Za-z]/.test(np) || !/\d/.test(np) || !/^[A-Za-z0-9]+$/.test(np)) {
+      return json({ error: 'La contraseña debe tener mínimo 8 caracteres, solo letras y números, con al menos una letra y un número.' }, 400)
+    }
+    const hash = await hashPassword(np)
+    await supabase.from('credit_requests').update({
+      portal_password_hash: hash, portal_temp_password: null, portal_must_change: false,
+      portal_password_changed_at: new Date().toISOString(),
+    }).eq('id', ctx.requestId)
+    await new Promise((r) => setTimeout(r, 1100))
+    const session = await newSession(true)
+    return json({ session })
+  }
+
+  if (!sess.password_ok) return json({ error: 'must_change_password' }, 403)
+  if (action === 'ping') return json({ ok: true })
+
   try {
     if (action === 'get') {
       const [{ data: request }, { data: parties }, { data: docTypes }, { data: docs }] = await Promise.all([
@@ -186,6 +284,7 @@ Deno.serve(async (req) => {
       const { data: completeness } = await supabase.rpc('credit_request_completeness', { req_id: ctx.requestId })
       const { data: industrias } = await supabase
         .from('industrias_catalog').select('clave, etiqueta').eq('is_active', true).order('ordering').order('etiqueta')
+      if (request) for (const k of ['portal_password_hash','portal_temp_password','portal_failed_attempts','portal_locked_until']) delete (request as any)[k]
       return json({ request, parties: parties || [], docTypes: docTypes || [], docs: docs || [], completeness, industrias: industrias || [], ctx })
     }
 
@@ -327,6 +426,7 @@ Deno.serve(async (req) => {
           : Promise.resolve({ data: [] } as any),
       ])
       if (!request) return json({ error: 'not_found' }, 404)
+      for (const k of ['portal_password_hash','portal_temp_password','portal_failed_attempts','portal_locked_until']) delete (request as any)[k]
       return json({ request, templates: templates || [] })
     }
 

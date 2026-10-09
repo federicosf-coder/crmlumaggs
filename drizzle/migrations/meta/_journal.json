@@ -8,6 +8,13 @@
       "when": 1791409310662,
       "tag": "0000_leads_canal_conversion",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791558500460,
+      "tag": "0001_credito_portal_password_lock",
+      "breakpoints": true
     }
   ]
 }

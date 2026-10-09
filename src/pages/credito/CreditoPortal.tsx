@@ -27,14 +27,20 @@ import { TEMPLATE_LABELS } from "@/lib/creditoTemplates";
 import { USO_CFDI_OPTS } from "@/components/CompanyFormDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { getPortalSession, clearPortalSession } from "@/lib/creditoPortalSession";
+import { CreditoPortalLock } from "@/components/credito/CreditoPortalLock";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 async function callPortal(action: string, token: string, extra: Record<string, any> = {}) {
   const { data, error } = await supabase.functions.invoke("credito-portal", {
-    body: { action, token, ...extra },
+    body: { action, token, session: getPortalSession(token), ...extra },
   });
+  if ((data as any)?.error === "auth_required" || (error && /401/.test(String((error as any)?.context?.status ?? "")))) {
+    clearPortalSession(token);
+    window.location.reload();
+  }
   if (error) throw error;
   if ((data as any)?.error) throw new Error((data as any).error);
   return data as any;
@@ -392,6 +398,12 @@ function PortalBeneficiarioControladorSteps({
 const SHOW_BC_PORTAL = false;
 
 export default function CreditoPortal() {
+  const { token } = useParams<{ token: string }>();
+  if (!token) return null;
+  return <CreditoPortalLock token={token}><CreditoPortalInner /></CreditoPortalLock>;
+}
+
+function CreditoPortalInner() {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -760,7 +772,7 @@ export default function CreditoPortal() {
     try {
       const b64 = await fileToBase64(file);
       const { data: rdata, error } = await supabase.functions.invoke("credito-autofill", {
-        body: { token, kind, file_b64: b64, mime: file.type || "image/jpeg" },
+        body: { token, session: getPortalSession(token), kind, file_b64: b64, mime: file.type || "image/jpeg" },
       });
       if (error) throw error;
       if ((rdata as any)?.error) throw new Error((rdata as any).error);

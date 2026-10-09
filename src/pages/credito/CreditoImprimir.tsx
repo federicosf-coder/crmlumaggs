@@ -1,3 +1,4 @@
+import { getPortalSession } from "@/lib/creditoPortalSession";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +27,7 @@ export default function CreditoImprimir() {
         let portalTemplates: any[] | null = null;
         if (token) {
           const { data, error: eP } = await supabase.functions.invoke("credito-portal", {
-            body: { action: "print_data", token, keys: requestedKeys },
+            body: { action: "print_data", token, session: getPortalSession(token), keys: requestedKeys },
           });
           if (eP) throw new Error(eP.message);
           if ((data as any)?.error) throw new Error((data as any).error);

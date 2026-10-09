@@ -214,11 +214,24 @@ async function callAI(prompt: string, fileB64: string, mime: string) {
 
 async function resolveRequestId(body: any, req: Request): Promise<string | null> {
   if (body.token) {
+    let reqId: string | null = null
     const { data } = await supabase.from('credit_requests').select('id').eq('client_token', body.token).maybeSingle()
-    if (data?.id) return data.id
-    const { data: party } = await supabase.from('credit_request_parties').select('credit_request_id').eq('client_token', body.token).maybeSingle()
-    if (party?.credit_request_id) return party.credit_request_id
-    return null
+    if (data?.id) reqId = data.id
+    if (!reqId) {
+      const { data: party } = await supabase.from('credit_request_parties').select('credit_request_id').eq('client_token', body.token).maybeSingle()
+      if (party?.credit_request_id) reqId = party.credit_request_id
+    }
+    if (!reqId) return null
+    // Candado: exigir sesión del portal con contraseña válida
+    const s = String(body.session || '')
+    if (!/^[0-9a-f-]{36}$/i.test(s)) return null
+    const [{ data: sess }, { data: r }] = await Promise.all([
+      supabase.from('credit_portal_sessions').select('password_ok, created_at, expires_at').eq('session_token', s).eq('credit_request_id', reqId).maybeSingle(),
+      supabase.from('credit_requests').select('portal_password_changed_at').eq('id', reqId).maybeSingle(),
+    ])
+    if (!sess || !sess.password_ok || new Date(sess.expires_at).getTime() < Date.now()) return null
+    if (r?.portal_password_changed_at && new Date(sess.created_at).getTime() < new Date(r.portal_password_changed_at).getTime() - 1000) return null
+    return reqId
   }
   if (body.request_id) {
     // Verify auth (internal call must include Authorization header)

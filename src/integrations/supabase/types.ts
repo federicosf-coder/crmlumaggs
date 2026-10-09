@@ -2351,6 +2351,38 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_portal_sessions: {
+        Row: {
+          created_at: string
+          credit_request_id: string
+          expires_at: string
+          password_ok: boolean
+          session_token: string
+        }
+        Insert: {
+          created_at?: string
+          credit_request_id: string
+          expires_at?: string
+          password_ok?: boolean
+          session_token?: string
+        }
+        Update: {
+          created_at?: string
+          credit_request_id?: string
+          expires_at?: string
+          password_ok?: boolean
+          session_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_portal_sessions_credit_request_id_fkey"
+            columns: ["credit_request_id"]
+            isOneToOne: false
+            referencedRelation: "credit_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_request_comments: {
         Row: {
           contenido: string
@@ -2692,6 +2724,12 @@ export type Database = {
           nombre_comercial: string | null
           poder_en_acta_constitutiva: boolean | null
           poder_representante_requerido: boolean
+          portal_failed_attempts: number
+          portal_locked_until: string | null
+          portal_must_change: boolean
+          portal_password_changed_at: string
+          portal_password_hash: string | null
+          portal_temp_password: string | null
           promedio_unidades_mensuales: number | null
           razon_social: string | null
           recordatorio_count: number
@@ -2821,6 +2859,12 @@ export type Database = {
           nombre_comercial?: string | null
           poder_en_acta_constitutiva?: boolean | null
           poder_representante_requerido?: boolean
+          portal_failed_attempts?: number
+          portal_locked_until?: string | null
+          portal_must_change?: boolean
+          portal_password_changed_at?: string
+          portal_password_hash?: string | null
+          portal_temp_password?: string | null
           promedio_unidades_mensuales?: number | null
           razon_social?: string | null
           recordatorio_count?: number
@@ -2950,6 +2994,12 @@ export type Database = {
           nombre_comercial?: string | null
           poder_en_acta_constitutiva?: boolean | null
           poder_representante_requerido?: boolean
+          portal_failed_attempts?: number
+          portal_locked_until?: string | null
+          portal_must_change?: boolean
+          portal_password_changed_at?: string
+          portal_password_hash?: string | null
+          portal_temp_password?: string | null
           promedio_unidades_mensuales?: number | null
           razon_social?: string | null
           recordatorio_count?: number
