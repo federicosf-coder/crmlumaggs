@@ -273,6 +273,57 @@ Deno.serve(async (req) => {
   if (!sess.password_ok) return json({ error: 'must_change_password' }, 403)
   if (action === 'ping') return json({ ok: true })
 
+  // ---------------- Paso 0: Aviso de privacidad (solo bloquea al cliente en el portal) ----------------
+  const avisoHash = await sha256Hex(AVISO_TEXTO)
+  const { data: consent } = await supabase.from('credit_privacy_consents')
+    .select('id, signed_at, firmante_nombre, aviso_version')
+    .eq('credit_request_id', ctx.requestId).eq('aviso_version', AVISO_VERSION)
+    .order('signed_at', { ascending: false }).limit(1).maybeSingle()
+
+  if (action === 'privacy_status') {
+    return json({ signed: !!consent, consent, version: AVISO_VERSION, texto: AVISO_TEXTO, hash: avisoHash })
+  }
+
+  if (action === 'privacy_sign') {
+    if (consent) return json({ ok: true, consent })
+    const nombre = String(body.nombre || '').trim().slice(0, 200)
+    const puesto = String(body.puesto || '').trim().slice(0, 200)
+    const email = String(body.email || '').trim().slice(0, 200)
+    const trazo = String(body.firma || '')
+    if (nombre.length < 3) return json({ error: 'Escribe tu nombre completo' }, 400)
+    if (!body.acepta) return json({ error: 'Debes aceptar el aviso' }, 400)
+    if (!trazo.startsWith('data:image/png;base64,') || trazo.length > 600_000) return json({ error: 'Firma inválida' }, 400)
+    if (String(body.hash || '') !== avisoHash) return json({ error: 'El aviso cambió, recarga la página' }, 409)
+    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || ''
+    const ua = (req.headers.get('user-agent') || '').slice(0, 500)
+    const signedAt = new Date().toISOString()
+    const firmaHash = await sha256Hex(trazo)
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<ConstanciaConsentimiento version="1.0" xmlns="urn:lumaggs:credito:consentimiento">
+  <Documento tipo="AvisoPrivacidadYConfidencialidad" version="${esc(AVISO_VERSION)}" algoritmo="SHA-256" hash="${avisoHash}"/>
+  <Solicitud id="${ctx.requestId}" folio="${esc(lock.folio || '')}" razonSocial="${esc(lock.razon_social || (lock as any).companies?.name || '')}"/>
+  <Firmante nombre="${esc(nombre)}" puesto="${esc(puesto)}" correo="${esc(email)}"/>
+  <Firma tipo="FirmaElectronicaSimple" medio="TrazoAutografoDigital" hashTrazo="${firmaHash}"/>
+  <Evidencias ip="${esc(ip)}" userAgent="${esc(ua)}" fechaHoraUTC="${signedAt}" aceptacionExpresa="true" sesionPortal="${sessionToken}"/>
+  <TextoAviso><![CDATA[${AVISO_TEXTO}]]></TextoAviso>
+</ConstanciaConsentimiento>`
+    const evidenciaHash = await sha256Hex(xml)
+    const { data: ins, error } = await supabase.from('credit_privacy_consents').insert({
+      credit_request_id: ctx.requestId, aviso_version: AVISO_VERSION, aviso_hash: avisoHash,
+      firmante_nombre: nombre, firmante_puesto: puesto || null, firmante_email: email || null,
+      firma_trazo: trazo, ip, user_agent: ua, signed_at: signedAt, evidencia_xml: xml, evidencia_hash: evidenciaHash,
+    }).select('id, signed_at, firmante_nombre, aviso_version').single()
+    if (error) return json({ error: error.message }, 500)
+    await supabase.from('credit_request_history').insert({
+      credit_request_id: ctx.requestId, accion: 'aviso_privacidad_firmado',
+      detalle: { firmante: nombre, ip, signed_at: signedAt, evidencia_hash: evidenciaHash },
+    } as any).then(() => {}, () => {})
+    return json({ ok: true, consent: ins })
+  }
+
+  if (!consent && action !== 'print_data') return json({ error: 'privacy_required' }, 403)
+
   try {
     if (action === 'get') {
       const [{ data: request }, { data: parties }, { data: docTypes }, { data: docs }] = await Promise.all([
