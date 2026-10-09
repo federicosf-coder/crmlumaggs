@@ -196,7 +196,8 @@ export function SendCreditoLinkDialog({ open, onOpenChange, portalUrl, folio, em
                     <div className="px-3 py-2 bg-muted/30 border-b space-y-1 text-xs break-words">
                       <p><span className="font-medium">Para:</span> {to || "Sin destinatario"}</p>
                       <p><span className="font-medium">Asunto:</span> {subject}</p>
-                      <p><span className="font-medium">Responder a:</span> {BUZON}</p>
+                      <p><span className="font-medium">CC:</span> {BUZON}</p>
+                      <p><span className="font-medium">Responder a:</span> Ejecutivo(s) asignado(s) a la solicitud</p>
                     </div>
                     <iframe title="Vista previa del correo de solicitud de crédito" sandbox="" srcDoc={emailHtml} className="w-full h-[360px] border-0" />
                   </div>
