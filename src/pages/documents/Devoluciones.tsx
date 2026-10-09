@@ -402,17 +402,67 @@ async function subirArchivos(devId: string, files: File[], tipo: string) {
   }
 }
 
+async function crearReclamoDesdeDevolucion(devId: string) {
+  const { data: ex } = await db.from("inv_reclamos").select("id").eq("devolucion_id", devId).maybeSingle();
+  if (ex) return ex.id as string;
+  const { data: d, error } = await db
+    .from("devoluciones")
+    .select("*, devolucion_motivos(nombre), documentos(numero_factura, empresa_vendedora, companies(name)), devolucion_lineas(cantidad, cantidad_facturada, lote, productos:producto_id(codigo, nombre_producto)), devolucion_archivos(storage_path, nombre_archivo, mime_type, tipo)")
+    .eq("id", devId).single();
+  if (error) throw error;
+  const motivo = d.devolucion_motivos?.nombre || d.motivo_otro || "";
+  const danado = /da[ñn]/i.test(motivo);
+  const { data: auth } = await supabase.auth.getUser();
+  const { data: rec, error: re } = await db.from("inv_reclamos").insert({
+    devolucion_id: devId,
+    pedido_id: null,
+    empresa_vendedora: d.documentos?.empresa_vendedora === "galsa_phillips66" ? "galsa" : "lumaggs",
+    tipo_reclamo: danado ? "dañado" : "otro",
+    cliente_nombre: d.documentos?.companies?.name || "CLIENTE",
+    no_pedido_factura: d.documentos?.numero_factura || null,
+    fecha_reclamo: new Date().toISOString().slice(0, 10),
+    fecha_recepcion: d.fecha_solicitud,
+    descripcion: `Devolución de cliente ${d.folio} autorizada por gerencia. Motivo: ${motivo}.${d.comentarios ? " " + d.comentarios : ""}`,
+    estatus: "borrador",
+    total_skus_afectados: (d.devolucion_lineas || []).length,
+    creado_por: auth.user?.id ?? null,
+  }).select("id").single();
+  if (re) throw re;
+  if ((d.devolucion_lineas || []).length) {
+    await db.from("inv_reclamo_lineas").insert(d.devolucion_lineas.map((l: any) => ({
+      reclamo_id: rec.id,
+      codigo_producto: l.productos?.codigo || "S/C",
+      nombre_producto: l.productos?.nombre_producto || null,
+      descripcion: motivo,
+      tipo_aviso: danado ? "Dañado" : "Otro",
+      cantidad_afectada: l.cantidad,
+      cantidad_solicitada: l.cantidad_facturada,
+      detalle_reclamacion: `${d.folio}${l.lote ? " · Lote " + l.lote : ""}`,
+    })));
+  }
+  for (const a of d.devolucion_archivos || []) {
+    const { data: blob } = await supabase.storage.from("devoluciones").download(a.storage_path);
+    if (!blob) continue;
+    const path = `${rec.id}/${Date.now()}_${(a.nombre_archivo || "archivo").replace(/[^A-Za-z0-9._-]/g, "_")}`;
+    const { error: uErr } = await supabase.storage.from("inventario-reclamos").upload(path, blob, { contentType: a.mime_type || undefined });
+    if (!uErr) await db.from("inv_reclamo_archivos").insert({ reclamo_id: rec.id, nombre_archivo: a.nombre_archivo || "archivo", url_archivo: path, tipo_archivo: a.mime_type, usuario_carga: auth.user?.id ?? null });
+  }
+  return rec.id as string;
+}
+
 // --------------------------------------------------------------------------
 // Detalle
 // --------------------------------------------------------------------------
 function DevolucionDetalleDialog({ id, onClose }: { id: string; onClose: () => void }) {
   const qc = useQueryClient();
+  const { hasAnyRole } = useAuth() as any;
+  const esGerencia = hasAnyRole?.(["admin", "manager"]) ?? false;
   const { data: dev, refetch } = useQuery({
     queryKey: ["devolucion", id],
     queryFn: async () => {
       const { data, error } = await db
         .from("devoluciones")
-        .select("*, devolucion_motivos(nombre), documentos(id, numero_factura, contacto_id, companies(name), contacts:contacto_id(email, first_name, last_name)), devolucion_lineas(id, cantidad, cantidad_facturada, lote, productos:producto_id(codigo, nombre_producto)), devolucion_archivos(id, storage_path, nombre_archivo, mime_type, tipo)")
+        .select("*, devolucion_motivos(nombre), documentos(id, numero_factura, contacto_id, companies(name), contacts:contacto_id(email, first_name, last_name)), devolucion_lineas(id, cantidad, cantidad_facturada, lote, productos:producto_id(codigo, nombre_producto)), devolucion_archivos(id, storage_path, nombre_archivo, mime_type, tipo), inv_reclamos(id, estatus)")
         .eq("id", id)
         .single();
       if (error) throw error;
@@ -452,8 +502,12 @@ function DevolucionDetalleDialog({ id, onClose }: { id: string; onClose: () => v
       resolucion_notas: form.resolucion_notas || null, recoleccion_responsable: form.recoleccion_responsable || null,
       recoleccion_fecha: form.recoleccion_fecha || null, recibido_almacen: !!form.recibido_almacen,
     }).eq("id", id);
+    if (error) { setSaving(false); return toast.error(error.message); }
+    if (["autorizada", "resuelta"].includes(form.estado) && dev.estado !== form.estado && !dev.inv_reclamos?.length) {
+      try { await crearReclamoDesdeDevolucion(id); toast.success("Se generó el reclamo en Pedidos → Reclamos"); }
+      catch (e: any) { toast.error("Devolución guardada, pero no se pudo crear el reclamo: " + (e.message || "")); }
+    }
     setSaving(false);
-    if (error) return toast.error(error.message);
     toast.success("Devolución actualizada");
     qc.invalidateQueries({ queryKey: ["devoluciones"] });
     refetch();
@@ -549,11 +603,18 @@ Por favor <b>imprímalo, llénelo a mano con pluma y fírmelo</b>. Entréguelo j
             </div>
 
             <div className="space-y-3 border-t pt-4">
-              <p className={sectionLabel}>Seguimiento y resolución</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className={sectionLabel}>Seguimiento y resolución</p>
+                {dev.inv_reclamos?.length ? (
+                  <Link to="/inventario/pedidos?tab=reclamos" className="text-xs text-primary underline">Reclamo generado en Pedidos → Reclamos</Link>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">Al autorizar gerencia se crea el reclamo en Pedidos.</span>
+                )}
+              </div>
               <div className="grid md:grid-cols-3 gap-3">
                 <div className="space-y-1.5"><Label className="text-xs">Estado</Label>
                   <Select value={form.estado} onValueChange={(v) => setForm({ ...form, estado: v })}><SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{Object.entries(ESTADOS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent></Select></div>
+                    <SelectContent>{Object.entries(ESTADOS).map(([k, v]) => <SelectItem key={k} value={k} disabled={!esGerencia && (k === "autorizada" || k === "rechazada")}>{v}{!esGerencia && (k === "autorizada" || k === "rechazada") ? " (gerencia)" : ""}</SelectItem>)}</SelectContent></Select></div>
                 <div className="space-y-1.5"><Label className="text-xs">Qué se hizo con la venta</Label>
                   <Select value={form.resolucion_tipo || "none"} onValueChange={(v) => setForm({ ...form, resolucion_tipo: v === "none" ? "" : v })}><SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="none">Sin definir</SelectItem>{Object.entries(RESOLUCIONES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent></Select></div>
