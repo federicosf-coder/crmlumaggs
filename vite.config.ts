@@ -24,7 +24,14 @@ export default defineConfig(({ mode }) => ({
         enabled: false,
       },
       workbox: {
-        navigateFallbackDenylist: [/^\/~/, /^\/\.lovable\//, /^\/\.well-known\//],
+        navigateFallbackDenylist: [
+          /^\/~/,
+          /^\/\.lovable\//,
+          /^\/\.well-known\//,
+          /^\/docs\//,
+          /^\/guias\//,
+          /\.(?:pdf|xml|zip|docx?|xlsx?|csv|txt|png|jpe?g|svg|webp)$/i,
+        ],
         maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
         runtimeCaching: [
           {
