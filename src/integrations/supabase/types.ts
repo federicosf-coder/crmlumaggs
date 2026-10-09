@@ -3163,9 +3163,14 @@ export type Database = {
           id: string
           mime_type: string | null
           nombre_archivo: string | null
+          origen: string
+          pagina_fin: number | null
+          pagina_inicio: number | null
+          paquete_id: string | null
           remitente_email: string | null
           resend_email_id: string | null
           storage_path: string
+          total_paginas: number | null
           updated_at: string
         }
         Insert: {
@@ -3183,9 +3188,14 @@ export type Database = {
           id?: string
           mime_type?: string | null
           nombre_archivo?: string | null
+          origen?: string
+          pagina_fin?: number | null
+          pagina_inicio?: number | null
+          paquete_id?: string | null
           remitente_email?: string | null
           resend_email_id?: string | null
           storage_path: string
+          total_paginas?: number | null
           updated_at?: string
         }
         Update: {
@@ -3203,9 +3213,14 @@ export type Database = {
           id?: string
           mime_type?: string | null
           nombre_archivo?: string | null
+          origen?: string
+          pagina_fin?: number | null
+          pagina_inicio?: number | null
+          paquete_id?: string | null
           remitente_email?: string | null
           resend_email_id?: string | null
           storage_path?: string
+          total_paginas?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -3221,6 +3236,13 @@ export type Database = {
             columns: ["doc_type_sugerido_id"]
             isOneToOne: false
             referencedRelation: "credit_doc_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_docs_intake_paquete_id_fkey"
+            columns: ["paquete_id"]
+            isOneToOne: false
+            referencedRelation: "credito_docs_intake"
             referencedColumns: ["id"]
           },
         ]
