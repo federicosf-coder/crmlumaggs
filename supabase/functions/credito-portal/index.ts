@@ -18,6 +18,27 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 
+const toHex = (b: Uint8Array) => Array.from(b).map((x) => x.toString(16).padStart(2, '0')).join('')
+const fromHex = (h: string) => new Uint8Array(h.match(/.{2}/g)!.map((x) => parseInt(x, 16)))
+async function pbkdf2(pwd: string, salt: Uint8Array, iter: number) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pwd), 'PBKDF2', false, ['deriveBits'])
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, key, 256)
+  return new Uint8Array(bits)
+}
+async function hashPassword(pwd: string) {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const iter = 100000
+  return `pbkdf2$${iter}$${toHex(salt)}$${toHex(await pbkdf2(pwd, salt, iter))}`
+}
+async function verifyPassword(pwd: string, stored: string) {
+  const [, it, s, h] = stored.split('$')
+  if (!it || !s || !h) return false
+  const got = toHex(await pbkdf2(pwd, fromHex(s), Number(it)))
+  let diff = got.length ^ h.length
+  for (let i = 0; i < Math.min(got.length, h.length); i++) diff |= got.charCodeAt(i) ^ h.charCodeAt(i)
+  return diff === 0
+}
+
 // Validate token → returns { requestId, partyId? }
 async function resolveToken(token: string): Promise<{ requestId: string; partyId: string | null } | null> {
   if (!token) return null
