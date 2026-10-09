@@ -3069,6 +3069,8 @@ export default function CreditoDetail() {
         contactoNombre={(form as any).client_nombre_contacto || ""}
         contactoEmail={form.correo_contacto || ""}
         creditRequestId={id!}
+        avisoUrl={form.client_token ? `${PORTAL_BASE}/portal/aviso/${form.client_token}` : ""}
+        tempPassword={(form as any).portal_must_change ? ((form as any).portal_temp_password || "") : ""}
       />
 
       {id && (
