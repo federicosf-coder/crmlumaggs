@@ -20,6 +20,29 @@ const json = (body: unknown, status = 200) =>
 
 const toHex = (b: Uint8Array) => Array.from(b).map((x) => x.toString(16).padStart(2, '0')).join('')
 const fromHex = (h: string) => new Uint8Array(h.match(/.{2}/g)!.map((x) => parseInt(x, 16)))
+const sha256Hex = async (s: string) => toHex(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))))
+
+// Cambiar la versión cada vez que se modifique el texto: obliga a una nueva firma.
+const AVISO_VERSION = '2026-10-v1'
+const AVISO_TEXTO = `AVISO DE PRIVACIDAD Y CONVENIO DE CONFIDENCIALIDAD
+
+1. RESPONSABLE. Lumaggs (distribuidor Chevron) y/o Galsa (distribuidor Phillips 66), según la marca con la que se solicite el crédito (en adelante "el Responsable"), con domicilio en Baja California, México, es responsable del tratamiento de sus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP), su Reglamento y los Lineamientos del Aviso de Privacidad.
+
+2. DATOS QUE SE RECABAN. Datos de identificación y contacto; datos fiscales (RFC, Constancia de Situación Fiscal); datos de representantes legales, socios, avales y obligados solidarios; documentos de identificación oficial y comprobantes de domicilio; datos patrimoniales y financieros (estados financieros, referencias bancarias y comerciales, historial crediticio). Se tratarán datos patrimoniales y financieros, para lo cual se requiere su consentimiento expreso.
+
+3. FINALIDADES. Primarias: (a) evaluar y, en su caso, otorgar una línea de crédito comercial; (b) integrar y conservar el expediente de crédito; (c) verificar la identidad y la información proporcionada, incluyendo consulta a sociedades de información crediticia y referencias; (d) administrar la relación comercial, facturación y cobranza; (e) cumplir obligaciones legales. Secundarias: envío de información comercial. Puede oponerse a las finalidades secundarias escribiendo al correo de privacidad indicado abajo.
+
+4. TRANSFERENCIAS. Sus datos podrán compartirse con: sociedades de información crediticia; aseguradoras o empresas de garantía de crédito (por ejemplo, para el aseguramiento de la cartera); proveedores y marcas representadas (Chevron, Phillips 66) cuando sea necesario para la relación comercial; y autoridades competentes cuando la ley lo requiera. Las transferencias que requieran consentimiento se entienden autorizadas con la firma de este aviso.
+
+5. DERECHOS ARCO. Usted puede ejercer sus derechos de Acceso, Rectificación, Cancelación y Oposición, así como revocar su consentimiento o limitar el uso de sus datos, mediante solicitud a su ejecutivo o al correo facturas@correo.lumaggs.com.mx, indicando nombre, documento de identidad, la descripción de los datos y el derecho que desea ejercer. Se responderá en un plazo máximo de 20 días hábiles.
+
+6. CONFIDENCIALIDAD. Ambas partes se obligan a mantener en estricta confidencialidad la información fiscal, legal, financiera y comercial intercambiada con motivo de la solicitud de crédito, a utilizarla únicamente para los fines aquí señalados y a no divulgarla a terceros salvo en los supuestos del punto 4 o por mandato de autoridad. Esta obligación subsiste aun cuando no se otorgue el crédito o termine la relación comercial.
+
+7. CONSERVACIÓN Y SEGURIDAD. La información se resguarda con medidas de seguridad administrativas, técnicas y físicas, y se conservará durante el tiempo necesario para las finalidades y los plazos legales aplicables.
+
+8. CAMBIOS. Cualquier modificación a este aviso se le comunicará a través del portal de crédito y requerirá nueva aceptación.
+
+9. CONSENTIMIENTO Y FIRMA ELECTRÓNICA. Al firmar electrónicamente, el firmante declara tener facultades para obligar a la empresa solicitante, otorga su consentimiento expreso para el tratamiento de los datos personales, patrimoniales y financieros descritos, y acepta el convenio de confidencialidad. Las partes reconocen esta firma electrónica como medio válido de manifestación de la voluntad conforme a los artículos 89 a 114 del Código de Comercio y 1803 y 1834 bis del Código Civil Federal. Se registran como evidencia: nombre, trazo de firma, fecha y hora (UTC), dirección IP, navegador/dispositivo y la huella digital (SHA-256) de este texto.`
 async function pbkdf2(pwd: string, salt: Uint8Array, iter: number) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pwd), 'PBKDF2', false, ['deriveBits'])
   const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, key, 256)
@@ -272,6 +295,58 @@ Deno.serve(async (req) => {
 
   if (!sess.password_ok) return json({ error: 'must_change_password' }, 403)
   if (action === 'ping') return json({ ok: true })
+
+  // ---------------- Paso 0: Aviso de privacidad (solo bloquea al cliente en el portal) ----------------
+  const avisoHash = await sha256Hex(AVISO_TEXTO)
+  const { data: consent } = await supabase.from('credit_privacy_consents')
+    .select('id, signed_at, firmante_nombre, aviso_version')
+    .eq('credit_request_id', ctx.requestId).eq('aviso_version', AVISO_VERSION)
+    .order('signed_at', { ascending: false }).limit(1).maybeSingle()
+
+  if (action === 'privacy_status') {
+    return json({ signed: !!consent, consent, version: AVISO_VERSION, texto: AVISO_TEXTO, hash: avisoHash })
+  }
+
+  if (action === 'privacy_sign') {
+    if (consent) return json({ ok: true, consent })
+    const nombre = String(body.nombre || '').trim().slice(0, 200)
+    const puesto = String(body.puesto || '').trim().slice(0, 200)
+    const email = String(body.email || '').trim().slice(0, 200)
+    const trazo = String(body.firma || '')
+    if (nombre.length < 3) return json({ error: 'Escribe tu nombre completo' }, 400)
+    if (!body.acepta) return json({ error: 'Debes aceptar el aviso' }, 400)
+    if (!trazo.startsWith('data:image/png;base64,') || trazo.length > 600_000) return json({ error: 'Firma inválida' }, 400)
+    if (String(body.hash || '') !== avisoHash) return json({ error: 'El aviso cambió, recarga la página' }, 409)
+    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || ''
+    const ua = (req.headers.get('user-agent') || '').slice(0, 500)
+    const signedAt = new Date().toISOString()
+    const firmaHash = await sha256Hex(trazo)
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<ConstanciaConsentimiento version="1.0" xmlns="urn:lumaggs:credito:consentimiento">
+  <Documento tipo="AvisoPrivacidadYConfidencialidad" version="${esc(AVISO_VERSION)}" algoritmo="SHA-256" hash="${avisoHash}"/>
+  <Solicitud id="${ctx.requestId}" folio="${esc(lock.folio || '')}" razonSocial="${esc(lock.razon_social || (lock as any).companies?.name || '')}"/>
+  <Firmante nombre="${esc(nombre)}" puesto="${esc(puesto)}" correo="${esc(email)}"/>
+  <Firma tipo="FirmaElectronicaSimple" medio="TrazoAutografoDigital" hashTrazo="${firmaHash}"/>
+  <Evidencias ip="${esc(ip)}" userAgent="${esc(ua)}" fechaHoraUTC="${signedAt}" aceptacionExpresa="true" sesionPortal="${sessionToken}"/>
+  <TextoAviso><![CDATA[${AVISO_TEXTO}]]></TextoAviso>
+</ConstanciaConsentimiento>`
+    const evidenciaHash = await sha256Hex(xml)
+    const { data: ins, error } = await supabase.from('credit_privacy_consents').insert({
+      credit_request_id: ctx.requestId, aviso_version: AVISO_VERSION, aviso_hash: avisoHash,
+      firmante_nombre: nombre, firmante_puesto: puesto || null, firmante_email: email || null,
+      firma_trazo: trazo, ip, user_agent: ua, signed_at: signedAt, evidencia_xml: xml, evidencia_hash: evidenciaHash,
+    }).select('id, signed_at, firmante_nombre, aviso_version').single()
+    if (error) return json({ error: error.message }, 500)
+    const { data: est } = await supabase.from('credit_requests').select('estado').eq('id', ctx.requestId).maybeSingle()
+    if (est) await supabase.from('credit_request_history').insert({
+      credit_request_id: ctx.requestId, estado_anterior: est.estado, estado_nuevo: est.estado,
+      nota: `Aviso de privacidad y confidencialidad firmado electrónicamente por ${nombre} (IP ${ip || 'desconocida'}, ${signedAt}). Hash evidencia: ${evidenciaHash}`,
+    })
+    return json({ ok: true, consent: ins })
+  }
+
+  if (!consent) return json({ error: 'privacy_required' }, 403)
 
   try {
     if (action === 'get') {
