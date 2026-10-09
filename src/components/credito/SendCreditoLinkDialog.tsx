@@ -22,6 +22,12 @@ interface Props {
 }
 
 const BUZON = "credito@correo.lumaggs.com.mx";
+const EXCLUIR_DOCS_CORREO = [
+  "registro público de la propiedad",
+  "estado de cuenta bancario",
+  "identificación oficial del aval",
+  "comprobante de domicilio del aval",
+];
 
 function mensajeBase(canal: "email" | "whatsapp") {
   const docsIntro = canal === "email"
@@ -100,7 +106,9 @@ export function SendCreditoLinkDialog({ open, onOpenChange, portalUrl, folio, em
         folio_solicitud: folio || "",
         nombre_contacto: contactoNombre || "Cliente",
         nombre_empresa: empresa || "",
-        lista_documentos: ((docs || []) as { nombre: string }[]).map((d) => `- ${d.nombre}`).join("\n") || "- Constancia de Situación Fiscal\n- Identificación del representante legal\n- Comprobante de domicilio",
+        lista_documentos: ((docs || []) as { nombre: string }[])
+          .filter((d) => !EXCLUIR_DOCS_CORREO.includes(d.nombre.trim().toLowerCase()))
+          .map((d) => `- ${/opini[oó]n de cumplimiento/i.test(d.nombre) ? `${d.nombre} (Mes Actual)` : d.nombre}`).join("\n") || "- Constancia de Situación Fiscal\n- Identificación del representante legal\n- Comprobante de domicilio",
       };
       setVars(v);
       setSubject(renderVars(`Solicitud de Crédito {folio_solicitud} – Aviso de privacidad y documentos`, v));
@@ -127,6 +135,8 @@ export function SendCreditoLinkDialog({ open, onOpenChange, portalUrl, folio, em
           subjectOverride: subject,
           htmlOverride: emailHtml,
           replyTo: BUZON,
+          replyToCreditRequestId: creditRequestId,
+          cc: [BUZON],
           to: [toAddr],
           templateData: { __subject: subject, __html: emailHtml },
         },
