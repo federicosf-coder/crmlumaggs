@@ -3975,6 +3975,8 @@ export type Database = {
       }
       devoluciones: {
         Row: {
+          autorizada_at: string | null
+          autorizada_por: string | null
           comentarios: string | null
           created_at: string
           created_by: string | null
@@ -3999,6 +4001,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          autorizada_at?: string | null
+          autorizada_por?: string | null
           comentarios?: string | null
           created_at?: string
           created_by?: string | null
@@ -4023,6 +4027,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          autorizada_at?: string | null
+          autorizada_por?: string | null
           comentarios?: string | null
           created_at?: string
           created_by?: string | null
@@ -7179,6 +7185,7 @@ export type Database = {
           creado_por: string | null
           created_at: string | null
           descripcion: string | null
+          devolucion_id: string | null
           domicilio_recoleccion: string | null
           empresa_vendedora: string
           estatus: string
@@ -7195,7 +7202,7 @@ export type Database = {
           nota_credito_folio: string | null
           nota_credito_id: string | null
           nota_credito_monto: number | null
-          pedido_id: string
+          pedido_id: string | null
           recepcion_id: string | null
           remitente_email: string | null
           remitente_nombre: string | null
@@ -7211,6 +7218,7 @@ export type Database = {
           creado_por?: string | null
           created_at?: string | null
           descripcion?: string | null
+          devolucion_id?: string | null
           domicilio_recoleccion?: string | null
           empresa_vendedora: string
           estatus?: string
@@ -7227,7 +7235,7 @@ export type Database = {
           nota_credito_folio?: string | null
           nota_credito_id?: string | null
           nota_credito_monto?: number | null
-          pedido_id: string
+          pedido_id?: string | null
           recepcion_id?: string | null
           remitente_email?: string | null
           remitente_nombre?: string | null
@@ -7243,6 +7251,7 @@ export type Database = {
           creado_por?: string | null
           created_at?: string | null
           descripcion?: string | null
+          devolucion_id?: string | null
           domicilio_recoleccion?: string | null
           empresa_vendedora?: string
           estatus?: string
@@ -7259,7 +7268,7 @@ export type Database = {
           nota_credito_folio?: string | null
           nota_credito_id?: string | null
           nota_credito_monto?: number | null
-          pedido_id?: string
+          pedido_id?: string | null
           recepcion_id?: string | null
           remitente_email?: string | null
           remitente_nombre?: string | null
@@ -7269,6 +7278,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inv_reclamos_devolucion_id_fkey"
+            columns: ["devolucion_id"]
+            isOneToOne: false
+            referencedRelation: "devoluciones"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inv_reclamos_factura_recibida_id_fkey"
             columns: ["factura_recibida_id"]
