@@ -271,6 +271,7 @@ Deno.serve(async (req) => {
   }
 
   if (!sess.password_ok) return json({ error: 'must_change_password' }, 403)
+  if (action === 'ping') return json({ ok: true })
 
   try {
     if (action === 'get') {
@@ -283,6 +284,7 @@ Deno.serve(async (req) => {
       const { data: completeness } = await supabase.rpc('credit_request_completeness', { req_id: ctx.requestId })
       const { data: industrias } = await supabase
         .from('industrias_catalog').select('clave, etiqueta').eq('is_active', true).order('ordering').order('etiqueta')
+      if (request) for (const k of ['portal_password_hash','portal_temp_password','portal_failed_attempts','portal_locked_until']) delete (request as any)[k]
       return json({ request, parties: parties || [], docTypes: docTypes || [], docs: docs || [], completeness, industrias: industrias || [], ctx })
     }
 
@@ -424,6 +426,7 @@ Deno.serve(async (req) => {
           : Promise.resolve({ data: [] } as any),
       ])
       if (!request) return json({ error: 'not_found' }, 404)
+      for (const k of ['portal_password_hash','portal_temp_password','portal_failed_attempts','portal_locked_until']) delete (request as any)[k]
       return json({ request, templates: templates || [] })
     }
 

@@ -37,7 +37,7 @@ export function CreditoPortalLock({ token, children }: { token: string; children
         setInfo(st);
         const s = getPortalSession(token);
         if (s) {
-          try { await call({ action: "print_data", token, session: s, keys: [] }); setStage("ok"); return; }
+          try { await call({ action: "ping", token, session: s }); setStage("ok"); return; }
           catch (e: any) { if (e.message === "must_change_password") { setStage("change"); return; } }
         }
         setStage("login");
