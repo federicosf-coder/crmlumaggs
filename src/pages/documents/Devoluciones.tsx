@@ -418,11 +418,11 @@ async function crearReclamoDesdeDevolucion(devId: string) {
     pedido_id: null,
     empresa_vendedora: d.documentos?.empresa_vendedora === "galsa_phillips66" ? "galsa" : "lumaggs",
     tipo_reclamo: danado ? "dañado" : "otro",
-    cliente_nombre: d.documentos?.companies?.name || "CLIENTE",
+    cliente_nombre: d.documentos?.empresa_vendedora === "galsa_phillips66" ? "GALSA" : "LUMAGGS",
     no_pedido_factura: d.documentos?.numero_factura || null,
     fecha_reclamo: new Date().toISOString().slice(0, 10),
     fecha_recepcion: d.fecha_solicitud,
-    descripcion: `Devolución de cliente ${d.folio} autorizada por gerencia. Motivo: ${motivo}.${d.comentarios ? " " + d.comentarios : ""}`,
+    descripcion: `Devolución de cliente ${d.folio} (${d.documentos?.companies?.name || ""}) autorizada por gerencia. Motivo: ${motivo}.${d.comentarios ? " " + d.comentarios : ""}`,
     estatus: "borrador",
     total_skus_afectados: (d.devolucion_lineas || []).length,
     creado_por: auth.user?.id ?? null,
@@ -606,7 +606,7 @@ Por favor <b>imprímalo, llénelo a mano con pluma y fírmelo</b>. Entréguelo j
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className={sectionLabel}>Seguimiento y resolución</p>
                 {dev.inv_reclamos?.length ? (
-                  <Link to="/inventario/pedidos?tab=reclamos" className="text-xs text-primary underline">Reclamo generado en Pedidos → Reclamos</Link>
+                  <Link to="/inventario/pedidos/reclamos" className="text-xs text-primary underline">Reclamo generado en Pedidos → Reclamos</Link>
                 ) : (
                   <span className="text-[11px] text-muted-foreground">Al autorizar gerencia se crea el reclamo en Pedidos.</span>
                 )}
