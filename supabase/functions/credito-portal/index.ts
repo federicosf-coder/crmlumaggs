@@ -267,35 +267,6 @@ Deno.serve(async (req) => {
     return json({ session, must_change: mustChange })
   }
 
-  // Validar sesión para cualquier otra acción
-  const sessionToken = String(body.session || '')
-  if (!/^[0-9a-f-]{36}$/i.test(sessionToken)) return json({ error: 'auth_required' }, 401)
-  const { data: sess } = await supabase.from('credit_portal_sessions')
-    .select('password_ok, created_at, expires_at')
-    .eq('session_token', sessionToken).eq('credit_request_id', ctx.requestId).maybeSingle()
-  if (!sess || new Date(sess.expires_at).getTime() < Date.now()
-    || new Date(sess.created_at).getTime() < new Date(lock.portal_password_changed_at).getTime() - 1000) {
-    return json({ error: 'auth_required' }, 401)
-  }
-
-  if (action === 'change_password') {
-    const np = String(body.new_password || '')
-    if (np.length < 8 || np.length > 64 || !/[A-Za-z]/.test(np) || !/\d/.test(np) || !/^[A-Za-z0-9]+$/.test(np)) {
-      return json({ error: 'La contraseña debe tener mínimo 8 caracteres, solo letras y números, con al menos una letra y un número.' }, 400)
-    }
-    const hash = await hashPassword(np)
-    await supabase.from('credit_requests').update({
-      portal_password_hash: hash, portal_temp_password: null, portal_must_change: false,
-      portal_password_changed_at: new Date().toISOString(),
-    }).eq('id', ctx.requestId)
-    await new Promise((r) => setTimeout(r, 1100))
-    const session = await newSession(true)
-    return json({ session })
-  }
-
-  if (!sess.password_ok) return json({ error: 'must_change_password' }, 403)
-  if (action === 'ping') return json({ ok: true })
-
   // ---------------- Paso 0: Aviso de privacidad (solo bloquea al cliente en el portal) ----------------
   const avisoHash = await sha256Hex(AVISO_TEXTO)
   const { data: consent } = await supabase.from('credit_privacy_consents')
@@ -328,7 +299,7 @@ Deno.serve(async (req) => {
   <Solicitud id="${ctx.requestId}" folio="${esc(lock.folio || '')}" razonSocial="${esc(lock.razon_social || (lock as any).companies?.name || '')}"/>
   <Firmante nombre="${esc(nombre)}" puesto="${esc(puesto)}" correo="${esc(email)}"/>
   <Firma tipo="FirmaElectronicaSimple" medio="TrazoAutografoDigital" hashTrazo="${firmaHash}"/>
-  <Evidencias ip="${esc(ip)}" userAgent="${esc(ua)}" fechaHoraUTC="${signedAt}" aceptacionExpresa="true" sesionPortal="${sessionToken}"/>
+  <Evidencias ip="${esc(ip)}" userAgent="${esc(ua)}" fechaHoraUTC="${signedAt}" aceptacionExpresa="true" sesionPortal="${esc(String(body.session || 'sin-sesion'))}"/>
   <TextoAviso><![CDATA[${AVISO_TEXTO}]]></TextoAviso>
 </ConstanciaConsentimiento>`
     const evidenciaHash = await sha256Hex(xml)
@@ -345,6 +316,35 @@ Deno.serve(async (req) => {
     })
     return json({ ok: true, consent: ins })
   }
+
+  // Validar sesión para cualquier otra acción
+  const sessionToken = String(body.session || '')
+  if (!/^[0-9a-f-]{36}$/i.test(sessionToken)) return json({ error: 'auth_required' }, 401)
+  const { data: sess } = await supabase.from('credit_portal_sessions')
+    .select('password_ok, created_at, expires_at')
+    .eq('session_token', sessionToken).eq('credit_request_id', ctx.requestId).maybeSingle()
+  if (!sess || new Date(sess.expires_at).getTime() < Date.now()
+    || new Date(sess.created_at).getTime() < new Date(lock.portal_password_changed_at).getTime() - 1000) {
+    return json({ error: 'auth_required' }, 401)
+  }
+
+  if (action === 'change_password') {
+    const np = String(body.new_password || '')
+    if (np.length < 8 || np.length > 64 || !/[A-Za-z]/.test(np) || !/\d/.test(np) || !/^[A-Za-z0-9]+$/.test(np)) {
+      return json({ error: 'La contraseña debe tener mínimo 8 caracteres, solo letras y números, con al menos una letra y un número.' }, 400)
+    }
+    const hash = await hashPassword(np)
+    await supabase.from('credit_requests').update({
+      portal_password_hash: hash, portal_temp_password: null, portal_must_change: false,
+      portal_password_changed_at: new Date().toISOString(),
+    }).eq('id', ctx.requestId)
+    await new Promise((r) => setTimeout(r, 1100))
+    const session = await newSession(true)
+    return json({ session })
+  }
+
+  if (!sess.password_ok) return json({ error: 'must_change_password' }, 403)
+  if (action === 'ping') return json({ ok: true })
 
   if (!consent) return json({ error: 'privacy_required' }, 403)
 
