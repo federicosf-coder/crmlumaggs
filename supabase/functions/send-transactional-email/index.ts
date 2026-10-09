@@ -169,6 +169,20 @@ Deno.serve(async (req) => {
   // Create Supabase client with service role (bypasses RLS)
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+  // Reply-To = ejecutivos asignados a la solicitud de crédito (responsables + creador)
+  if (replyToCreditRequestId) {
+    const [{ data: cr }, { data: resp }] = await Promise.all([
+      supabase.from('credit_requests').select('created_by').eq('id', replyToCreditRequestId).maybeSingle(),
+      supabase.from('credit_request_responsables').select('user_id').eq('credit_request_id', replyToCreditRequestId),
+    ])
+    const ids = Array.from(new Set([...(resp || []).map((r: any) => r.user_id), (cr as any)?.created_by].filter(Boolean)))
+    if (ids.length) {
+      const { data: profs } = await supabase.from('profiles').select('email').in('user_id', ids)
+      const emails = Array.from(new Set((profs || []).map((p: any) => p.email).filter(Boolean)))
+      if (emails.length) replyTo = emails
+    }
+  }
+
   // Idempotency guard: if this exact send was already accepted recently, do not send again.
   if (idempotencyKey) {
     const { data: existingSend, error: existingSendError } = await supabase
