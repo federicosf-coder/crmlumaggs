@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
       ...aLista(headersEmail['envelope-to']),
     ];
     const esComprobantes = destinatarios.some((d) => d.includes(BUZON_COMPROBANTES));
-    const esCredito = !esComprobantes && destinatarios.some((d) => d.includes(BUZON_CREDITO));
+    const esCredito = !esComprobantes && destinatarios.some((d) => d.includes(BUZON_CREDITO) || d.includes('credito@correo.lumaggs.com.mx'));
     const esPrecios =
       !esComprobantes && !esCredito && destinatarios.some((d) => d.includes(BUZON_PRECIOS));
     const esFacturasChevron =

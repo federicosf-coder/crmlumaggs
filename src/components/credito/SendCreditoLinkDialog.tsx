@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -17,6 +17,37 @@ interface Props {
   contactoNombre: string;
   contactoEmail: string;
   creditRequestId: string;
+  avisoUrl?: string;
+  tempPassword?: string;
+}
+
+const BUZON = "credito@correo.lumaggs.com.mx";
+
+function mensajeBase(canal: "email" | "whatsapp") {
+  const docsIntro = canal === "email"
+    ? `3. Envíe sus documentos respondiendo este correo (o escribiendo a ${BUZON} con el folio {folio_solicitud} en el asunto). El sistema los identifica y los integra a su expediente automáticamente.`
+    : `3. Envíe sus documentos por correo a ${BUZON} con el folio {folio_solicitud} en el asunto. El sistema los identifica y los integra a su expediente automáticamente.`;
+  return `Estimado(a) {nombre_contacto}:
+
+Para iniciar la Solicitud de Crédito de {nombre_empresa} (folio {folio_solicitud}) le pedimos lo siguiente:
+
+1. Firme en pantalla el Aviso de Privacidad y Confidencialidad (requisito legal, no requiere contraseña):
+{liga_aviso}
+
+2. Ingrese al portal de su solicitud:
+{liga_solicitud_credito}
+Clave temporal: {clave_temporal}
+(En el primer acceso le pedirá crear su propia contraseña.)
+
+${docsIntro}
+
+Documentos que necesitamos:
+{lista_documentos}
+
+4. En el portal puede autocompletar sus datos con los documentos, revisar la información, agregar referencias comerciales y bancarias, imprimir los formatos, firmarlos y subirlos. Al terminar, use el botón "Ya terminé: avisar a mi ejecutivo".
+
+Quedamos atentos a cualquier duda.
+Saludos cordiales.`;
 }
 
 function renderVars(s: string, vars: Record<string, string>) {
@@ -28,9 +59,13 @@ function renderVars(s: string, vars: Record<string, string>) {
   return out;
 }
 
-function textToHtml(text: string, linkUrl?: string) {
+function textToHtml(text: string, linkUrl?: string, linkUrl2?: string) {
   const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   let html = escape(text).replace(/\r?\n/g, "<br/>");
+  if (linkUrl2) {
+    const esc2 = escape(linkUrl2);
+    html = html.split(esc2).join(`<a href="${esc2}" target="_blank" rel="noopener">${esc2}</a>`);
+  }
   if (linkUrl) {
     const esc = escape(linkUrl);
     html = html.split(esc).join(`<a href="${esc}" target="_blank" rel="noopener">${esc}</a>`);
@@ -38,7 +73,9 @@ function textToHtml(text: string, linkUrl?: string) {
   return `<div style="font-family:Arial,sans-serif;font-size:14px;color:#0f172a;line-height:1.55">${html}</div>`;
 }
 
-export function SendCreditoLinkDialog({ open, onOpenChange, portalUrl, folio, empresa, contactoNombre, contactoEmail, creditRequestId }: Props) {
+export function SendCreditoLinkDialog({ open, onOpenChange, portalUrl, folio, empresa, contactoNombre, contactoEmail, creditRequestId, avisoUrl = "", tempPassword = "" }: Props) {
+  const [phone, setPhone] = useState("");
+  const [vars, setVars] = useState<Record<string, string>>({});
   const [to, setTo] = useState(contactoEmail || "");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -51,34 +88,24 @@ export function SendCreditoLinkDialog({ open, onOpenChange, portalUrl, folio, em
     let cancel = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await (supabase as any)
-        .from("templates")
-        .select("subject, body")
-        .eq("type", "email")
-        .ilike("name", "Enviar Link de Solicitud")
-        .eq("is_active", true)
-        .maybeSingle();
+      const { data: docs } = await supabase.from("credit_doc_types").select("nombre").eq("is_active", true).order("sort_order");
       if (cancel) return;
-      const vars: Record<string, string> = {
+      const v: Record<string, string> = {
         liga_solicitud_credito: portalUrl,
+        liga_aviso: avisoUrl || portalUrl,
+        clave_temporal: tempPassword || "(la que ya creó)",
         folio_solicitud: folio || "",
         nombre_contacto: contactoNombre || "Cliente",
         nombre_empresa: empresa || "",
+        lista_documentos: ((docs || []) as { nombre: string }[]).map((d) => `- ${d.nombre}`).join("\n") || "- Constancia de Situación Fiscal\n- Identificación del representante legal\n- Comprobante de domicilio",
       };
-      if (error || !data) {
-        setSubject(renderVars(`Solicitud de Crédito {folio_solicitud}`, vars));
-        setBody(renderVars(
-          `Estimado(a) {nombre_contacto}:\n\nLe compartimos el enlace para completar la Solicitud de Crédito de {nombre_empresa} (folio {folio_solicitud}).\n\nAcceda aquí: {liga_solicitud_credito}\n\nSaludos cordiales.`,
-          vars,
-        ));
-      } else {
-        setSubject(renderVars(data.subject || "", vars));
-        setBody(renderVars(data.body || "", vars));
-      }
+      setVars(v);
+      setSubject(renderVars(`Solicitud de Crédito {folio_solicitud} – Aviso de privacidad y documentos`, v));
+      setBody(renderVars(mensajeBase("email"), v));
       setLoading(false);
     })();
     return () => { cancel = true; };
-  }, [open, portalUrl, folio, empresa, contactoNombre, contactoEmail]);
+  }, [open, portalUrl, avisoUrl, tempPassword, folio, empresa, contactoNombre, contactoEmail]);
 
   const handleSend = async () => {
     const toAddr = to.trim();
@@ -95,9 +122,10 @@ export function SendCreditoLinkDialog({ open, onOpenChange, portalUrl, folio, em
           recipientEmail: toAddr,
           idempotencyKey: `credito-link-${creditRequestId}-${toAddr}-${ts}`,
           subjectOverride: subject,
-          htmlOverride: textToHtml(body, portalUrl),
+          htmlOverride: textToHtml(body, portalUrl, avisoUrl),
+          replyTo: BUZON,
           to: [toAddr],
-          templateData: { __subject: subject, __html: textToHtml(body, portalUrl) },
+          templateData: { __subject: subject, __html: textToHtml(body, portalUrl, avisoUrl) },
         },
       });
       if (error) throw error;
@@ -110,13 +138,21 @@ export function SendCreditoLinkDialog({ open, onOpenChange, portalUrl, folio, em
     }
   };
 
+  const abrirWhatsApp = () => {
+    let d = phone.replace(/\D/g, "");
+    if (d.length === 10) d = "52" + d;
+    if (d.length < 11) { toast.error("Escribe el celular a 10 dígitos"); return; }
+    const texto = renderVars(mensajeBase("whatsapp"), vars);
+    window.open(`https://wa.me/${d}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden">
         <DialogHeader className="bg-gradient-to-br from-violet-50 to-blue-50 px-6 py-4 border-b">
-          <DialogTitle className="text-base font-semibold tracking-tight">Enviar liga por correo</DialogTitle>
+          <DialogTitle className="text-base font-semibold tracking-tight">Solicitar aviso de privacidad y documentos</DialogTitle>
           <DialogDescription className="text-xs">
-            Plantilla "Enviar Link de Solicitud". Revisa y edita antes de enviar.
+            Correo y WhatsApp con la liga del aviso, el portal y la lista de documentos. Las respuestas por correo llegan a credito@correo.lumaggs.com.mx y se asignan solas.
           </DialogDescription>
         </DialogHeader>
         <div className="px-6 py-5 space-y-3 font-light max-h-[60vh] overflow-y-auto">
@@ -138,9 +174,14 @@ export function SendCreditoLinkDialog({ open, onOpenChange, portalUrl, folio, em
                 <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Mensaje</Label>
                 <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={10} className="font-mono text-xs" />
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                La liga se enviará como enlace activo dentro del cuerpo del correo.
-              </p>
+              <div className="space-y-1.5 pt-2 border-t">
+                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">WhatsApp (celular)</Label>
+                <div className="flex gap-2">
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="664 123 4567" />
+                  <Button type="button" variant="outline" onClick={abrirWhatsApp}><MessageCircle className="h-4 w-4 mr-1.5" />Abrir WhatsApp</Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">Abre tu WhatsApp con el mensaje listo para enviar.</p>
+              </div>
             </>
           )}
         </div>
