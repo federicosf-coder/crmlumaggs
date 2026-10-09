@@ -270,13 +270,21 @@ export default function ReporteDiario() {
       const pagos = (pagosRes.data || []) as any[];
       const pagoIds = pagos.map((p) => p.id);
       const aplicMap = new Map<string, string[]>();
+      const aplicEjecMap = new Map<string, Set<string>>();
       if (pagoIds.length > 0) {
         const { data: aplic, error: aplicErr } = await supabase
           .from("cobranza_aplicaciones")
-          .select("pago_id, documento_id, documentos:documento_id(numero_factura)")
+          .select("pago_id, documento_id, estatus_aplicacion, documentos:documento_id(numero_factura, ejecutivo_venta_id)")
           .in("pago_id", pagoIds);
         if (aplicErr) throw aplicErr;
         for (const a of (aplic || []) as any[]) {
+          if (a.estatus_aplicacion && a.estatus_aplicacion !== "activa") continue;
+          const ej = a.documentos?.ejecutivo_venta_id;
+          if (ej) {
+            const s = aplicEjecMap.get(a.pago_id) || new Set<string>();
+            s.add(ej);
+            aplicEjecMap.set(a.pago_id, s);
+          }
           const folio = a.documentos?.numero_factura;
           if (!folio) continue;
           const arr = aplicMap.get(a.pago_id) || [];
@@ -285,9 +293,9 @@ export default function ReporteDiario() {
         }
       }
 
-      // Ejecutivos asignados por empresa (company_ejecutivos)
+      // Respaldo: ejecutivos de la empresa solo si el pago no está aplicado a documentos
       const pagoEmpresaIds = Array.from(
-        new Set(pagos.map((p) => p.empresa_id).filter(Boolean))
+        new Set(pagos.filter((p) => !aplicEjecMap.has(p.id)).map((p) => p.empresa_id).filter(Boolean))
       ) as string[];
       const empresaEjecutivosMap = new Map<string, string[]>();
       if (pagoEmpresaIds.length > 0) {
@@ -312,7 +320,9 @@ export default function ReporteDiario() {
         metodoPago: p.metodo_pago || "—",
         importe: Number(p.monto_total) || 0,
         facturas: aplicMap.get(p.id) || [],
-        ejecutivoIds: p.empresa_id ? empresaEjecutivosMap.get(p.empresa_id) || [] : [],
+        ejecutivoIds: aplicEjecMap.has(p.id)
+          ? Array.from(aplicEjecMap.get(p.id)!)
+          : p.empresa_id ? empresaEjecutivosMap.get(p.empresa_id) || [] : [],
       }));
 
       const actsRaw = (actsRes.data || []) as any[];
@@ -373,7 +383,7 @@ export default function ReporteDiario() {
           .in("creado_por", ids),
       ]);
       if (docsRes.error) throw docsRes.error;
-      if (pagosRes.error) throw pagosRes.error;
+      void pagosRes;
 
       const rows = (docsRes.data || []) as any[];
       const docIds = rows.map((d) => d.id);
@@ -428,13 +438,31 @@ export default function ReporteDiario() {
         }
       }
 
-      for (const p of (pagosRes.data || []) as any[]) {
-        const imp = Number(p.monto_total) || 0;
-        const b = bucket(p.creado_por || null);
-        if (p.empresa_vendedora === "lumaggs_chevron") {
+      // Cobranza del mes atribuida al ejecutivo de la factura/documento al que se aplicó el pago
+      const aplics: any[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await (supabase as any)
+          .from("cobranza_aplicaciones")
+          .select(
+            "monto_aplicado, estatus_aplicacion, pago:pago_id!inner(fecha_pago, empresa_vendedora, estado_pago), doc:documento_id!inner(ejecutivo_venta_id)"
+          )
+          .eq("estatus_aplicacion", "activa")
+          .gte("pago.fecha_pago", mesStart)
+          .lte("pago.fecha_pago", hasta)
+          .neq("pago.estado_pago", "cancelado")
+          .in("doc.ejecutivo_venta_id", ids)
+          .range(from, from + 999);
+        if (error) throw error;
+        aplics.push(...(data || []));
+        if (!data || data.length < 1000) break;
+      }
+      for (const a of aplics) {
+        const imp = Number(a.monto_aplicado) || 0;
+        const b = bucket(a.doc?.ejecutivo_venta_id || null);
+        if (a.pago?.empresa_vendedora === "lumaggs_chevron") {
           agg.cobLumaggs += imp;
           b.cobLumaggs += imp;
-        } else if (p.empresa_vendedora === "galsa_phillips66") {
+        } else if (a.pago?.empresa_vendedora === "galsa_phillips66") {
           agg.cobGalsa += imp;
           b.cobGalsa += imp;
         }

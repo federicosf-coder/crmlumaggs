@@ -86,14 +86,27 @@ export default function ImportarFacturasXML() {
     async (empresaId: string) => {
       if (!empresaId || perfilCargando.current.has(empresaId)) return;
       perfilCargando.current.add(empresaId);
-      const [{ data: comp }, { data: ejec }, { data: cts }] = await Promise.all([
+      const [{ data: comp }, { data: ejec }, { data: cts }, { data: ultDoc }] = await Promise.all([
         (supabase as any).from("companies").select("primary_contact_id, tipo_pago").eq("id", empresaId).maybeSingle(),
         (supabase as any).from("company_ejecutivos").select("user_id").eq("company_id", empresaId).limit(1),
         // Todos los contactos de la empresa, sin importar quién los capturó
         (supabase as any).rpc("get_company_contacts_for_cobranza", { p_company_id: empresaId }),
+        // Prioridad: ejecutivo del pedido/cotización más reciente de la empresa
+        (supabase as any)
+          .from("documentos")
+          .select("ejecutivo_venta_id")
+          .eq("empresa_id", empresaId)
+          .eq("is_active", true)
+          .in("tipo_documento", ["pedido", "cotizacion"])
+          .not("ejecutivo_venta_id", "is", null)
+          .order("fecha_documento", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(1),
       ]);
       const perfil: PerfilEmpresa = {
-        ejecutivoDefault: ejec && ejec.length ? ejec[0].user_id : null,
+        ejecutivoDefault:
+          (ultDoc && ultDoc.length ? ultDoc[0].ejecutivo_venta_id : null) ||
+          (ejec && ejec.length ? ejec[0].user_id : null),
         contactoDefault: comp?.primary_contact_id || null,
         tipoPagoDefault: comp?.tipo_pago || null,
         contactos: (cts || [])
