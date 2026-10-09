@@ -29,6 +29,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getPortalSession, clearPortalSession } from "@/lib/creditoPortalSession";
 import { CreditoPortalLock } from "@/components/credito/CreditoPortalLock";
+import { CreditoPrivacyGate } from "@/components/credito/CreditoPrivacyGate";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -400,7 +401,7 @@ const SHOW_BC_PORTAL = false;
 export default function CreditoPortal() {
   const { token } = useParams<{ token: string }>();
   if (!token) return null;
-  return <CreditoPortalLock token={token}><CreditoPortalInner /></CreditoPortalLock>;
+  return <CreditoPortalLock token={token}><CreditoPrivacyGate token={token}><CreditoPortalInner /></CreditoPrivacyGate></CreditoPortalLock>;
 }
 
 function CreditoPortalInner() {
