@@ -20,6 +20,29 @@ const json = (body: unknown, status = 200) =>
 
 const toHex = (b: Uint8Array) => Array.from(b).map((x) => x.toString(16).padStart(2, '0')).join('')
 const fromHex = (h: string) => new Uint8Array(h.match(/.{2}/g)!.map((x) => parseInt(x, 16)))
+const sha256Hex = async (s: string) => toHex(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))))
+
+// Cambiar la versión cada vez que se modifique el texto: obliga a una nueva firma.
+const AVISO_VERSION = '2026-10-v1'
+const AVISO_TEXTO = `AVISO DE PRIVACIDAD Y CONVENIO DE CONFIDENCIALIDAD
+
+1. RESPONSABLE. Lubricantes y Marcas del Golfo / Galsa (en adelante "el Responsable"), con domicilio en Baja California, México, es responsable del tratamiento de sus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP), su Reglamento y los Lineamientos del Aviso de Privacidad.
+
+2. DATOS QUE SE RECABAN. Datos de identificación y contacto; datos fiscales (RFC, Constancia de Situación Fiscal); datos de representantes legales, socios, avales y obligados solidarios; documentos de identificación oficial y comprobantes de domicilio; datos patrimoniales y financieros (estados financieros, referencias bancarias y comerciales, historial crediticio). Se tratarán datos patrimoniales y financieros, para lo cual se requiere su consentimiento expreso.
+
+3. FINALIDADES. Primarias: (a) evaluar y, en su caso, otorgar una línea de crédito comercial; (b) integrar y conservar el expediente de crédito; (c) verificar la identidad y la información proporcionada, incluyendo consulta a sociedades de información crediticia y referencias; (d) administrar la relación comercial, facturación y cobranza; (e) cumplir obligaciones legales. Secundarias: envío de información comercial. Puede oponerse a las finalidades secundarias escribiendo al correo de privacidad indicado abajo.
+
+4. TRANSFERENCIAS. Sus datos podrán compartirse con: sociedades de información crediticia; aseguradoras o empresas de garantía de crédito (por ejemplo, para el aseguramiento de la cartera); proveedores y marcas representadas (Chevron, Phillips 66) cuando sea necesario para la relación comercial; y autoridades competentes cuando la ley lo requiera. Las transferencias que requieran consentimiento se entienden autorizadas con la firma de este aviso.
+
+5. DERECHOS ARCO. Usted puede ejercer sus derechos de Acceso, Rectificación, Cancelación y Oposición, así como revocar su consentimiento o limitar el uso de sus datos, mediante solicitud a su ejecutivo o al correo facturas@correo.lumaggs.com.mx, indicando nombre, documento de identidad, la descripción de los datos y el derecho que desea ejercer. Se responderá en un plazo máximo de 20 días hábiles.
+
+6. CONFIDENCIALIDAD. Ambas partes se obligan a mantener en estricta confidencialidad la información fiscal, legal, financiera y comercial intercambiada con motivo de la solicitud de crédito, a utilizarla únicamente para los fines aquí señalados y a no divulgarla a terceros salvo en los supuestos del punto 4 o por mandato de autoridad. Esta obligación subsiste aun cuando no se otorgue el crédito o termine la relación comercial.
+
+7. CONSERVACIÓN Y SEGURIDAD. La información se resguarda con medidas de seguridad administrativas, técnicas y físicas, y se conservará durante el tiempo necesario para las finalidades y los plazos legales aplicables.
+
+8. CAMBIOS. Cualquier modificación a este aviso se le comunicará a través del portal de crédito y requerirá nueva aceptación.
+
+9. CONSENTIMIENTO Y FIRMA ELECTRÓNICA. Al firmar electrónicamente, el firmante declara tener facultades para obligar a la empresa solicitante, otorga su consentimiento expreso para el tratamiento de los datos personales, patrimoniales y financieros descritos, y acepta el convenio de confidencialidad. Las partes reconocen esta firma electrónica como medio válido de manifestación de la voluntad conforme a los artículos 89 a 114 del Código de Comercio y 1803 y 1834 bis del Código Civil Federal. Se registran como evidencia: nombre, trazo de firma, fecha y hora (UTC), dirección IP, navegador/dispositivo y la huella digital (SHA-256) de este texto.`
 async function pbkdf2(pwd: string, salt: Uint8Array, iter: number) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pwd), 'PBKDF2', false, ['deriveBits'])
   const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, key, 256)
@@ -315,10 +338,11 @@ Deno.serve(async (req) => {
       firma_trazo: trazo, ip, user_agent: ua, signed_at: signedAt, evidencia_xml: xml, evidencia_hash: evidenciaHash,
     }).select('id, signed_at, firmante_nombre, aviso_version').single()
     if (error) return json({ error: error.message }, 500)
-    await supabase.from('credit_request_history').insert({
-      credit_request_id: ctx.requestId, accion: 'aviso_privacidad_firmado',
-      detalle: { firmante: nombre, ip, signed_at: signedAt, evidencia_hash: evidenciaHash },
-    } as any).then(() => {}, () => {})
+    const { data: est } = await supabase.from('credit_requests').select('estado').eq('id', ctx.requestId).maybeSingle()
+    if (est) await supabase.from('credit_request_history').insert({
+      credit_request_id: ctx.requestId, estado_anterior: est.estado, estado_nuevo: est.estado,
+      nota: `Aviso de privacidad y confidencialidad firmado electrónicamente por ${nombre} (IP ${ip || 'desconocida'}, ${signedAt}). Hash evidencia: ${evidenciaHash}`,
+    })
     return json({ ok: true, consent: ins })
   }
 
