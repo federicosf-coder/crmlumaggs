@@ -92,7 +92,8 @@ Deno.serve(async (req) => {
   let htmlOverride: string | undefined
   let cc: string[] | undefined
   let bcc: string[] | undefined
-  let replyTo: string | undefined
+  let replyTo: string | string[] | undefined
+  let replyToCreditRequestId: string | undefined
   let fromAddress: string | undefined
   try {
     const body = await req.json()
@@ -109,6 +110,8 @@ Deno.serve(async (req) => {
     if (Array.isArray(body.bcc)) bcc = body.bcc.filter((e: any) => typeof e === 'string' && e)
     if (typeof body.replyTo === 'string' && body.replyTo) replyTo = body.replyTo
     else if (typeof body.reply_to === 'string' && body.reply_to) replyTo = body.reply_to
+    else if (Array.isArray(body.replyTo)) replyTo = body.replyTo.filter((e: any) => typeof e === 'string' && e)
+    if (typeof body.replyToCreditRequestId === 'string' && /^[0-9a-f-]{36}$/i.test(body.replyToCreditRequestId)) replyToCreditRequestId = body.replyToCreditRequestId
     if (typeof body.from === 'string' && body.from.trim()) fromAddress = body.from.trim()
   } catch {
     return new Response(
