@@ -47,6 +47,7 @@ export function CreditoDocsIntakeTab() {
           "id,credit_request_id,folio_detectado,doc_type_sugerido_id,confianza_ia,storage_path,nombre_archivo,mime_type,estatus,remitente_email,asunto_email,resend_email_id,extraccion_raw,extraccion_error,created_at"
         )
         .eq("estatus", "pendiente")
+        .eq("origen", "email")
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data || []) as unknown as IntakeRow[];
