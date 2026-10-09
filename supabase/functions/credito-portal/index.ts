@@ -322,7 +322,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, consent: ins })
   }
 
-  if (!consent && action !== 'print_data') return json({ error: 'privacy_required' }, 403)
+  if (!consent) return json({ error: 'privacy_required' }, 403)
 
   try {
     if (action === 'get') {
