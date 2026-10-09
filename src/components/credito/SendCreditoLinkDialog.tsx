@@ -29,7 +29,9 @@ function mensajeBase(canal: "email" | "whatsapp") {
     : `3. Envíe sus documentos por correo a ${BUZON} con el folio {folio_solicitud} en el asunto. El sistema los identifica y los integra a su expediente automáticamente.`;
   return `Estimado(a) {nombre_contacto}:
 
-Para iniciar la Solicitud de Crédito de {nombre_empresa} (folio {folio_solicitud}) le pedimos lo siguiente:
+Para iniciar la Solicitud de Crédito de {nombre_empresa} (folio {folio_solicitud}) le pedimos lo siguiente.
+
+Guía paso a paso (PDF): {liga_guia}
 
 1. Firme en pantalla el Aviso de Privacidad y Confidencialidad (requisito legal, no requiere contraseña):
 {liga_aviso}
@@ -93,6 +95,7 @@ export function SendCreditoLinkDialog({ open, onOpenChange, portalUrl, folio, em
       const v: Record<string, string> = {
         liga_solicitud_credito: portalUrl,
         liga_aviso: avisoUrl || portalUrl,
+        liga_guia: "https://portal.lumaggs.com.mx/guia-solicitud-credito.pdf",
         clave_temporal: tempPassword || "(la que ya creó)",
         folio_solicitud: folio || "",
         nombre_contacto: contactoNombre || "Cliente",
