@@ -691,11 +691,11 @@ export default function UserManagement() {
           ) : filteredUsers.length === 0 ? (
             <p className="text-muted-foreground py-6 text-sm text-center">No hay usuarios que coincidan con los filtros.</p>
           ) : (
+            <div className="max-h-[calc(100vh-15rem)] min-h-[300px] overflow-auto rounded-xl border border-border/60 [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-20 bg-background">
                 <TableRow className="[&>th]:h-9 [&>th]:px-2 [&>th]:text-xs">
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Correo</TableHead>
+                  <TableHead className="sticky left-0 z-30 bg-background min-w-[220px]">Usuario</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Roles</TableHead>
                   <TableHead>Equipos</TableHead>
@@ -703,14 +703,16 @@ export default function UserManagement() {
                   <TableHead>Supervisor</TableHead>
 
                   <TableHead>Agregar Rol</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="sticky right-0 z-30 bg-background text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((u) => (
                   <TableRow key={u.user_id} className="[&>td]:py-1.5 [&>td]:px-2 text-sm">
-                    <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                    <TableCell className="sticky left-0 z-10 bg-background min-w-[220px] max-w-[260px] shadow-[6px_0_8px_-6px_hsl(var(--foreground)/0.15)]">
+                      <div className="font-medium truncate">{u.full_name || "—"}</div>
+                      <div className="text-xs text-muted-foreground truncate" title={u.email ?? ""}>{u.email}</div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={u.is_active ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
                         {u.is_active ? "Activo" : "Inactivo"}
@@ -787,7 +789,7 @@ export default function UserManagement() {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="sticky right-0 z-10 bg-background shadow-[-6px_0_8px_-6px_hsl(var(--foreground)/0.15)]">
                       <div className="flex items-center justify-end">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(u)} title="Editar usuario">
                           <Pencil className="h-4 w-4" />
@@ -828,6 +830,7 @@ export default function UserManagement() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
