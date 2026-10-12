@@ -598,6 +598,7 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
   const cc: string[] = [
     "precios@correo.lumaggs.com.mx",
     "f.sarinanaf@lumaggs.com.mx",
+    "r.galvang@dagal.com.mx",
   ];
 
   const pushCc = (email?: string | null) => {
@@ -677,9 +678,32 @@ export async function buildAutorizacionPrecioEmailFlow(autorizacionId: string) {
     }
   }
 
-  // 9d. CC de la plantilla, omitiendo correos de atención a clientes de otras plazas
+  // 9d. CC de la plantilla, omitiendo atención a clientes y almacén de otras plazas
+  let almacenOtrasPlazas = new Set<string>();
+  try {
+    const { data: whRows } = await (supabase as any)
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "warehouse");
+    const whIds = Array.from(new Set((whRows || []).map((r: any) => r.user_id).filter(Boolean)));
+    if (whIds.length) {
+      const { data: whProfs } = await (supabase as any)
+        .from("profiles")
+        .select("email, plaza_id")
+        .in("user_id", whIds)
+        .not("email", "is", null);
+      almacenOtrasPlazas = new Set(
+        (whProfs || [])
+          .filter((p: any) => p.plaza_id && p.plaza_id !== plazaEjecId)
+          .map((p: any) => String(p.email).trim().toLowerCase())
+      );
+    }
+  } catch {
+    /* sin filtro de almacén */
+  }
   for (const e of tplCc) {
     if (esCorreoAtencionClientes(e) && !mismoCorreo(e, atencionPlazaEmail)) continue;
+    if (almacenOtrasPlazas.has((e || "").trim().toLowerCase())) continue;
     pushCc(e);
   }
 
