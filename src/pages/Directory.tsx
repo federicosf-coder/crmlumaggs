@@ -1034,17 +1034,17 @@ export default function Directory() {
                 <p className="text-xs text-muted-foreground/70 mt-1">Agrega un contacto para comenzar</p>
               </div>
             ) : contactView === "list" ? (
-              <div className="overflow-x-auto">
+              <div className="max-h-[calc(100vh-15rem)] overflow-auto rounded-xl border border-border/60 bg-background/80 shadow-sm backdrop-blur-xl [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
                     <TableRow>
-                      <TableHead className="w-10">
+                      <TableHead className="w-10 sticky left-0 z-30 bg-background">
                         <Checkbox
                           checked={filteredContacts.length > 0 && selectedContactIds.size === filteredContacts.length}
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Nombre</TableHead>
+                      <TableHead className="sticky left-10 z-30 bg-background">Nombre</TableHead>
                       <TableHead>Apellido</TableHead>
                       <TableHead className="hidden sm:table-cell">WhatsApp</TableHead>
                       <TableHead className="hidden sm:table-cell">Empresa</TableHead>
