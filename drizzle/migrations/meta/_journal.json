@@ -36,6 +36,13 @@
       "when": 1791561830537,
       "tag": "0004_reclamos_desde_devolucion",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791921740841,
+      "tag": "0005_credit_requests_requiere_aval",
+      "breakpoints": true
     }
   ]
 }

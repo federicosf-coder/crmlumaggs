@@ -31,8 +31,8 @@ const EXCLUIR_DOCS_CORREO = [
 
 function mensajeBase(canal: "email" | "whatsapp") {
   const docsIntro = canal === "email"
-    ? `3. Suba al portal o envíe sus documentos respondiendo este correo (o escribiendo a ${BUZON} con el folio {folio_solicitud} en el asunto). El sistema los identifica y los integra a su expediente automáticamente.`
-    : `3. Envíe sus documentos por correo a ${BUZON} con el folio {folio_solicitud} en el asunto. El sistema los identifica y los integra a su expediente automáticamente.`;
+    ? `3. Suba a la plataforma o envíe sus documentos por correo a ${BUZON} con el folio {folio_solicitud} en el asunto. El sistema los identifica y los integra a su expediente automáticamente.`
+    : `3. Suba a la plataforma o envíe sus documentos por correo a ${BUZON} con el folio {folio_solicitud} en el asunto. El sistema los identifica y los integra a su expediente automáticamente.`;
   return `Estimado(a) {nombre_contacto}:
 
 Para iniciar la Solicitud de Crédito de {nombre_empresa} (folio {folio_solicitud}) le pedimos lo siguiente.
