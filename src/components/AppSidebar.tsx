@@ -7,7 +7,7 @@ import {
   MessageCircle, Megaphone, FileBadge, Bot, FileStack, Inbox,
   Briefcase, Zap, FolderOpen, TrendingUp,
   FileCheck, Boxes, ChevronDown, Link2,
-  Sliders, ClipboardList, ShieldAlert, Network, DollarSign, TableProperties,
+  Sliders, ClipboardList, ShieldAlert, Network, Gauge, DollarSign, TableProperties,
   Workflow,
   CalendarCheck, BadgeDollarSign, Upload, Lock,
 } from "lucide-react";
@@ -387,6 +387,14 @@ export function AppSidebar() {
                         <NavLink to="/inventario/traspasos" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <ArrowLeftRight className="mr-2 h-4 w-4" />
                           {!collapsed && <span>Traspasos</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <NavLink to="/inventario/control-45" className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <Gauge className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>Control 45 días</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
