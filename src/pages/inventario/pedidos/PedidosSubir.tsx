@@ -244,19 +244,19 @@ export default function PedidosSubir() {
 
       {resultados.length > 0 && (
         <Card>
-          <CardContent className="p-0 overflow-x-auto">
+          <CardContent className="p-0 max-h-[calc(100vh-14rem)] overflow-auto">
             <Table>
-              <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+              <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50 backdrop-blur">
                 <TableRow>
-                  {["Archivo", "Proveedor", "Estado", "PO", "Líneas"].map((h) => (
-                    <TableHead key={h} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>
+                  {["Archivo", "Proveedor", "Estado", "PO", "Líneas"].map((h, idx) => (
+                    <TableHead key={h} className={`uppercase tracking-wide text-xs font-medium ${idx === 0 ? "sticky left-0 z-30 bg-background" : ""}`}>{h}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {resultados.map((r, i) => (
                   <TableRow key={r.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
-                    <TableCell className="text-xs font-light">{r.nombre}</TableCell>
+                    <TableCell className={`text-xs font-light sticky left-0 z-10 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>{r.nombre}</TableCell>
                     <TableCell className="text-xs">{r.proveedor || "—"}</TableCell>
                     <TableCell>{estadoBadge(r)}</TableCell>
                     <TableCell className="font-mono text-xs">{r.numero_po || "—"}</TableCell>

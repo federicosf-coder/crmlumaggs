@@ -199,16 +199,16 @@ export default function PedidosReclamos() {
       </Card>
 
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0 max-h-[calc(100vh-14rem)] overflow-auto">
           <Table>
-            <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
-              <TableRow>{["Pedido", "Factura", "Cliente", "No. Pedido Factura", "ID Reclamo", "Fecha Reclamo", "SKUs", "Estatus", "Enviado"].map((h) =>
-                <TableHead key={h} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>)}</TableRow>
+            <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50 backdrop-blur">
+              <TableRow>{["Pedido", "Factura", "Cliente", "No. Pedido Factura", "ID Reclamo", "Fecha Reclamo", "SKUs", "Estatus", "Enviado"].map((h, idx) =>
+                <TableHead key={h} className={`uppercase tracking-wide text-xs font-medium ${idx === 0 ? "sticky left-0 z-30 bg-background" : ""}`}>{h}</TableHead>)}</TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((r, i) => (
                 <TableRow key={r.id} className={`cursor-pointer ${i % 2 === 0 ? "" : "bg-muted/20"}`} onClick={() => setDetailId(r.id)}>
-                  <TableCell className="font-mono text-xs">{r.inv_pedidos?.numero_po_interno || "—"}</TableCell>
+                  <TableCell className={`font-mono text-xs sticky left-0 z-10 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>{r.inv_pedidos?.numero_po_interno || "—"}</TableCell>
                   <TableCell className="text-xs">{r.chevron_facturas_recibidas?.folio ? `Folio ${r.chevron_facturas_recibidas.folio}` : "—"}</TableCell>
                   <TableCell className="text-xs font-medium">{r.cliente_nombre || "LUMAGGS"}</TableCell>
                   <TableCell className="font-mono text-xs">{r.no_pedido_factura || "—"}</TableCell>

@@ -302,11 +302,11 @@ function HuerfanosTab() {
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
-          <div className="overflow-x-auto border rounded-md">
+          <div className="max-h-[calc(100vh-20rem)] overflow-auto border rounded-md">
             <Table>
-              <TableHeader className={HEADER_CLS}>
+              <TableHeader className={`${HEADER_CLS} sticky top-0 z-10`}>
                 <TableRow>
-                  <TableHead>Código</TableHead>
+                  <TableHead className="sticky left-0 z-30 bg-background">Código</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Unidad</TableHead>
@@ -317,7 +317,7 @@ function HuerfanosTab() {
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead>ABC</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead className="sticky right-0 z-30 bg-background text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -325,7 +325,7 @@ function HuerfanosTab() {
                   const prov = detectProveedor(h.empresa_vendedora);
                   return (
                     <TableRow key={h.codigo_producto} className={i % 2 ? "bg-muted/20" : ""}>
-                      <TableCell className="font-mono text-xs">{h.codigo_producto}</TableCell>
+                      <TableCell className={`font-mono text-xs sticky left-0 z-10 ${i % 2 ? "bg-muted/20" : "bg-background"}`}>{h.codigo_producto}</TableCell>
                       <TableCell className="text-sm">{h.nombre_producto}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={prov === "chevron" ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}>
@@ -340,7 +340,7 @@ function HuerfanosTab() {
                       <TableCell className="text-right font-medium tabular-nums">{h.stock_total ?? 0}</TableCell>
                       <TableCell><Badge variant="outline" className={abcColor(h.clasificacion_abc)}>{h.clasificacion_abc || "—"}</Badge></TableCell>
                       <TableCell><Badge variant="outline" className={statusColor(h.estatus_inventario)}>{h.estatus_inventario || "—"}</Badge></TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={`text-right sticky right-0 z-10 ${i % 2 ? "bg-muted/20" : "bg-background"}`}>
                         <div className="flex gap-1 justify-end">
                           <Button
                             size="sm"
@@ -406,25 +406,25 @@ function FantasmasTab() {
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
-          <div className="overflow-x-auto border rounded-md">
+          <div className="max-h-[calc(100vh-20rem)] overflow-auto border rounded-md">
             <Table>
-              <TableHeader className={HEADER_CLS}>
+              <TableHeader className={`${HEADER_CLS} sticky top-0 z-10`}>
                 <TableRow>
-                  <TableHead>Código</TableHead>
+                  <TableHead className="sticky left-0 z-30 bg-background">Código</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Presentación</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead className="sticky right-0 z-30 bg-background text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {fantasmas.map((p: any, i: number) => (
                   <TableRow key={p.id} className={i % 2 ? "bg-muted/20" : ""}>
-                    <TableCell className="font-mono text-xs">{p.codigo}</TableCell>
+                    <TableCell className={`font-mono text-xs sticky left-0 z-10 ${i % 2 ? "bg-muted/20" : "bg-background"}`}>{p.codigo}</TableCell>
                     <TableCell className="text-sm">{p.nombre_producto}</TableCell>
                     <TableCell className="text-xs">{p.presentaciones?.nombre || "—"}</TableCell>
                     <TableCell><Badge variant="outline" className="bg-gray-50 text-gray-600">Sin stock</Badge></TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className={`text-right sticky right-0 z-10 ${i % 2 ? "bg-muted/20" : "bg-background"}`}>
                       <div className="flex gap-1 justify-end">
                         <Button size="sm" variant="outline" onClick={() => navigate(`/inventory?search=${encodeURIComponent(p.codigo)}`)}>
                           <Eye className="h-3 w-3 mr-1" /> Ver
@@ -523,23 +523,23 @@ function MapeadosTab() {
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
-          <div className="overflow-x-auto border rounded-md">
+          <div className="max-h-[calc(100vh-20rem)] overflow-auto border rounded-md">
             <Table>
-              <TableHeader className={HEADER_CLS}>
+              <TableHeader className={`${HEADER_CLS} sticky top-0 z-10`}>
                 <TableRow>
-                  <TableHead>Código CONTPAQi</TableHead>
+                  <TableHead className="sticky left-0 z-30 bg-background">Código CONTPAQi</TableHead>
                   <TableHead>Código proveedor</TableHead>
                   <TableHead>Producto</TableHead>
                   <TableHead>Proveedor</TableHead>
                   <TableHead className="text-right">Pzs/tarima</TableHead>
                   <TableHead>Confirmado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead className="sticky right-0 z-30 bg-background text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((m: any, i: number) => (
                   <TableRow key={m.id} className={i % 2 ? "bg-muted/20" : ""}>
-                    <TableCell className="font-mono text-xs">{m.codigo_contpaqi}</TableCell>
+                    <TableCell className={`font-mono text-xs sticky left-0 z-10 ${i % 2 ? "bg-muted/20" : "bg-background"}`}>{m.codigo_contpaqi}</TableCell>
                     <TableCell className="font-mono text-xs">{m.codigo_proveedor}</TableCell>
                     <TableCell className="text-sm">{m.productos?.nombre_producto || "—"}</TableCell>
                     <TableCell>
@@ -553,7 +553,7 @@ function MapeadosTab() {
                         {m.confirmado ? "Sí" : "Pendiente"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className={`text-right sticky right-0 z-10 ${i % 2 ? "bg-muted/20" : "bg-background"}`}>
                       <div className="flex gap-1 justify-end">
                         <Button size="sm" variant="outline" onClick={() => setEditTarget(m)}>
                           <Pencil className="h-3 w-3" />
@@ -655,11 +655,11 @@ function CostosSinProductoTab() {
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
-          <div className="overflow-x-auto border rounded-md">
+          <div className="max-h-[calc(100vh-16rem)] overflow-auto border rounded-md [&>div]:overflow-visible">
             <Table>
-              <TableHeader className={HEADER_CLS}>
+              <TableHeader className={`${HEADER_CLS} sticky top-0 z-10`}>
                 <TableRow>
-                  <TableHead>Código</TableHead>
+                  <TableHead className="sticky left-0 z-30 bg-background">Código</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Marca</TableHead>
                   {canViewCostos && <TableHead className="text-right">Costo</TableHead>}
@@ -669,7 +669,7 @@ function CostosSinProductoTab() {
               <TableBody>
                 {visibles.map((r: any, i: number) => (
                   <TableRow key={r.codigo_producto} className={i % 2 ? "bg-muted/20" : ""}>
-                    <TableCell className="font-mono text-xs">{r.codigo_producto}</TableCell>
+                    <TableCell className="font-mono text-xs sticky left-0 z-20 bg-background">{r.codigo_producto}</TableCell>
                     <TableCell className="text-sm">{r.nombre_en_archivo || "—"}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={r.empresa === "lumaggs" ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}>
@@ -736,11 +736,11 @@ function CostosSinProductoTab() {
             {mostrarIgnorados ? "Ocultar" : "Mostrar"} ignorados ({(ignorados as any[]).length})
           </Button>
           {mostrarIgnorados && (
-            <div className="overflow-x-auto border rounded-md mt-3">
+            <div className="max-h-[calc(100vh-16rem)] overflow-auto border rounded-md [&>div]:overflow-visible mt-3">
               <Table>
-                <TableHeader className={HEADER_CLS}>
+                <TableHeader className={`${HEADER_CLS} sticky top-0 z-10`}>
                   <TableRow>
-                    <TableHead>Código</TableHead>
+                    <TableHead className="sticky left-0 z-30 bg-background">Código</TableHead>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Marca</TableHead>
                     {canViewCostos && <TableHead className="text-right">Costo</TableHead>}
@@ -754,7 +754,7 @@ function CostosSinProductoTab() {
                     const r = rowsPorCodigo.get(ig.codigo_producto);
                     return (
                       <TableRow key={ig.codigo_producto} className={i % 2 ? "bg-muted/20" : ""}>
-                        <TableCell className="font-mono text-xs">{ig.codigo_producto}</TableCell>
+                        <TableCell className="font-mono text-xs sticky left-0 z-20 bg-background">{ig.codigo_producto}</TableCell>
                         <TableCell className="text-sm">{r?.nombre_en_archivo || "—"}</TableCell>
                         <TableCell className="text-sm">{r?.marca_label || "—"}</TableCell>
                         {canViewCostos && (

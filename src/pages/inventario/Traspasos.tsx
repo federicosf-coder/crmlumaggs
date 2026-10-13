@@ -224,11 +224,11 @@ export default function Traspasos() {
                     </div>
                   )}
                 </div>
-                <CardContent className="p-0 overflow-x-auto">
-                  <Table>
-                    <TableHeader>
+                <CardContent className="p-0 max-h-[calc(100vh-24rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+                  <Table className="min-w-max">
+                    <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
                       <TableRow>
-                        <Th>Código</Th><Th>Producto</Th>
+                        <Th className="sticky left-0 z-30 bg-background/95 backdrop-blur shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Código</Th><Th>Producto</Th>
                         <Th className="text-right">Sugerido</Th>
                         <Th className="text-right">Stock origen</Th>
                         <Th className="text-right">Stock destino</Th>
@@ -237,9 +237,11 @@ export default function Traspasos() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {allLineas.map((l: any, i: number) => (
-                        <TableRow key={l.id} className={i % 2 ? "bg-muted/20" : ""}>
-                          <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
+                      {allLineas.map((l: any, i: number) => {
+                        const rowBg = i % 2 ? "bg-muted/20" : "bg-background";
+                        return (
+                        <TableRow key={l.id} className={rowBg}>
+                          <TableCell className={`font-mono text-xs sticky left-0 z-10 ${rowBg} shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]`}>{l.codigo_producto}</TableCell>
                           <TableCell className="max-w-[260px] truncate">{l.nombre_producto || "—"}</TableCell>
                           <TableCell className="text-right tabular-nums font-medium">{l.cantidad_sugerida}</TableCell>
                           <TableCell className="text-right tabular-nums">{l.stock_origen_actual ?? "—"}</TableCell>
@@ -247,7 +249,8 @@ export default function Traspasos() {
                           <TableCell className="text-right tabular-nums">{l.minimo_destino ?? "—"}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{l.motivo}</TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -257,25 +260,27 @@ export default function Traspasos() {
         </TabsContent>
 
         <TabsContent value="transito" className="mt-4">
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0 max-h-[calc(100vh-24rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+              <Table className="min-w-max">
+                <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">
                   <TableRow>
-                    <Th>Origen</Th><Th>Destino</Th><Th>Fecha sug.</Th><Th>Fecha envío</Th>
-                    <Th className="text-right">SKUs</Th><Th>Estatus</Th><Th>Acciones</Th>
+                    <Th className="sticky left-0 z-30 bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Origen</Th><Th>Destino</Th><Th>Fecha sug.</Th><Th>Fecha envío</Th>
+                    <Th className="text-right">SKUs</Th><Th>Estatus</Th><Th className="sticky right-0 z-30 bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">Acciones</Th>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {enTransito.map((t: any, i: number) => (
-                    <TableRow key={t.id} className={i % 2 ? "bg-muted/20" : ""}>
-                      <TableCell>{ALMACEN_LABELS[t.almacen_origen]}</TableCell>
+                  {enTransito.map((t: any, i: number) => {
+                    const rowBg = i % 2 ? "bg-muted/20" : "bg-background";
+                    return (
+                    <TableRow key={t.id} className={rowBg}>
+                      <TableCell className={`sticky left-0 z-10 ${rowBg} shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]`}>{ALMACEN_LABELS[t.almacen_origen]}</TableCell>
                       <TableCell>{ALMACEN_LABELS[t.almacen_destino]}</TableCell>
                       <TableCell className="text-xs">{t.fecha_sugerida || "—"}</TableCell>
                       <TableCell className="text-xs">{t.fecha_envio || "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{(lineasByTraspaso[t.id] || []).length}</TableCell>
                       <TableCell><Badge className={ESTATUS_COLOR[t.estatus]}>{t.estatus}</Badge></TableCell>
-                      <TableCell>
+                      <TableCell className={`sticky right-0 z-10 ${rowBg}`}>
                         {puedeEditar && t.estatus === "aprobado" && (
                           <Button size="sm" variant="outline" onClick={() => updateEstatus(t.id, "enviado", { fecha_envio: new Date().toISOString().slice(0, 10) })}>
                             <Truck className="h-3 w-3 mr-1" /> Marcar enviado
@@ -288,7 +293,8 @@ export default function Traspasos() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                   {enTransito.length === 0 && (
                     <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Sin traspasos en tránsito</TableCell></TableRow>
                   )}

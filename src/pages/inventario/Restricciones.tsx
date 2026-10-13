@@ -156,21 +156,23 @@ export default function Restricciones() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">
+        <Card className="overflow-hidden">
+          <CardContent className="p-0 max-h-[calc(100vh-24rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+            <Table className="min-w-max">
+              <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">
                 <TableRow>
-                  <Th>Tipo</Th><Th>Código</Th><Th>Producto</Th><Th>Marca</Th>
+                  <Th>Tipo</Th><Th className="sticky left-0 z-30 bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Código</Th><Th>Producto</Th><Th>Marca</Th>
                   <Th>Pedido</Th><Th>Descripción</Th>
-                  <Th>Inicio</Th><Th>Fin</Th><Th>Activa</Th><Th>Acciones</Th>
+                  <Th>Inicio</Th><Th>Fin</Th><Th>Activa</Th><Th className="sticky right-0 z-30 bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30">Acciones</Th>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r: Restriccion, i: number) => (
-                  <TableRow key={r.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                {filtered.map((r: Restriccion, i: number) => {
+                  const rowBg = i % 2 === 0 ? "bg-background" : "bg-muted/20";
+                  return (
+                  <TableRow key={r.id} className={rowBg}>
                     <TableCell><Badge variant="outline" className={TIPO_COLOR[r.tipo]}>{TIPO_LABEL[r.tipo] || r.tipo}</Badge></TableCell>
-                    <TableCell className="font-mono text-xs">{r.codigo_producto || <span className="italic text-muted-foreground">Toda la marca</span>}</TableCell>
+                    <TableCell className={`font-mono text-xs sticky left-0 z-10 ${rowBg} shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]`}>{r.codigo_producto || <span className="italic text-muted-foreground">Toda la marca</span>}</TableCell>
                     <TableCell className="max-w-[220px] truncate">{r.codigo_producto ? (productMap[r.codigo_producto] || "—") : "—"}</TableCell>
                     <TableCell><Badge variant="outline" className={MARCA_COLOR[r.marca]}>{r.marca === "phillips66" ? "Phillips 66" : "Chevron"}</Badge></TableCell>
                     <TableCell className="text-xs">{r.pedido_activo_id || <span className="italic text-muted-foreground">Todos</span>}</TableCell>
@@ -180,7 +182,7 @@ export default function Restricciones() {
                     <TableCell>
                       <Switch checked={!!r.activa} disabled={!puedeEditar} onCheckedChange={() => toggleActiva(r)} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className={`sticky right-0 z-10 ${rowBg}`}>
                       <div className="flex gap-1">
                         {puedeEditar && (
                           <>
@@ -192,7 +194,8 @@ export default function Restricciones() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
                 {filtered.length === 0 && (
                   <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sin restricciones</TableCell></TableRow>
                 )}
@@ -215,8 +218,8 @@ export default function Restricciones() {
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
-  return <TableHead className="uppercase tracking-wide text-xs font-medium">{children}</TableHead>;
+function Th({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <TableHead className={`uppercase tracking-wide text-xs font-medium ${className || ""}`}>{children}</TableHead>;
 }
 function Kpi({ label, value, tone }: { label: string; value: number; tone: "red" | "orange" | "amber" | "green" }) {
   const colors: Record<string, string> = {

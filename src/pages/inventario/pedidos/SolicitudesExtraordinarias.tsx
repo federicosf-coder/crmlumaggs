@@ -226,12 +226,12 @@ export default function SolicitudesExtraordinarias() {
       </Card>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 max-h-[calc(100vh-16rem)] overflow-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gradient-to-r from-violet-50 to-blue-50 hover:bg-transparent">
-                {["Producto", "Cantidad", "Tipo", "Motivo", "Solicitado por", "Fecha", "Estatus", "Acciones"].map((h) => (
-                  <TableHead key={h} className="text-[11px] uppercase tracking-wide font-medium text-slate-600">{h}</TableHead>
+              <TableRow className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50 backdrop-blur hover:bg-transparent">
+                {["Producto", "Cantidad", "Tipo", "Motivo", "Solicitado por", "Fecha", "Estatus", "Acciones"].map((h, idx) => (
+                  <TableHead key={h} className={`text-[11px] uppercase tracking-wide font-medium text-slate-600 ${idx === 0 ? "sticky left-0 z-30 bg-background" : idx === 7 ? "sticky right-0 z-30 bg-background" : ""}`}>{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -243,7 +243,7 @@ export default function SolicitudesExtraordinarias() {
                 const esDueno = !!user && s.solicitado_por === user.id;
                 return (
                   <TableRow key={s.id} className={cn(i % 2 === 1 && "bg-muted/20", "hover:bg-blue-50/40")}>
-                    <TableCell>
+                    <TableCell className={`sticky left-0 z-10 ${i % 2 === 1 ? "bg-muted/20" : "bg-background"}`}>
                       {s.codigo_producto ? (
                         <>
                           <div className="font-medium text-sm">{s.codigo_producto}</div>
@@ -270,7 +270,7 @@ export default function SolicitudesExtraordinarias() {
                     <TableCell>
                       <Badge variant="outline" className={ESTATUS_CLS[s.estatus] || ""}>{ESTATUS_LABEL[s.estatus] || s.estatus}</Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className={`sticky right-0 z-10 ${i % 2 === 1 ? "bg-muted/20" : "bg-background"}`}>
                       <div className="flex flex-wrap gap-1">
                         {esDueno && s.estatus === "pendiente" && (
                           <Button size="sm" variant="ghost" onClick={() => setEditar(s)}><Pencil className="h-3.5 w-3.5 mr-1" />Editar</Button>

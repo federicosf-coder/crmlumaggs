@@ -144,8 +144,8 @@ export default function NivelesInventario() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 max-h-[calc(100vh-20rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
           {isLoading ? (
             <div className="p-10 text-center text-muted-foreground">Cargando niveles...</div>
           ) : niveles.length === 0 ? (
@@ -155,11 +155,11 @@ export default function NivelesInventario() {
               <Button asChild><Link to="/inventario/kardex"><Upload className="h-4 w-4 mr-2" />Ir a Carga de Kárdex</Link></Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+            <Table className="min-w-max">
+              <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50">
                 <TableRow>
                   <SortHead k="clasificacion_abc">ABC</SortHead>
-                  <SortHead k="codigo_producto">Código</SortHead>
+                  <SortHead k="codigo_producto" className="sticky left-0 z-30 bg-gradient-to-r from-violet-50 to-blue-50 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Código</SortHead>
                   <SortHead k="nombre_producto">Producto</SortHead>
                   <TableHead className="uppercase tracking-wide text-xs font-medium">Unidad</TableHead>
                   <TableHead className="uppercase tracking-wide text-xs font-medium">Empresa</TableHead>
@@ -177,10 +177,12 @@ export default function NivelesInventario() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((n: any, i: number) => (
-                  <TableRow key={n.id} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                {filtered.map((n: any, i: number) => {
+                  const rowBg = i % 2 === 0 ? "bg-background" : "bg-muted/20";
+                  return (
+                  <TableRow key={n.id} className={rowBg}>
                     <TableCell><Badge variant="outline" className={abcColor(n.clasificacion_abc)}>{n.clasificacion_abc || "—"}</Badge></TableCell>
-                    <TableCell className="font-mono text-xs">{n.codigo_producto}</TableCell>
+                    <TableCell className={`font-mono text-xs sticky left-0 z-10 ${rowBg} shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]`}>{n.codigo_producto}</TableCell>
                     <TableCell className="max-w-[280px] truncate">{n.nombre_producto || "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{n.unidad || "—"}</TableCell>
                     <TableCell>{empresaChip(n.empresa_vendedora)}</TableCell>
@@ -196,7 +198,8 @@ export default function NivelesInventario() {
                     <TableCell className="text-right tabular-nums">{n.lead_time_dias != null ? Math.round(n.lead_time_dias / 7) : "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{n.piezas_por_tarima ?? "—"}</TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
                 {filtered.length === 0 && (
                   <TableRow><TableCell colSpan={16} className="text-center py-8 text-muted-foreground">Sin resultados con los filtros aplicados</TableCell></TableRow>
                 )}

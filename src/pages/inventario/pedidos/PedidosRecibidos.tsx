@@ -22,18 +22,18 @@ export default function PedidosRecibidos() {
       </div>
 
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0 max-h-[calc(100vh-14rem)] overflow-auto">
           <Table>
-            <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+            <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50 backdrop-blur">
               <TableRow>
-                {["Fecha","Pedido PO","Almacén","SKUs pedidos","Completos","Diferencias","¿Reclamo?"].map((h) =>
-                  <TableHead key={h} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>)}
+                {["Fecha","Pedido PO","Almacén","SKUs pedidos","Completos","Diferencias","¿Reclamo?"].map((h, idx) =>
+                  <TableHead key={h} className={`uppercase tracking-wide text-xs font-medium ${idx === 0 ? "sticky left-0 z-30 bg-background" : ""}`}>{h}</TableHead>)}
               </TableRow>
             </TableHeader>
             <TableBody>
               {recepciones.map((r, i) => (
                 <TableRow key={r.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
-                  <TableCell className="text-xs">{r.fecha_recepcion}</TableCell>
+                  <TableCell className={`text-xs sticky left-0 z-10 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>{r.fecha_recepcion}</TableCell>
                   <TableCell className="font-mono text-xs">{r.inv_pedidos?.numero_po_interno || "—"}</TableCell>
                   <TableCell>{r.almacen_recepcion}</TableCell>
                   <TableCell className="text-right">{r.total_skus_pedidos ?? 0}</TableCell>
