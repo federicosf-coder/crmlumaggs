@@ -1254,16 +1254,17 @@ export default function Cobranza() {
           </div>
           <Card>
             <CardContent className="p-0">
+              <div className="max-h-[calc(100vh-16rem)] overflow-auto [&>div]:overflow-visible">
               <Table>
-                <TableHeader><TableRow>
-                  <TableHead>Fecha</TableHead><TableHead>Cliente</TableHead><TableHead>Plaza</TableHead>
+                <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur"><TableRow>
+                  <TableHead className="sticky left-0 z-30 bg-background w-24">Fecha</TableHead><TableHead className="sticky left-24 z-30 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Cliente</TableHead><TableHead>Plaza</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-right">Aplicado a Facturas</TableHead>
                   <TableHead className="text-right">Aplicado a Cot/Pedidos</TableHead>
                   <TableHead className="text-right">Disponible (facturas)</TableHead>
                   <TableHead>Forma</TableHead>
                   <TableHead>Estatus Pago</TableHead>
-                  <TableHead>Estado</TableHead><TableHead className="text-right sticky right-0 z-10 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">Acciones</TableHead>
+                  <TableHead>Estado</TableHead><TableHead className="text-right sticky right-0 z-30 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">Acciones</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {loadingPagos && <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>}
@@ -1275,8 +1276,8 @@ export default function Cobranza() {
                     const dispFact = b?.disponibleFacturas ?? Number(p.monto_disponible);
                     return (
                     <TableRow key={p.id}>
-                      <TableCell>{formatDate(p.fecha_pago)}</TableCell>
-                      <TableCell className="truncate max-w-[200px]">{p.empresa?.name}</TableCell>
+                      <TableCell className="sticky left-0 z-10 bg-background w-24 whitespace-nowrap">{formatDate(p.fecha_pago)}</TableCell>
+                      <TableCell className="truncate max-w-[200px] sticky left-24 z-10 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">{p.empresa?.name}</TableCell>
                       <TableCell>{p.plaza?.nombre || "—"}</TableCell>
                       <TableCell className="text-right">{formatCurrency(p.monto_total)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(aplicadoFact)}</TableCell>
@@ -1306,6 +1307,7 @@ export default function Cobranza() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
