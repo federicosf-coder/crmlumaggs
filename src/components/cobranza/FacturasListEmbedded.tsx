@@ -594,9 +594,9 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
             />
           ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="max-h-[calc(100vh-16rem)] overflow-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur">
                   <TableRow>
                      <TableHead className="w-10 sticky left-0 z-10 bg-background">
                        <Checkbox checked={sortedDocs.length > 0 && selectedIds.size === sortedDocs.length} onCheckedChange={toggleSelectAll} />
@@ -612,7 +612,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                     {isColVisible("saldo") && <TableHead className="whitespace-nowrap">Saldo</TableHead>}
                     {isColVisible("estatus") && <TableHead>Estatus Factura</TableHead>}
                     {isColVisible("pdf") && <TableHead className="hidden sm:table-cell">PDF</TableHead>}
-                    <TableHead className="text-right">Acciones</TableHead>
+                    <TableHead className="text-right sticky right-0 z-30 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -691,7 +691,7 @@ export function FacturasListEmbedded({ empresaVendedora, plazaId, prefilter = "n
                             ) : null}
                           </TableCell>
                         )}
-                        <TableCell>
+                        <TableCell className="sticky right-0 z-10 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                           <div className="flex gap-1">
                             <RowActions doc={doc} />
                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); window.open(`/documents/${doc.id}`, "_blank"); }} title="Editar">
