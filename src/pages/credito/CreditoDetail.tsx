@@ -2260,7 +2260,7 @@ export default function CreditoDetail() {
             </Section>
             <Section title="Aval / Obligado solidario" complete={!form.aval_es_distinto || !!form.aval_nombre}>
               <div className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 leading-snug">
-                <span className="font-medium">Regla:</span> En <span className="font-medium">crédito directo</span> con <span className="font-medium">Persona Física</span>, el aval debe ser una persona <span className="font-medium">distinta</span> al solicitante. Para <span className="font-medium">Persona Moral</span>, el propio representante legal puede fungir como aval. Si el aval es otra persona, se requiere también su identificación oficial y comprobante de domicilio.
+                <span className="font-medium">Importante:</span> En el caso de <span className="font-medium">Persona Moral</span>, el <span className="font-medium">representante legal</span> puede ser el aval. Si el aval es otra persona, se requiere también su identificación oficial y comprobante de domicilio. <span className="font-medium">En caso de no contar con aval, contacte a su ejecutivo.</span>
               </div>
               <div className="sm:col-span-2">
                 <Field label="¿El aval es una persona distinta?">
