@@ -6288,6 +6288,42 @@ export type Database = {
         }
         Relationships: []
       }
+      inv_kardex_conceptos_reglas: {
+        Row: {
+          activo: boolean
+          created_at: string
+          cuenta_como_demanda: boolean | null
+          empresa_vendedora: string | null
+          id: string
+          notas: string | null
+          patron: string
+          prioridad: number
+          tipo: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          cuenta_como_demanda?: boolean | null
+          empresa_vendedora?: string | null
+          id?: string
+          notas?: string | null
+          patron: string
+          prioridad?: number
+          tipo: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          cuenta_como_demanda?: boolean | null
+          empresa_vendedora?: string | null
+          id?: string
+          notas?: string | null
+          patron?: string
+          prioridad?: number
+          tipo?: string
+        }
+        Relationships: []
+      }
       inv_kardex_fechas_venta: {
         Row: {
           almacen: string
@@ -6378,6 +6414,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "inv_kardex_lineas_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "inv_kardex_cargas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inv_kardex_movimientos: {
+        Row: {
+          almacen: string | null
+          carga_id: string | null
+          codigo_producto: string
+          concepto: string
+          created_at: string
+          empresa_vendedora: string
+          entradas: number
+          fecha: string
+          folio: string | null
+          id: number
+          nombre_producto: string | null
+          salidas: number
+          serie: string | null
+          tipo: string | null
+        }
+        Insert: {
+          almacen?: string | null
+          carga_id?: string | null
+          codigo_producto: string
+          concepto: string
+          created_at?: string
+          empresa_vendedora: string
+          entradas?: number
+          fecha: string
+          folio?: string | null
+          id?: never
+          nombre_producto?: string | null
+          salidas?: number
+          serie?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          almacen?: string | null
+          carga_id?: string | null
+          codigo_producto?: string
+          concepto?: string
+          created_at?: string
+          empresa_vendedora?: string
+          entradas?: number
+          fecha?: string
+          folio?: string | null
+          id?: never
+          nombre_producto?: string | null
+          salidas?: number
+          serie?: string | null
+          tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_kardex_movimientos_carga_id_fkey"
             columns: ["carga_id"]
             isOneToOne: false
             referencedRelation: "inv_kardex_cargas"
@@ -6839,6 +6934,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      inv_politica_inventario: {
+        Row: {
+          dias_atorado: number
+          dias_politica: number
+          dias_seguridad: number
+          empresa_vendedora: string
+          lead_importado_dias: number
+          lead_nacional_dias: number
+          peso_ventana_corta: number
+          updated_at: string
+          ventana_corta_dias: number
+        }
+        Insert: {
+          dias_atorado?: number
+          dias_politica?: number
+          dias_seguridad?: number
+          empresa_vendedora: string
+          lead_importado_dias?: number
+          lead_nacional_dias?: number
+          peso_ventana_corta?: number
+          updated_at?: string
+          ventana_corta_dias?: number
+        }
+        Update: {
+          dias_atorado?: number
+          dias_politica?: number
+          dias_seguridad?: number
+          empresa_vendedora?: string
+          lead_importado_dias?: number
+          lead_nacional_dias?: number
+          peso_ventana_corta?: number
+          updated_at?: string
+          ventana_corta_dias?: number
+        }
+        Relationships: []
+      }
+      inv_producto_config: {
+        Row: {
+          archivado: boolean
+          archivado_at: string | null
+          archivado_por: string | null
+          codigo_producto: string
+          empresa_vendedora: string
+          motivo_archivo: string | null
+          notas: string | null
+          origen_override: string | null
+          updated_at: string
+        }
+        Insert: {
+          archivado?: boolean
+          archivado_at?: string | null
+          archivado_por?: string | null
+          codigo_producto: string
+          empresa_vendedora: string
+          motivo_archivo?: string | null
+          notas?: string | null
+          origen_override?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archivado?: boolean
+          archivado_at?: string | null
+          archivado_por?: string | null
+          codigo_producto?: string
+          empresa_vendedora?: string
+          motivo_archivo?: string | null
+          notas?: string | null
+          origen_override?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       inv_producto_proveedor: {
         Row: {
@@ -7404,13 +7571,20 @@ export type Database = {
         Row: {
           activo: boolean
           cantidad: number
+          cliente: string | null
           codigo_producto: string | null
           created_at: string
+          empresa_vendedora: string | null
           estatus: string
+          fecha_requerida: string | null
           id: string
           motivo: string
           notas_revision: string | null
+          pedido_at: string | null
+          pedido_por: string | null
+          pedido_referencia: string | null
           producto_descripcion: string | null
+          recibido_at: string | null
           revisado_at: string | null
           revisado_por: string | null
           solicitado_por: string
@@ -7420,13 +7594,20 @@ export type Database = {
         Insert: {
           activo?: boolean
           cantidad: number
+          cliente?: string | null
           codigo_producto?: string | null
           created_at?: string
+          empresa_vendedora?: string | null
           estatus?: string
+          fecha_requerida?: string | null
           id?: string
           motivo: string
           notas_revision?: string | null
+          pedido_at?: string | null
+          pedido_por?: string | null
+          pedido_referencia?: string | null
           producto_descripcion?: string | null
+          recibido_at?: string | null
           revisado_at?: string | null
           revisado_por?: string | null
           solicitado_por: string
@@ -7436,13 +7617,20 @@ export type Database = {
         Update: {
           activo?: boolean
           cantidad?: number
+          cliente?: string | null
           codigo_producto?: string | null
           created_at?: string
+          empresa_vendedora?: string | null
           estatus?: string
+          fecha_requerida?: string | null
           id?: string
           motivo?: string
           notas_revision?: string | null
+          pedido_at?: string | null
+          pedido_por?: string | null
+          pedido_referencia?: string | null
           producto_descripcion?: string | null
+          recibido_at?: string | null
           revisado_at?: string | null
           revisado_por?: string | null
           solicitado_por?: string
@@ -11243,6 +11431,58 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      inv_clasificar_concepto: {
+        Args: { p_concepto: string; p_empresa: string }
+        Returns: string
+      }
+      inv_kardex_limpiar_rango: {
+        Args: { p_desde: string; p_empresa: string; p_hasta: string }
+        Returns: number
+      }
+      inv_reorden_45d: {
+        Args: { p_empresa: string }
+        Returns: {
+          archivado: boolean
+          cobertura_dias: number
+          codigo_producto: string
+          corp_45d: number
+          corp_despues_lead: number
+          corp_en_lead: number
+          corp_historico_12m: number
+          costo_unitario: number
+          dias_sin_venta: number
+          en_transito: number
+          estado: string
+          exceso_uds: number
+          exceso_valor: number
+          existencia: number
+          fecha_corte_kardex: string
+          fecha_inventario: string
+          lead_dias: number
+          meses_con_venta: number
+          motivo_archivo: string
+          nombre_producto: string
+          origen: string
+          pedir_uds: number
+          pedir_valor: number
+          proyeccion_llegada: number
+          requisiciones: number
+          uds_12m: number
+          uds_90d: number
+          ultima_venta: string
+          valor: number
+          venta_diaria: number
+        }[]
+      }
+      inv_salidas_mensuales: {
+        Args: { p_empresa: string }
+        Returns: {
+          mes: string
+          tipo: string
+          unidades: number
+          valor_costo_actual: number
+        }[]
       }
       is_automatizacion_constructor: {
         Args: { _user_id: string }

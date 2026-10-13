@@ -163,6 +163,8 @@ interface MovimientoKardex {
   plaza: string | null; // 1001..1004 si es facturación a esa plaza
   fecha: string;
   concepto: string;
+  serie: string;
+  folio: string;
   salidas: number;
   entradas: number;
 }
@@ -250,6 +252,8 @@ function parseKardexMovimientos(rows: any[][]): ParsedKardex {
       plaza,
       fecha: fechaIso,
       concepto: c4,
+      serie: String(row[2] ?? "").trim(),
+      folio: String(row[3] ?? "").trim(),
       salidas,
       entradas,
     });
@@ -803,6 +807,37 @@ async function procesarKardexUnidades(
     .select()
     .single();
   if (cErr) throw cErr;
+
+  // Guardar movimientos detallados (todos) en inv_kardex_movimientos
+  if (parsed.movimientos.length > 0) {
+    let minF = parsed.movimientos[0].fecha;
+    let maxF = parsed.movimientos[0].fecha;
+    for (const m of parsed.movimientos) {
+      if (m.fecha < minF) minF = m.fecha;
+      if (m.fecha > maxF) maxF = m.fecha;
+    }
+    const { error: lErr } = await (supabase as any).rpc("inv_kardex_limpiar_rango", {
+      p_empresa: empresa, p_desde: minF, p_hasta: maxF,
+    });
+    if (lErr) throw lErr;
+    for (let i = 0; i < parsed.movimientos.length; i += 500) {
+      const lote = parsed.movimientos.slice(i, i + 500).map(m => ({
+        carga_id: carga.id,
+        empresa_vendedora: empresa,
+        codigo_producto: m.codigo,
+        nombre_producto: m.nombre,
+        fecha: m.fecha,
+        serie: m.serie,
+        folio: m.folio,
+        concepto: m.concepto,
+        almacen: m.almacen,
+        entradas: m.entradas,
+        salidas: m.salidas,
+      }));
+      const { error: iErr } = await (supabase as any).from("inv_kardex_movimientos").insert(lote);
+      if (iErr) throw iErr;
+    }
+  }
 
   setProgress(15);
 
