@@ -1307,6 +1307,7 @@ export default function Cobranza() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
