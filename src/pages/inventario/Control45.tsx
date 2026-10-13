@@ -379,3 +379,324 @@ function Kpi({ title, value, sub, danger }: { title: string; value: string; sub?
     </Card>
   );
 }
+
+// ============ Helpers compartidos ============
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const hoyStr = () => ymd(new Date());
+const masDias = (dias: number) => { const h = new Date(); return ymd(new Date(h.getFullYear(), h.getMonth(), h.getDate() + dias)); };
+const motivoLabel = (v?: string | null) => MOTIVOS.find(m => m.v === v)?.l ?? (v || "—");
+
+// ============ Tab Entregas corporativas ============
+function CorpTab({ rows }: { rows: Row[] }) {
+  const navigate = useNavigate();
+  const [cliente, setCliente] = useState("__all");
+  const { data: entregas = [] } = useQuery({
+    queryKey: ["control45_entregas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("entregas_corporativas")
+        .select("id, cliente, fecha_programada, estatus, numero_pedido, lugar_entrega_texto, entregas_corporativas_lineas(codigo_producto, nombre_producto, cantidad)")
+        .eq("estatus", "programada");
+      if (error) throw error;
+      return (data || []) as Row[];
+    },
+  });
+  const byCode = useMemo(() => new Map(rows.map(r => [String(r.codigo_producto), r])), [rows]);
+  const lineas = useMemo(() => {
+    const out: Row[] = [];
+    entregas.forEach(e => (e.entregas_corporativas_lineas || []).forEach((l: Row, i: number) => {
+      if (!byCode.has(String(l.codigo_producto))) return;
+      out.push({ _k: `${e.id}-${i}`, fecha: e.fecha_programada, cliente: e.cliente, pedido: e.numero_pedido,
+        codigo_producto: l.codigo_producto, nombre_producto: l.nombre_producto || byCode.get(String(l.codigo_producto))?.nombre_producto, cantidad: n(l.cantidad) });
+    }));
+    return out;
+  }, [entregas, byCode]);
+  const hoy = hoyStr(), lim = masDias(45);
+  const proximas = lineas.filter(l => l.fecha && l.fecha >= hoy && l.fecha <= lim);
+  const vencidas = lineas.filter(l => l.fecha && l.fecha < hoy);
+  const clientes = [...new Set(lineas.map(l => l.cliente).filter(Boolean))].sort();
+  const clientesVenc = [...new Set(vencidas.map(l => l.cliente).filter(Boolean))].sort();
+  const vencFiltradas = cliente === "__all" ? vencidas : vencidas.filter(l => l.cliente === cliente);
+
+  const agrupado = useMemo(() => {
+    const m = new Map<string, Row>();
+    proximas.forEach(l => {
+      const c = String(l.codigo_producto);
+      const cur = m.get(c) || { codigo_producto: c, nombre_producto: l.nombre_producto, cantidad: 0, entregas: 0, primera: l.fecha,
+        existencia: n(byCode.get(c)?.existencia), cobertura_dias: byCode.get(c)?.cobertura_dias };
+      cur.cantidad += l.cantidad; cur.entregas += 1; if (l.fecha < cur.primera) cur.primera = l.fecha;
+      m.set(c, cur);
+    });
+    return [...m.values()];
+  }, [proximas, byCode]);
+
+  const detalleCols: SortCol<Row>[] = [
+    { key: "fecha", label: "Fecha" }, { key: "cliente", label: "Cliente" }, { key: "pedido", label: "Pedido" },
+    { key: "codigo_producto", label: "Código" }, { key: "nombre_producto", label: "Producto" },
+    { key: "cantidad", label: "Cantidad", align: "right", value: r => n(r.cantidad), render: r => fmtNum(n(r.cantidad)) },
+  ];
+  const grupoCols: SortCol<Row>[] = [
+    { key: "codigo_producto", label: "Código" }, { key: "nombre_producto", label: "Producto" },
+    { key: "cantidad", label: "Cantidad total", align: "right", value: r => n(r.cantidad), render: r => fmtNum(n(r.cantidad)) },
+    { key: "entregas", label: "Entregas", align: "right", value: r => n(r.entregas) },
+    { key: "primera", label: "Primera fecha" },
+    { key: "existencia", label: "Existencia", align: "right", value: r => n(r.existencia), render: r => fmtNum(n(r.existencia)) },
+    { key: "cobertura_dias", label: "Cobertura (d)", align: "right", value: r => r.cobertura_dias == null ? -1 : n(r.cobertura_dias), render: r => r.cobertura_dias == null ? "—" : fmtNum(n(r.cobertura_dias)) },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 grid-cols-3">
+        <Kpi title="Próximos 45 días" value={fmtNum(proximas.length)} sub="líneas" />
+        <Kpi title="Vencidas sin cerrar" value={fmtNum(vencidas.length)} sub="líneas" danger={vencidas.length > 0} />
+        <Kpi title="Clientes" value={fmtNum(clientes.length)} />
+      </div>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Consideradas en el cálculo (próximos 45 días)</CardTitle>
+          <p className="text-xs text-muted-foreground font-light">Estas cantidades se suman a la demanda del producto antes de calcular qué ordenar.</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {proximas.length === 0 ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">No hay entregas programadas en los próximos 45 días. Captúralas o sube el calendario en Entregas Corporativas.</p>
+              <Button size="sm" variant="outline" onClick={() => navigate("/entregas-corporativas")}>Ir a Entregas Corporativas</Button>
+            </div>
+          ) : (<>
+            <SortableTable rows={agrupado} columns={grupoCols} defaultSort="cantidad" rowKey={r => r.codigo_producto} />
+            <SortableTable rows={proximas} columns={detalleCols} defaultSort="fecha" defaultDir="asc" rowKey={r => r._k} />
+          </>)}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Vencidas sin cerrar</CardTitle>
+          <p className="text-xs text-muted-foreground font-light">Siguen como Programada con fecha pasada. No cuentan en el cálculo: márcalas como entregadas o canceladas en Entregas Corporativas.</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Select value={cliente} onValueChange={setCliente}>
+              <SelectTrigger className="h-9 w-64"><SelectValue placeholder="Cliente" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all">Todos los clientes</SelectItem>
+                {clientesVenc.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="outline" onClick={() => navigate("/entregas-corporativas")}>Ir a Entregas Corporativas</Button>
+          </div>
+          <SortableTable key={cliente} rows={vencFiltradas} columns={detalleCols} defaultSort="fecha" defaultDir="desc" rowKey={r => r._k} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============ Tab Requisiciones ============
+const REQ_COLOR: Record<string, string> = {
+  pendiente: "bg-amber-100 text-amber-800 border-amber-200",
+  en_espera: "bg-amber-100 text-amber-800 border-amber-200",
+  aprobada: "bg-blue-100 text-blue-800 border-blue-200",
+  pedida: "bg-violet-100 text-violet-800 border-violet-200",
+  recibida: "bg-green-100 text-green-800 border-green-200",
+  rechazada: "bg-muted text-muted-foreground",
+  cancelada: "bg-muted text-muted-foreground",
+};
+const ABIERTAS = ["pendiente", "en_espera", "aprobada", "pedida"];
+
+function ReqTab({ rows, empresa, reqs, canManage, userId }: { rows: Row[]; empresa: string; reqs: Row[]; canManage: boolean; userId?: string }) {
+  const qc = useQueryClient();
+  const [filtro, setFiltro] = useState("abiertas");
+  const [prodOpen, setProdOpen] = useState(false);
+  const [codigo, setCodigo] = useState<string | null>(null);
+  const [texto, setTexto] = useState("");
+  const [cantidad, setCantidad] = useState("");
+  const [cliente, setCliente] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [pedirDlg, setPedirDlg] = useState<Row | null>(null);
+  const [ref, setRef] = useState("");
+
+  const ids = useMemo(() => [...new Set(reqs.map(r => r.solicitado_por).filter(Boolean))], [reqs]);
+  const { data: perfiles = [] } = useQuery({
+    queryKey: ["control45_req_perfiles", ids.join(",")],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("profiles").select("user_id, full_name").in("user_id", ids);
+      if (error) throw error;
+      return (data || []) as Row[];
+    },
+  });
+  const nombre = (id?: string) => perfiles.find(p => p.user_id === id)?.full_name || "—";
+  const refrescar = () => {
+    qc.invalidateQueries({ queryKey: ["control45_req", empresa] });
+    qc.invalidateQueries({ queryKey: ["inv_reorden_45d", empresa] });
+  };
+  const prodSel = codigo ? rows.find(r => r.codigo_producto === codigo) : null;
+
+  const guardar = async () => {
+    const cant = Number(cantidad);
+    const desc = prodSel ? prodSel.nombre_producto : texto.trim();
+    if (!desc) return toast.error("Indica el producto");
+    if (!(cant > 0)) return toast.error("La cantidad debe ser mayor a 0");
+    if (!motivo.trim()) return toast.error("El motivo es obligatorio");
+    setSaving(true);
+    const { error } = await (supabase as any).from("inv_solicitudes_extraordinarias").insert({
+      codigo_producto: codigo || null, producto_descripcion: desc, cantidad: cant, tipo: "unica",
+      motivo: motivo.trim(), cliente: cliente.trim() || null, fecha_requerida: fecha || null,
+      empresa_vendedora: empresa, estatus: "pendiente", solicitado_por: userId,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Requisición registrada");
+    setCodigo(null); setTexto(""); setCantidad(""); setCliente(""); setFecha(""); setMotivo("");
+    refrescar();
+  };
+
+  const actualizar = async (id: string, patch: Row, msg: string) => {
+    const { error } = await (supabase as any).from("inv_solicitudes_extraordinarias").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(msg);
+    refrescar();
+  };
+
+  const lista = filtro === "abiertas" ? reqs.filter(r => ABIERTAS.includes(r.estatus)) : reqs;
+  const cols: SortCol<Row>[] = [
+    { key: "created_at", label: "Fecha", render: r => String(r.created_at ?? "").slice(0, 10) },
+    { key: "solicito", label: "Solicitó", value: r => nombre(r.solicitado_por), render: r => nombre(r.solicitado_por) },
+    { key: "cliente", label: "Cliente", render: r => r.cliente || "—" },
+    { key: "codigo_producto", label: "Código", render: r => r.codigo_producto || "—" },
+    { key: "producto_descripcion", label: "Producto", render: r => <span className="block max-w-[14rem] truncate" title={r.producto_descripcion}>{r.producto_descripcion}</span> },
+    { key: "cantidad", label: "Cantidad", align: "right", value: r => n(r.cantidad), render: r => fmtNum(n(r.cantidad)) },
+    { key: "fecha_requerida", label: "Para", render: r => r.fecha_requerida || "—" },
+    { key: "motivo", label: "Motivo", render: r => <span className="block max-w-[14rem] truncate" title={r.motivo}>{r.motivo}</span> },
+    { key: "estatus", label: "Estatus", render: r => <Badge variant="outline" className={REQ_COLOR[r.estatus] || ""}>{r.estatus}</Badge> },
+    { key: "acciones", label: "Acciones", sortable: false, render: r => {
+      const now = new Date().toISOString();
+      return (
+        <div className="flex gap-1 whitespace-nowrap">
+          {canManage && (r.estatus === "pendiente" || r.estatus === "en_espera") && (<>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => actualizar(r.id, { estatus: "aprobada", revisado_por: userId, revisado_at: now }, "Aprobada")}>Aprobar</Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => actualizar(r.id, { estatus: "rechazada", activo: false, revisado_por: userId, revisado_at: now }, "Rechazada")}>Rechazar</Button>
+          </>)}
+          {canManage && r.estatus === "aprobada" && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setRef(""); setPedirDlg(r); }}>Marcar como pedido</Button>
+          )}
+          {canManage && r.estatus === "pedida" && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => actualizar(r.id, { estatus: "recibida", recibido_at: now, activo: false }, "Marcada como recibida")}>Marcar recibido</Button>
+          )}
+          {r.solicitado_por === userId && r.estatus === "pendiente" && (
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => actualizar(r.id, { estatus: "cancelada", activo: false }, "Cancelada")}>Cancelar</Button>
+          )}
+        </div>
+      );
+    } },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm font-light">Un vendedor pide un producto para un cliente. Las aprobadas se suman a lo que hay que ordenar; al marcarlas como pedidas dejan de sumarse.</p>
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Nueva requisición</CardTitle></CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <div className="space-y-1 md:col-span-2">
+            <Label className="text-xs uppercase tracking-wide">Producto</Label>
+            <Popover open={prodOpen} onOpenChange={setProdOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between font-normal h-9">
+                  <span className="truncate">{prodSel ? `${prodSel.codigo_producto} · ${prodSel.nombre_producto}` : texto || "Buscar producto o escribir…"}</span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                <Command>
+                  <CommandInput placeholder="Código o nombre…" value={texto} onValueChange={v => { setTexto(v); setCodigo(null); }} />
+                  <CommandList>
+                    <CommandEmpty>Sin coincidencias: se guardará como texto libre.</CommandEmpty>
+                    <CommandGroup>
+                      {rows.slice(0, 2000).map(r => (
+                        <CommandItem key={r.codigo_producto} value={`${r.codigo_producto} · ${r.nombre_producto}`}
+                          onSelect={() => { setCodigo(r.codigo_producto); setTexto(""); setProdOpen(false); }}>
+                          {r.codigo_producto} · {r.nombre_producto}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wide">Cantidad</Label>
+            <Input type="number" min={0} value={cantidad} onChange={e => setCantidad(e.target.value)} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wide">Cliente</Label>
+            <Input value={cliente} onChange={e => setCliente(e.target.value)} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wide">Se necesita para</Label>
+            <Input type="date" value={fecha} onChange={e => setFecha(e.target.value)} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wide">Motivo</Label>
+            <Input value={motivo} onChange={e => setMotivo(e.target.value)} className="h-9" />
+          </div>
+          <div className="md:col-span-3 flex justify-end">
+            <Button onClick={guardar} disabled={saving}>{saving ? "Guardando…" : "Registrar requisición"}</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <ToggleGroup type="single" value={filtro} onValueChange={v => v && setFiltro(v)} className="justify-start">
+        <ToggleGroupItem value="abiertas">Abiertas</ToggleGroupItem>
+        <ToggleGroupItem value="todas">Todas</ToggleGroupItem>
+      </ToggleGroup>
+      <SortableTable rows={lista} columns={cols} defaultSort="created_at" rowKey={r => r.id} />
+
+      <Dialog open={!!pedirDlg} onOpenChange={o => !o && setPedirDlg(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Marcar como pedido</DialogTitle></DialogHeader>
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wide">Referencia / PO (opcional)</Label>
+            <Input value={ref} onChange={e => setRef(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPedirDlg(null)}>Cancelar</Button>
+            <Button onClick={async () => {
+              const r = pedirDlg!; setPedirDlg(null);
+              await actualizar(r.id, { estatus: "pedida", pedido_at: new Date().toISOString(), pedido_por: userId, pedido_referencia: ref.trim() || null }, "Marcada como pedida");
+            }}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ============ Tab Archivados ============
+function ArchTab({ rows, empresa, canManage }: { rows: Row[]; empresa: string; canManage: boolean }) {
+  const qc = useQueryClient();
+  const restaurar = async (codigo: string) => {
+    const { error } = await (supabase as any).from("inv_producto_config")
+      .update({ archivado: false, motivo_archivo: null, updated_at: new Date().toISOString() })
+      .eq("empresa_vendedora", empresa).eq("codigo_producto", codigo);
+    if (error) return toast.error(error.message);
+    toast.success("Restaurado");
+    qc.invalidateQueries({ queryKey: ["inv_reorden_45d", empresa] });
+  };
+  const cols: SortCol<Row>[] = [
+    { key: "codigo_producto", label: "Código" },
+    { key: "nombre_producto", label: "Producto" },
+    { key: "existencia", label: "Existencia", align: "right", value: r => n(r.existencia), render: r => fmtNum(n(r.existencia)) },
+    { key: "valor", label: "Valor", align: "right", value: r => n(r.valor), render: r => fmtMoney(n(r.valor)) },
+    { key: "motivo_archivo", label: "Motivo", value: r => motivoLabel(r.motivo_archivo), render: r => motivoLabel(r.motivo_archivo) },
+    ...(canManage ? [{ key: "accion", label: "Acción", sortable: false, render: (r: Row) => (
+      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => restaurar(r.codigo_producto)}>Restaurar</Button>
+    ) } as SortCol<Row>] : []),
+  ];
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-light">No aparecen en los estados, no se sugieren para pedido y no cuentan en los indicadores.</p>
+      <SortableTable rows={rows} columns={cols} defaultSort="valor" rowKey={r => r.codigo_producto} />
+    </div>
+  );
+}
