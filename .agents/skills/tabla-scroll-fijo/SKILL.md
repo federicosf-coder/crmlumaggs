@@ -1,6 +1,6 @@
 ---
 name: tabla-scroll-fijo
-description: Aplica el patrón de scroll interno con encabezado, toolbar, columnas de identidad (izquierda) y columna de acciones (derecha) fijos en pantallas de listado. Úsalo en cualquier tabla larga o ancha: tablas con scroll horizontal (columnas cortadas), listados largos (scroll vertical) o ambas.
+description: "Aplica el patrón de scroll interno con encabezado, toolbar, columnas de identidad (izquierda) y columna de acciones (derecha) fijos en pantallas de listado. Úsalo en cualquier tabla larga o ancha: tablas con scroll horizontal (columnas cortadas), listados largos (scroll vertical) o ambas."
 ---
 
 # Tabla con Scroll Fijo (tabs, toolbar, header sticky y columnas congeladas)
