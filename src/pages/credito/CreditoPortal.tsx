@@ -850,9 +850,9 @@ function CreditoPortalInner() {
 
   return (
     <div className="min-h-screen bg-muted/30 py-6 px-4">
-      <div className="max-w-5xl mx-auto space-y-4">
+      <div className="max-w-5xl mx-auto space-y-4 lg:flex lg:flex-col lg:h-[calc(100dvh-3rem)]">
         {/* Header */}
-        <Card>
+        <Card className="shrink-0">
           <CardHeader className="pb-3">
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">PROCESADORA DE SERVICIOS MAGG'S</p>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -886,7 +886,7 @@ function CreditoPortalInner() {
         </Card>
 
         {/* Instrucciones — colapsable */}
-        <Card>
+        <Card className="shrink-0">
           <Collapsible open={instructionsOpen} onOpenChange={setInstructionsOpen}>
             <CollapsibleTrigger asChild>
               <button
@@ -901,7 +901,7 @@ function CreditoPortalInner() {
               </button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="px-4 pb-4 space-y-4 text-xs text-slate-700 leading-relaxed border-t pt-3">
+              <div className="px-4 pb-4 space-y-4 text-xs text-slate-700 leading-relaxed border-t pt-3 max-h-[35vh] overflow-y-auto">
                 <div className="flex gap-3">
                   <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-700 font-bold text-[11px]">1</div>
                   <div>
@@ -938,7 +938,7 @@ function CreditoPortalInner() {
         </Card>
 
         {/* Datos generales de la solicitud */}
-        <Card>
+        <Card className="shrink-0">
           <CardHeader className="pb-2 bg-gradient-to-br from-violet-50 to-blue-50 border-b">
             <CardTitle className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground">
               Datos generales de la solicitud
@@ -1138,8 +1138,8 @@ function CreditoPortalInner() {
           </DialogContent>
         </Dialog>
 
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100">
+        <Tabs value={tab} onValueChange={setTab} className="lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
+          <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100 shrink-0 sticky top-0 z-30">
             <TabsTrigger value="docs" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[11px] sm:text-sm px-2 py-2 leading-tight whitespace-normal break-words min-w-0 h-auto">
               Documentos
             </TabsTrigger>
@@ -1152,10 +1152,10 @@ function CreditoPortalInner() {
           </TabsList>
 
           {/* ============ FORMULARIO ============ */}
-          <TabsContent value="datos" className="space-y-6 mt-4">
+          <TabsContent value="datos" className="space-y-6 mt-4 lg:flex-1 lg:min-h-0 lg:overflow-auto lg:pr-1">
             <Card><CardContent className="pt-6 space-y-6">
               <Tabs value={formTab} onValueChange={setFormTab}>
-                <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 h-auto gap-1 border border-blue-100">
+                <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 h-auto gap-1 border border-blue-100 sticky top-0 z-20">
                   <TabsTrigger value="empresa" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-blue-700 text-[11px] sm:text-sm h-auto whitespace-normal break-words min-w-0 leading-tight flex items-center gap-1.5 py-1.5">
                     <Building2 className="h-3.5 w-3.5" /><span>Empresa</span>
                   </TabsTrigger>
@@ -1499,7 +1499,7 @@ function CreditoPortalInner() {
           </TabsContent>
 
           {/* ============ DOCUMENTOS ============ */}
-          <TabsContent value="docs" className="space-y-4 mt-4">
+          <TabsContent value="docs" className="space-y-4 mt-4 lg:flex-1 lg:min-h-0 lg:overflow-auto lg:pr-1">
             <Card><CardContent className="pt-6 space-y-4">
               {/* CSF autocompletar */}
               <div className="border-2 border-dashed rounded-md p-3 bg-violet-50/40">
@@ -1664,7 +1664,7 @@ function CreditoPortalInner() {
           </TabsContent>
 
           {/* ============ FORMATOS Y FIRMAS ============ */}
-          <TabsContent value="firmas" className="space-y-4 mt-4">
+          <TabsContent value="firmas" className="space-y-4 mt-4 lg:flex-1 lg:min-h-0 lg:overflow-auto lg:pr-1">
             <Card><CardContent className="pt-6 space-y-3">
               <div className="flex flex-wrap justify-end gap-2">
                 <Button
