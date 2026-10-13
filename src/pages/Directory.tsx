@@ -1055,7 +1055,7 @@ export default function Directory() {
                   <TableBody>
                     {filteredContacts.map(c => (
                       <TableRow key={c.id} className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedContactIds.has(c.id) ? "bg-muted/30" : ""}`} onClick={() => setSelectedContact(c)}>
-                        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                        <TableCell className="w-10 sticky left-0 z-10 bg-background" onClick={e => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedContactIds.has(c.id)}
                             onCheckedChange={() => {
@@ -1067,7 +1067,7 @@ export default function Directory() {
                             }}
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{c.first_name}</TableCell>
+                        <TableCell className="font-medium sticky left-10 z-10 bg-background">{c.first_name}</TableCell>
                         <TableCell>{c.last_name}</TableCell>
                         <TableCell className="hidden sm:table-cell">{(c as any).whatsapp_phone || "—"}</TableCell>
                         <TableCell className="hidden sm:table-cell">{c.companies?.name || "—"}</TableCell>
