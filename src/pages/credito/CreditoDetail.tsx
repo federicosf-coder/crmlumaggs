@@ -2478,7 +2478,7 @@ export default function CreditoDetail() {
           </div>
 
         {/* ============ DOCUMENTOS ============ */}
-        <div className="order-first space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto pr-1">
+        <div className="order-first space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto pr-1">
           <Card><CardContent className="pt-6 space-y-4">
             <CreditoPaquetePanel creditId={id!} docTypes={docTypes as any[]} docs={docs as any[]} onDocsChanged={() => refetchDocs()} />
             {docTypes.length === 0 ? (
