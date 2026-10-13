@@ -1416,7 +1416,7 @@ export default function CreditoDetail() {
   );
   const secRepOk = !!(
     form.rep_legal_nombre && form.rep_legal_rfc &&
-    (!form.aval_es_distinto || form.aval_nombre)
+    (form.requiere_aval === false || !form.aval_es_distinto || form.aval_nombre)
   );
   const secFinOk =
     ((form.referencias_comerciales || []).length >= 2) &&
@@ -1501,7 +1501,7 @@ export default function CreditoDetail() {
               const visibleDocTypes = (docTypes as any[]).filter((dt) => {
                 if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
                 if (form.tipo === "directo" && !dt.aplica_directo) return false;
-                if (dt.aplica_si_aval_distinto && !form.aval_es_distinto) return false;
+                if (dt.aplica_si_aval_distinto && (form.requiere_aval === false || !form.aval_es_distinto)) return false;
                 const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
                 if (tp === "moral" && dt.aplica_moral === false) return false;
                 if (tp === "fisica" && dt.aplica_fisica === false) return false;
@@ -2258,7 +2258,16 @@ export default function CreditoDetail() {
               <Field label="Fecha nacimiento"><Input type="date" value={form.rep_legal_fecha_nacimiento || ""} onChange={(e) => set("rep_legal_fecha_nacimiento", e.target.value || null)} /></Field>
               <Field label="País nacimiento"><Input value={form.rep_legal_pais_nacimiento || ""} onChange={(e) => set("rep_legal_pais_nacimiento", e.target.value)} /></Field>
             </Section>
-            <Section title="Aval / Obligado solidario" complete={!form.aval_es_distinto || !!form.aval_nombre}>
+            <Section title="Aval / Obligado solidario" complete={form.requiere_aval === false || !form.aval_es_distinto || !!form.aval_nombre}>
+              <div className="sm:col-span-2">
+                <Field label="¿Esta solicitud requiere aval?">
+                  <div className="flex items-center gap-2 h-9">
+                    <Switch checked={form.requiere_aval !== false} onCheckedChange={(v) => set("requiere_aval", v)} />
+                    <span className="text-sm">{form.requiere_aval !== false ? "Sí, requiere aval y su identificación" : "No requiere aval (se ocultan sus datos y documentos)"}</span>
+                  </div>
+                </Field>
+              </div>
+              {form.requiere_aval !== false && (<>
               <div className="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900 leading-snug">
                 <span className="font-medium">Importante:</span> En el caso de <span className="font-medium">Persona Moral</span>, el <span className="font-medium">representante legal</span> puede ser el aval. Si el aval es otra persona, se requiere también su identificación oficial y comprobante de domicilio. <span className="font-medium">En caso de no contar con aval, contacte a su ejecutivo.</span>
               </div>
@@ -2421,6 +2430,7 @@ export default function CreditoDetail() {
                   </Field>
                 </>
               )}
+            </>)}
             </Section>
               </TabsContent>
 
@@ -2498,7 +2508,7 @@ export default function CreditoDetail() {
                 const visible = (docTypes as any[]).filter((dt) => {
                   if (form.tipo === "cescemex" && !dt.aplica_cescemex) return false;
                   if (form.tipo === "directo" && !dt.aplica_directo) return false;
-                  if (dt.aplica_si_aval_distinto && !form.aval_es_distinto) return false;
+                  if (dt.aplica_si_aval_distinto && (form.requiere_aval === false || !form.aval_es_distinto)) return false;
                   const tp = form.tipo_persona ?? form.csf_tipo_persona ?? "moral";
                   if (tp === "moral" && dt.aplica_moral === false) return false;
                   if (tp === "fisica" && dt.aplica_fisica === false) return false;
