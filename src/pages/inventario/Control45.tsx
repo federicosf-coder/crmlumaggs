@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -189,6 +193,18 @@ export default function Control45() {
     qc.invalidateQueries({ queryKey: ["inv_reorden_45d", empresa] });
   };
 
+  const archivados = useMemo(() => rows.filter(r => r.estado === "Archivado"), [rows]);
+  const { data: reqs = [] } = useQuery({
+    queryKey: ["control45_req", empresa],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("inv_solicitudes_extraordinarias").select("*")
+        .or(`empresa_vendedora.eq.${empresa},empresa_vendedora.is.null`).order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Row[];
+    },
+  });
+  const reqAbiertasCount = reqs.filter(r => r.estatus === "pendiente" || r.estatus === "aprobada").length;
+
   const columns: SortCol<Row>[] = [
     { key: "codigo_producto", label: "Código" },
     { key: "nombre_producto", label: "Producto", render: r => <span className="block max-w-[16rem] truncate" title={r.nombre_producto}>{r.nombre_producto}</span> },
@@ -235,8 +251,12 @@ export default function Control45() {
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="estado">Por estado</TabsTrigger>
           <TabsTrigger value="corp">Entregas corporativas</TabsTrigger>
-          <TabsTrigger value="req">Requisiciones</TabsTrigger>
-          <TabsTrigger value="arch">Archivados</TabsTrigger>
+          <TabsTrigger value="req" className="gap-1.5">Requisiciones
+            {reqAbiertasCount > 0 && <Badge variant="secondary" className="h-5 px-1.5">{reqAbiertasCount}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="arch" className="gap-1.5">Archivados
+            {archivados.length > 0 && <Badge variant="secondary" className="h-5 px-1.5">{archivados.length}</Badge>}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumen" className="space-y-4">
@@ -340,9 +360,9 @@ export default function Control45() {
           })}
         </TabsContent>
 
-        <TabsContent value="corp"><p className="text-sm text-muted-foreground">En construcción</p></TabsContent>
-        <TabsContent value="req"><p className="text-sm text-muted-foreground">En construcción</p></TabsContent>
-        <TabsContent value="arch"><p className="text-sm text-muted-foreground">En construcción</p></TabsContent>
+        <TabsContent value="corp"><CorpTab rows={rows} /></TabsContent>
+        <TabsContent value="req"><ReqTab rows={rows} empresa={empresa} reqs={reqs} canManage={canArchive} userId={user?.id} /></TabsContent>
+        <TabsContent value="arch"><ArchTab rows={archivados} empresa={empresa} canManage={canArchive} /></TabsContent>
       </Tabs>
     </div>
   );

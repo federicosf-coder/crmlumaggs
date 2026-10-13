@@ -183,10 +183,16 @@ export default function PedidosSugeridos() {
   const { data: corporativas = [] } = useQuery({
     queryKey: ["entregas_corporativas_programadas"],
     queryFn: async () => {
+      const fmtD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const h = new Date();
+      const hoy = fmtD(h);
+      const hasta = fmtD(new Date(h.getFullYear(), h.getMonth(), h.getDate() + 45));
       const { data, error } = await (supabase as any)
-        .from("entregas_corporativas")
-        .select("codigo_producto, cantidad")
-        .eq("estatus", "programada");
+        .from("entregas_corporativas_lineas")
+        .select("codigo_producto, cantidad, entregas_corporativas!inner(estatus, fecha_programada)")
+        .eq("entregas_corporativas.estatus", "programada")
+        .gte("entregas_corporativas.fecha_programada", hoy)
+        .lte("entregas_corporativas.fecha_programada", hasta);
       if (error) throw error;
       return (data || []) as any[];
     },
