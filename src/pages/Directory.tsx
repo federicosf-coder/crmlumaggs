@@ -935,17 +935,17 @@ export default function Directory() {
                 <p className="text-xs text-muted-foreground/70 mt-1">Agrega una empresa para comenzar</p>
               </div>
             ) : companyView === "list" ? (
-              <div className="overflow-x-auto">
+              <div className="max-h-[calc(100vh-15rem)] overflow-auto rounded-xl border border-border/60 bg-background/80 shadow-sm backdrop-blur-xl [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
                     <TableRow>
-                      <TableHead className="w-10">
+                      <TableHead className="w-10 sticky left-0 z-30 bg-background">
                         <Checkbox
                           checked={filteredCompanies.length > 0 && selectedCompanyIds.size === filteredCompanies.length}
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
-                      <TableHead><button type="button" onClick={() => toggleCompanySort("name")} className="inline-flex items-center hover:text-foreground">Empresa<SortIcon field="name" /></button></TableHead>
+                      <TableHead className="sticky left-10 z-30 bg-background"><button type="button" onClick={() => toggleCompanySort("name")} className="inline-flex items-center hover:text-foreground">Empresa<SortIcon field="name" /></button></TableHead>
                       <TableHead className="w-[110px]"><button type="button" onClick={() => toggleCompanySort("id_contpaq")} className="inline-flex items-center hover:text-foreground">ID Contpaq<SortIcon field="id_contpaq" /></button></TableHead>
                       <TableHead className="hidden sm:table-cell"><button type="button" onClick={() => toggleCompanySort("industry")} className="inline-flex items-center hover:text-foreground">Industria<SortIcon field="industry" /></button></TableHead>
                       <TableHead><button type="button" onClick={() => toggleCompanySort("contacts")} className="inline-flex items-center hover:text-foreground">Contactos<SortIcon field="contacts" /></button></TableHead>
@@ -958,7 +958,7 @@ export default function Directory() {
                   <TableBody>
                     {filteredCompanies.map(c => (
                       <TableRow key={c.id} className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedCompanyIds.has(c.id) ? "bg-muted/30" : ""}`} onClick={() => setSelectedCompany(c)}>
-                        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                        <TableCell className="w-10 sticky left-0 z-10 bg-background" onClick={e => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedCompanyIds.has(c.id)}
                             onCheckedChange={() => {
@@ -970,7 +970,7 @@ export default function Directory() {
                             }}
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell className="font-medium sticky left-10 z-10 bg-background">{c.name}</TableCell>
                         <TableCell className="font-mono text-xs">{c.id_contpaq || "—"}</TableCell>
                         <TableCell className="hidden sm:table-cell">{c.industry || "—"}</TableCell>
                         <TableCell>{(c.contacts as any[])?.length || 0}</TableCell>
@@ -1034,17 +1034,17 @@ export default function Directory() {
                 <p className="text-xs text-muted-foreground/70 mt-1">Agrega un contacto para comenzar</p>
               </div>
             ) : contactView === "list" ? (
-              <div className="overflow-x-auto">
+              <div className="max-h-[calc(100vh-15rem)] overflow-auto rounded-xl border border-border/60 bg-background/80 shadow-sm backdrop-blur-xl [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
                     <TableRow>
-                      <TableHead className="w-10">
+                      <TableHead className="w-10 sticky left-0 z-30 bg-background">
                         <Checkbox
                           checked={filteredContacts.length > 0 && selectedContactIds.size === filteredContacts.length}
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Nombre</TableHead>
+                      <TableHead className="sticky left-10 z-30 bg-background">Nombre</TableHead>
                       <TableHead>Apellido</TableHead>
                       <TableHead className="hidden sm:table-cell">WhatsApp</TableHead>
                       <TableHead className="hidden sm:table-cell">Empresa</TableHead>
@@ -1055,7 +1055,7 @@ export default function Directory() {
                   <TableBody>
                     {filteredContacts.map(c => (
                       <TableRow key={c.id} className={`cursor-pointer transition-colors duration-150 hover:bg-muted/50 ${selectedContactIds.has(c.id) ? "bg-muted/30" : ""}`} onClick={() => setSelectedContact(c)}>
-                        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+                        <TableCell className="w-10 sticky left-0 z-10 bg-background" onClick={e => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedContactIds.has(c.id)}
                             onCheckedChange={() => {
@@ -1067,7 +1067,7 @@ export default function Directory() {
                             }}
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{c.first_name}</TableCell>
+                        <TableCell className="font-medium sticky left-10 z-10 bg-background">{c.first_name}</TableCell>
                         <TableCell>{c.last_name}</TableCell>
                         <TableCell className="hidden sm:table-cell">{(c as any).whatsapp_phone || "—"}</TableCell>
                         <TableCell className="hidden sm:table-cell">{c.companies?.name || "—"}</TableCell>
