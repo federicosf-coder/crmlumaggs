@@ -655,11 +655,11 @@ function CostosSinProductoTab() {
       </CardHeader>
       <CardContent>
         {isLoading ? <p className="text-muted-foreground">Cargando...</p> : (
-          <div className="overflow-x-auto border rounded-md">
+          <div className="max-h-[calc(100vh-16rem)] overflow-auto border rounded-md [&>div]:overflow-visible">
             <Table>
-              <TableHeader className={HEADER_CLS}>
+              <TableHeader className={`${HEADER_CLS} sticky top-0 z-10`}>
                 <TableRow>
-                  <TableHead>Código</TableHead>
+                  <TableHead className="sticky left-0 z-30 bg-background">Código</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Marca</TableHead>
                   {canViewCostos && <TableHead className="text-right">Costo</TableHead>}
@@ -669,7 +669,7 @@ function CostosSinProductoTab() {
               <TableBody>
                 {visibles.map((r: any, i: number) => (
                   <TableRow key={r.codigo_producto} className={i % 2 ? "bg-muted/20" : ""}>
-                    <TableCell className="font-mono text-xs">{r.codigo_producto}</TableCell>
+                    <TableCell className="font-mono text-xs sticky left-0 z-20 bg-background">{r.codigo_producto}</TableCell>
                     <TableCell className="text-sm">{r.nombre_en_archivo || "—"}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={r.empresa === "lumaggs" ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}>
@@ -736,11 +736,11 @@ function CostosSinProductoTab() {
             {mostrarIgnorados ? "Ocultar" : "Mostrar"} ignorados ({(ignorados as any[]).length})
           </Button>
           {mostrarIgnorados && (
-            <div className="overflow-x-auto border rounded-md mt-3">
+            <div className="max-h-[calc(100vh-16rem)] overflow-auto border rounded-md [&>div]:overflow-visible mt-3">
               <Table>
-                <TableHeader className={HEADER_CLS}>
+                <TableHeader className={`${HEADER_CLS} sticky top-0 z-10`}>
                   <TableRow>
-                    <TableHead>Código</TableHead>
+                    <TableHead className="sticky left-0 z-30 bg-background">Código</TableHead>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Marca</TableHead>
                     {canViewCostos && <TableHead className="text-right">Costo</TableHead>}
@@ -754,7 +754,7 @@ function CostosSinProductoTab() {
                     const r = rowsPorCodigo.get(ig.codigo_producto);
                     return (
                       <TableRow key={ig.codigo_producto} className={i % 2 ? "bg-muted/20" : ""}>
-                        <TableCell className="font-mono text-xs">{ig.codigo_producto}</TableCell>
+                        <TableCell className="font-mono text-xs sticky left-0 z-20 bg-background">{ig.codigo_producto}</TableCell>
                         <TableCell className="text-sm">{r?.nombre_en_archivo || "—"}</TableCell>
                         <TableCell className="text-sm">{r?.marca_label || "—"}</TableCell>
                         {canViewCostos && (

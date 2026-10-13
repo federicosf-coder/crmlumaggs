@@ -621,10 +621,10 @@ function BajasPendientesSection({ userId }: { userId?: string }) {
           ) : visibles.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground text-sm">No hay bajas de costo pendientes.</div>
           ) : (
-            <Table>
-              <TableHeader>
+            <div className="max-h-[calc(100vh-16rem)] overflow-auto [&>div]:overflow-visible"><Table>
+              <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
                 <TableRow>
-                  <TableHead>Código</TableHead>
+                  <TableHead className="sticky left-0 z-30 bg-background">Código</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead className="text-right">Costo actual</TableHead>
                   <TableHead className="text-right">Costo de mercado</TableHead>
@@ -640,7 +640,7 @@ function BajasPendientesSection({ userId }: { userId?: string }) {
                   const diff = actual > 0 ? ((mercado - actual) / actual) * 100 : null;
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
+                      <TableCell className="font-mono text-xs sticky left-0 z-20 bg-background">{r.codigo}</TableCell>
                       <TableCell className="font-light">{r.nombre_producto}</TableCell>
                       <TableCell className="text-right">{money(r.costo_actual)}</TableCell>
                       <TableCell className="text-right text-green-700">{money(r.costo_mercado_vigente)}</TableCell>
@@ -655,7 +655,7 @@ function BajasPendientesSection({ userId }: { userId?: string }) {
                   );
                 })}
               </TableBody>
-            </Table>
+            </Table></div>
           )}
         </CardContent>
       </Card>
@@ -776,10 +776,10 @@ function SinConfirmarSection() {
           ) : filtradas.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground text-sm">No hay productos sin confirmar en listas.</div>
           ) : (
-            <Table>
-              <TableHeader>
+            <div className="max-h-[calc(100vh-16rem)] overflow-auto [&>div]:overflow-visible"><Table>
+              <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
                 <TableRow>
-                  <TableHead>Código</TableHead>
+                  <TableHead className="sticky left-0 z-30 bg-background">Código</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Marca</TableHead>
                   <TableHead className="text-right">Costo actual</TableHead>
@@ -792,7 +792,7 @@ function SinConfirmarSection() {
                   const dias = diasSinConfirmar(r.costo_confirmado_fecha);
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
+                      <TableCell className="font-mono text-xs sticky left-0 z-20 bg-background">{r.codigo}</TableCell>
                       <TableCell className="font-light">{r.nombre_producto}</TableCell>
                       <TableCell className="text-sm">{marcaLabel(r)}</TableCell>
                       <TableCell className="text-right">{money(r.costo_actual)}</TableCell>
@@ -802,7 +802,7 @@ function SinConfirmarSection() {
                   );
                 })}
               </TableBody>
-            </Table>
+            </Table></div>
           )}
           <p className="text-xs text-muted-foreground font-light">
             Listado informativo para revisión manual. Estos productos no aparecieron en la última lista de precios procesada.
