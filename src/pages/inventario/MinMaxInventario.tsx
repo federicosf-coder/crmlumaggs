@@ -386,13 +386,13 @@ export function MinMaxTabContent() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 max-h-[calc(100vh-20rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+          <Table className="min-w-max">
+            <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50">
               <TableRow>
                 <Th>ABC</Th>
-                <Th>Código</Th>
+                <Th className="sticky left-0 z-30 bg-gradient-to-r from-violet-50 to-blue-50 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Código</Th>
                 <Th>Producto</Th>
                 <Th>Almacén</Th>
                 <Th className="text-right">Dem/día</Th>
@@ -405,7 +405,7 @@ export function MinMaxTabContent() {
                 <Th className="text-right">Stock</Th>
                 <Th className="text-right">Reorden</Th>
                 <Th>Estado</Th>
-                <Th></Th>
+                <Th className="sticky right-0 z-30 bg-gradient-to-r from-violet-50 to-blue-50"></Th>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -420,10 +420,11 @@ export function MinMaxTabContent() {
                 const stock = stockOf(n, r.almacen);
                 const bajo = r.minimo_efectivo > 0 && stock < r.minimo_efectivo;
                 const ddiaMes = (r.demanda_diaria_hub ?? 0) * 30;
+                const rowBg = i % 2 === 0 ? "bg-background" : "bg-muted/20";
                 return (
-                  <TableRow key={r.id} className={i % 2 === 0 ? "bg-background hover:bg-blue-50/40" : "bg-muted/20 hover:bg-blue-50/40"}>
+                  <TableRow key={r.id} className={`${rowBg} hover:bg-blue-50/40`}>
                     <TableCell>{abcBadge(r.clasificacion_abc)}</TableCell>
-                    <TableCell className="font-mono text-xs">{r.codigo_producto}</TableCell>
+                    <TableCell className={`font-mono text-xs sticky left-0 z-10 ${rowBg} shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]`}>{r.codigo_producto}</TableCell>
                     <TableCell className="text-xs max-w-[280px] truncate" title={n?.nombre_producto ?? ""}>{n?.nombre_producto ?? "—"}</TableCell>
                     <TableCell className="text-xs">{ALMACEN_LABELS[r.almacen] ?? r.almacen}</TableCell>
                     <TableCell className="text-right tabular-nums">{(r.demanda_diaria_hub ?? 0).toFixed(2)}</TableCell>
@@ -436,7 +437,7 @@ export function MinMaxTabContent() {
                     <TableCell className={`text-right tabular-nums font-medium ${bajo ? "text-red-600" : "text-emerald-700"}`}>{stock.toFixed(0)}</TableCell>
                     <TableCell className="text-right tabular-nums">{Number(r.cantidad_reorden_efectiva).toFixed(0)}</TableCell>
                     <TableCell>{estadoBadge(r)}</TableCell>
-                    <TableCell>
+                    <TableCell className={`sticky right-0 z-10 ${rowBg}`}>
                       <Button size="sm" variant="outline" onClick={() => setEditing(r)}>
                         <Sliders className="h-3.5 w-3.5 mr-1" /> Ajustar
                       </Button>
@@ -491,13 +492,13 @@ export function MinMaxTabContent() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0 max-h-[calc(100vh-20rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+              <Table className="min-w-max">
+                <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50">
                   <TableRow>
                     <Th>ABC</Th>
-                    <Th>Código</Th>
+                    <Th className="sticky left-0 z-30 bg-gradient-to-r from-violet-50 to-blue-50 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Código</Th>
                     <Th>Producto</Th>
                     <Th className="text-right">Dem/día</Th>
                     <Th className="text-right">Dem/mes</Th>
@@ -517,10 +518,11 @@ export function MinMaxTabContent() {
                   )}
                   {empresaFiltrada.map((e, i) => {
                     const bajo = e.minimo > 0 && e.stock < e.minimo;
+                    const rowBg = i % 2 === 0 ? "bg-background" : "bg-muted/20";
                     return (
-                      <TableRow key={e.codigo_producto} className={i % 2 === 0 ? "bg-background hover:bg-blue-50/40" : "bg-muted/20 hover:bg-blue-50/40"}>
+                      <TableRow key={e.codigo_producto} className={`${rowBg} hover:bg-blue-50/40`}>
                         <TableCell>{abcBadge(e.clasificacion_abc)}</TableCell>
-                        <TableCell className="font-mono text-xs">{e.codigo_producto}</TableCell>
+                        <TableCell className={`font-mono text-xs sticky left-0 z-10 ${rowBg} shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]`}>{e.codigo_producto}</TableCell>
                         <TableCell className="text-xs max-w-[280px] truncate" title={e.nombre_producto ?? ""}>{e.nombre_producto ?? "—"}</TableCell>
                         <TableCell className="text-right tabular-nums">{e.demanda.toFixed(2)}</TableCell>
                         <TableCell className="text-right tabular-nums">{(e.demanda * 30).toFixed(0)}</TableCell>

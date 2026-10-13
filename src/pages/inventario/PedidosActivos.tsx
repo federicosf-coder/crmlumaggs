@@ -119,12 +119,12 @@ export default function PedidosActivos() {
           const rows = byProveedor[t.value] || [];
           return (
             <TabsContent key={t.key} value={t.value} className="space-y-4">
-              <Card>
-                <CardContent className="p-0 overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+              <Card className="overflow-hidden">
+                <CardContent className="p-0 max-h-[calc(100vh-24rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+                  <Table className="min-w-max">
+                    <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50">
                       <TableRow>
-                        <TableHead className="uppercase tracking-wide text-xs font-medium">PO interno</TableHead>
+                        <TableHead className="uppercase tracking-wide text-xs font-medium sticky left-0 z-30 bg-gradient-to-r from-violet-50 to-blue-50 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">PO interno</TableHead>
                         <TableHead className="uppercase tracking-wide text-xs font-medium">N° Orden</TableHead>
                         <TableHead className="uppercase tracking-wide text-xs font-medium">Almacén destino</TableHead>
                         <TableHead className="uppercase tracking-wide text-xs font-medium">Fecha pedido</TableHead>
@@ -132,7 +132,7 @@ export default function PedidosActivos() {
                         <TableHead className="uppercase tracking-wide text-xs font-medium text-right">Total tarimas</TableHead>
                         <TableHead className="uppercase tracking-wide text-xs font-medium text-right">Monto</TableHead>
                         <TableHead className="uppercase tracking-wide text-xs font-medium">Estatus</TableHead>
-                        <TableHead className="uppercase tracking-wide text-xs font-medium text-right">Acciones</TableHead>
+                        <TableHead className="uppercase tracking-wide text-xs font-medium text-right sticky right-0 z-30 bg-gradient-to-r from-violet-50 to-blue-50">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -143,13 +143,15 @@ export default function PedidosActivos() {
                           </TableCell>
                         </TableRow>
                       )}
-                      {rows.map((p, idx) => (
+                      {rows.map((p, idx) => {
+                        const rowBg = idx % 2 === 0 ? "bg-background" : "bg-muted/20";
+                        return (
                         <TableRow
                           key={p.id}
-                          className={`cursor-pointer ${idx % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-blue-50/40`}
+                          className={`cursor-pointer ${rowBg} hover:bg-blue-50/40`}
                           onClick={() => setOpenId(p.id)}
                         >
-                          <TableCell className="font-mono text-xs">{p.numero_po_interno || "—"}</TableCell>
+                          <TableCell className={`font-mono text-xs sticky left-0 z-10 ${rowBg} shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]`}>{p.numero_po_interno || "—"}</TableCell>
                           <TableCell className="text-sm">{p.numero_orden_proveedor || "—"}</TableCell>
                           <TableCell className="text-sm">{ALMACEN_LABELS[p.almacen_destino || ""] || p.almacen_destino || "—"}</TableCell>
                           <TableCell className="text-sm">{p.fecha_pedido || "—"}</TableCell>
@@ -161,7 +163,7 @@ export default function PedidosActivos() {
                               {ESTATUS_PEDIDO_LABEL[p.estatus || ""] || p.estatus || "—"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <TableCell className={`text-right sticky right-0 z-10 ${rowBg}`} onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -172,7 +174,8 @@ export default function PedidosActivos() {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </CardContent>

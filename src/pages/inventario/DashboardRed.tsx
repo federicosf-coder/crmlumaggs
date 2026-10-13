@@ -196,11 +196,11 @@ export default function DashboardRed() {
         <div className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-3 border-b">
           <div className="font-semibold tracking-tight">Pedidos activos</div>
         </div>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
+        <CardContent className="p-0 max-h-[calc(100vh-24rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+          <Table className="min-w-max">
+            <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
               <TableRow>
-                <Th>Pedido</Th><Th>Estatus</Th>
+                <Th className="sticky left-0 z-30 bg-background/95 backdrop-blur shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Pedido</Th><Th>Estatus</Th>
                 <Th className="text-right">Tarimas</Th>
                 <Th className="text-right">Días desde pedido</Th>
                 <Th>Progreso → Entrega est.</Th>
@@ -211,7 +211,7 @@ export default function DashboardRed() {
                 const p = c.pedido_actual;
                 if (!p) return (
                   <TableRow key={c.id}>
-                    <TableCell>{c.nombre}</TableCell>
+                    <TableCell className="sticky left-0 z-10 bg-background">{c.nombre}</TableCell>
                     <TableCell colSpan={4} className="text-muted-foreground italic">Sin pedido activo</TableCell>
                   </TableRow>
                 );
@@ -223,7 +223,7 @@ export default function DashboardRed() {
                 if (inicio && fin && fin > inicio) pct = Math.max(0, Math.min(100, ((now - inicio) / (fin - inicio)) * 100));
                 return (
                   <TableRow key={c.id}>
-                    <TableCell>
+                    <TableCell className="sticky left-0 z-10 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">
                       <div className="font-medium text-sm">{c.nombre}</div>
                       <div className="text-xs text-muted-foreground font-mono">{p.numero_po_interno || c.id}</div>
                     </TableCell>
@@ -278,11 +278,11 @@ export default function DashboardRed() {
           <div className="font-semibold tracking-tight">Matriz de stock · SKUs Clase A</div>
           <div className="text-xs text-muted-foreground font-light">Stock por almacén y semáforo de estatus</div>
         </div>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
+        <CardContent className="p-0 max-h-[calc(100vh-24rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+          <Table className="min-w-max">
+            <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
               <TableRow>
-                <Th>ABC</Th><Th>Código</Th><Th>Producto</Th>
+                <Th>ABC</Th><Th className="sticky left-0 z-30 bg-background/95 backdrop-blur shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Código</Th><Th>Producto</Th>
                 <Th className="text-right">MXL</Th>
                 <Th className="text-right">TJ</Th>
                 <Th className="text-right">MOR</Th>
@@ -291,10 +291,12 @@ export default function DashboardRed() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {matriz.map((n: any, i: number) => (
-                <TableRow key={n.id} className={i % 2 ? "bg-muted/20" : ""}>
+              {matriz.map((n: any, i: number) => {
+                const rowBg = i % 2 ? "bg-muted/20" : "bg-background";
+                return (
+                <TableRow key={n.id} className={rowBg}>
                   <TableCell><Badge variant="outline" className={abcColor(n.clasificacion_abc)}>{n.clasificacion_abc || "—"}</Badge></TableCell>
-                  <TableCell className="font-mono text-xs">{n.codigo_producto}</TableCell>
+                  <TableCell className={`font-mono text-xs sticky left-0 z-10 ${rowBg} shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]`}>{n.codigo_producto}</TableCell>
                   <TableCell className="max-w-[260px] truncate">{n.nombre_producto || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{n.stock_almacen_1001 ?? 0}</TableCell>
                   <TableCell className="text-right tabular-nums">{n.stock_almacen_1002 ?? 0}</TableCell>
@@ -302,7 +304,8 @@ export default function DashboardRed() {
                   <TableCell className="text-right tabular-nums">{n.stock_almacen_1004 ?? 0}</TableCell>
                   <TableCell><Badge className={statusColor(n.estatus_inventario)}>{n.estatus_inventario || "—"}</Badge></TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
               {matriz.length === 0 && (
                 <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground text-sm">Sin SKUs clase A</TableCell></TableRow>
               )}
@@ -317,34 +320,37 @@ export default function DashboardRed() {
           <div className="font-semibold tracking-tight flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Oportunidades de traspaso</div>
           <div className="text-xs text-muted-foreground font-light">Sobrestock en hub con stock bajo en spoke</div>
         </div>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
+        <CardContent className="p-0 max-h-[calc(100vh-24rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+          <Table className="min-w-max">
+            <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
               <TableRow>
-                <Th>Código</Th><Th>Producto</Th>
+                <Th className="sticky left-0 z-30 bg-background/95 backdrop-blur shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Código</Th><Th>Producto</Th>
                 <Th>Hub</Th>
                 <Th className="text-right">Stock hub</Th>
                 <Th>Spoke</Th>
                 <Th className="text-right">Stock spoke</Th>
                 <Th className="text-right">Diferencia</Th>
-                <Th>{" "}</Th>
+                <Th className="sticky right-0 z-30 bg-background/95 backdrop-blur">{" "}</Th>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {oportunidades.map((o: any, i: number) => (
-                <TableRow key={`${o.id}-${o.hub}`} className={i % 2 ? "bg-muted/20" : ""}>
-                  <TableCell className="font-mono text-xs">{o.codigo_producto}</TableCell>
+              {oportunidades.map((o: any, i: number) => {
+                const rowBg = i % 2 ? "bg-muted/20" : "bg-background";
+                return (
+                <TableRow key={`${o.id}-${o.hub}`} className={rowBg}>
+                  <TableCell className={`font-mono text-xs sticky left-0 z-10 ${rowBg} shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]`}>{o.codigo_producto}</TableCell>
                   <TableCell className="max-w-[240px] truncate">{o.nombre_producto || "—"}</TableCell>
                   <TableCell>{ALMACEN_LABELS[o.hub]}</TableCell>
                   <TableCell className="text-right tabular-nums">{o.sH}</TableCell>
                   <TableCell>{ALMACEN_LABELS[o.spoke]}</TableCell>
                   <TableCell className="text-right tabular-nums text-red-700">{o.sS}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{o.diff}</TableCell>
-                  <TableCell>
+                  <TableCell className={`sticky right-0 z-10 ${rowBg}`}>
                     {puedeEditar && <Button size="sm" variant="outline" onClick={() => sugerirTraspaso(o)}>Sugerir traspaso</Button>}
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
               {oportunidades.length === 0 && (
                 <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground text-sm">Sin oportunidades detectadas</TableCell></TableRow>
               )}

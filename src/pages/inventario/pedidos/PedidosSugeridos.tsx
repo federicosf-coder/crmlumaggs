@@ -368,11 +368,11 @@ export default function PedidosSugeridos() {
 
         <TabsContent value="por_pedir">
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0 max-h-[calc(100vh-18rem)] overflow-auto">
           <Table>
-            <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+            <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50 backdrop-blur">
               <TableRow>
-                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">Código</TableHead>
+                <TableHead className="sticky left-0 z-30 bg-background uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">Código</TableHead>
                 <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">Producto</TableHead>
                 <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground">Presentación</TableHead>
                 <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right">Stock Total</TableHead>
@@ -381,13 +381,13 @@ export default function PedidosSugeridos() {
                 {ALMACENES.map((a) => (
                   <TableHead key={a.code} className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-center">{a.label}</TableHead>
                 ))}
-                <TableHead className="uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right"></TableHead>
+                <TableHead className="sticky right-0 z-30 bg-background uppercase tracking-widest text-[10px] font-semibold text-muted-foreground text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r.codigo} className="odd:bg-muted/20 hover:bg-blue-50/40">
-                  <TableCell className="font-mono text-xs">{r.codigo}</TableCell>
+                  <TableCell className="sticky left-0 z-10 bg-background font-mono text-xs odd:bg-muted/20">{r.codigo}</TableCell>
                   <TableCell className="text-[13px] font-light">{r.nombre}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{r.presentacion}</TableCell>
                   <TableCell className="text-right tabular-nums text-sm">{r.stock_total}</TableCell>
@@ -425,7 +425,7 @@ export default function PedidosSugeridos() {
                       </TableCell>
                     );
                   })}
-                  <TableCell className="text-right">
+                  <TableCell className="sticky right-0 z-10 bg-background text-right odd:bg-muted/20">
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => ignorar(r.codigo)}>
                         <EyeOff className="h-3.5 w-3.5 mr-1" />Ignorar
@@ -448,24 +448,24 @@ export default function PedidosSugeridos() {
 
         <TabsContent value="ignorados">
           <Card>
-            <CardContent className="p-0 overflow-x-auto">
+            <CardContent className="p-0 max-h-[calc(100vh-18rem)] overflow-auto">
               <Table>
-                <TableHeader className="bg-gradient-to-r from-violet-50 to-blue-50">
+                <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50 backdrop-blur">
                   <TableRow>
-                    {["Código", "Nombre", "Total Necesario", "Ignorado el", "Ignorado por", ""].map((h, idx) => (
-                      <TableHead key={h || idx} className="uppercase tracking-wide text-xs font-medium">{h}</TableHead>
+                    {["Código", "Nombre", "Total Necesario", "Ignorado el", "Ignorado por", "Acciones"].map((h, idx) => (
+                      <TableHead key={h || idx} className={`uppercase tracking-wide text-xs font-medium ${idx === 0 ? "sticky left-0 z-30 bg-background" : idx === 5 ? "sticky right-0 z-30 bg-background text-right" : ""}`}>{h}</TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rowsIgnorados.map((r, i) => (
                     <TableRow key={r.codigo_producto} className={i % 2 === 0 ? "" : "bg-muted/20"}>
-                      <TableCell className="font-mono text-xs">{r.codigo_producto}</TableCell>
+                      <TableCell className={`font-mono text-xs sticky left-0 z-10 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>{r.codigo_producto}</TableCell>
                       <TableCell className="text-sm font-light">{r.nombre}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.necesidad_total}</TableCell>
                       <TableCell className="text-xs">{r.ignorado_at ? new Date(r.ignorado_at).toLocaleDateString("es-MX") : "—"}</TableCell>
                       <TableCell className="text-xs">{nombrePorUser[r.ignorado_por] || "—"}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={`text-right sticky right-0 z-10 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
                         <Button variant="ghost" size="sm" onClick={() => quitarIgnorado(r.codigo_producto)}>
                           <Undo2 className="h-3.5 w-3.5 mr-1" />Quitar de ignorados
                         </Button>
