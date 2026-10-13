@@ -970,7 +970,7 @@ export default function Directory() {
                             }}
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell className="font-medium sticky left-10 z-10 bg-background">{c.name}</TableCell>
                         <TableCell className="font-mono text-xs">{c.id_contpaq || "—"}</TableCell>
                         <TableCell className="hidden sm:table-cell">{c.industry || "—"}</TableCell>
                         <TableCell>{(c.contacts as any[])?.length || 0}</TableCell>
