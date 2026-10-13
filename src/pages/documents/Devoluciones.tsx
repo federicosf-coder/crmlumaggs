@@ -167,12 +167,12 @@ export default function Devoluciones() {
         </Select>
       </div>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 max-h-[calc(100vh-15rem)] overflow-auto [&>div]:overflow-visible [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+          <Table className="min-w-max">
+            <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur">
               <TableRow>
-                <TableHead>Folio</TableHead>
+                <TableHead className="sticky left-0 z-30 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">Folio</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Factura</TableHead>
                 <TableHead>Fecha de venta</TableHead>
@@ -187,7 +187,7 @@ export default function Devoluciones() {
               {!isLoading && filtradas.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">No hay devoluciones.</TableCell></TableRow>}
               {filtradas.map((r: any) => (
                 <TableRow key={r.id} className="cursor-pointer" onClick={() => setDetalleId(r.id)}>
-                  <TableCell className="font-mono text-xs">{r.folio}</TableCell>
+                  <TableCell className="font-mono text-xs sticky left-0 z-10 bg-background shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]">{r.folio}</TableCell>
                   <TableCell>{r.documentos?.companies?.name || "—"}</TableCell>
                   <TableCell>{r.documentos?.numero_factura || "—"}</TableCell>
                   <TableCell>{fmtDate(r.fecha_venta)}</TableCell>
