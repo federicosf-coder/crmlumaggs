@@ -1373,7 +1373,7 @@ export default function DocumentsList() {
                         </SortableHead>
                       )}
                       {isColVisible("pdf") && <TableHead className="hidden sm:table-cell">PDF</TableHead>}
-                      <TableHead></TableHead>
+                      <TableHead className="sticky right-0 top-0 z-30 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1513,7 +1513,7 @@ export default function DocumentsList() {
                             ) : null}
                           </TableCell>
                         )}
-                        <TableCell>
+                        <TableCell className="sticky right-0 z-10 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]" onClick={e => e.stopPropagation()}>
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/documents/${doc.id}`); }} title="Editar">
                               <Pencil className="h-4 w-4" />
