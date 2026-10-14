@@ -265,6 +265,9 @@ export default function Control45() {
         <TabsList>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="estado">Por estado</TabsTrigger>
+          <TabsTrigger value="pedidos" className="gap-1.5">Pedidos activos
+            {pedidosActivosCount > 0 && <Badge variant="secondary" className="h-5 px-1.5">{pedidosActivosCount}</Badge>}
+          </TabsTrigger>
           <TabsTrigger value="corp">Entregas corporativas</TabsTrigger>
           <TabsTrigger value="req" className="gap-1.5">Requisiciones
             {reqAbiertasCount > 0 && <Badge variant="secondary" className="h-5 px-1.5">{reqAbiertasCount}</Badge>}
@@ -376,6 +379,7 @@ export default function Control45() {
           })}
         </TabsContent>
 
+        <TabsContent value="pedidos"><PedidosTab empresa={empresa} /></TabsContent>
         <TabsContent value="corp"><CorpTab rows={rows} /></TabsContent>
         <TabsContent value="req"><ReqTab rows={rows} empresa={empresa} reqs={reqs} canManage={canArchive} userId={user?.id} /></TabsContent>
         <TabsContent value="arch"><ArchTab rows={archivados} empresa={empresa} canManage={canArchive} /></TabsContent>
