@@ -2,7 +2,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-const MODEL = 'google/gemini-2.5-flash';
+const MODEL = 'google/gemini-3-flash-preview';
 
 const PROMPT = `Esta es una foto tomada en campo de un vehículo, letrero, aviso o tarjeta de presentación de un posible cliente/prospecto de venta de lubricantes. Extrae SOLO este JSON sin texto adicional ni markdown: {"nombre_contacto":"string o null","empresa_nombre":"string o null","telefono":"string o null","giro_negocio":"string o null (ej. transporte, taller mecánico, construcción, refaccionaria, etc, basado en lo que se vea en la imagen)","notas":"string o null (cualquier otro dato visible relevante: dirección parcial, placas, colores corporativos, etc)"}. Si no puedes leer con certeza algún dato, usa null en ese campo. No inventes información que no esté visible en la imagen.`;
 

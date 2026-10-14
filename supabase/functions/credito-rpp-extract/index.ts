@@ -2,7 +2,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-const MODEL = 'google/gemini-2.5-flash';
+const MODEL = 'google/gemini-3-flash-preview';
 
 const PROMPT = `Eres un asistente experto en documentos del Registro Público de la Propiedad (RPP) de México.
 La imagen/PDF adjunta es un comprobante o consulta de propiedades en RPP. Lee el documento completo y redacta un

@@ -97,7 +97,7 @@ Reglas estrictas:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3-flash-preview',
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: systemPrompt },
