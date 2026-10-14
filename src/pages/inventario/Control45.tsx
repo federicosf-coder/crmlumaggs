@@ -208,6 +208,16 @@ export default function Control45() {
   });
   const reqAbiertasCount = reqs.filter(r => r.estatus === "pendiente" || r.estatus === "aprobada").length;
 
+  const { data: pedidosDet = [] } = useQuery({
+    queryKey: ["control45_pedidos", empresa],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("inv_pedidos_activos_detalle", { p_empresa: empresa });
+      if (error) throw error;
+      return (data || []) as Row[];
+    },
+  });
+  const pedidosActivosCount = new Set(pedidosDet.map(p => p.pedido_id)).size;
+
   const columns: SortCol<Row>[] = [
     { key: "codigo_producto", label: "Código" },
     { key: "nombre_producto", label: "Producto", render: r => <span className="block max-w-[16rem] truncate" title={r.nombre_producto}>{r.nombre_producto}</span> },
@@ -268,14 +278,15 @@ export default function Control45() {
           {isLoading ? <p className="text-sm text-muted-foreground">Cargando…</p> : (<>
             <p className="text-sm font-light">
               Tienes {fmtMoneyC(kpi.valor)} en inventario a costo, con cobertura global de {kpi.cobertura == null ? "—" : fmtNum(kpi.cobertura)} días.
-              Hay {fmtMoneyC(kpi.exceso)} ({fmtNum(kpi.excesoPct, 1)}%) por encima de 45 días, {fmtMoneyC(kpi.pedir)} por ordenar en {kpi.pedirN} productos
-              y {fmtMoneyC(kpi.smV)} en {kpi.smN} productos sin movimiento en 12 meses.
+              Hay {fmtMoneyC(kpi.exceso)} ({fmtNum(kpi.excesoPct, 1)}%) por encima de 45 días, {fmtMoneyC(kpi.pedir)} por ordenar en {kpi.pedirN} productos,
+              y {fmtMoneyC(kpi.smV)} en {kpi.smN} productos sin movimiento en 12 meses, y {fmtMoneyC(kpi.transito)} en pedidos activos por recibir.
             </p>
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-6">
               <Kpi title="Inventario a costo" value={fmtMoneyC(kpi.valor)} />
               <Kpi title="Cobertura global" value={kpi.cobertura == null ? "—" : `${fmtNum(kpi.cobertura)} días`} danger={kpi.cobertura != null && kpi.cobertura > 45} />
-              <Kpi title="Exceso sobre 45 días" value={fmtMoneyC(kpi.exceso)} sub={`${fmtNum(kpi.excesoPct, 1)}% del inventario`} />
+              <Kpi title="Exceso sobre 45 días (incl. tránsito)" value={fmtMoneyC(kpi.exceso)} sub={`${fmtNum(kpi.excesoPct, 1)}% del inventario`} />
               <Kpi title="Por ordenar" value={fmtMoneyC(kpi.pedir)} sub={`${kpi.pedirN} productos`} />
+              <Kpi title="En tránsito" value={fmtMoneyC(kpi.transito)} sub="pedidos activos por recibir" />
               <Kpi title="Sin movimiento 12 meses" value={fmtMoneyC(kpi.smV)} sub={`${kpi.smN} productos`} />
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
