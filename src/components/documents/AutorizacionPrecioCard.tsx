@@ -237,6 +237,31 @@ export default function AutorizacionPrecioCard({
 
 
   const editable = row.estatus === "pendiente_revision";
+
+  // Mientras la autorización no se envía, sincronizar los productos con el
+  // pedido actual (p. ej. si se editaron cantidades tras convertir la cotización).
+  useEffect(() => {
+    if (!editable || !row.documento_id) return;
+    let cancel = false;
+    (async () => {
+      try {
+        const actual = await computeCostoMargenSnapshot(row.documento_id);
+        if (cancel) return;
+        if (JSON.stringify(actual) === JSON.stringify(row.costo_margen_snapshot || [])) return;
+        const { error } = await (supabase as any)
+          .from("documento_autorizaciones_precio")
+          .update({ costo_margen_snapshot: actual })
+          .eq("id", row.id);
+        if (!error && !cancel) onRefetch();
+      } catch (e) {
+        console.error("No se pudo sincronizar productos de la autorización", e);
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row.id, editable, row.documento_id]);
   const doc = row.documentos || {};
   const company = doc.companies || {};
   const snapshot: any[] = Array.isArray(row.costo_margen_snapshot) ? row.costo_margen_snapshot : [];
