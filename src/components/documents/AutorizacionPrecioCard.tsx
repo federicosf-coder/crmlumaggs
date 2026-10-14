@@ -40,7 +40,7 @@ import {
 import { toast } from "sonner";
 import { formatDate } from "@/lib/formatters";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
-import { buildAutorizacionPrecioEmailFlow } from "@/lib/autorizacionPrecioFlow";
+import { buildAutorizacionPrecioEmailFlow, computeCostoMargenSnapshot } from "@/lib/autorizacionPrecioFlow";
 import {
   normalizeDatosCliente,
   type DatosClienteAutorizacion,
@@ -432,6 +432,10 @@ export default function AutorizacionPrecioCard({
         if (JSON.stringify(datos) !== JSON.stringify(snapActual)) {
           updates.datos_cliente_snapshot = datos;
         }
+        // Siempre refrescar productos/cantidades/precios con el pedido actual
+        if (row.documento_id) {
+          updates.costo_margen_snapshot = await computeCostoMargenSnapshot(row.documento_id);
+        }
         if (Object.keys(updates).length > 0) {
           const { error: upErr } = await (supabase as any)
             .from("documento_autorizaciones_precio")
@@ -451,6 +455,7 @@ export default function AutorizacionPrecioCard({
         }
       }
       const f = await buildAutorizacionPrecioEmailFlow(row.id);
+      onRefetch();
       setFlow(f);
       setPreviewOpen(true);
     } catch (e: any) {
