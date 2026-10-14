@@ -720,3 +720,69 @@ function ArchTab({ rows, empresa, canManage }: { rows: Row[]; empresa: string; c
     </div>
   );
 }
+
+// ============ Tab Pedidos activos ============
+function PedidosTab({ empresa }: { empresa: string }) {
+  const navigate = useNavigate();
+  const { data: lineas = [], isLoading } = useQuery({
+    queryKey: ["control45_pedidos", empresa],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("inv_pedidos_activos_detalle", { p_empresa: empresa });
+      if (error) throw error;
+      return (data || []) as Row[];
+    },
+  });
+
+  const pedidosDistintos = new Set(lineas.map(l => l.pedido_id)).size;
+  const valorPendiente = lineas.reduce((s, l) => s + n(l.valor_pendiente), 0);
+  const atrasados = new Set(lineas.filter(l => n(l.dias_atraso) > 0).map(l => l.pedido_id)).size;
+
+  const cols: SortCol<Row>[] = [
+    { key: "numero_po", label: "PO" },
+    { key: "estatus", label: "Estatus", value: r => ESTATUS_PEDIDO_LABEL[r.estatus] ?? r.estatus ?? "", render: r => <Badge variant="outline">{ESTATUS_PEDIDO_LABEL[r.estatus] ?? r.estatus ?? "—"}</Badge> },
+    { key: "tipo", label: "Tipo", render: r => r.tipo === "IMP" ? "Importado" : r.tipo === "NAL" ? "Nacional" : (r.tipo ?? "—") },
+    { key: "fecha_pedido", label: "Fecha pedido", render: r => r.fecha_pedido ?? "—" },
+    { key: "eta_regla", label: "Llega", value: r => r.eta_regla ?? "", render: r => (
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+        {r.eta_regla ?? "—"}
+        {n(r.dias_atraso) > 0 && <Badge className="bg-red-100 text-red-800">Atrasado {n(r.dias_atraso)} d</Badge>}
+      </span>) },
+    { key: "codigo_producto", label: "Código" },
+    { key: "nombre_producto", label: "Producto", render: r => <span className="block max-w-[16rem] truncate" title={r.nombre_producto}>{r.nombre_producto}</span> },
+    { key: "unidad", label: "Unidad", render: r => r.unidad ?? "—" },
+    { key: "cantidad_pedida", label: "Pedida", align: "right", value: r => n(r.cantidad_pedida), render: r => fmtNum(n(r.cantidad_pedida)) },
+    { key: "cantidad_recibida", label: "Recibida", align: "right", value: r => n(r.cantidad_recibida), render: r => fmtNum(n(r.cantidad_recibida)) },
+    { key: "pendiente", label: "Pendiente", align: "right", value: r => n(r.pendiente), render: r => fmtNum(n(r.pendiente)) },
+    { key: "valor_pendiente", label: "Valor pendiente ($)", align: "right", value: r => n(r.valor_pendiente), render: r => fmtMoney(n(r.valor_pendiente)) },
+  ];
+
+  if (!isLoading && lineas.length === 0) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">No hay pedidos activos para esta marca.</p>
+        <Button variant="outline" size="sm" onClick={() => navigate("/inventario/pedidos/activos")}>Ir a Pedidos</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <Kpi title="Pedidos activos" value={fmtNum(pedidosDistintos)} />
+        <Kpi title="Líneas pendientes" value={fmtNum(lineas.length)} />
+        <Kpi title="Valor por recibir" value={fmtMoneyC(valorPendiente)} />
+        <Kpi title="Pedidos atrasados" value={fmtNum(atrasados)} danger={atrasados > 0} />
+      </div>
+      <p className="text-sm font-light">
+        Pedidos ya enviados al proveedor que no se han recibido completos. Llegada estimada: fecha del pedido + 2 semanas si es nacional o + 5 semanas si es importado.
+        Lo pendiente se suma como tránsito en el cálculo; si llega después del tiempo de reposición no evita el faltante, pero sí reduce la cantidad sugerida.
+      </p>
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => navigate("/inventario/pedidos/activos")}>Ir a Pedidos</Button>
+      </div>
+      {isLoading ? <p className="text-sm text-muted-foreground">Cargando…</p> : (
+        <SortableTable rows={lineas} columns={cols} defaultSort="eta_regla" defaultDir="asc" rowKey={r => `${r.pedido_id}-${r.codigo_producto}`} />
+      )}
+    </div>
+  );
+}
