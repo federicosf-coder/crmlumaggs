@@ -150,7 +150,7 @@ export default function Control45() {
   const first = rows[0];
 
   const kpi = useMemo(() => {
-    let valor = 0, den = 0, exceso = 0, pedir = 0, pedirN = 0, smV = 0, smN = 0;
+    let valor = 0, den = 0, exceso = 0, pedir = 0, pedirN = 0, smV = 0, smN = 0, transito = 0;
     for (const r of activos) {
       valor += n(r.valor);
       den += (n(r.venta_diaria) + n(r.corp_45d) / 45) * n(r.costo_unitario);
@@ -158,8 +158,9 @@ export default function Control45() {
       pedir += n(r.pedir_valor);
       if (n(r.pedir_uds) > 0) pedirN++;
       if (r.estado === "Sin movimiento 12m") { smV += n(r.valor); smN++; }
+      transito += n(r.transito_valor);
     }
-    return { valor, cobertura: den > 0 ? valor / den : null, exceso, excesoPct: valor > 0 ? (exceso / valor) * 100 : 0, pedir, pedirN, smV, smN };
+    return { valor, cobertura: den > 0 ? valor / den : null, exceso, excesoPct: valor > 0 ? (exceso / valor) * 100 : 0, pedir, pedirN, smV, smN, transito };
   }, [activos]);
 
   const porEstado = useMemo(() => ESTADOS.map(e => {
@@ -215,15 +216,17 @@ export default function Control45() {
         <TooltipContent>Tiempo de entrega: {r.lead_dias ?? "—"} días</TooltipContent></Tooltip>) : "—" },
     { key: "existencia", label: "Exist.", align: "right", value: r => n(r.existencia), render: r => fmtNum(n(r.existencia)) },
     { key: "en_transito", label: "Tránsito", align: "right", value: r => n(r.en_transito), render: r => fmtNum(n(r.en_transito)) },
+    { key: "proxima_llegada", label: "Llega", value: r => r.proxima_llegada ?? "", render: r => r.proxima_llegada ?? "—" },
     { key: "venta_diaria", label: "Venta/día", align: "right", value: r => n(r.venta_diaria), render: r => fmtNum(n(r.venta_diaria), 2) },
     { key: "corp_45d", label: "Corp. 45d", align: "right", value: r => n(r.corp_45d), render: r => fmtNum(n(r.corp_45d)) },
     { key: "requisiciones", label: "Req.", align: "right", value: r => n(r.requisiciones), render: r => fmtNum(n(r.requisiciones)) },
     { key: "cobertura_dias", label: "Cobertura (d)", align: "right", value: r => r.cobertura_dias == null ? -1 : n(r.cobertura_dias), render: r => r.cobertura_dias == null ? "—" : fmtNum(n(r.cobertura_dias)) },
+    { key: "cobertura_con_transito_dias", label: "Cob. c/tránsito (d)", align: "right", value: r => r.cobertura_con_transito_dias == null ? -1 : n(r.cobertura_con_transito_dias), render: r => r.cobertura_con_transito_dias == null ? "—" : fmtNum(n(r.cobertura_con_transito_dias)) },
     { key: "dias_sin_venta", label: "Días s/venta", align: "right", value: r => r.dias_sin_venta == null ? -1 : n(r.dias_sin_venta), render: r => r.dias_sin_venta ?? "—" },
     { key: "valor", label: "Valor", align: "right", value: r => n(r.valor), render: r => fmtMoney(n(r.valor)) },
     { key: "pedir_uds", label: "Pedir (uds)", align: "right", value: r => n(r.pedir_uds), render: r => fmtNum(n(r.pedir_uds)) },
     { key: "pedir_valor", label: "Pedir ($)", align: "right", value: r => n(r.pedir_valor), render: r => fmtMoney(n(r.pedir_valor)) },
-    { key: "exceso_valor", label: "Exceso ($)", align: "right", value: r => n(r.exceso_valor), render: r => fmtMoney(n(r.exceso_valor)) },
+    { key: "exceso_valor", label: "Exceso c/tránsito ($)", align: "right", value: r => n(r.exceso_valor), render: r => fmtMoney(n(r.exceso_valor)) },
     ...(canArchive ? [{ key: "accion", label: "Acción", sortable: false, render: (r: Row) => (
       <Select value="" onValueChange={v => archivar(r, v)}>
         <SelectTrigger className="h-7 w-32 text-xs"><SelectValue placeholder="Archivar…" /></SelectTrigger>
