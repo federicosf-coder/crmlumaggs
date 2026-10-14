@@ -11440,10 +11440,34 @@ export type Database = {
         Args: { p_desde: string; p_empresa: string; p_hasta: string }
         Returns: number
       }
+      inv_pedidos_activos_detalle: {
+        Args: { p_empresa: string }
+        Returns: {
+          cantidad_pedida: number
+          cantidad_recibida: number
+          codigo_producto: string
+          costo_unitario: number
+          dias_atraso: number
+          estatus: string
+          estatus_linea: string
+          eta_regla: string
+          fecha_entrega_estimada: string
+          fecha_pedido: string
+          nombre_producto: string
+          numero_po: string
+          pedido_id: string
+          pendiente: number
+          proveedor: string
+          tipo: string
+          unidad: string
+          valor_pendiente: number
+        }[]
+      }
       inv_reorden_45d: {
         Args: { p_empresa: string }
         Returns: {
           archivado: boolean
+          cobertura_con_transito_dias: number
           cobertura_dias: number
           codigo_producto: string
           corp_45d: number
@@ -11466,8 +11490,12 @@ export type Database = {
           origen: string
           pedir_uds: number
           pedir_valor: number
+          proxima_llegada: string
           proyeccion_llegada: number
           requisiciones: number
+          transito_antes_lead: number
+          transito_despues_lead: number
+          transito_valor: number
           uds_12m: number
           uds_90d: number
           ultima_venta: string

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronDown } from "lucide-react";
+import { ESTATUS_PEDIDO_LABEL } from "@/hooks/usePedidosInventario";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
 
 type Row = Record<string, any>;
@@ -26,6 +27,7 @@ type Row = Record<string, any>;
 const ESTADOS: { key: string; desc: string; color: string }[] = [
   { key: "Agotado", desc: "Sin existencia y con venta regular.", color: "#dc2626" },
   { key: "Faltará antes de reponer", desc: "La existencia no alcanza para el tiempo de entrega.", color: "#ef4444" },
+  { key: "Faltará: pedido llega tarde", desc: "Hay pedido en camino, pero llega después de que se acabe la existencia.", color: "#f97316" },
   { key: "Ordenar ahora", desc: "Alcanza para el tiempo de entrega pero llegaría con menos de 7 días.", color: "#f59e0b" },
   { key: "Bajo pedido (esporádico)", desc: "Se vende 3 meses o menos al año: pedir solo contra venta confirmada.", color: "#9ca3af" },
   { key: "Corporativo sin programar", desc: "Solo tuvo salidas corporativas y no hay entregas programadas: captura el calendario en Entregas Corporativas.", color: "#8b5cf6" },
@@ -35,7 +37,7 @@ const ESTADOS: { key: string; desc: string; color: string }[] = [
   { key: "Atorado", desc: "Más de 120 días sin venta, o venta muy esporádica con más de 180 días de cobertura.", color: "#374151" },
   { key: "Sin movimiento 12m", desc: "Con existencia y sin ventas en 12 meses.", color: "#6b7280" },
 ];
-const URGENTES = ["Agotado", "Faltará antes de reponer", "Ordenar ahora"];
+const URGENTES = ["Agotado", "Faltará antes de reponer", "Faltará: pedido llega tarde", "Ordenar ahora"];
 
 const MOTIVOS = [
   { v: "descontinuado", l: "Descontinuado" },
@@ -148,7 +150,7 @@ export default function Control45() {
   const first = rows[0];
 
   const kpi = useMemo(() => {
-    let valor = 0, den = 0, exceso = 0, pedir = 0, pedirN = 0, smV = 0, smN = 0;
+    let valor = 0, den = 0, exceso = 0, pedir = 0, pedirN = 0, smV = 0, smN = 0, transito = 0;
     for (const r of activos) {
       valor += n(r.valor);
       den += (n(r.venta_diaria) + n(r.corp_45d) / 45) * n(r.costo_unitario);
@@ -156,8 +158,9 @@ export default function Control45() {
       pedir += n(r.pedir_valor);
       if (n(r.pedir_uds) > 0) pedirN++;
       if (r.estado === "Sin movimiento 12m") { smV += n(r.valor); smN++; }
+      transito += n(r.transito_valor);
     }
-    return { valor, cobertura: den > 0 ? valor / den : null, exceso, excesoPct: valor > 0 ? (exceso / valor) * 100 : 0, pedir, pedirN, smV, smN };
+    return { valor, cobertura: den > 0 ? valor / den : null, exceso, excesoPct: valor > 0 ? (exceso / valor) * 100 : 0, pedir, pedirN, smV, smN, transito };
   }, [activos]);
 
   const porEstado = useMemo(() => ESTADOS.map(e => {
@@ -205,6 +208,16 @@ export default function Control45() {
   });
   const reqAbiertasCount = reqs.filter(r => r.estatus === "pendiente" || r.estatus === "aprobada").length;
 
+  const { data: pedidosDet = [] } = useQuery({
+    queryKey: ["control45_pedidos", empresa],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("inv_pedidos_activos_detalle", { p_empresa: empresa });
+      if (error) throw error;
+      return (data || []) as Row[];
+    },
+  });
+  const pedidosActivosCount = new Set(pedidosDet.map(p => p.pedido_id)).size;
+
   const columns: SortCol<Row>[] = [
     { key: "codigo_producto", label: "Código" },
     { key: "nombre_producto", label: "Producto", render: r => <span className="block max-w-[16rem] truncate" title={r.nombre_producto}>{r.nombre_producto}</span> },
@@ -213,15 +226,17 @@ export default function Control45() {
         <TooltipContent>Tiempo de entrega: {r.lead_dias ?? "—"} días</TooltipContent></Tooltip>) : "—" },
     { key: "existencia", label: "Exist.", align: "right", value: r => n(r.existencia), render: r => fmtNum(n(r.existencia)) },
     { key: "en_transito", label: "Tránsito", align: "right", value: r => n(r.en_transito), render: r => fmtNum(n(r.en_transito)) },
+    { key: "proxima_llegada", label: "Llega", value: r => r.proxima_llegada ?? "", render: r => r.proxima_llegada ?? "—" },
     { key: "venta_diaria", label: "Venta/día", align: "right", value: r => n(r.venta_diaria), render: r => fmtNum(n(r.venta_diaria), 2) },
     { key: "corp_45d", label: "Corp. 45d", align: "right", value: r => n(r.corp_45d), render: r => fmtNum(n(r.corp_45d)) },
     { key: "requisiciones", label: "Req.", align: "right", value: r => n(r.requisiciones), render: r => fmtNum(n(r.requisiciones)) },
     { key: "cobertura_dias", label: "Cobertura (d)", align: "right", value: r => r.cobertura_dias == null ? -1 : n(r.cobertura_dias), render: r => r.cobertura_dias == null ? "—" : fmtNum(n(r.cobertura_dias)) },
+    { key: "cobertura_con_transito_dias", label: "Cob. c/tránsito (d)", align: "right", value: r => r.cobertura_con_transito_dias == null ? -1 : n(r.cobertura_con_transito_dias), render: r => r.cobertura_con_transito_dias == null ? "—" : fmtNum(n(r.cobertura_con_transito_dias)) },
     { key: "dias_sin_venta", label: "Días s/venta", align: "right", value: r => r.dias_sin_venta == null ? -1 : n(r.dias_sin_venta), render: r => r.dias_sin_venta ?? "—" },
     { key: "valor", label: "Valor", align: "right", value: r => n(r.valor), render: r => fmtMoney(n(r.valor)) },
     { key: "pedir_uds", label: "Pedir (uds)", align: "right", value: r => n(r.pedir_uds), render: r => fmtNum(n(r.pedir_uds)) },
     { key: "pedir_valor", label: "Pedir ($)", align: "right", value: r => n(r.pedir_valor), render: r => fmtMoney(n(r.pedir_valor)) },
-    { key: "exceso_valor", label: "Exceso ($)", align: "right", value: r => n(r.exceso_valor), render: r => fmtMoney(n(r.exceso_valor)) },
+    { key: "exceso_valor", label: "Exceso c/tránsito ($)", align: "right", value: r => n(r.exceso_valor), render: r => fmtMoney(n(r.exceso_valor)) },
     ...(canArchive ? [{ key: "accion", label: "Acción", sortable: false, render: (r: Row) => (
       <Select value="" onValueChange={v => archivar(r, v)}>
         <SelectTrigger className="h-7 w-32 text-xs"><SelectValue placeholder="Archivar…" /></SelectTrigger>
@@ -250,6 +265,9 @@ export default function Control45() {
         <TabsList>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="estado">Por estado</TabsTrigger>
+          <TabsTrigger value="pedidos" className="gap-1.5">Pedidos activos
+            {pedidosActivosCount > 0 && <Badge variant="secondary" className="h-5 px-1.5">{pedidosActivosCount}</Badge>}
+          </TabsTrigger>
           <TabsTrigger value="corp">Entregas corporativas</TabsTrigger>
           <TabsTrigger value="req" className="gap-1.5">Requisiciones
             {reqAbiertasCount > 0 && <Badge variant="secondary" className="h-5 px-1.5">{reqAbiertasCount}</Badge>}
@@ -263,14 +281,15 @@ export default function Control45() {
           {isLoading ? <p className="text-sm text-muted-foreground">Cargando…</p> : (<>
             <p className="text-sm font-light">
               Tienes {fmtMoneyC(kpi.valor)} en inventario a costo, con cobertura global de {kpi.cobertura == null ? "—" : fmtNum(kpi.cobertura)} días.
-              Hay {fmtMoneyC(kpi.exceso)} ({fmtNum(kpi.excesoPct, 1)}%) por encima de 45 días, {fmtMoneyC(kpi.pedir)} por ordenar en {kpi.pedirN} productos
-              y {fmtMoneyC(kpi.smV)} en {kpi.smN} productos sin movimiento en 12 meses.
+              Hay {fmtMoneyC(kpi.exceso)} ({fmtNum(kpi.excesoPct, 1)}%) por encima de 45 días, {fmtMoneyC(kpi.pedir)} por ordenar en {kpi.pedirN} productos,
+              y {fmtMoneyC(kpi.smV)} en {kpi.smN} productos sin movimiento en 12 meses, y {fmtMoneyC(kpi.transito)} en pedidos activos por recibir.
             </p>
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-6">
               <Kpi title="Inventario a costo" value={fmtMoneyC(kpi.valor)} />
               <Kpi title="Cobertura global" value={kpi.cobertura == null ? "—" : `${fmtNum(kpi.cobertura)} días`} danger={kpi.cobertura != null && kpi.cobertura > 45} />
-              <Kpi title="Exceso sobre 45 días" value={fmtMoneyC(kpi.exceso)} sub={`${fmtNum(kpi.excesoPct, 1)}% del inventario`} />
+              <Kpi title="Exceso sobre 45 días (incl. tránsito)" value={fmtMoneyC(kpi.exceso)} sub={`${fmtNum(kpi.excesoPct, 1)}% del inventario`} />
               <Kpi title="Por ordenar" value={fmtMoneyC(kpi.pedir)} sub={`${kpi.pedirN} productos`} />
+              <Kpi title="En tránsito" value={fmtMoneyC(kpi.transito)} sub="pedidos activos por recibir" />
               <Kpi title="Sin movimiento 12 meses" value={fmtMoneyC(kpi.smV)} sub={`${kpi.smN} productos`} />
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
@@ -360,6 +379,7 @@ export default function Control45() {
           })}
         </TabsContent>
 
+        <TabsContent value="pedidos"><PedidosTab empresa={empresa} /></TabsContent>
         <TabsContent value="corp"><CorpTab rows={rows} /></TabsContent>
         <TabsContent value="req"><ReqTab rows={rows} empresa={empresa} reqs={reqs} canManage={canArchive} userId={user?.id} /></TabsContent>
         <TabsContent value="arch"><ArchTab rows={archivados} empresa={empresa} canManage={canArchive} /></TabsContent>
@@ -697,6 +717,72 @@ function ArchTab({ rows, empresa, canManage }: { rows: Row[]; empresa: string; c
     <div className="space-y-3">
       <p className="text-sm font-light">No aparecen en los estados, no se sugieren para pedido y no cuentan en los indicadores.</p>
       <SortableTable rows={rows} columns={cols} defaultSort="valor" rowKey={r => r.codigo_producto} />
+    </div>
+  );
+}
+
+// ============ Tab Pedidos activos ============
+function PedidosTab({ empresa }: { empresa: string }) {
+  const navigate = useNavigate();
+  const { data: lineas = [], isLoading } = useQuery({
+    queryKey: ["control45_pedidos", empresa],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("inv_pedidos_activos_detalle", { p_empresa: empresa });
+      if (error) throw error;
+      return (data || []) as Row[];
+    },
+  });
+
+  const pedidosDistintos = new Set(lineas.map(l => l.pedido_id)).size;
+  const valorPendiente = lineas.reduce((s, l) => s + n(l.valor_pendiente), 0);
+  const atrasados = new Set(lineas.filter(l => n(l.dias_atraso) > 0).map(l => l.pedido_id)).size;
+
+  const cols: SortCol<Row>[] = [
+    { key: "numero_po", label: "PO" },
+    { key: "estatus", label: "Estatus", value: r => ESTATUS_PEDIDO_LABEL[r.estatus] ?? r.estatus ?? "", render: r => <Badge variant="outline">{ESTATUS_PEDIDO_LABEL[r.estatus] ?? r.estatus ?? "—"}</Badge> },
+    { key: "tipo", label: "Tipo", render: r => r.tipo === "IMP" ? "Importado" : r.tipo === "NAL" ? "Nacional" : (r.tipo ?? "—") },
+    { key: "fecha_pedido", label: "Fecha pedido", render: r => r.fecha_pedido ?? "—" },
+    { key: "eta_regla", label: "Llega", value: r => r.eta_regla ?? "", render: r => (
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+        {r.eta_regla ?? "—"}
+        {n(r.dias_atraso) > 0 && <Badge className="bg-red-100 text-red-800">Atrasado {n(r.dias_atraso)} d</Badge>}
+      </span>) },
+    { key: "codigo_producto", label: "Código" },
+    { key: "nombre_producto", label: "Producto", render: r => <span className="block max-w-[16rem] truncate" title={r.nombre_producto}>{r.nombre_producto}</span> },
+    { key: "unidad", label: "Unidad", render: r => r.unidad ?? "—" },
+    { key: "cantidad_pedida", label: "Pedida", align: "right", value: r => n(r.cantidad_pedida), render: r => fmtNum(n(r.cantidad_pedida)) },
+    { key: "cantidad_recibida", label: "Recibida", align: "right", value: r => n(r.cantidad_recibida), render: r => fmtNum(n(r.cantidad_recibida)) },
+    { key: "pendiente", label: "Pendiente", align: "right", value: r => n(r.pendiente), render: r => fmtNum(n(r.pendiente)) },
+    { key: "valor_pendiente", label: "Valor pendiente ($)", align: "right", value: r => n(r.valor_pendiente), render: r => fmtMoney(n(r.valor_pendiente)) },
+  ];
+
+  if (!isLoading && lineas.length === 0) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">No hay pedidos activos para esta marca.</p>
+        <Button variant="outline" size="sm" onClick={() => navigate("/inventario/pedidos/activos")}>Ir a Pedidos</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <Kpi title="Pedidos activos" value={fmtNum(pedidosDistintos)} />
+        <Kpi title="Líneas pendientes" value={fmtNum(lineas.length)} />
+        <Kpi title="Valor por recibir" value={fmtMoneyC(valorPendiente)} />
+        <Kpi title="Pedidos atrasados" value={fmtNum(atrasados)} danger={atrasados > 0} />
+      </div>
+      <p className="text-sm font-light">
+        Pedidos ya enviados al proveedor que no se han recibido completos. Llegada estimada: fecha del pedido + 2 semanas si es nacional o + 5 semanas si es importado.
+        Lo pendiente se suma como tránsito en el cálculo; si llega después del tiempo de reposición no evita el faltante, pero sí reduce la cantidad sugerida.
+      </p>
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => navigate("/inventario/pedidos/activos")}>Ir a Pedidos</Button>
+      </div>
+      {isLoading ? <p className="text-sm text-muted-foreground">Cargando…</p> : (
+        <SortableTable rows={lineas} columns={cols} defaultSort="eta_regla" defaultDir="asc" rowKey={r => `${r.pedido_id}-${r.codigo_producto}`} />
+      )}
     </div>
   );
 }
