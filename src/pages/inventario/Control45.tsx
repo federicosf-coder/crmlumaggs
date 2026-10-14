@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronDown } from "lucide-react";
+import { ESTATUS_PEDIDO_LABEL } from "@/hooks/usePedidosInventario";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
 
 type Row = Record<string, any>;
@@ -26,6 +27,7 @@ type Row = Record<string, any>;
 const ESTADOS: { key: string; desc: string; color: string }[] = [
   { key: "Agotado", desc: "Sin existencia y con venta regular.", color: "#dc2626" },
   { key: "Faltará antes de reponer", desc: "La existencia no alcanza para el tiempo de entrega.", color: "#ef4444" },
+  { key: "Faltará: pedido llega tarde", desc: "Hay pedido en camino, pero llega después de que se acabe la existencia.", color: "#f97316" },
   { key: "Ordenar ahora", desc: "Alcanza para el tiempo de entrega pero llegaría con menos de 7 días.", color: "#f59e0b" },
   { key: "Bajo pedido (esporádico)", desc: "Se vende 3 meses o menos al año: pedir solo contra venta confirmada.", color: "#9ca3af" },
   { key: "Corporativo sin programar", desc: "Solo tuvo salidas corporativas y no hay entregas programadas: captura el calendario en Entregas Corporativas.", color: "#8b5cf6" },
@@ -35,7 +37,7 @@ const ESTADOS: { key: string; desc: string; color: string }[] = [
   { key: "Atorado", desc: "Más de 120 días sin venta, o venta muy esporádica con más de 180 días de cobertura.", color: "#374151" },
   { key: "Sin movimiento 12m", desc: "Con existencia y sin ventas en 12 meses.", color: "#6b7280" },
 ];
-const URGENTES = ["Agotado", "Faltará antes de reponer", "Ordenar ahora"];
+const URGENTES = ["Agotado", "Faltará antes de reponer", "Faltará: pedido llega tarde", "Ordenar ahora"];
 
 const MOTIVOS = [
   { v: "descontinuado", l: "Descontinuado" },
