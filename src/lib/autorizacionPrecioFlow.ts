@@ -148,24 +148,8 @@ export async function computeHistoricoCliente(
   };
 }
 
-export async function buildAutorizacionPrecioDraft(
-  documentoId: string,
-  creadoPor: string | null
-) {
-  const { data: documento, error: docError } = await (supabase as any)
-    .from("documentos")
-    .select(
-      "id, empresa_id, empresa_vendedora, numero_pedido, numero_factura, ejecutivo_venta_id, tipo_pago, companies(name, razon_social, justificacion_precio_default, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi)"
-    )
-    .eq("id", documentoId)
-    .maybeSingle();
-
-  if (docError) throw docError;
-  if (!documento) throw new Error("Documento no encontrado");
-
-  const empresaCosto = resolveEmpresaCosto(documento.empresa_vendedora);
-
-
+/** Recalcula las líneas (cantidad, precio, costo, margen) desde el pedido actual. */
+export async function computeCostoMargenSnapshot(documentoId: string) {
   const { data: lineas, error: lineasError } = await (supabase as any)
     .from("documento_productos")
     .select(
@@ -213,6 +197,29 @@ export async function buildAutorizacionPrecioDraft(
       margen_porcentaje,
     });
   }
+
+  return costoMargenSnapshot;
+}
+
+export async function buildAutorizacionPrecioDraft(
+  documentoId: string,
+  creadoPor: string | null
+) {
+  const { data: documento, error: docError } = await (supabase as any)
+    .from("documentos")
+    .select(
+      "id, empresa_id, empresa_vendedora, numero_pedido, numero_factura, ejecutivo_venta_id, tipo_pago, companies(name, razon_social, justificacion_precio_default, industrias, tipo_destino_lubricante, lista_precios, limite_credito, tipo_pago, forma_pago, metodo_pago, uso_cfdi)"
+    )
+    .eq("id", documentoId)
+    .maybeSingle();
+
+  if (docError) throw docError;
+  if (!documento) throw new Error("Documento no encontrado");
+
+  const empresaCosto = resolveEmpresaCosto(documento.empresa_vendedora);
+
+
+  const costoMargenSnapshot = await computeCostoMargenSnapshot(documentoId);
 
   const historico = await computeHistoricoCliente(
     documento.empresa_id,
