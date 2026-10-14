@@ -2,7 +2,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-const MODEL = 'google/gemini-2.5-flash';
+const MODEL = 'google/gemini-3-flash-preview';
 
 const PROMPT_CHEVRON = `Del PDF de orden Chevron Business Point extrae SOLO este JSON sin texto adicional ni markdown:
 {"numero_po":"string","numero_orden":"string","almacen_destino":"1001 o 1002","total_monto":0,"moneda":"MXN","estado_general":"string","fecha_entrega_estimada":"YYYY-MM-DD o null","lineas":[{"codigo":"string","descripcion":"string","cantidad":0,"unidad":"string","precio_unitario":0,"precio_neto":0,"estado":"string"}]}
