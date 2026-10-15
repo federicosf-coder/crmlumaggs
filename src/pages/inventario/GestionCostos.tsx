@@ -320,12 +320,15 @@ export default function GestionCostos() {
   const { data: listasMarca } = useQuery({
     queryKey: ["inv_costos_listas_marca"],
     queryFn: async () => {
-      const [costosRes, archivosRes, prodsRes, nivelesRes, margenesRes] = await Promise.all([
-        supabase
-          .from("inv_costos_producto")
-          .select("codigo_producto, empresa, costo_galper, costo_especial, costo_lista, costo_efectivo, costo_efectivo_fuente, archivo_galper_id, archivo_lista_id, nombre_en_archivo, nombre_en_catalogo, created_at")
-          .order("created_at", { ascending: false })
-          .limit(50000),
+      const [costos, archivosRes, prodsRes, nivelesAll, margenesRes] = await Promise.all([
+        fetchAll((from, to) =>
+          supabase
+            .from("inv_costos_producto")
+            .select("codigo_producto, empresa, costo_galper, costo_especial, costo_lista, costo_efectivo, costo_efectivo_fuente, archivo_galper_id, archivo_lista_id, nombre_en_archivo, nombre_en_catalogo, created_at")
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(from, to)
+        ),
         supabase.from("inv_archivos_referencia").select("id, tipo"),
         supabase.from("productos").select("codigo, nombre_producto, presentaciones(nombre), precio_base_uf1, linea_id").eq("is_active", true).limit(20000),
         supabase.from("inv_niveles_inventario").select("codigo_producto, stock_total, clasificacion_abc").limit(50000),
