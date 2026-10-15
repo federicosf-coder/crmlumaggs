@@ -108,7 +108,7 @@ function SortableTable<T extends Row>({ rows, columns, defaultSort, defaultDir =
   return (
     <div className="max-h-[28rem] overflow-auto rounded-md border">
       <Table>
-        <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
+        <TableHeader className="sticky top-0 z-30 bg-background/95 backdrop-blur">
           <TableRow>
             {columns.map(c => (
               <TableHead
