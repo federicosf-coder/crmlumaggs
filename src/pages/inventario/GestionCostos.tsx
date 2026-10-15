@@ -380,7 +380,8 @@ export default function GestionCostos() {
           costo_lista: c.costo_lista,
           costo_efectivo: c.costo_efectivo,
           fuente: c.costo_efectivo_fuente,
-          en_catalogo: nombrePorCodigo.has(c.codigo_producto),
+          en_catalogo: nombrePorCodigo.has(c.codigo_producto) || inactivos.has(c.codigo_producto),
+          inactivo: inactivos.has(c.codigo_producto),
           stock_total: stockPorCodigo.get(c.codigo_producto) ?? null,
           precio_si_galper: null as number | null,
           descuento_disponible: null as number | null,
@@ -1869,6 +1870,7 @@ type ListaMarcaRow = {
   costo_efectivo: number | null;
   fuente: string | null;
   en_catalogo: boolean;
+  inactivo: boolean;
   stock_total: number | null;
   precio_si_galper: number | null;
   descuento_disponible: number | null;
@@ -2060,7 +2062,7 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
       "Lista General": d.costo_lista ?? "",
       "Costo Efectivo": d.costo_efectivo ?? "",
       "Fuente": d.fuente || "",
-      "En Catálogo": d.en_catalogo ? "Sí" : "No",
+      "En Catálogo": d.inactivo ? "Inactivo" : d.en_catalogo ? "Sí" : "No",
       "Piezas en Inventario": d.stock_total ?? "",
       ...(showEspecial
         ? { "Precio si Galper": d.precio_si_galper ?? "", "Margen Descuento Disp.": d.descuento_disponible ?? "" }
@@ -2200,9 +2202,13 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
                 <TableCell className="text-right font-semibold">{money(r.costo_efectivo)}</TableCell>
                 <TableCell>{fuenteBadgeLista(r.fuente)}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={r.en_catalogo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-red-100 text-red-700 border-red-200"}>
-                    {r.en_catalogo ? "Sí" : "No"}
-                  </Badge>
+                  {r.inactivo ? (
+                    <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Inactivo</Badge>
+                  ) : (
+                    <Badge variant="outline" className={r.en_catalogo ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-red-100 text-red-700 border-red-200"}>
+                      {r.en_catalogo ? "Sí" : "No"}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">{r.stock_total == null ? "—" : Number(r.stock_total).toLocaleString("es-MX")}</TableCell>
                 <TableCell className="text-right">
