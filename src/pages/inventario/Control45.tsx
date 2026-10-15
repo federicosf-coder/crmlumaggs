@@ -68,14 +68,18 @@ const STICKY: Record<string, string> = {
   producto_descripcion: "sticky left-[8rem] w-[16rem] min-w-[16rem] max-w-[16rem] truncate shadow-[2px_0_0_0_hsl(var(--border))]",
 };
 
-const ZEBRA_SHADOW = "inset_0_0_0_9999px_hsl(var(--muted)/0.3)";
+// Clases literales: Tailwind no genera las que se arman en runtime.
+const ZEBRA_FLAT = "shadow-[inset_0_0_0_9999px_hsl(var(--muted)/0.3)]";
+const ZEBRA_EDGE = "shadow-[2px_0_0_0_hsl(var(--border)),inset_0_0_0_9999px_hsl(var(--muted)/0.3)]";
+const EDGE = "shadow-[2px_0_0_0_hsl(var(--border))]";
 
 function stickyCell(key: string, odd: boolean) {
   const base = STICKY[key];
   if (!base) return "";
-  if (!odd) return `${base} z-10 bg-background`;
-  const right = base.includes("2px_0_0_0") ? "2px_0_0_0_hsl(var(--border))," : "";
-  return `${base.replace(/\s*shadow-\[[^\]]*\]/, "")} z-10 bg-background shadow-[${right}${ZEBRA_SHADOW}]`;
+  const bare = base.replace(/\s*shadow-\[[^\]]*\]/, "");
+  const hasEdge = base.includes("2px_0_0_0");
+  const shadow = odd ? (hasEdge ? ZEBRA_EDGE : ZEBRA_FLAT) : hasEdge ? EDGE : "";
+  return `${bare} z-10 bg-background ${shadow}`;
 }
 
 function SortableTable<T extends Row>({ rows, columns, defaultSort, defaultDir = "desc", rowKey }: {
