@@ -235,6 +235,21 @@ function intentarParsearHoja(raw: any[][]): Map<string, { codigo: string; costo:
   return map;
 }
 
+/**
+ * Trae TODAS las filas de una consulta Supabase paginando en lotes de 1000
+ * (Supabase devuelve máximo 1000 renglones por respuesta, sin importar .limit()).
+ */
+async function fetchAll(build: (from: number, to: number) => any): Promise<any[]> {
+  const out: any[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await build(from, from + 999);
+    if (error) throw error;
+    out.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+
 // ─── Componente principal ───────────────────────────────────────
 export default function GestionCostos() {
   const { user } = useAuth();
@@ -305,18 +320,26 @@ export default function GestionCostos() {
   const { data: listasMarca } = useQuery({
     queryKey: ["inv_costos_listas_marca"],
     queryFn: async () => {
-      const [costosRes, archivosRes, prodsRes, nivelesRes, margenesRes] = await Promise.all([
-        supabase
-          .from("inv_costos_producto")
-          .select("codigo_producto, empresa, costo_galper, costo_especial, costo_lista, costo_efectivo, costo_efectivo_fuente, archivo_galper_id, archivo_lista_id, nombre_en_archivo, nombre_en_catalogo, created_at")
-          .order("created_at", { ascending: false })
-          .limit(50000),
+      const [costos, archivosRes, prodsRes, nivelesAll, margenesRes] = await Promise.all([
+        fetchAll((from, to) =>
+          supabase
+            .from("inv_costos_producto")
+            .select("codigo_producto, empresa, costo_galper, costo_especial, costo_lista, costo_efectivo, costo_efectivo_fuente, archivo_galper_id, archivo_lista_id, nombre_en_archivo, nombre_en_catalogo, created_at")
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(from, to)
+        ),
         supabase.from("inv_archivos_referencia").select("id, tipo"),
         supabase.from("productos").select("codigo, nombre_producto, presentaciones(nombre), precio_base_uf1, linea_id").eq("is_active", true).limit(20000),
-        supabase.from("inv_niveles_inventario").select("codigo_producto, stock_total, clasificacion_abc").limit(50000),
+        fetchAll((from, to) =>
+          supabase
+            .from("inv_niveles_inventario")
+            .select("codigo_producto, stock_total, clasificacion_abc")
+            .order("id")
+            .range(from, to)
+        ),
         supabase.from("producto_linea_margenes").select("*").eq("activo", true),
       ]);
-      const costos = (costosRes.data as any[]) || [];
       const tipoPorArchivo = new Map<string, string>(((archivosRes.data as any[]) || []).map((a: any) => [a.id, String(a.tipo || "").toLowerCase()]));
       const prodsAll = (prodsRes.data as any[]) || [];
       const nombrePorCodigo = new Map<string, string>(prodsAll.map((p: any) => [p.codigo, p.nombre_producto]));
@@ -336,7 +359,6 @@ export default function GestionCostos() {
         if (!isFinite(base)) return null;
         return ceilTo5(base);
       };
-      const nivelesAll = (nivelesRes.data as any[]) || [];
       const stockPorCodigo = new Map<string, number>(nivelesAll.map((n: any) => [n.codigo_producto, n.stock_total]));
       const abcPorCodigo = new Map<string, string | null>(nivelesAll.map((n: any) => [n.codigo_producto, n.clasificacion_abc ?? null]));
 
