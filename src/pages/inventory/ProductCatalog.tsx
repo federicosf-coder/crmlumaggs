@@ -763,11 +763,31 @@ function ProductosTab() {
         if (error) throw error;
         return editingId as string;
       } else {
-        const { data: created, error } = await supabase.from("productos").insert(payload).select("id").single();
-        if (error) throw error;
-        if (huerfanoContext && created?.id) {
+        const { data: existente } = await supabase
+          .from("productos")
+          .select("id, is_active")
+          .eq("codigo", payload.codigo)
+          .maybeSingle();
+        if (existente && existente.is_active) {
+          throw new Error(`Ya existe un producto activo con el código ${payload.codigo}`);
+        }
+        let createdId: string | null = null;
+        if (existente) {
+          const { error: reactivarError } = await supabase
+            .from("productos")
+            .update({ ...payload, is_active: true })
+            .eq("id", existente.id);
+          if (reactivarError) throw reactivarError;
+          createdId = existente.id as string;
+          toast.info("Este código ya existía inactivo: se reactivó y actualizó");
+        } else {
+          const { data: created, error } = await supabase.from("productos").insert(payload).select("id").single();
+          if (error) throw error;
+          createdId = (created?.id as string) || null;
+        }
+        if (huerfanoContext && createdId) {
           const { error: mapError } = await (supabase as any).from("inv_producto_proveedor").insert({
-            producto_id: created.id,
+            producto_id: createdId,
             proveedor: huerfanoContext.proveedor,
             codigo_proveedor: huerfanoContext.codigo,
             codigo_contpaqi: huerfanoContext.codigo,
@@ -776,7 +796,7 @@ function ProductosTab() {
           });
           if (mapError) throw mapError;
         }
-        return (created?.id as string) || null;
+        return createdId;
       }
     },
     onSuccess: (createdId) => {

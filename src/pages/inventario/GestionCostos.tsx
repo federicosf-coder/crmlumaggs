@@ -320,7 +320,7 @@ export default function GestionCostos() {
   const { data: listasMarca } = useQuery({
     queryKey: ["inv_costos_listas_marca"],
     queryFn: async () => {
-      const [costos, archivosRes, prodsRes, nivelesAll, margenesRes] = await Promise.all([
+      const [costos, archivosRes, prodsRes, nivelesAll, margenesRes, inactivosRes] = await Promise.all([
         fetchAll((from, to) =>
           supabase
             .from("inv_costos_producto")
@@ -339,9 +339,11 @@ export default function GestionCostos() {
             .range(from, to)
         ),
         supabase.from("producto_linea_margenes").select("*").eq("activo", true),
+        supabase.from("productos").select("codigo").eq("is_active", false),
       ]);
       const tipoPorArchivo = new Map<string, string>(((archivosRes.data as any[]) || []).map((a: any) => [a.id, String(a.tipo || "").toLowerCase()]));
       const prodsAll = (prodsRes.data as any[]) || [];
+      const inactivos = new Set<string>(((inactivosRes.data as any[]) || []).map((p: any) => p.codigo));
       const nombrePorCodigo = new Map<string, string>(prodsAll.map((p: any) => [p.codigo, p.nombre_producto]));
       const presentacionPorCodigo = new Map<string, string | null>(prodsAll.map((p: any) => [p.codigo, p.presentaciones?.nombre ?? null]));
       const uf1PorCodigo = new Map<string, number | null>(prodsAll.map((p: any) => [p.codigo, p.precio_base_uf1 ?? null]));
