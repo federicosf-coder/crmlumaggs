@@ -235,6 +235,21 @@ function intentarParsearHoja(raw: any[][]): Map<string, { codigo: string; costo:
   return map;
 }
 
+/**
+ * Trae TODAS las filas de una consulta Supabase paginando en lotes de 1000
+ * (Supabase devuelve máximo 1000 renglones por respuesta, sin importar .limit()).
+ */
+async function fetchAll(build: (from: number, to: number) => any): Promise<any[]> {
+  const out: any[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await build(from, from + 999);
+    if (error) throw error;
+    out.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+
 // ─── Componente principal ───────────────────────────────────────
 export default function GestionCostos() {
   const { user } = useAuth();
