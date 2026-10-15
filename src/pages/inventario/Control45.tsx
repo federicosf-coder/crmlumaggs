@@ -62,6 +62,26 @@ export interface SortCol<T> {
   sortable?: boolean;
 }
 
+const STICKY: Record<string, string> = {
+  codigo_producto: "sticky left-0 w-[8rem] min-w-[8rem] max-w-[8rem]",
+  nombre_producto: "sticky left-[8rem] w-[16rem] min-w-[16rem] max-w-[16rem] truncate shadow-[2px_0_0_0_hsl(var(--border))]",
+  producto_descripcion: "sticky left-[8rem] w-[16rem] min-w-[16rem] max-w-[16rem] truncate shadow-[2px_0_0_0_hsl(var(--border))]",
+};
+
+// Clases literales: Tailwind no genera las que se arman en runtime.
+const ZEBRA_FLAT = "shadow-[inset_0_0_0_9999px_hsl(var(--muted)/0.3)]";
+const ZEBRA_EDGE = "shadow-[2px_0_0_0_hsl(var(--border)),inset_0_0_0_9999px_hsl(var(--muted)/0.3)]";
+const EDGE = "shadow-[2px_0_0_0_hsl(var(--border))]";
+
+function stickyCell(key: string, odd: boolean) {
+  const base = STICKY[key];
+  if (!base) return "";
+  const bare = base.replace(/\s*shadow-\[[^\]]*\]/, "");
+  const hasEdge = base.includes("2px_0_0_0");
+  const shadow = odd ? (hasEdge ? ZEBRA_EDGE : ZEBRA_FLAT) : hasEdge ? EDGE : "";
+  return `${bare} z-10 bg-background ${shadow}`;
+}
+
 function SortableTable<T extends Row>({ rows, columns, defaultSort, defaultDir = "desc", rowKey }: {
   rows: T[]; columns: SortCol<T>[]; defaultSort?: string; defaultDir?: "asc" | "desc"; rowKey: (r: T) => string;
 }) {
@@ -88,12 +108,12 @@ function SortableTable<T extends Row>({ rows, columns, defaultSort, defaultDir =
   return (
     <div className="max-h-[28rem] overflow-auto rounded-md border">
       <Table>
-        <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur">
+        <TableHeader className="sticky top-0 z-30 bg-background/95 backdrop-blur">
           <TableRow>
             {columns.map(c => (
               <TableHead
                 key={c.key}
-                className={`whitespace-nowrap text-xs ${c.align === "right" ? "text-right" : ""} ${c.sortable !== false ? "cursor-pointer select-none" : ""}`}
+                className={`whitespace-nowrap text-xs ${c.align === "right" ? "text-right" : ""} ${c.sortable !== false ? "cursor-pointer select-none" : ""}${STICKY[c.key] ? ` ${STICKY[c.key]} z-20 bg-violet-50 dark:bg-violet-950` : ""}`}
                 onClick={() => c.sortable !== false && toggle(c.key)}
               >
                 {c.label}{" "}
@@ -106,7 +126,7 @@ function SortableTable<T extends Row>({ rows, columns, defaultSort, defaultDir =
           {sorted.map((r, i) => (
             <TableRow key={rowKey(r)} className={i % 2 ? "bg-muted/30" : ""}>
               {columns.map(c => (
-                <TableCell key={c.key} className={`text-xs py-1.5 ${c.align === "right" ? "text-right tabular-nums" : ""}`}>
+                <TableCell key={c.key} className={`text-xs py-1.5 ${c.align === "right" ? "text-right tabular-nums" : ""} ${stickyCell(c.key, i % 2 === 1)}`}>
                   {c.render ? c.render(r) : (r[c.key] ?? "")}
                 </TableCell>
               ))}
