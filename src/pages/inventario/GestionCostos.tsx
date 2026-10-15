@@ -331,10 +331,15 @@ export default function GestionCostos() {
         ),
         supabase.from("inv_archivos_referencia").select("id, tipo"),
         supabase.from("productos").select("codigo, nombre_producto, presentaciones(nombre), precio_base_uf1, linea_id").eq("is_active", true).limit(20000),
-        supabase.from("inv_niveles_inventario").select("codigo_producto, stock_total, clasificacion_abc").limit(50000),
+        fetchAll((from, to) =>
+          supabase
+            .from("inv_niveles_inventario")
+            .select("codigo_producto, stock_total, clasificacion_abc")
+            .order("id")
+            .range(from, to)
+        ),
         supabase.from("producto_linea_margenes").select("*").eq("activo", true),
       ]);
-      const costos = (costosRes.data as any[]) || [];
       const tipoPorArchivo = new Map<string, string>(((archivosRes.data as any[]) || []).map((a: any) => [a.id, String(a.tipo || "").toLowerCase()]));
       const prodsAll = (prodsRes.data as any[]) || [];
       const nombrePorCodigo = new Map<string, string>(prodsAll.map((p: any) => [p.codigo, p.nombre_producto]));
@@ -354,7 +359,6 @@ export default function GestionCostos() {
         if (!isFinite(base)) return null;
         return ceilTo5(base);
       };
-      const nivelesAll = (nivelesRes.data as any[]) || [];
       const stockPorCodigo = new Map<string, number>(nivelesAll.map((n: any) => [n.codigo_producto, n.stock_total]));
       const abcPorCodigo = new Map<string, string | null>(nivelesAll.map((n: any) => [n.codigo_producto, n.clasificacion_abc ?? null]));
 
