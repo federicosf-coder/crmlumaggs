@@ -2212,7 +2212,9 @@ function ListaMarcaTable({ rows, showEspecial = false, exportName, empresa }: { 
                 </TableCell>
                 <TableCell className="text-right">{r.stock_total == null ? "—" : Number(r.stock_total).toLocaleString("es-MX")}</TableCell>
                 <TableCell className="text-right">
-                  {r.en_catalogo ? (
+                  {r.inactivo ? (
+                    <span className="text-xs text-muted-foreground">Reactivar en catálogo</span>
+                  ) : r.en_catalogo ? (
                     <span className="text-muted-foreground">—</span>
                   ) : (
                     <Button
