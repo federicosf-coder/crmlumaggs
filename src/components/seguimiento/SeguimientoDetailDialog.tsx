@@ -150,7 +150,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("seguimiento_ventas")
-        .select("company_id, dias_ultima_compra, fecha_ultima_compra, companies!inner(id, name, grupo_comercial_id)")
+        .select("company_id, dias_ultima_compra, fecha_ultima_compra, potencial, promedio_historico_mensual, acum_mes, acum_mes_anterior, acum_anio, cotizaciones_total, companies!inner(id, name, grupo_comercial_id)")
         .eq("companies.grupo_comercial_id", grupoId)
         .eq("empresa_vendedora", empresaVendedora);
       return (data || []) as {
