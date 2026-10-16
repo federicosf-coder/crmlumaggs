@@ -880,6 +880,11 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
             >
               <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
                 <TrendingUp className="h-4 w-4" /> Métricas
+                {grupoMetricas && (
+                  <span className="ml-1 text-[10px] font-light uppercase tracking-widest text-violet-700">
+                    Grupo · {grupoMetricas.empresas} empresas
+                  </span>
+                )}
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
                 <Metric label="Potencial" value={fmtNum(grupoMetricas ? grupoMetricas.potencial : row.potencial)} />
