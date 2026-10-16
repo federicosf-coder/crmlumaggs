@@ -785,16 +785,28 @@ function ProductosTab() {
           if (error) throw error;
           createdId = (created?.id as string) || null;
         }
-        if (huerfanoContext && createdId) {
-          const { error: mapError } = await (supabase as any).from("inv_producto_proveedor").insert({
-            producto_id: createdId,
-            proveedor: huerfanoContext.proveedor,
-            codigo_proveedor: huerfanoContext.codigo,
-            codigo_contpaqi: huerfanoContext.codigo,
-            confirmado: true,
-            creado_por: user?.id ?? null,
-          });
-          if (mapError) throw mapError;
+        // El vínculo con proveedor solo aplica si se conoce el proveedor (columna obligatoria).
+        // Si falla, el producto ya quedó guardado: se avisa sin bloquear para evitar
+        // que un segundo intento choque con "ya existe".
+        if (huerfanoContext && createdId && huerfanoContext.proveedor) {
+          const { data: mapExistente } = await (supabase as any)
+            .from("inv_producto_proveedor")
+            .select("id")
+            .eq("codigo_contpaqi", huerfanoContext.codigo)
+            .maybeSingle();
+          const { error: mapError } = mapExistente
+            ? await (supabase as any).from("inv_producto_proveedor")
+                .update({ producto_id: createdId, confirmado: true })
+                .eq("id", mapExistente.id)
+            : await (supabase as any).from("inv_producto_proveedor").insert({
+                producto_id: createdId,
+                proveedor: huerfanoContext.proveedor,
+                codigo_proveedor: huerfanoContext.codigo,
+                codigo_contpaqi: huerfanoContext.codigo,
+                confirmado: true,
+                creado_por: user?.id ?? null,
+              });
+          if (mapError) toast.warning(`Producto guardado, pero no se pudo vincular al proveedor: ${mapError.message}`);
         }
         return createdId;
       }
