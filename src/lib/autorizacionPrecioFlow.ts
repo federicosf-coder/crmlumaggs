@@ -87,11 +87,22 @@ export async function computeHistoricoCliente(
   empresaId: string,
   empresaVendedora: string
 ) {
+  // Si la empresa pertenece a un grupo comercial, acumular todas las empresas del grupo
+  let empresaIds: string[] = [empresaId];
+  const { data: emp } = await (supabase as any)
+    .from("companies").select("grupo_comercial_id").eq("id", empresaId).maybeSingle();
+  if (emp?.grupo_comercial_id) {
+    const { data: hermanas } = await (supabase as any)
+      .from("companies").select("id").eq("grupo_comercial_id", emp.grupo_comercial_id);
+    const ids = (hermanas || []).map((h: any) => h.id);
+    if (ids.length > 0) empresaIds = Array.from(new Set([empresaId, ...ids]));
+  }
+
   const allDocs = await fetchAllRows<any>(async (from, to) => {
     return (supabase as any)
       .from("documentos")
       .select("fecha_documento, unidades_equivalentes_total")
-      .eq("empresa_id", empresaId)
+      .in("empresa_id", empresaIds)
       .eq("tipo_documento", "factura")
       .eq("is_active", true)
       .eq("empresa_vendedora", empresaVendedora)
