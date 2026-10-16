@@ -150,17 +150,39 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("seguimiento_ventas")
-        .select("company_id, dias_ultima_compra, fecha_ultima_compra, companies!inner(id, name, grupo_comercial_id)")
+        .select("company_id, dias_ultima_compra, fecha_ultima_compra, potencial, promedio_historico_mensual, acum_mes, acum_mes_anterior, acum_anio, cotizaciones_total, companies!inner(id, name, grupo_comercial_id)")
         .eq("companies.grupo_comercial_id", grupoId)
         .eq("empresa_vendedora", empresaVendedora);
       return (data || []) as {
         company_id: string;
         dias_ultima_compra: number | null;
         fecha_ultima_compra: string | null;
+        potencial: number | null;
+        promedio_historico_mensual: number | null;
+        acum_mes: number | null;
+        acum_mes_anterior: number | null;
+        acum_anio: number | null;
+        cotizaciones_total: number | null;
         companies: { id: string; name: string } | null;
       }[];
     },
   });
+
+  // Acumulados del grupo comercial completo (varias razones sociales = mismo cliente)
+  const grupoMetricas = useMemo(() => {
+    if (!grupoId || grupoHermanas.length < 2) return null;
+    const sum = (sel: (h: (typeof grupoHermanas)[number]) => number | null) =>
+      grupoHermanas.reduce((acc, h) => acc + (Number(sel(h)) || 0), 0);
+    return {
+      empresas: grupoHermanas.length,
+      potencial: sum((h) => h.potencial),
+      promedio_historico_mensual: sum((h) => h.promedio_historico_mensual),
+      acum_mes: sum((h) => h.acum_mes),
+      acum_mes_anterior: sum((h) => h.acum_mes_anterior),
+      acum_anio: sum((h) => h.acum_anio),
+      cotizaciones_total: sum((h) => h.cotizaciones_total),
+    };
+  }, [grupoId, grupoHermanas]);
 
   const grupoUltimaCompra = useMemo(() => {
     let best: { dias: number; fecha: string | null; empresa: string } | null = null;
@@ -858,14 +880,19 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
             >
               <h4 className="text-sm font-semibold mb-3 inline-flex items-center gap-1.5">
                 <TrendingUp className="h-4 w-4" /> Métricas
+                {grupoMetricas && (
+                  <span className="ml-1 text-[10px] font-light uppercase tracking-widest text-violet-700">
+                    Grupo · {grupoMetricas.empresas} empresas
+                  </span>
+                )}
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-                <Metric label="Potencial" value={fmtNum(row.potencial)} />
-                <Metric label="Prom. mensual" value={fmtNum(row.promedio_historico_mensual)} />
+                <Metric label="Potencial" value={fmtNum(grupoMetricas ? grupoMetricas.potencial : row.potencial)} />
+                <Metric label="Prom. mensual" value={fmtNum(grupoMetricas ? grupoMetricas.promedio_historico_mensual : row.promedio_historico_mensual)} />
                 <Metric label="Avance" value={row.ritmo_pct != null ? `${Math.round(Number(row.ritmo_pct))}%` : "—"} />
-                <Metric label="Acum. mes" value={fmtNum(row.acum_mes)} />
-                <Metric label="Mes anterior" value={fmtNum(row.acum_mes_anterior)} />
-                <Metric label="Acum. año" value={fmtNum(row.acum_anio)} />
+                <Metric label="Acum. mes" value={fmtNum(grupoMetricas ? grupoMetricas.acum_mes : row.acum_mes)} />
+                <Metric label="Mes anterior" value={fmtNum(grupoMetricas ? grupoMetricas.acum_mes_anterior : row.acum_mes_anterior)} />
+                <Metric label="Acum. año" value={fmtNum(grupoMetricas ? grupoMetricas.acum_anio : row.acum_anio)} />
                 <Metric
                   label="Última compra"
                   value={
@@ -875,7 +902,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                   }
                 />
                 <Metric label="Ciclo (días)" value={row.ciclo_dias != null ? `${row.ciclo_dias}` : "—"} />
-                <Metric label="Cotizaciones" value={`${row.cotizaciones_total}`} />
+                <Metric label="Cotizaciones" value={`${grupoMetricas ? grupoMetricas.cotizaciones_total : row.cotizaciones_total}`} />
                 <Metric
                   label="Últ. cotización"
                   value={
