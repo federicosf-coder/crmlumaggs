@@ -882,12 +882,12 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                 <TrendingUp className="h-4 w-4" /> Métricas
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-                <Metric label="Potencial" value={fmtNum(row.potencial)} />
-                <Metric label="Prom. mensual" value={fmtNum(row.promedio_historico_mensual)} />
+                <Metric label="Potencial" value={fmtNum(grupoMetricas ? grupoMetricas.potencial : row.potencial)} />
+                <Metric label="Prom. mensual" value={fmtNum(grupoMetricas ? grupoMetricas.promedio_historico_mensual : row.promedio_historico_mensual)} />
                 <Metric label="Avance" value={row.ritmo_pct != null ? `${Math.round(Number(row.ritmo_pct))}%` : "—"} />
-                <Metric label="Acum. mes" value={fmtNum(row.acum_mes)} />
-                <Metric label="Mes anterior" value={fmtNum(row.acum_mes_anterior)} />
-                <Metric label="Acum. año" value={fmtNum(row.acum_anio)} />
+                <Metric label="Acum. mes" value={fmtNum(grupoMetricas ? grupoMetricas.acum_mes : row.acum_mes)} />
+                <Metric label="Mes anterior" value={fmtNum(grupoMetricas ? grupoMetricas.acum_mes_anterior : row.acum_mes_anterior)} />
+                <Metric label="Acum. año" value={fmtNum(grupoMetricas ? grupoMetricas.acum_anio : row.acum_anio)} />
                 <Metric
                   label="Última compra"
                   value={
