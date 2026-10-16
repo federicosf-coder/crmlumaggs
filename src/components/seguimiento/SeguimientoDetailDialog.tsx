@@ -157,10 +157,32 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
         company_id: string;
         dias_ultima_compra: number | null;
         fecha_ultima_compra: string | null;
+        potencial: number | null;
+        promedio_historico_mensual: number | null;
+        acum_mes: number | null;
+        acum_mes_anterior: number | null;
+        acum_anio: number | null;
+        cotizaciones_total: number | null;
         companies: { id: string; name: string } | null;
       }[];
     },
   });
+
+  // Acumulados del grupo comercial completo (varias razones sociales = mismo cliente)
+  const grupoMetricas = useMemo(() => {
+    if (!grupoId || grupoHermanas.length < 2) return null;
+    const sum = (sel: (h: (typeof grupoHermanas)[number]) => number | null) =>
+      grupoHermanas.reduce((acc, h) => acc + (Number(sel(h)) || 0), 0);
+    return {
+      empresas: grupoHermanas.length,
+      potencial: sum((h) => h.potencial),
+      promedio_historico_mensual: sum((h) => h.promedio_historico_mensual),
+      acum_mes: sum((h) => h.acum_mes),
+      acum_mes_anterior: sum((h) => h.acum_mes_anterior),
+      acum_anio: sum((h) => h.acum_anio),
+      cotizaciones_total: sum((h) => h.cotizaciones_total),
+    };
+  }, [grupoId, grupoHermanas]);
 
   const grupoUltimaCompra = useMemo(() => {
     let best: { dias: number; fecha: string | null; empresa: string } | null = null;
