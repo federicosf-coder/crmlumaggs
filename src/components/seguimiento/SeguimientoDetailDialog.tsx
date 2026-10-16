@@ -897,7 +897,7 @@ export function SeguimientoDetailDialog({ row, empresaVendedora, brand, catalog,
                   }
                 />
                 <Metric label="Ciclo (días)" value={row.ciclo_dias != null ? `${row.ciclo_dias}` : "—"} />
-                <Metric label="Cotizaciones" value={`${row.cotizaciones_total}`} />
+                <Metric label="Cotizaciones" value={`${grupoMetricas ? grupoMetricas.cotizaciones_total : row.cotizaciones_total}`} />
                 <Metric
                   label="Últ. cotización"
                   value={
