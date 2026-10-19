@@ -1,0 +1,1 @@
+update public.credit_requests r set giro_comercial = array_to_string(c.industrias, ', ') from public.companies c where c.id=r.company_id and coalesce(trim(r.giro_comercial),'')='' and coalesce(array_length(c.industrias,1),0)>0;
