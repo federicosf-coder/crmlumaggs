@@ -208,6 +208,8 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
         }
       }
       const numeroPedido = row.numero_pedido_detectado || null;
+      const dup = await buscarPedidoDuplicado(numeroPedido, row.id);
+      if (dup) throw new Error(dup);
 
       // Agrupar por fecha
       const porFecha = new Map<string, Required<EntregaLinea>[]>();
