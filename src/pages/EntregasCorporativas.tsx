@@ -32,6 +32,7 @@ import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfir
 import { buildEntregaEmailFlow, type EntregaEmailFlow } from "@/lib/entregaEmailFlow";
 import { useQuery } from "@tanstack/react-query";
 import { RegistrarEntregaCorporativaDialog } from "@/components/entregas/RegistrarEntregaCorporativaDialog";
+import { buscarPedidoDuplicado } from "@/lib/entregaPedidoDuplicado";
 import { cantidadPendiente } from "@/lib/entregaCorporativaCantidades";
 
 export const CLIENTES = ["Hyundai", "Kenworth", "Mecánica Tek", "Otro"];
@@ -515,6 +516,14 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
         (e: ExtraidaRow) => e?.codigo && e?.fecha && Number(e.cantidad) > 0,
       );
 
+      const dup = await buscarPedidoDuplicado(numeroPedido);
+      if (dup) {
+        await (supabase as any).from("entregas_corporativas_calendarios").delete().eq("id", cal.id);
+        await supabase.storage.from(BUCKET).remove([path]);
+        throw new Error(dup);
+      }
+
+
       await (supabase as any)
         .from("entregas_corporativas_calendarios")
         .update({ datos_extraidos: extracted ?? null })
@@ -687,6 +696,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
           : p));
       } catch (e: any) {
         fallidos++;
+        if (String(e?.message || "").startsWith("Orden duplicada")) toast.error(e.message, { duration: 10000 });
         setProgreso((prev) => prev.map((p, idx) => idx === i
           ? { ...p, estado: "error", detalle: e?.message || "Error desconocido" }
           : p));

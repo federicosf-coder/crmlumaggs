@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { buscarPedidoDuplicado } from "@/lib/entregaPedidoDuplicado";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -208,6 +209,8 @@ function IntakeCard({ row, hermanas, onChanged }: { row: IntakeRow; hermanas: In
         }
       }
       const numeroPedido = row.numero_pedido_detectado || null;
+      const dup = await buscarPedidoDuplicado(numeroPedido, row.id);
+      if (dup) throw new Error(dup);
 
       // Agrupar por fecha
       const porFecha = new Map<string, Required<EntregaLinea>[]>();
