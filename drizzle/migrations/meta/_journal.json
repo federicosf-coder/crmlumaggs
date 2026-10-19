@@ -57,6 +57,13 @@
       "when": 1792433465388,
       "tag": "0007_entregas_corporativas_parciales",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792443647964,
+      "tag": "0008_backfill_giro_comercial",
+      "breakpoints": true
     }
   ]
 }
