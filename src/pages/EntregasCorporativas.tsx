@@ -696,6 +696,7 @@ function CalendariosTab({ onImported }: { onImported: () => void }) {
           : p));
       } catch (e: any) {
         fallidos++;
+        if (String(e?.message || "").startsWith("Orden duplicada")) toast.error(e.message, { duration: 10000 });
         setProgreso((prev) => prev.map((p, idx) => idx === i
           ? { ...p, estado: "error", detalle: e?.message || "Error desconocido" }
           : p));
