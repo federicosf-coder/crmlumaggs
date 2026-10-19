@@ -128,7 +128,10 @@ export default function CreditoConfiguracion() {
       <Tabs defaultValue="docs" className="space-y-4">
         <TabsList>
           <TabsTrigger value="docs">Documentos requeridos</TabsTrigger>
+          <TabsTrigger value="formato">Formato en blanco</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="formato"><FormatoBlancoAdmin /></TabsContent>
 
         <TabsContent value="docs" className="space-y-4">
           <div className="flex justify-end">
