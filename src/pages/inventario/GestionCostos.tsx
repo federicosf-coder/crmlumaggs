@@ -2333,7 +2333,7 @@ function useHuerfanosInventario() {
         return false;
       };
 
-      return ((nivelesRes.data || []) as any[])
+      return (nivelesRes as any[])
         .filter((n) => !codigosCatalogo.has(n.codigo_producto))
         .map((n) => {
           const costoLista = costoListaPorCodigo.get(n.codigo_producto);
