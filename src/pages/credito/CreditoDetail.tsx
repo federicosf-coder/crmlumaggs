@@ -2780,6 +2780,14 @@ export default function CreditoDetail() {
                     <Button
                       size="sm"
                       variant="outline"
+                      className="text-[10px] font-semibold uppercase tracking-widest"
+                      onClick={() => descargarFormatoBlanco()}
+                    >
+                      Descargar formato en blanco
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       className="border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 hover:from-blue-100 hover:to-cyan-100 hover:text-blue-800 text-[10px] font-semibold uppercase tracking-widest"
                       asChild
                     >
