@@ -5382,6 +5382,8 @@ export type Database = {
           cliente: string
           creado_por: string | null
           created_at: string
+          entrega_registrada_at: string | null
+          entrega_registrada_por: string | null
           estatus: string
           evidencia_firmada_path: string | null
           factura_referencia: string | null
@@ -5402,6 +5404,8 @@ export type Database = {
           cliente: string
           creado_por?: string | null
           created_at?: string
+          entrega_registrada_at?: string | null
+          entrega_registrada_por?: string | null
           estatus?: string
           evidencia_firmada_path?: string | null
           factura_referencia?: string | null
@@ -5422,6 +5426,8 @@ export type Database = {
           cliente?: string
           creado_por?: string | null
           created_at?: string
+          entrega_registrada_at?: string | null
+          entrega_registrada_por?: string | null
           estatus?: string
           evidencia_firmada_path?: string | null
           factura_referencia?: string | null
@@ -5588,6 +5594,7 @@ export type Database = {
       entregas_corporativas_lineas: {
         Row: {
           cantidad: number
+          cantidad_entregada: number
           codigo_producto: string
           costo_unitario: number | null
           created_at: string
@@ -5597,6 +5604,7 @@ export type Database = {
         }
         Insert: {
           cantidad: number
+          cantidad_entregada?: number
           codigo_producto: string
           costo_unitario?: number | null
           created_at?: string
@@ -5606,6 +5614,7 @@ export type Database = {
         }
         Update: {
           cantidad?: number
+          cantidad_entregada?: number
           codigo_producto?: string
           costo_unitario?: number | null
           created_at?: string
@@ -11636,6 +11645,10 @@ export type Database = {
           _ev: Database["public"]["Enums"]["empresa_vendedora"]
         }
         Returns: undefined
+      }
+      registrar_entrega_corporativa: {
+        Args: { p_entrega_id: string; p_factura?: string; p_lineas: Json }
+        Returns: string
       }
       repair_whatsapp_account_links: { Args: never; Returns: Json }
       resolve_credit_short_code: { Args: { code: string }; Returns: string }
