@@ -2304,8 +2304,8 @@ function useHuerfanosInventario() {
     queryKey: ["inv_huerfanos_inventario"],
     queryFn: async (): Promise<HuerfanoInvRow[]> => {
       const [nivelesRes, prodsRes, costosRes, marcasRes] = await Promise.all([
-        (supabase as any).from("inv_niveles_inventario").select("codigo_producto, nombre_producto, empresa_vendedora, stock_total, costo_promedio").gt("stock_total", 0),
-        supabase.from("productos").select("codigo"),
+        fetchAll((from, to) => (supabase as any).from("inv_niveles_inventario").select("codigo_producto, nombre_producto, empresa_vendedora, stock_total, costo_promedio").gt("stock_total", 0).range(from, to)),
+        fetchAll((from, to) => supabase.from("productos").select("codigo").range(from, to)),
         (supabase as any).from("inv_costos_producto").select("codigo_producto, costo_efectivo").eq("estado", "sin_producto").order("created_at", { ascending: false }),
         supabase.from("product_option_values").select("id, value").eq("option_type", "marca"),
       ]);
