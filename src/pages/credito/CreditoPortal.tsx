@@ -882,6 +882,10 @@ function CreditoPortalInner() {
     if (orig) solicitudEntries.push({ ...orig } as any);
   }
   const allFirmas = [...solicitudEntries, ...baseFirmas] as Array<{ key: string; label: string; fechaCol: string; nombreCol: string; personaMoralOnly: boolean }>;
+  const faltantesSol = useMemo(() => faltantesSolicitud(form), [form]);
+  const msgBloqueo = faltantesSol.length > 0
+    ? `La solicitud aún no está completa y no puede imprimirse. Falta: ${faltantesSol.join(", ")}. Si prefiere llenarla a mano, use "Descargar formato en blanco".`
+    : null;
 
   return (
     <div className="min-h-screen bg-muted/30 py-6 px-4">
