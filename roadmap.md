@@ -4,5 +4,5 @@
 - [x] Mostrar variación absoluta (Δ en unidades/$/pp de margen) además del %, en pantalla y en Excel
 
 ## Solicitud de crédito
-- [ ] Organizar el formulario del cliente en pasos con referencias y cuentas bancarias separadas.
-- [ ] Verificar guardado, pruebas y presentación sin modificar reglas de crédito.
+- [x] Organizar el formulario del cliente en pasos con referencias y cuentas bancarias separadas.
+- [x] Verificar guardado con pruebas y presentación con datos de ejemplo sin modificar reglas de crédito.

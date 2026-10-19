@@ -1187,12 +1187,12 @@ function CreditoPortalInner() {
                   return (
                     <Card className="border-violet-200 bg-gradient-to-br from-violet-50 via-white to-blue-50 mt-4">
                       <CardContent className="pt-3 pb-3 space-y-2">
-                        <div className="flex items-start gap-2.5">
+                        <div className="flex flex-wrap items-start gap-2.5">
                           <div className="h-7 w-7 rounded-md bg-violet-100 flex items-center justify-center shrink-0">
                             <Wand2 className="h-4 w-4 text-violet-700" />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[13px] font-semibold flex items-center gap-1.5 leading-tight">
+                          <div className="min-w-0 flex-1 basis-48">
+                            <p className="text-[13px] font-semibold flex flex-wrap items-center gap-1.5 leading-tight">
                               Autocompletar con documentos
                               <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
                                 <Sparkles className="h-3 w-3" /> Opcional
@@ -1202,7 +1202,7 @@ function CreditoPortalInner() {
                               Sube los documentos del solicitante y se autocompletarán los datos posibles del formulario. Es opcional pero ahorra mucha captura.
                             </p>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex w-full sm:w-auto items-center justify-end gap-2 shrink-0">
                             <Button type="button" variant="outline" size="sm"
                               className="h-8 border-violet-300 text-violet-700 hover:bg-violet-100"
                               onClick={() => setAutofillCollapsed((v) => !v)}
