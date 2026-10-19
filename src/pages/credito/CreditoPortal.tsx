@@ -28,6 +28,7 @@ import { TEMPLATE_LABELS } from "@/lib/creditoTemplates";
 import { USO_CFDI_OPTS } from "@/components/CompanyFormDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getPortalSession, clearPortalSession } from "@/lib/creditoPortalSession";
 import { CreditoPortalLock } from "@/components/credito/CreditoPortalLock";
 import { CreditoPrivacyGate } from "@/components/credito/CreditoPrivacyGate";
@@ -60,6 +61,26 @@ function fileToBase64(file: File): Promise<string> {
     fr.onerror = () => rej(fr.error);
     fr.readAsDataURL(file);
   });
+}
+
+/** Campos requeridos para poder imprimir la solicitud (espejo de la validación del portal). */
+function faltantesSolicitud(f: any): string[] {
+  const has = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
+  const arr = (v: any) => (Array.isArray(v) ? v : []);
+  const out: string[] = [];
+  if (!has(f?.razon_social)) out.push("razón social");
+  if (!has(f?.rfc)) out.push("RFC");
+  if (!has(f?.telefono)) out.push("teléfono");
+  if (!has(f?.correo_contacto)) out.push("correo de contacto");
+  if (!has(f?.domicilio_fiscal)) out.push("domicilio fiscal");
+  if (!has(f?.domicilio_comercial)) out.push("domicilio comercial");
+  if (!has(f?.giro_comercial)) out.push("giro comercial");
+  if (!has(f?.rep_legal_nombre)) out.push("nombre del representante legal");
+  if (!has(f?.rep_legal_rfc)) out.push("RFC del representante legal");
+  if (arr(f?.referencias_comerciales).length < 2) out.push("al menos 2 referencias comerciales");
+  if ((f?.aval_es_distinto ?? true) && !has(f?.aval_nombre)) out.push("datos del aval");
+  if (arr(f?.datos_bancarios).length < 1) out.push("al menos 1 cuenta bancaria");
+  return out;
 }
 
 const DOC_PALETTE: Record<string, { icon: any; bg: string; border: string; iconBg: string; iconColor: string; btn: string }> = {
