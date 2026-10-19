@@ -1724,22 +1724,45 @@ function CreditoPortalInner() {
 
           {/* ============ FORMATOS Y FIRMAS ============ */}
           <TabsContent value="firmas" className="space-y-4 mt-4">
-            <Card><CardContent className="pt-6 space-y-3">
+            <TooltipProvider delayDuration={150}><Card><CardContent className="pt-6 space-y-3">
               <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
-                  onClick={() => {
-                    if (!token || allFirmas.length === 0) return;
-                    const joined = allFirmas.map((f) => f.key).join(",");
-                    const w = window.open(`/portal/credito/${token}/imprimir/${joined}`, "_blank");
-                    if (!w) toast.error("Tu navegador bloqueó la ventana emergente.");
-                    else toast.success(`Generando ${allFirmas.length} documento(s)`);
-                  }}
-                >
-                  <FileText className="h-3.5 w-3.5 mr-1.5" />Generar Todos los PDF
-                </Button>
+                {msgBloqueo ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={0} className="inline-flex cursor-not-allowed">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled
+                          tabIndex={-1}
+                          className="opacity-50 cursor-not-allowed border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 text-[10px] font-semibold uppercase tracking-widest"
+                        >
+                          <span className="relative inline-flex items-center">
+                            <FileText className="h-3.5 w-3.5 mr-1.5" />
+                            <span className="absolute left-1.5 h-px w-5 -rotate-45 bg-current" aria-hidden />
+                          </span>
+                          <span className="line-through">Generar Todos los PDF</span>
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[280px] text-center text-xs leading-snug">{msgBloqueo}</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-violet-200 bg-gradient-to-r from-violet-50 to-blue-50 text-violet-700 hover:from-violet-100 hover:to-blue-100 hover:text-violet-800 text-[10px] font-semibold uppercase tracking-widest"
+                    onClick={() => {
+                      if (!token || allFirmas.length === 0) return;
+                      const joined = allFirmas.map((f) => f.key).join(",");
+                      const w = window.open(`/portal/credito/${token}/imprimir/${joined}`, "_blank");
+                      if (!w) toast.error("Tu navegador bloqueó la ventana emergente.");
+                      else toast.success(`Generando ${allFirmas.length} documento(s)`);
+                    }}
+                  >
+                    <FileText className="h-3.5 w-3.5 mr-1.5" />Generar Todos los PDF
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" onClick={() => descargarFormatoBlanco()}>
                   Descargar formato en blanco (llenar a mano)
                 </Button>
@@ -1802,12 +1825,36 @@ function CreditoPortalInner() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-wrap gap-1.5 justify-end">
-                            <Button size="icon" variant="ghost" onClick={() => openFirmaPdf(f.key)} title="Generar PDF" className="h-auto py-1">
-                              <div className="flex flex-col items-center justify-center gap-0.5">
-                                <FileText className="h-4 w-4" />
-                                <span className="text-[9px] leading-none font-medium">PDF</span>
-                              </div>
-                            </Button>
+                            {(() => {
+                              const esSolicitud = f.key === "solicitud" || f.key.startsWith("solicitud-");
+                              const bloqueo = esSolicitud && msgBloqueo ? msgBloqueo : null;
+                              if (bloqueo) {
+                                return (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span tabIndex={0} className="inline-flex cursor-not-allowed">
+                                        <Button size="icon" variant="ghost" disabled tabIndex={-1} title={bloqueo} className="h-auto py-1 opacity-50 cursor-not-allowed">
+                                          <span className="relative flex flex-col items-center justify-center gap-0.5">
+                                            <FileText className="h-4 w-4" />
+                                            <span className="text-[9px] leading-none font-medium line-through">PDF</span>
+                                            <span aria-hidden className="absolute top-1/2 left-1/2 h-px w-5 -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-current" />
+                                          </span>
+                                        </Button>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-[280px] text-center text-xs leading-snug">{bloqueo}</TooltipContent>
+                                  </Tooltip>
+                                );
+                              }
+                              return (
+                                <Button size="icon" variant="ghost" onClick={() => openFirmaPdf(f.key)} title="Generar PDF" className="h-auto py-1">
+                                  <div className="flex flex-col items-center justify-center gap-0.5">
+                                    <FileText className="h-4 w-4" />
+                                    <span className="text-[9px] leading-none font-medium">PDF</span>
+                                  </div>
+                                </Button>
+                              );
+                            })()}
                             <Button size="icon" variant="ghost" asChild title={fecha ? "Reemplazar firmado" : "Subir firmado"} className="h-auto py-1">
                               <label className="cursor-pointer flex flex-col items-center justify-center gap-0.5">
                                 <Upload className="h-4 w-4" />
