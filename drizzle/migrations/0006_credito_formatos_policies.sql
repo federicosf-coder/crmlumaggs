@@ -1,0 +1,4 @@
+CREATE POLICY "credito-formatos lectura" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'credito-formatos');
+CREATE POLICY "credito-formatos admin insert" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'credito-formatos' AND (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager')));
+CREATE POLICY "credito-formatos admin update" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'credito-formatos' AND (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager')));
+CREATE POLICY "credito-formatos admin delete" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'credito-formatos' AND (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager')));
