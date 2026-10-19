@@ -32,6 +32,7 @@ import { getPortalSession, clearPortalSession } from "@/lib/creditoPortalSession
 import { CreditoPortalLock } from "@/components/credito/CreditoPortalLock";
 import { CreditoPrivacyGate } from "@/components/credito/CreditoPrivacyGate";
 import { CreditoFormularioGuiado } from "@/components/credito/CreditoFormularioGuiado";
+import { avisosCreditoFila } from "@/lib/creditoCaptura";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -141,7 +142,7 @@ function Repeater({ title, value, onChange, fields, minRequired }: {
           {minRequired ? (
             <p className={`text-[11px] ${cumple ? "text-emerald-700" : "text-amber-700"}`}>
               {cumple
-                ? `Mínimo cumplido (${list.length}/${minRequired}).`
+                ? `${list.length} registros capturados (mínimo ${minRequired}).`
                 : `Mínimo ${minRequired} requeridas — faltan ${faltan} (${list.length}/${minRequired}).`}
             </p>
           ) : null}
@@ -156,8 +157,9 @@ function Repeater({ title, value, onChange, fields, minRequired }: {
             <div key={i} className={`grid gap-2 items-end border rounded-md p-2 ${fields.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
               {fields.map((f) => (
                 <div key={f.key} className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">{f.label}</Label>
+                  <Label htmlFor={`${title}-${i}-${f.key}`} className="text-xs text-muted-foreground">{f.label} · {i + 1}</Label>
                   <Input
+                    id={`${title}-${i}-${f.key}`}
                     type={f.type || "text"}
                     inputMode={f.type === "number" ? "numeric" : undefined}
                     min={f.type === "number" ? 0 : undefined}
@@ -166,6 +168,9 @@ function Repeater({ title, value, onChange, fields, minRequired }: {
                     onChange={(e) => update(i, f.key, f.type === "number" ? (e.target.value ? Number(e.target.value) : null) : e.target.value)}
                   />
                 </div>
+              ))}
+              {avisosCreditoFila(row, fields.map((field) => field.key)).map((aviso) => (
+                <p key={aviso} className={`text-xs text-muted-foreground ${fields.length === 2 ? "sm:col-span-2" : "sm:col-span-3"}`}><AlertCircle className="inline h-3.5 w-3.5 mr-1" />{aviso}</p>
               ))}
               <div className={`flex justify-end ${fields.length === 2 ? "sm:col-span-2" : "sm:col-span-3"}`}>
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(i)}>
