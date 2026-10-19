@@ -864,7 +864,7 @@ function CreditoPortalInner() {
 
   return (
     <div className="min-h-screen bg-muted/30 py-6 px-4">
-      <div className="max-w-5xl mx-auto space-y-4 lg:flex lg:flex-col lg:h-[calc(100dvh-3rem)]">
+      <div className="max-w-5xl mx-auto space-y-4">
         {/* Header */}
         <Card className="shrink-0">
           <CardHeader className="pb-3">
@@ -1152,7 +1152,7 @@ function CreditoPortalInner() {
           </DialogContent>
         </Dialog>
 
-        <Tabs value={tab} onValueChange={setTab} className="lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-violet-50 via-blue-50 to-emerald-50 p-1 h-auto gap-1 border border-violet-100 shrink-0 sticky top-0 z-30">
             <TabsTrigger value="docs" className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500 data-[state=active]:to-fuchsia-600 data-[state=active]:text-white data-[state=active]:shadow-md text-violet-700 text-[11px] sm:text-sm px-2 py-2 leading-tight whitespace-normal break-words min-w-0 h-auto">
               Documentos
@@ -1166,7 +1166,7 @@ function CreditoPortalInner() {
           </TabsList>
 
           {/* ============ FORMULARIO ============ */}
-          <TabsContent value="datos" className="space-y-6 mt-4 lg:flex-1 lg:min-h-0 lg:overflow-auto lg:pr-1">
+          <TabsContent value="datos" className="space-y-6 mt-4">
               <CreditoFormularioGuiado value={formTab} onValueChange={setFormTab} personaMoral={tp === "moral"} saving={saving} onSave={saveForm}>
 
 
@@ -1533,7 +1533,7 @@ function CreditoPortalInner() {
           </TabsContent>
 
           {/* ============ DOCUMENTOS ============ */}
-          <TabsContent value="docs" className="space-y-4 mt-4 lg:flex-1 lg:min-h-0 lg:overflow-auto lg:pr-1">
+          <TabsContent value="docs" className="space-y-4 mt-4">
             <Card><CardContent className="pt-6 space-y-4">
               {/* CSF autocompletar */}
               <div className="border-2 border-dashed rounded-md p-3 bg-violet-50/40">
@@ -1698,7 +1698,7 @@ function CreditoPortalInner() {
           </TabsContent>
 
           {/* ============ FORMATOS Y FIRMAS ============ */}
-          <TabsContent value="firmas" className="space-y-4 mt-4 lg:flex-1 lg:min-h-0 lg:overflow-auto lg:pr-1">
+          <TabsContent value="firmas" className="space-y-4 mt-4">
             <Card><CardContent className="pt-6 space-y-3">
               <div className="flex flex-wrap justify-end gap-2">
                 <Button
