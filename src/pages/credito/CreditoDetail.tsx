@@ -1369,7 +1369,11 @@ export default function CreditoDetail() {
   const company = (form.companies || {}) as any;
   const companyIndustrias: string[] = company.industrias || [];
   const removeIndustria = async (val: string) => {
-    await updateCompany({ industrias: companyIndustrias.filter((i) => i !== val) });
+    const next = companyIndustrias.filter((i) => i !== val);
+    await updateCompany({ industrias: next });
+    const joined = next.join(", ");
+    set("giro_comercial", joined);
+    await supabase.from("credit_requests").update({ giro_comercial: joined || null }).eq("id", id!);
   };
   const addIndustria = async (val: string) => {
     if (!val || companyIndustrias.includes(val)) return;
