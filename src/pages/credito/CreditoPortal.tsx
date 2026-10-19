@@ -1884,7 +1884,7 @@ function CreditoPortalInner() {
               <p className="text-xs text-muted-foreground pt-2">
                 Genera el PDF, imprime y firma físicamente, luego sube el documento escaneado, o usa "Subir varios PDFs" para cargar todos en un paso.
               </p>
-            </CardContent></Card>
+            </CardContent></Card></TooltipProvider>
           </TabsContent>
         </Tabs>
 
