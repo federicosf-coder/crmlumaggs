@@ -2309,7 +2309,7 @@ function useHuerfanosInventario() {
         (supabase as any).from("inv_costos_producto").select("codigo_producto, costo_efectivo").eq("estado", "sin_producto").order("created_at", { ascending: false }),
         supabase.from("product_option_values").select("id, value").eq("option_type", "marca"),
       ]);
-      const codigosCatalogo = new Set((prodsRes.data || []).map((p: any) => p.codigo));
+      const codigosCatalogo = new Set((prodsRes as any[]).map((p: any) => p.codigo));
       const costoListaPorCodigo = new Map<string, any>();
       for (const c of (costosRes.data || []) as any[]) {
         if (!costoListaPorCodigo.has(c.codigo_producto)) costoListaPorCodigo.set(c.codigo_producto, c.costo_efectivo);
