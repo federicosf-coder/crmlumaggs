@@ -560,6 +560,25 @@ Deno.serve(async (req) => {
           : Promise.resolve({ data: [] } as any),
       ])
       if (!request) return json({ error: 'not_found' }, 404)
+      if (keys.some((k) => k === 'solicitud' || k.startsWith('solicitud-'))) {
+        const r: any = request
+        const has = (v: any) => v !== null && v !== undefined && String(v).trim() !== ''
+        const arr = (v: any) => (Array.isArray(v) ? v : [])
+        const f: string[] = []
+        if (!has(r.razon_social)) f.push('razón social')
+        if (!has(r.rfc)) f.push('RFC')
+        if (!has(r.telefono)) f.push('teléfono')
+        if (!has(r.correo_contacto)) f.push('correo de contacto')
+        if (!has(r.domicilio_fiscal)) f.push('domicilio fiscal')
+        if (!has(r.domicilio_comercial)) f.push('domicilio comercial')
+        if (!has(r.giro_comercial)) f.push('giro comercial')
+        if (!has(r.rep_legal_nombre)) f.push('nombre del representante legal')
+        if (!has(r.rep_legal_rfc)) f.push('RFC del representante legal')
+        if (arr(r.referencias_comerciales).length < 2) f.push('al menos 2 referencias comerciales')
+        if ((r.aval_es_distinto ?? true) && !has(r.aval_nombre)) f.push('datos del aval')
+        if (arr(r.datos_bancarios).length < 1) f.push('al menos 1 cuenta bancaria')
+        if (f.length > 0) return json({ error: `La solicitud aún no está completa y no puede imprimirse. Falta: ${f.join(', ')}. Si prefiere llenarla a mano, use "Descargar formato en blanco".` })
+      }
       for (const k of ['portal_password_hash','portal_temp_password','portal_failed_attempts','portal_locked_until']) delete (request as any)[k]
       return json({ request, templates: templates || [] })
     }
