@@ -36,7 +36,9 @@ interface Props {
 
 function textToHtml(text: string) {
   const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const html = escape(text).replace(/\r?\n/g, "<br/>");
+  const html = escape(text)
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+    .replace(/\r?\n/g, "<br/>");
   return `<div style="font-family:Arial,sans-serif;font-size:14px;color:#0f172a;line-height:1.55">${html}</div>`;
 }
 
@@ -98,10 +100,13 @@ export function EnviarCescemexDialog(props: Props) {
       `Uso CFDI: ${usoCfdiLabel || "—"}`,
       `Ejecutivo: ${ejecutivoNombre || "—"}`,
       ``,
+      `Revisar expediente en el portal:`,
+      `https://portal.lumaggs.com.mx/credito/${creditRequestId}`,
+      ``,
       `Atentamente,`,
       remitenteNombre || "",
     ].join("\n");
-  }, [companyName, razonSocial, nombreComercial, ejecutivoNombre, repLegalNombre, contactoNombre, contactPhone, contactEmail, montosSolicitados, promedioUnidades, giroComercialLabels, usoCfdiLabel, remitenteNombre]);
+  }, [creditRequestId, companyName, razonSocial, nombreComercial, ejecutivoNombre, repLegalNombre, contactoNombre, contactPhone, contactEmail, montosSolicitados, promedioUnidades, giroComercialLabels, usoCfdiLabel, remitenteNombre]);
 
   useEffect(() => {
     if (!open) return;
