@@ -434,8 +434,8 @@ function CorpTab({ rows }: { rows: Row[] }) {
     queryKey: ["control45_entregas"],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("entregas_corporativas")
-        .select("id, cliente, fecha_programada, estatus, numero_pedido, lugar_entrega_texto, entregas_corporativas_lineas(codigo_producto, nombre_producto, cantidad)")
-        .eq("estatus", "programada");
+        .select("id, cliente, fecha_programada, estatus, numero_pedido, lugar_entrega_texto, entregas_corporativas_lineas(codigo_producto, nombre_producto, cantidad, cantidad_entregada)")
+        .in("estatus", ["programada", "entregada_parcial"]);
       if (error) throw error;
       return (data || []) as Row[];
     },
@@ -444,9 +444,9 @@ function CorpTab({ rows }: { rows: Row[] }) {
   const lineas = useMemo(() => {
     const out: Row[] = [];
     entregas.forEach(e => (e.entregas_corporativas_lineas || []).forEach((l: Row, i: number) => {
-      if (!byCode.has(String(l.codigo_producto))) return;
+      if (!byCode.has(String(l.codigo_producto)) || n(l.cantidad) - n(l.cantidad_entregada) <= 0) return;
       out.push({ _k: `${e.id}-${i}`, fecha: e.fecha_programada, cliente: e.cliente, pedido: e.numero_pedido,
-        codigo_producto: l.codigo_producto, nombre_producto: l.nombre_producto || byCode.get(String(l.codigo_producto))?.nombre_producto, cantidad: n(l.cantidad) });
+        codigo_producto: l.codigo_producto, nombre_producto: l.nombre_producto || byCode.get(String(l.codigo_producto))?.nombre_producto, cantidad: Math.max(0, n(l.cantidad) - n(l.cantidad_entregada)) });
     }));
     return out;
   }, [entregas, byCode]);

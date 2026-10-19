@@ -189,8 +189,8 @@ export default function PedidosSugeridos() {
       const hasta = fmtD(new Date(h.getFullYear(), h.getMonth(), h.getDate() + 45));
       const { data, error } = await (supabase as any)
         .from("entregas_corporativas_lineas")
-        .select("codigo_producto, cantidad, entregas_corporativas!inner(estatus, fecha_programada)")
-        .eq("entregas_corporativas.estatus", "programada")
+        .select("codigo_producto, cantidad, cantidad_entregada, entregas_corporativas!inner(estatus, fecha_programada)")
+        .in("entregas_corporativas.estatus", ["programada", "entregada_parcial"])
         .gte("entregas_corporativas.fecha_programada", hoy)
         .lte("entregas_corporativas.fecha_programada", hasta);
       if (error) throw error;
@@ -203,7 +203,7 @@ export default function PedidosSugeridos() {
     const m: Record<string, number> = {};
     (corporativas as any[]).forEach((s) => {
       if (!s.codigo_producto) return;
-      m[s.codigo_producto] = (m[s.codigo_producto] || 0) + (Number(s.cantidad) || 0);
+      m[s.codigo_producto] = (m[s.codigo_producto] || 0) + Math.max(0, Number(s.cantidad || 0) - Number(s.cantidad_entregada || 0));
     });
     return m;
   }, [corporativas]);

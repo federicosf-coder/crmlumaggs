@@ -41,7 +41,7 @@ export async function buildEntregaEmailFlow(
   const { data: entrega, error } = await (supabase as any)
     .from("entregas_corporativas")
     .select(
-      "id, cliente, fecha_programada, numero_pedido, lugar_entrega_texto, factura_referencia, ubicacion:entregas_corporativas_ubicaciones(nombre, direccion)"
+      "id, cliente, estatus, fecha_programada, numero_pedido, lugar_entrega_texto, factura_referencia, ubicacion:entregas_corporativas_ubicaciones(nombre, direccion)"
     )
     .eq("id", entregaId)
     .maybeSingle();
@@ -52,7 +52,7 @@ export async function buildEntregaEmailFlow(
   // 2. Líneas
   const { data: lineas } = await (supabase as any)
     .from("entregas_corporativas_lineas")
-    .select("codigo_producto, nombre_producto, cantidad")
+    .select("codigo_producto, nombre_producto, cantidad, cantidad_entregada")
     .eq("entrega_id", entregaId);
   const productosLista =
     lineas && lineas.length
@@ -61,7 +61,7 @@ export async function buildEntregaEmailFlow(
             (l: any) =>
               `<li>${l.codigo_producto} ${l.nombre_producto || ""} — ${Number(
                 l.cantidad
-              )}</li>`
+              )}${entrega.estatus === "entregada_parcial" ? ` · Entregado: ${Number(l.cantidad_entregada || 0)} · Pendiente: ${Math.max(0, Number(l.cantidad) - Number(l.cantidad_entregada || 0))}` : ""}</li>`
           )
           .join("")}</ul>`
       : "<em>Sin productos</em>";
@@ -158,7 +158,7 @@ export async function buildEntregaEmailFlow(
 
   return {
     title: `Notificar entrega — ${tplVars.cliente}`,
-    description: "Al enviar, la entrega se marcará como entregada.",
+    description: entrega.estatus === "programada" ? "Al enviar, la entrega se marcará como entregada." : "Se notificará el avance registrado sin cambiar las cantidades pendientes.",
     subjectOverride,
     htmlOverride,
     cc,
