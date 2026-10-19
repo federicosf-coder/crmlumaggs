@@ -2467,9 +2467,19 @@ function HuerfanosInventarioSection() {
           ...preciosRedondeados,
         };
       });
-      const { error } = await (supabase as any).from("productos").insert(inserts);
+      // Seguridad extra: descartar códigos que ya existen en el catálogo (activos o inactivos)
+      // para no chocar con la clave única de código.
+      const codigosNuevo = inserts.map((i) => i.codigo);
+      const { data: existentes } = await (supabase as any)
+        .from("productos")
+        .select("codigo")
+        .in("codigo", codigosNuevo);
+      const existentesSet = new Set((existentes || []).map((p: any) => p.codigo));
+      const porInsertar = inserts.filter((i) => !existentesSet.has(i.codigo));
+      if (porInsertar.length === 0) return 0;
+      const { error } = await (supabase as any).from("productos").insert(porInsertar);
       if (error) throw error;
-      return inserts.length;
+      return porInsertar.length;
     },
     onSuccess: (n) => {
       toast.success(`${n} producto(s) agregado(s) al catálogo`);
