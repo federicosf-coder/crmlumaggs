@@ -106,7 +106,7 @@ export function EnviarCescemexDialog(props: Props) {
       `Atentamente,`,
       remitenteNombre || "",
     ].join("\n");
-  }, [companyName, razonSocial, nombreComercial, ejecutivoNombre, repLegalNombre, contactoNombre, contactPhone, contactEmail, montosSolicitados, promedioUnidades, giroComercialLabels, usoCfdiLabel, remitenteNombre]);
+  }, [creditRequestId, companyName, razonSocial, nombreComercial, ejecutivoNombre, repLegalNombre, contactoNombre, contactPhone, contactEmail, montosSolicitados, promedioUnidades, giroComercialLabels, usoCfdiLabel, remitenteNombre]);
 
   useEffect(() => {
     if (!open) return;
