@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cantidadPendiente, validarCapturaEntrega } from "@/lib/entregaCorporativaCantidades";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { reprogramarPendiente } from "@/lib/reprogramarPendienteEntrega";
 
-type Entrega = { id: string; cliente: string; numero_pedido: string | null; ubicacion_id: string | null; evidencia_firmada_path: string | null; factura_referencia: string | null };
+type Entrega = { id: string; cliente: string; fecha_programada?: string; numero_pedido: string | null; ubicacion_id: string | null; evidencia_firmada_path: string | null; factura_referencia: string | null };
 type Linea = { id: string; codigo_producto: string; nombre_producto: string | null; cantidad: number; cantidad_entregada?: number };
 
 export function RegistrarEntregaCorporativaDialog({ entrega, initialMode, onClose, onSaved, onDetalle }: {
@@ -24,6 +26,8 @@ export function RegistrarEntregaCorporativaDialog({ entrega, initialMode, onClos
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reprogramar, setReprogramar] = useState(false);
+  useEffect(() => { setReprogramar(/kenworth/i.test(entrega?.cliente || "")); }, [entrega]);
 
   useEffect(() => {
     if (!entrega) return;
@@ -67,7 +71,12 @@ export function RegistrarEntregaCorporativaDialog({ entrega, initialMode, onClos
         p_lineas: lineas.map((l) => ({ id: l.id, cantidad: Number(captura[l.id] || 0), previa: Number(l.cantidad_entregada || 0) })),
       });
       if (saveError) throw saveError;
-      toast.success(data === "entregada" ? "Entrega registrada como entregada" : "Entrega parcial registrada; el resto continúa pendiente");
+      if (data === "entregada_parcial" && reprogramar && entrega.fecha_programada) {
+        const fecha = await reprogramarPendiente(entrega.id, entrega.cliente, entrega.fecha_programada);
+        toast.success(`Entrega parcial registrada; el faltante se sumó a la entrega del ${fecha}`);
+      } else {
+        toast.success(data === "entregada" ? "Entrega registrada como entregada" : "Entrega parcial registrada; el resto continúa pendiente");
+      }
       onSaved(); onClose();
     } catch (e: any) { setError(e?.message || "No se pudo registrar la entrega."); }
     finally { setBusy(false); }
@@ -97,6 +106,10 @@ export function RegistrarEntregaCorporativaDialog({ entrega, initialMode, onClos
             </div>
           </div>
         </div>)}
+        {mode === "parcial" && <label className="flex items-start gap-2 text-sm rounded-md border border-violet-100 bg-violet-50/50 p-3">
+          <Checkbox checked={reprogramar} disabled={busy} onCheckedChange={(v) => setReprogramar(!!v)} className="mt-0.5" />
+          <span>Reprogramar lo no entregado a la siguiente fecha del calendario<span className="block text-xs text-muted-foreground">El faltante se suma a la próxima entrega programada de {entrega?.cliente} y esta queda cerrada.</span></span>
+        </label>}
         {!entrega?.ubicacion_id && <div className="text-sm text-destructive">Falta ubicación. <Button variant="link" onClick={onDetalle} disabled={busy}>Asignar en detalle</Button></div>}
         <div className="space-y-2">
           <Label htmlFor="entrega-evidencia">Evidencia {hasEvidence ? "(ya adjunta)" : "*"}</Label>
