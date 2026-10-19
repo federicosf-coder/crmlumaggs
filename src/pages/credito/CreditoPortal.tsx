@@ -1,3 +1,4 @@
+import { descargarFormatoBlanco } from "@/lib/creditoFormatoBlanco";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -1680,6 +1681,9 @@ function CreditoPortalInner() {
                   }}
                 >
                   <FileText className="h-3.5 w-3.5 mr-1.5" />Generar Todos los PDF
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => descargarFormatoBlanco()}>
+                  Descargar formato en blanco (llenar a mano)
                 </Button>
                 <Button
                   size="sm"

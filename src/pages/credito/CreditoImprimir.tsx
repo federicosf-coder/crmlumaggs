@@ -8,6 +8,26 @@ import { buildTokens, renderTemplate, templateKeyForFirma, PRINT_STYLES, TEMPLAT
 
 type RenderedDoc = { html: string; entidad: "lumaggs" | "galsa"; titulo: string };
 
+/** Mismos 12 criterios de la función credit_request_completeness (sección formulario). */
+function camposFaltantesSolicitud(r: any): string[] {
+  const has = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
+  const arr = (v: any) => (Array.isArray(v) ? v : []);
+  const out: string[] = [];
+  if (!has(r?.razon_social)) out.push("razón social");
+  if (!has(r?.rfc)) out.push("RFC");
+  if (!has(r?.telefono)) out.push("teléfono");
+  if (!has(r?.correo_contacto)) out.push("correo de contacto");
+  if (!has(r?.domicilio_fiscal)) out.push("domicilio fiscal");
+  if (!has(r?.domicilio_comercial)) out.push("domicilio comercial");
+  if (!has(r?.giro_comercial)) out.push("giro comercial");
+  if (!has(r?.rep_legal_nombre)) out.push("nombre del representante legal");
+  if (!has(r?.rep_legal_rfc)) out.push("RFC del representante legal");
+  if (arr(r?.referencias_comerciales).length < 2) out.push("al menos 2 referencias comerciales");
+  if ((r?.aval_es_distinto ?? true) && !has(r?.aval_nombre)) out.push("datos del aval");
+  if (arr(r?.datos_bancarios).length < 1) out.push("al menos 1 cuenta bancaria");
+  return out;
+}
+
 export default function CreditoImprimir() {
   const { id, token, firmaKey } = useParams<{ id?: string; token?: string; firmaKey: string }>();
   const [loading, setLoading] = useState(true);
@@ -44,6 +64,17 @@ export default function CreditoImprimir() {
           if (e1 || !f) throw new Error(e1?.message || "Crédito no encontrado");
           form = f;
           company = (form as any).companies || {};
+        }
+
+        // Candado: la solicitud de crédito solo se imprime cuando está completa.
+        if (requestedKeys.some((k) => k === "solicitud" || k.startsWith("solicitud-"))) {
+          const faltantes = camposFaltantesSolicitud(form);
+          if (faltantes.length > 0) {
+            throw new Error(
+              `La solicitud aún no está completa y no puede imprimirse. Falta: ${faltantes.join(", ")}. ` +
+              `Si el cliente prefiere llenarla a mano, use "Descargar formato en blanco".`,
+            );
+          }
         }
 
         const rendered: RenderedDoc[] = [];

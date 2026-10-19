@@ -43,6 +43,13 @@
       "when": 1791921740841,
       "tag": "0005_credit_requests_requiere_aval",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792431912838,
+      "tag": "0006_credito_formatos_policies",
+      "breakpoints": true
     }
   ]
 }

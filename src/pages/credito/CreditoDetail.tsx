@@ -1,3 +1,4 @@
+import { descargarFormatoBlanco } from "@/lib/creditoFormatoBlanco";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -2776,6 +2777,14 @@ export default function CreditoDetail() {
                       }}
                     >
                       <Printer className="h-3.5 w-3.5 mr-1.5" />Generar Todos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-[10px] font-semibold uppercase tracking-widest"
+                      onClick={() => descargarFormatoBlanco()}
+                    >
+                      Descargar formato en blanco
                     </Button>
                     <Button
                       size="sm"
