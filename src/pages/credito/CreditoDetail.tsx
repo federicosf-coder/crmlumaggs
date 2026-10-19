@@ -847,12 +847,12 @@ export default function CreditoDetail() {
     },
   });
 
-  // Ejecutivo titular de la empresa (para correo Cescemex)
+  // Responsable(s) del trámite (para correo Cescemex)
   const { data: cescemexEjecutivo = "" } = useQuery({
-    queryKey: ["credito-company-ejecutivo", companyId],
-    enabled: !!companyId,
+    queryKey: ["credito-responsables-nombre", id],
+    enabled: !!id,
     queryFn: async () => {
-      const { data: ce } = await supabase.from("company_ejecutivos").select("user_id").eq("company_id", companyId);
+      const { data: ce } = await (supabase as any).from("credit_request_responsables").select("user_id").eq("credit_request_id", id);
       const ids = (ce || []).map((r: any) => r.user_id);
       if (!ids.length) return "";
       const { data: profs } = await supabase.from("profiles").select("full_name, email").in("user_id", ids);

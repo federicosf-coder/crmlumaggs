@@ -98,7 +98,7 @@ export function EnviarCescemexDialog(props: Props) {
       `Promedio Unidades Mensuales: ${promedioUnidades ?? "—"}`,
       `Giro Comercial: ${(giroComercialLabels || []).join(", ") || "—"}`,
       `Uso CFDI: ${usoCfdiLabel || "—"}`,
-      `Ejecutivo: ${ejecutivoNombre || "—"}`,
+      `Responsable del trámite: ${ejecutivoNombre || "—"}`,
       ``,
       `Revisar expediente en el portal:`,
       `https://portal.lumaggs.com.mx/credito/${creditRequestId}`,
