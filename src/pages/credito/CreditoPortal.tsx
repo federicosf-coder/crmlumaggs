@@ -31,6 +31,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { getPortalSession, clearPortalSession } from "@/lib/creditoPortalSession";
 import { CreditoPortalLock } from "@/components/credito/CreditoPortalLock";
 import { CreditoPrivacyGate } from "@/components/credito/CreditoPrivacyGate";
+import { CreditoFormularioGuiado } from "@/components/credito/CreditoFormularioGuiado";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -503,6 +504,7 @@ function CreditoPortalInner() {
   };
 
   const saveForm = async () => {
+    if (!token) return false;
     setSaving(true);
     try {
       const allowed = [
@@ -521,11 +523,17 @@ function CreditoPortalInner() {
       ];
       const fields: Record<string, any> = {};
       for (const k of allowed) if (k in form) fields[k] = form[k];
-      await callPortal("update_form", token!, { fields });
+      await callPortal("update_form", token, { fields });
       toast.success("Datos guardados");
-      load();
+      // Actualizar el resumen sin desmontar el paso ni sobrescribir el borrador.
+      try {
+        const updated = await callPortal("get", token);
+        setData(updated);
+      } catch { /* El guardado ya se confirmó; conservar los datos locales. */ }
+      return true;
     } catch (e: any) {
       toast.error(e.message || "Error al guardar");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -923,7 +931,7 @@ function CreditoPortalInner() {
                   <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 font-bold text-[11px]">3</div>
                   <div>
                     <p className="font-semibold text-emerald-700 uppercase tracking-wide text-[11px] mb-1">Termine de editar en línea</p>
-                    <p>Revise y complete el Formulario (pestañas Empresa, Representación, Financiero) en esta misma liga.</p>
+                    <p>Revise y complete los datos de la empresa, representante, cuentas bancarias y referencias comerciales.</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
@@ -1154,19 +1162,7 @@ function CreditoPortalInner() {
 
           {/* ============ FORMULARIO ============ */}
           <TabsContent value="datos" className="space-y-6 mt-4 lg:flex-1 lg:min-h-0 lg:overflow-auto lg:pr-1">
-            <Card><CardContent className="pt-6 space-y-6">
-              <Tabs value={formTab} onValueChange={setFormTab}>
-                <TabsList className="grid grid-cols-3 w-full bg-gradient-to-r from-blue-50 to-indigo-50 p-1 h-auto gap-1 border border-blue-100 sticky top-0 z-20">
-                  <TabsTrigger value="empresa" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-blue-700 text-[11px] sm:text-sm h-auto whitespace-normal break-words min-w-0 leading-tight flex items-center gap-1.5 py-1.5">
-                    <Building2 className="h-3.5 w-3.5" /><span>Empresa</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="representacion" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-violet-700 text-[11px] sm:text-sm h-auto whitespace-normal break-words min-w-0 leading-tight flex items-center gap-1.5 py-1.5">
-                    <IdCard className="h-3.5 w-3.5" /><span>Representación</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="financiero" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-emerald-700 text-[11px] sm:text-sm h-auto whitespace-normal break-words min-w-0 leading-tight flex items-center gap-1.5 py-1.5">
-                    <Landmark className="h-3.5 w-3.5" /><span>Financiero</span>
-                  </TabsTrigger>
-                </TabsList>
+              <CreditoFormularioGuiado value={formTab} onValueChange={setFormTab} personaMoral={tp === "moral"} saving={saving} onSave={saveForm}>
 
 
                 {/* Autocompletar con documentos (opcional) */}
@@ -1370,8 +1366,13 @@ function CreditoPortalInner() {
                     <Field label="Nombre comercial"><Input value={form.nombre_comercial || ""} onChange={(e) => set("nombre_comercial", e.target.value)} /></Field>
                     <Field label="RFC"><Input value={form.rfc || ""} onChange={(e) => set("rfc", e.target.value.toUpperCase())} /></Field>
                     <Field label="Antigüedad"><Input value={form.antiguedad || ""} onChange={(e) => set("antiguedad", e.target.value)} /></Field>
+                    <Field label="Nombre de quien realiza el trámite"><Input value={form.client_nombre_contacto || ""} onChange={(e) => set("client_nombre_contacto", e.target.value)} /></Field>
+                    <Field label="Correo de contacto"><Input type="email" value={form.correo_contacto || ""} onChange={(e) => set("correo_contacto", e.target.value)} /></Field>
+                    <Field label="Teléfono de contacto"><Input type="tel" value={form.telefono || ""} onChange={(e) => set("telefono", e.target.value)} /></Field>
+                    <Field label="Giro comercial"><Input value={form.giro_comercial || ""} onChange={(e) => set("giro_comercial", e.target.value)} /></Field>
                   </Section>
-
+                </TabsContent>
+                <TabsContent value="domicilios" className="space-y-6 mt-5">
                   <Section title="Domicilio fiscal">
                     <div className="sm:col-span-2">
                       <Field label="Domicilio"><Input value={form.domicilio_fiscal || ""} onChange={(e) => set("domicilio_fiscal", e.target.value)} placeholder="Calle, número, colonia, CP" /></Field>
@@ -1387,15 +1388,6 @@ function CreditoPortalInner() {
                     <Field label="Ciudad"><Input value={form.ciudad_comercial || ""} onChange={(e) => set("ciudad_comercial", e.target.value)} /></Field>
                     <Field label="Estado"><Input value={form.estado_comercial || ""} onChange={(e) => set("estado_comercial", e.target.value)} /></Field>
                   </Section>
-
-                  {tp === "moral" && (
-                    <Section title="Persona moral">
-                      <Field label="Escritura constitutiva"><Input value={form.escritura_constitutiva || ""} onChange={(e) => set("escritura_constitutiva", e.target.value)} /></Field>
-                      <Field label="Datos de registro"><Input value={form.datos_registro || ""} onChange={(e) => set("datos_registro", e.target.value)} /></Field>
-                      <Field label="Última asamblea"><Input value={form.ultima_asamblea || ""} onChange={(e) => set("ultima_asamblea", e.target.value)} /></Field>
-                      <Field label="Administrador / Presidente"><Input value={form.administrador_presidente || ""} onChange={(e) => set("administrador_presidente", e.target.value)} /></Field>
-                    </Section>
-                  )}
                 </TabsContent>
 
                 {/* === REPRESENTACIÓN === */}
@@ -1454,9 +1446,15 @@ function CreditoPortalInner() {
                   )}
                 </TabsContent>
 
-                {/* === FINANCIERO === */}
-                <TabsContent value="financiero" className="space-y-6 mt-5">
+                <TabsContent value="sociedad" className="space-y-6 mt-5">
                   {tp === "moral" && (
+                    <>
+                    <Section title="Persona moral">
+                      <Field label="Escritura constitutiva"><Input value={form.escritura_constitutiva || ""} onChange={(e) => set("escritura_constitutiva", e.target.value)} /></Field>
+                      <Field label="Datos de registro"><Input value={form.datos_registro || ""} onChange={(e) => set("datos_registro", e.target.value)} /></Field>
+                      <Field label="Última asamblea"><Input value={form.ultima_asamblea || ""} onChange={(e) => set("ultima_asamblea", e.target.value)} /></Field>
+                      <Field label="Administrador / Presidente"><Input value={form.administrador_presidente || ""} onChange={(e) => set("administrador_presidente", e.target.value)} /></Field>
+                    </Section>
                     <Repeater
                       title="Accionistas"
                       value={form.accionistas || []}
@@ -1466,7 +1464,10 @@ function CreditoPortalInner() {
                         { key: "acciones", label: "Número de acciones", type: "number" },
                       ]}
                     />
+                    </>
                   )}
+                </TabsContent>
+                <TabsContent value="bancos" className="space-y-6 mt-5">
                   <Repeater
                     title="Datos bancarios"
                     value={form.datos_bancarios || []}
@@ -1476,7 +1477,10 @@ function CreditoPortalInner() {
                       { key: "cuenta", label: "Número de cuenta" },
                       { key: "clabe", label: "CLABE interbancaria" },
                     ]}
+                    minRequired={1}
                   />
+                </TabsContent>
+                <TabsContent value="referencias" className="space-y-6 mt-5">
                   <Repeater
                     title="Referencias comerciales"
                     value={form.referencias_comerciales || []}
@@ -1484,19 +1488,43 @@ function CreditoPortalInner() {
                     fields={[
                       { key: "empresa", label: "Empresa" },
                       { key: "contacto", label: "Contacto" },
-                      { key: "telefono", label: "Teléfono" },
+                      { key: "telefono", label: "Teléfono", type: "tel" },
                     ]}
                     minRequired={3}
                   />
                 </TabsContent>
-              </Tabs>
-            </CardContent></Card>
-            <div className="flex justify-end">
-              <Button onClick={saveForm} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar
-              </Button>
-            </div>
+                <TabsContent value="revision" className="space-y-5 mt-5">
+                  <dl className="divide-y">
+                    {[
+                      ["Razón social", form.razon_social], ["RFC", form.rfc],
+                      ["Contacto", form.client_nombre_contacto], ["Correo", form.correo_contacto],
+                      ["Teléfono", form.telefono], ["Giro comercial", form.giro_comercial],
+                      ["Domicilio fiscal", form.domicilio_fiscal], ["Domicilio comercial", form.domicilio_comercial],
+                      ["Representante legal", form.rep_legal_nombre], ["RFC del representante", form.rep_legal_rfc],
+                    ].map(([label, value]) => (
+                      <div key={label} className="grid gap-1 py-3 sm:grid-cols-2">
+                        <dt className="text-xs text-muted-foreground">{label}</dt>
+                        <dd className="text-sm break-words">{String(value || "").trim() || "Pendiente"}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  {[
+                    { title: "Cuentas bancarias", key: "datos_bancarios", fields: ["banco", "cuenta", "clabe"], step: "bancos" },
+                    { title: "Referencias comerciales", key: "referencias_comerciales", fields: ["empresa", "contacto", "telefono"], step: "referencias" },
+                  ].map((section) => (
+                    <section key={section.key} className="space-y-2 border-t pt-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="text-sm font-medium">{section.title}</h3>
+                        <Button variant="outline" size="sm" onClick={() => setFormTab(section.step)}><PenSquare className="h-3.5 w-3.5 mr-2" />Revisar</Button>
+                      </div>
+                      {(Array.isArray(form[section.key]) ? form[section.key] : []).map((row: any, i: number) => (
+                        <p key={i} className="text-sm break-words">{i + 1}. {section.fields.map((key) => String(row?.[key] || "").trim() || "Pendiente").join(" · ")}</p>
+                      ))}
+                      {(!Array.isArray(form[section.key]) || !form[section.key].length) && <p className="text-sm text-muted-foreground">Pendiente</p>}
+                    </section>
+                  ))}
+                </TabsContent>
+              </CreditoFormularioGuiado>
           </TabsContent>
 
           {/* ============ DOCUMENTOS ============ */}
