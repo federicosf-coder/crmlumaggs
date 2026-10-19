@@ -18,6 +18,9 @@ interface Props {
   creditRequestId: string;
   folio: string;
   companyName: string;
+  razonSocial?: string | null;
+  nombreComercial?: string | null;
+  ejecutivoNombre?: string | null;
   repLegalNombre?: string | null;
   contactoNombre?: string | null;
   contactEmail?: string | null;
@@ -50,6 +53,7 @@ function genToken() {
 export function EnviarCescemexDialog(props: Props) {
   const {
     open, onOpenChange, creditRequestId, folio, companyName,
+    razonSocial, nombreComercial, ejecutivoNombre,
     repLegalNombre, contactoNombre, contactEmail, contactPhone,
     montosSolicitados, promedioUnidades, giroComercialLabels, usoCfdiLabel,
     remitenteNombre, ccDefault, docs,
@@ -81,7 +85,8 @@ export function EnviarCescemexDialog(props: Props) {
       ``,
       `Comparto el expediente del cliente que solicita crédito Cescemex.`,
       ``,
-      `NOMBRE EMPRESA: ${companyName || "—"}`,
+      `Razón Social: ${razonSocial || companyName || "—"}`,
+      `Nombre Comercial: ${nombreComercial || companyName || "—"}`,
       `Nombre representante legal: ${repLegalNombre || "—"}`,
       `Nombre de Contacto: ${contactoNombre || "—"}`,
       `Teléfono de Contacto: ${contactPhone || "—"}`,
@@ -91,11 +96,12 @@ export function EnviarCescemexDialog(props: Props) {
       `Promedio Unidades Mensuales: ${promedioUnidades ?? "—"}`,
       `Giro Comercial: ${(giroComercialLabels || []).join(", ") || "—"}`,
       `Uso CFDI: ${usoCfdiLabel || "—"}`,
+      `Ejecutivo: ${ejecutivoNombre || "—"}`,
       ``,
       `Atentamente,`,
       remitenteNombre || "",
     ].join("\n");
-  }, [companyName, repLegalNombre, contactoNombre, contactPhone, contactEmail, montosSolicitados, promedioUnidades, giroComercialLabels, usoCfdiLabel, remitenteNombre]);
+  }, [companyName, razonSocial, nombreComercial, ejecutivoNombre, repLegalNombre, contactoNombre, contactPhone, contactEmail, montosSolicitados, promedioUnidades, giroComercialLabels, usoCfdiLabel, remitenteNombre]);
 
   useEffect(() => {
     if (!open) return;

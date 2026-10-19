@@ -847,6 +847,19 @@ export default function CreditoDetail() {
     },
   });
 
+  // Ejecutivo titular de la empresa (para correo Cescemex)
+  const { data: cescemexEjecutivo = "" } = useQuery({
+    queryKey: ["credito-company-ejecutivo", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data: ce } = await supabase.from("company_ejecutivos").select("user_id").eq("company_id", companyId);
+      const ids = (ce || []).map((r: any) => r.user_id);
+      if (!ids.length) return "";
+      const { data: profs } = await supabase.from("profiles").select("full_name, email").in("user_id", ids);
+      return (profs || []).map((p: any) => (p.full_name || p.email || "").trim()).filter(Boolean).join(", ");
+    },
+  });
+
   // Auto-extraer teléfono del contacto vinculado si el campo está vacío
   useEffect(() => {
     if (!id || !form?.contact_id) return;
@@ -3103,6 +3116,9 @@ export default function CreditoDetail() {
           creditRequestId={id}
           folio={form.folio || ""}
           companyName={(form.companies as any)?.name || ""}
+          razonSocial={form.razon_social || (form as any).csf_razon_social || (form.companies as any)?.razon_social || ""}
+          nombreComercial={form.nombre_comercial || (form.companies as any)?.name || ""}
+          ejecutivoNombre={cescemexEjecutivo}
           repLegalNombre={form.rep_legal_nombre || ""}
           contactoNombre={(() => {
             const cc = (companyContacts as any[]).find((c) => c.id === form.contact_id);
