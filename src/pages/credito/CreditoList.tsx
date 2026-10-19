@@ -39,8 +39,6 @@ export default function CreditoList() {
   const [creating, setCreating] = useState(false);
   const [newCompanyId, setNewCompanyId] = useState("");
   const [newTipo, setNewTipo] = useState<"cescemex" | "directo">("directo");
-  const [newMonto, setNewMonto] = useState("");
-  const [newDias, setNewDias] = useState("30");
 
   const { data: companies = [] } = useQuery({
     queryKey: ["credito-companies"],
@@ -95,8 +93,6 @@ export default function CreditoList() {
       .insert({
         company_id: newCompanyId,
         tipo: newTipo as any,
-        monto_solicitado: newMonto ? Number(newMonto) : null,
-        dias_credito: newDias ? Number(newDias) : null,
         created_by: user?.id,
         estado: "borrador",
       })
@@ -106,7 +102,7 @@ export default function CreditoList() {
     if (error) { toast.error("No se pudo crear: " + error.message); return; }
     toast.success("Solicitud creada");
     setNewOpen(false);
-    setNewCompanyId(""); setNewMonto(""); setNewDias("30");
+    setNewCompanyId("");
     qc.invalidateQueries({ queryKey: ["credit_requests"] });
     navigate(`/credito/${data!.id}`);
   };
@@ -327,16 +323,6 @@ export default function CreditoList() {
                   {CREDITO_TIPO_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-[11px] uppercase tracking-wide font-medium">Monto solicitado</Label>
-                <Input type="number" value={newMonto} onChange={(e) => setNewMonto(e.target.value)} placeholder="0.00" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[11px] uppercase tracking-wide font-medium">Días de crédito</Label>
-                <Input type="number" value={newDias} onChange={(e) => setNewDias(e.target.value)} placeholder="30" />
-              </div>
             </div>
           </div>
           <DialogFooter className="bg-muted/40 px-6 py-3 border-t">
