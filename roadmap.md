@@ -6,3 +6,7 @@
 ## Solicitud de crédito
 - [x] Organizar el formulario del cliente en pasos con referencias y cuentas bancarias separadas.
 - [x] Verificar guardado con pruebas y presentación con datos de ejemplo sin modificar reglas de crédito.
+
+## Entregas corporativas
+- [ ] Facilitar registro de entregado y revisar soporte para entrega parcial, conservando controles existentes.
+- [ ] Verificar las opciones visibles y ejecutar pruebas relevantes.
