@@ -8,5 +8,6 @@
 - [x] Verificar guardado con pruebas y presentación con datos de ejemplo sin modificar reglas de crédito.
 
 ## Entregas corporativas
-- [ ] Facilitar registro de entregado y revisar soporte para entrega parcial, conservando controles existentes.
-- [ ] Verificar las opciones visibles y ejecutar pruebas relevantes.
+- [x] Facilitar registro directo de entregado y entrega parcial, conservando evidencia y ubicación.
+- [x] Verificar presentación con datos de ejemplo y ejecutar cinco pruebas de captura y pendientes.
+- [ ] Verificar guardado real con sesión del usuario; bloqueado hasta que inicie sesión en la vista previa.

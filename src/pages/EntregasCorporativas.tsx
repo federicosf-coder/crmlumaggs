@@ -23,7 +23,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Truck, Upload, Loader2, Download, FileText, Mail, RefreshCw, Ban, MapPin, Plus, Pencil, Eye, Trash2, ChevronsUpDown,
+  Truck, Upload, Loader2, Download, FileText, Mail, RefreshCw, Ban, MapPin, Plus, Pencil, Eye, Trash2, ChevronsUpDown, CheckCircle2, PackageCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ProductoSelector, fetchProductosCatalogo } from "@/components/entregas/ProductoSelector";
@@ -31,6 +31,8 @@ import EntregasCorpIntakeTab from "@/components/entregas/EntregasCorpIntakeTab";
 import { EnviarConfirmacionPagoDialog } from "@/components/cobranza/EnviarConfirmacionPagoDialog";
 import { buildEntregaEmailFlow, type EntregaEmailFlow } from "@/lib/entregaEmailFlow";
 import { useQuery } from "@tanstack/react-query";
+import { RegistrarEntregaCorporativaDialog } from "@/components/entregas/RegistrarEntregaCorporativaDialog";
+import { cantidadPendiente } from "@/lib/entregaCorporativaCantidades";
 
 export const CLIENTES = ["Hyundai", "Kenworth", "Mecánica Tek", "Otro"];
 export const BUCKET = "entregas-corporativas";
@@ -52,6 +54,7 @@ type Linea = {
   codigo_producto: string;
   nombre_producto: string | null;
   cantidad: number;
+  cantidad_entregada?: number;
 };
 
 type Entrega = {
@@ -168,8 +171,8 @@ function estatusBadge(e: string) {
     cancelada: "bg-slate-300 text-slate-800 border-slate-400",
   };
   return (
-    <Badge variant="outline" className={`text-xs font-semibold capitalize ${map[e] || "bg-muted text-foreground"}`}>
-      {e}
+    <Badge variant="outline" className={`text-xs font-semibold capitalize ${e === "entregada_parcial" ? "bg-accent/10 text-foreground border-accent/30" : map[e] || "bg-muted text-foreground"}`}>
+      {e === "entregada_parcial" ? "Entregado parcial" : e === "entregada" ? "Entregado" : e}
     </Badge>
   );
 }
@@ -960,6 +963,11 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
 
   // Captura manual
   const [manualOpen, setManualOpen] = useState(false);
+  const [registroEntrega, setRegistroEntrega] = useState<Entrega | null>(null);
+  const [registroMode, setRegistroMode] = useState<"total" | "parcial">("total");
+  const abrirRegistro = (entrega: Entrega, mode: "total" | "parcial") => {
+    setDetalle(null); setRegistroMode(mode); setRegistroEntrega(entrega);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -981,7 +989,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     if (list.length) {
       const { data: lin } = await (supabase as any)
         .from("entregas_corporativas_lineas")
-        .select("id, entrega_id, codigo_producto, nombre_producto, cantidad")
+        .select("id, entrega_id, codigo_producto, nombre_producto, cantidad, cantidad_entregada")
         .in("entrega_id", list.map((r) => r.id));
       const map: Record<string, Linea[]> = {};
       ((lin ?? []) as Linea[]).forEach((l) => {
@@ -1218,13 +1226,23 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
     if (!previewEntregaId) return;
     try {
       const { data: userData } = await supabase.auth.getUser();
+      const { data: current, error: currentError } = await (supabase as any).from("entregas_corporativas").select("estatus").eq("id", previewEntregaId).single();
+      if (currentError) throw currentError;
+      if (current.estatus === "programada") {
+        const { data: lines, error: linesError } = await (supabase as any).from("entregas_corporativas_lineas").select("id,cantidad,cantidad_entregada").eq("entrega_id", previewEntregaId);
+        if (linesError) throw linesError;
+        const { error: registerError } = await (supabase as any).rpc("registrar_entrega_corporativa", {
+          p_entrega_id: previewEntregaId, p_factura: null,
+          p_lineas: (lines || []).map((l: any) => ({ id: l.id, cantidad: cantidadPendiente(l), previa: Number(l.cantidad_entregada || 0) })),
+        });
+        if (registerError) throw registerError;
+      }
       const { error } = await (supabase as any).from("entregas_corporativas").update({
-        estatus: "entregada",
         notificado_at: new Date().toISOString(),
         notificado_por: userData?.user?.id ?? null,
       }).eq("id", previewEntregaId);
       if (error) throw error;
-      toast.success("Entrega marcada como entregada");
+      toast.success("Notificación registrada");
       setGrupoSel("");
       setDetalle(null);
       load();
@@ -1324,6 +1342,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
               <SelectContent>
                 <SelectItem value="todas">Todas</SelectItem>
                 <SelectItem value="programada">Programada</SelectItem>
+                <SelectItem value="entregada_parcial">Entregado parcial</SelectItem>
                 <SelectItem value="entregada">Entregada</SelectItem>
                 <SelectItem value="cancelada">Cancelada</SelectItem>
               </SelectContent>
@@ -1410,6 +1429,10 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                   </TableCell>
                   <TableCell className="py-2.5">{estatusBadge(r.estatus)}</TableCell>
                   <TableCell className="text-right py-2.5">
+                    {["programada", "entregada_parcial"].includes(r.estatus) && <div className="flex justify-end gap-1 mb-1">
+                      <Button size="sm" className="h-8 gap-1 text-xs" disabled={busy} onClick={(e) => { e.stopPropagation(); abrirRegistro(r, "total"); }}><CheckCircle2 className="h-3.5 w-3.5" />Entregado</Button>
+                      <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" disabled={busy} onClick={(e) => { e.stopPropagation(); abrirRegistro(r, "parcial"); }}><PackageCheck className="h-3.5 w-3.5" />Parcial</Button>
+                    </div>}
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); abrirDetalle(r); }}>
                       <Eye className="h-3.5 w-3.5 mr-1" /> Ver detalle
                     </Button>
@@ -1430,6 +1453,9 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
       </Card>
 
       {/* Detalle de la entrega */}
+      <RegistrarEntregaCorporativaDialog entrega={registroEntrega} initialMode={registroMode}
+        onClose={() => setRegistroEntrega(null)} onSaved={() => { void load(); }}
+        onDetalle={() => { const entrega = registroEntrega; setRegistroEntrega(null); if (entrega) void abrirDetalle(entrega); }} />
       <Dialog open={!!detalle} onOpenChange={(o) => !o && setDetalle(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -m-6 mb-0 p-6 rounded-t-lg border-b">
@@ -1551,6 +1577,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                       <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Código</TableHead>
                       <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide">Producto</TableHead>
                       <TableHead className="uppercase text-xs text-slate-700 font-semibold tracking-wide text-right">Cantidad</TableHead>
+                      {!editMode && <><TableHead className="text-right">Entregado</TableHead><TableHead className="text-right">Pendiente</TableHead></>}
                       {editMode && <TableHead className="w-10" />}
                     </TableRow>
                   </TableHeader>
@@ -1581,6 +1608,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                             />
                           ) : Number(l.cantidad)}
                         </TableCell>
+                        {!editMode && <><TableCell className="text-right">{Number(l.cantidad_entregada || 0)}</TableCell><TableCell className="text-right">{cantidadPendiente(l)}</TableCell></>}
                         {editMode && (
                           <TableCell className="py-2.5">
                             <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive"
@@ -1686,7 +1714,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 </label>
               </div>
 
-              {detalle.estatus === "programada" ? (
+              {["programada", "entregada_parcial"].includes(detalle.estatus) ? (
                 <div className="space-y-3">
 
 
@@ -1701,12 +1729,14 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    <Button size="sm" disabled={busy || editMode} onClick={() => abrirRegistro(detalle, "total")}><CheckCircle2 className="h-4 w-4 mr-2" />Entregado</Button>
+                    <Button size="sm" variant="outline" disabled={busy || editMode} onClick={() => abrirRegistro(detalle, "parcial")}><PackageCheck className="h-4 w-4 mr-2" />Entregado parcial</Button>
                     <Button
                       size="sm" className="text-xs h-8"
                       disabled={evidencias.length === 0 || faltaUbicacion || busy}
                       onClick={() => { setGrupoSel(""); setNotifOpen(true); }}
                     >
-                      <Mail className="h-3 w-3 mr-1" /> Notificar y Marcar Entregada
+                      <Mail className="h-3 w-3 mr-1" /> {detalle.estatus === "entregada_parcial" ? "Notificar entrega parcial" : "Notificar y Marcar Entregada"}
                     </Button>
                     <Button
                       variant="ghost" size="sm"
@@ -1722,6 +1752,7 @@ function EntregasTab({ refreshKey, onUbicacionesChanged }: { refreshKey: number;
                 </div>
               ) : detalle.estatus === "entregada" ? (
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-light">
+                  <Button size="sm" variant="outline" disabled={busy || (evidencias.length === 0 && !detalle.evidencia_firmada_path) || faltaUbicacion} onClick={() => { setGrupoSel(""); setNotifOpen(true); }}><Mail className="h-3 w-3 mr-1" />Notificar por correo</Button>
                   <span>Notificada: {detalle.notificado_at ? new Date(detalle.notificado_at).toLocaleString("es-MX") : "—"}</span>
                   <span>· Factura: {detalle.factura_referencia || "—"}</span>
                   {detalle.evidencia_firmada_path && (
@@ -1978,7 +2009,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
       (supabase as any)
         .from("entregas_corporativas_lineas")
         .select(
-          "id, codigo_producto, nombre_producto, cantidad, entrega_id, entrega:entregas_corporativas(id, cliente, estatus, fecha_programada, numero_pedido, ubicacion_id, lugar_entrega_texto, ubicacion:entregas_corporativas_ubicaciones(nombre))",
+          "id, codigo_producto, nombre_producto, cantidad, cantidad_entregada, entrega_id, entrega:entregas_corporativas(id, cliente, estatus, fecha_programada, numero_pedido, ubicacion_id, lugar_entrega_texto, ubicacion:entregas_corporativas_ubicaciones(nombre))",
         ),
       (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_total"),
       (supabase as any)
@@ -2012,8 +2043,8 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
   const rows: DesgloseRow[] = useMemo(() => {
     // Demanda acumulada considera solo entregas 'programada'
     const programadas = lineas
-      .filter((l) => l.entrega?.estatus === "programada")
-      .map((l) => ({ codigo: l.codigo_producto, fecha: l.entrega.fecha_programada, cantidad: Number(l.cantidad ?? 0) }));
+      .filter((l) => ["programada", "entregada_parcial"].includes(l.entrega?.estatus))
+      .map((l) => ({ codigo: l.codigo_producto, fecha: l.entrega.fecha_programada, cantidad: cantidadPendiente(l) }));
 
     const base = lineas.map((l) => {
       const e = l.entrega;
@@ -2043,7 +2074,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
         fecha,
         numero_pedido: e.numero_pedido ?? null,
         estatus: e.estatus,
-        cantidad: Number(l.cantidad ?? 0),
+        cantidad: ["programada", "entregada_parcial"].includes(e.estatus) ? cantidadPendiente(l) : Number(l.cantidad ?? 0),
         stock_actual,
         por_llegar,
         stock_proyectado,
@@ -2141,6 +2172,7 @@ function DesgloseProductosTab({ refreshKey }: { refreshKey: number }) {
               <SelectContent>
                 <SelectItem value="todas">Todas</SelectItem>
                 <SelectItem value="programada">Programada</SelectItem>
+                <SelectItem value="entregada_parcial">Entregado parcial</SelectItem>
                 <SelectItem value="entregada">Entregada</SelectItem>
                 <SelectItem value="cancelada">Cancelada</SelectItem>
               </SelectContent>
@@ -2299,14 +2331,14 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
     const [{ data: lin }, { data: niv }, { data: pl }] = await Promise.all([
       (supabase as any)
         .from("entregas_corporativas_lineas")
-        .select("id, codigo_producto, nombre_producto, cantidad, entrega:entregas_corporativas(estatus)"),
+        .select("id, codigo_producto, nombre_producto, cantidad, cantidad_entregada, entrega:entregas_corporativas(estatus)"),
       (supabase as any).from("inv_niveles_inventario").select("codigo_producto, stock_total"),
       (supabase as any)
         .from("inv_pedido_lineas")
         .select("codigo_producto, cantidad_confirmada, cantidad_solicitada, cantidad_recibida, pedido:inv_pedidos!inner(numero_po_interno, numero_orden_proveedor, fecha_entrega_estimada, estatus)"),
     ]);
 
-    setLineas((lin ?? []).filter((l: any) => l.entrega?.estatus === "programada"));
+    setLineas((lin ?? []).filter((l: any) => ["programada", "entregada_parcial"].includes(l.entrega?.estatus)));
 
     const smap: Record<string, number> = {};
     ((niv ?? []) as any[]).forEach((n) => {
@@ -2342,7 +2374,7 @@ function ResumenPorProductoTab({ refreshKey }: { refreshKey: number }) {
       const codigo = l.codigo_producto ?? "";
       if (!agg[codigo]) agg[codigo] = { nombre: l.nombre_producto ?? "", demanda: 0 };
       if (!agg[codigo].nombre && l.nombre_producto) agg[codigo].nombre = l.nombre_producto;
-      agg[codigo].demanda += Number(l.cantidad ?? 0);
+      agg[codigo].demanda += cantidadPendiente(l);
     });
 
     const base: ResumenRow[] = Object.entries(agg).map(([codigo, v]) => {
