@@ -15,6 +15,8 @@ import { Loader2, Upload, FileCode2, Trash2, CheckCircle2, AlertTriangle } from 
 import { parseCfdiXml, type CfdiParsed } from "@/lib/xmlFacturaParser";
 import { mapEmisorAEmpresaVendedora, mapSerieAPlaza, normalizarTexto, palabrasSignificativas, RFC_GENERICOS } from "@/lib/xmlFacturaMatching";
 import { fetchAllRows } from "@/lib/supabasePagination";
+import { sugerirEjecutivoPorPlaza, type FuentesEjecutivo } from "@/lib/ejecutivoPorPlaza";
+import { RevisionPlazaEjecutivo } from "./importarXml/RevisionPlazaEjecutivo";
 import { FiltroChipsMulti } from "./rvs/components/FiltroChipsMulti";
 
 
@@ -74,7 +76,7 @@ export default function ImportarFacturasXML() {
 
 
   interface PerfilEmpresa {
-    ejecutivoDefault: string | null;
+    fuentes: FuentesEjecutivo;
     contactoDefault: string | null;
     tipoPagoDefault: string | null;
     contactos: { id: string; label: string }[];
@@ -88,25 +90,23 @@ export default function ImportarFacturasXML() {
       perfilCargando.current.add(empresaId);
       const [{ data: comp }, { data: ejec }, { data: cts }, { data: ultDoc }] = await Promise.all([
         (supabase as any).from("companies").select("primary_contact_id, tipo_pago").eq("id", empresaId).maybeSingle(),
-        (supabase as any).from("company_ejecutivos").select("user_id").eq("company_id", empresaId).limit(1),
+        (supabase as any).from("company_ejecutivos").select("user_id, plaza_id").eq("company_id", empresaId),
         // Todos los contactos de la empresa, sin importar quién los capturó
         (supabase as any).rpc("get_company_contacts_for_cobranza", { p_company_id: empresaId }),
-        // Prioridad: ejecutivo del pedido/cotización más reciente de la empresa
+        // Pedidos/cotizaciones recientes con su plaza (se filtra por la plaza de la factura)
         (supabase as any)
           .from("documentos")
-          .select("ejecutivo_venta_id")
+          .select("ejecutivo_venta_id, plaza_id")
           .eq("empresa_id", empresaId)
           .eq("is_active", true)
           .in("tipo_documento", ["pedido", "cotizacion"])
           .not("ejecutivo_venta_id", "is", null)
           .order("fecha_documento", { ascending: false })
           .order("created_at", { ascending: false })
-          .limit(1),
+          .limit(50),
       ]);
       const perfil: PerfilEmpresa = {
-        ejecutivoDefault:
-          (ultDoc && ultDoc.length ? ultDoc[0].ejecutivo_venta_id : null) ||
-          (ejec && ejec.length ? ejec[0].user_id : null),
+        fuentes: { asignados: ejec || [], ultimosDocs: ultDoc || [] },
         contactoDefault: comp?.primary_contact_id || null,
         tipoPagoDefault: comp?.tipo_pago || null,
         contactos: (cts || [])
@@ -464,8 +464,13 @@ export default function ImportarFacturasXML() {
     return id && id !== "__nuevo__" ? perfilPorEmpresa[id] : undefined;
   };
 
+  const ejecutivoSugerido = (perfil: PerfilEmpresa | undefined, plaza: string | null): string | null =>
+    perfil ? sugerirEjecutivoPorPlaza(perfil.fuentes, plaza) : null;
   const ejecutivoResuelto = (row: IntakeRow): string =>
-    ejecutivoManual[row.id] ?? perfilDe(row)?.ejecutivoDefault ?? "";
+    ejecutivoManual[row.id] ?? ejecutivoSugerido(perfilDe(row), plazaResuelta(row)) ?? "";
+  const plazaDeEjecutivo = (userId: string): string | null =>
+    (profilesActivos as any[]).find((p) => p.user_id === userId)?.plaza_id ?? null;
+  const nombrePlaza = (id: string) => (plazas as any[]).find((p) => p.id === id)?.nombre || "otra plaza";
   const contactoResuelto = (row: IntakeRow): string =>
     contactoManual[row.id] ?? perfilDe(row)?.contactoDefault ?? "";
   const tipoPagoResuelto = (row: IntakeRow): string =>
@@ -664,7 +669,9 @@ export default function ImportarFacturasXML() {
         await (supabase as any).from("companies").update({ primary_contact_id: contactoSel }).eq("id", empresaId);
       }
       if (ejecutivoSel) {
-        await (supabase as any).from("company_ejecutivos").insert({ company_id: empresaId, user_id: ejecutivoSel });
+        await (supabase as any)
+          .from("company_ejecutivos")
+          .insert({ company_id: empresaId, user_id: ejecutivoSel, plaza_id: plazaResuelta(row) });
       }
     } else {
       const perfil = perfilPorEmpresa[empresaId as string];
@@ -675,22 +682,29 @@ export default function ImportarFacturasXML() {
         const cambios: string[] = [];
         const cambioPago = tipoPagoSel && tipoPagoSel !== (perfil.tipoPagoDefault || "");
         const cambioContacto = contactoSel && contactoSel !== (perfil.contactoDefault || "");
-        const cambioEjecutivo = ejecutivoSel && ejecutivoSel !== (perfil.ejecutivoDefault || "");
+        const ejecutivoPrevio = ejecutivoSugerido(perfil, plazaResuelta(row)) || "";
+        const cambioEjecutivo = ejecutivoSel && ejecutivoSel !== ejecutivoPrevio;
         if (cambioPago)
           cambios.push(`Tipo de pago (de ${etiquetaPago(perfil.tipoPagoDefault || "")} a ${etiquetaPago(tipoPagoSel)})`);
         if (cambioContacto)
           cambios.push(`Contacto (de ${etiquetaContacto(perfil.contactoDefault || "")} a ${etiquetaContacto(contactoSel)})`);
         if (cambioEjecutivo)
           cambios.push(
-            `Ejecutivo de venta (de ${etiquetaUsuario(perfil.ejecutivoDefault || "")} a ${etiquetaUsuario(ejecutivoSel)})`
+            `Ejecutivo de venta en esta plaza (de ${etiquetaUsuario(ejecutivoPrevio)} a ${etiquetaUsuario(ejecutivoSel)})`
           );
         if (cambios.length && confirm(`¿También quieres actualizar en el perfil del cliente: ${cambios.join(", ")}?`)) {
           if (cambioPago) await (supabase as any).from("companies").update({ tipo_pago: tipoPagoSel }).eq("id", empresaId);
           if (cambioContacto)
             await (supabase as any).from("companies").update({ primary_contact_id: contactoSel }).eq("id", empresaId);
           if (cambioEjecutivo) {
-            await (supabase as any).from("company_ejecutivos").delete().eq("company_id", empresaId);
-            await (supabase as any).from("company_ejecutivos").insert({ company_id: empresaId, user_id: ejecutivoSel });
+            // Solo reemplaza al ejecutivo de ESTA plaza; los de otras plazas se conservan.
+            const plazaFact = plazaResuelta(row);
+            let del = (supabase as any).from("company_ejecutivos").delete().eq("company_id", empresaId);
+            del = plazaFact ? del.or(`plaza_id.eq.${plazaFact},user_id.eq.${ejecutivoSel}`) : del.eq("user_id", ejecutivoSel);
+            await del;
+            await (supabase as any)
+              .from("company_ejecutivos")
+              .insert({ company_id: empresaId, user_id: ejecutivoSel, plaza_id: plazaFact });
           }
           setPerfilPorEmpresa((prev) => ({
             ...prev,
@@ -698,7 +712,17 @@ export default function ImportarFacturasXML() {
               ...perfil,
               tipoPagoDefault: cambioPago ? tipoPagoSel : perfil.tipoPagoDefault,
               contactoDefault: cambioContacto ? contactoSel : perfil.contactoDefault,
-              ejecutivoDefault: cambioEjecutivo ? ejecutivoSel : perfil.ejecutivoDefault,
+              fuentes: cambioEjecutivo
+                ? {
+                    ...perfil.fuentes,
+                    asignados: [
+                      ...perfil.fuentes.asignados.filter(
+                        (a) => a.plaza_id !== plazaResuelta(row) && a.user_id !== ejecutivoSel
+                      ),
+                      { user_id: ejecutivoSel, plaza_id: plazaResuelta(row) },
+                    ],
+                  }
+                : perfil.fuentes,
             },
           }));
         }
@@ -998,6 +1022,24 @@ export default function ImportarFacturasXML() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {(() => {
+                        const ej = ejecutivoResuelto(row);
+                        const pf = plazaResuelta(row);
+                        const pe = ej ? plazaDeEjecutivo(ej) : null;
+                        if (!ej) {
+                          return pf ? (
+                            <p className="text-[11px] text-amber-600">Sin ejecutivo de esta plaza para el cliente — elígelo.</p>
+                          ) : null;
+                        }
+                        if (pf && pe && pf !== pe) {
+                          return (
+                            <p className="text-[11px] text-amber-600">
+                              Factura de {nombrePlaza(pf)} con ejecutivo de {nombrePlaza(pe)}.
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
 
                     <div className="space-y-1.5">
@@ -1151,6 +1193,8 @@ export default function ImportarFacturasXML() {
           </p>
         </div>
       </div>
+
+      <RevisionPlazaEjecutivo plazas={plazas as any[]} ejecutivos={profilesActivos as any[]} />
 
       {/* Dropzone */}
       <div

@@ -64,6 +64,13 @@
       "when": 1792443647964,
       "tag": "0008_backfill_giro_comercial",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792514909653,
+      "tag": "0009_company_ejecutivos_plaza",
+      "breakpoints": true
     }
   ]
 }
