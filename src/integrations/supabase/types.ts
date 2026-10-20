@@ -1684,18 +1684,21 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          plaza_id: string | null
           user_id: string
         }
         Insert: {
           company_id: string
           created_at?: string
           id?: string
+          plaza_id?: string | null
           user_id: string
         }
         Update: {
           company_id?: string
           created_at?: string
           id?: string
+          plaza_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1704,6 +1707,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_ejecutivos_plaza_id_fkey"
+            columns: ["plaza_id"]
+            isOneToOne: false
+            referencedRelation: "plazas"
             referencedColumns: ["id"]
           },
         ]
