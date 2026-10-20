@@ -690,7 +690,7 @@ export default function ImportarFacturasXML() {
           cambios.push(`Contacto (de ${etiquetaContacto(perfil.contactoDefault || "")} a ${etiquetaContacto(contactoSel)})`);
         if (cambioEjecutivo)
           cambios.push(
-            `Ejecutivo de venta (de ${etiquetaUsuario(perfil.ejecutivoDefault || "")} a ${etiquetaUsuario(ejecutivoSel)})`
+            `Ejecutivo de venta en esta plaza (de ${etiquetaUsuario(ejecutivoPrevio)} a ${etiquetaUsuario(ejecutivoSel)})`
           );
         if (cambios.length && confirm(`¿También quieres actualizar en el perfil del cliente: ${cambios.join(", ")}?`)) {
           if (cambioPago) await (supabase as any).from("companies").update({ tipo_pago: tipoPagoSel }).eq("id", empresaId);
@@ -712,7 +712,17 @@ export default function ImportarFacturasXML() {
               ...perfil,
               tipoPagoDefault: cambioPago ? tipoPagoSel : perfil.tipoPagoDefault,
               contactoDefault: cambioContacto ? contactoSel : perfil.contactoDefault,
-              ejecutivoDefault: cambioEjecutivo ? ejecutivoSel : perfil.ejecutivoDefault,
+              fuentes: cambioEjecutivo
+                ? {
+                    ...perfil.fuentes,
+                    asignados: [
+                      ...perfil.fuentes.asignados.filter(
+                        (a) => a.plaza_id !== plazaResuelta(row) && a.user_id !== ejecutivoSel
+                      ),
+                      { user_id: ejecutivoSel, plaza_id: plazaResuelta(row) },
+                    ],
+                  }
+                : perfil.fuentes,
             },
           }));
         }
@@ -1183,6 +1193,8 @@ export default function ImportarFacturasXML() {
           </p>
         </div>
       </div>
+
+      <RevisionPlazaEjecutivo plazas={plazas as any[]} ejecutivos={profilesActivos as any[]} />
 
       {/* Dropzone */}
       <div
