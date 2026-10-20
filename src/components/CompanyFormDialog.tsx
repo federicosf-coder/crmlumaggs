@@ -401,12 +401,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
       }
     }
     if ("ejecutivo_ids" in changes) {
-      await supabase.from("company_ejecutivos").delete().eq("company_id", editData!.id!);
-      if ((changes.ejecutivo_ids || []).length > 0) {
-        await supabase.from("company_ejecutivos").insert(
-          (changes.ejecutivo_ids as string[]).map((uid) => ({ company_id: editData!.id!, user_id: uid }))
-        );
-      }
+      await syncEjecutivosConPlaza(editData!.id!, (changes.ejecutivo_ids || []) as string[]);
     }
   });
 
@@ -691,12 +686,7 @@ export function CompanyFormDialog({ open, onOpenChange, onCreated, editData }: P
     }
 
     // Sync company_ejecutivos
-    await supabase.from("company_ejecutivos").delete().eq("company_id", companyId);
-    if (form.ejecutivo_ids.length > 0) {
-      await supabase.from("company_ejecutivos").insert(
-        form.ejecutivo_ids.map(uid => ({ company_id: companyId, user_id: uid }))
-      );
-    }
+    await syncEjecutivosConPlaza(companyId, form.ejecutivo_ids);
 
     // Vincular contactos pendientes (sólo en modo creación)
     if (!isEdit && pendingContactIds.length > 0) {
