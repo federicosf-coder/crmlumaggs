@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Upload, Trash2, Mail, FileText } from "lucide-react";
+import { Plus, Upload, Trash2, Mail, FileText, Pencil } from "lucide-react";
 import { useReclamos } from "@/hooks/usePedidosInventario";
 
 const ESTATUS_FLOW = ["borrador", "enviado", "investigacion", "aceptado", "rechazado", "en_aclaracion", "nc_emitida"];
