@@ -864,7 +864,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     doc.open();
     doc.write(formatoHtml);
     doc.close();
-    Promise.all(
+    const imagenesListas = Promise.all(
       Array.from(doc.images).map((img) =>
         img.complete
           ? Promise.resolve()
@@ -873,11 +873,15 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
               img.addEventListener("error", () => res());
             })
       )
-    ).then(() => setTimeout(() => {
+    );
+    Promise.race([
+      imagenesListas,
+      new Promise<void>((res) => setTimeout(res, 5000)),
+    ]).then(() => {
       frame.contentWindow?.focus();
       frame.contentWindow?.print();
       setTimeout(() => frame.remove(), 1000);
-    }, 5000));
+    });
   };
 
   const descargarHtml = () => {
