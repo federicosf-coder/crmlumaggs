@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Plus, Upload, Trash2, Mail, FileText } from "lucide-react";
+import { Plus, Upload, Trash2, Mail, FileText, Pencil } from "lucide-react";
 import { useReclamos } from "@/hooks/usePedidosInventario";
 
 const ESTATUS_FLOW = ["borrador", "enviado", "investigacion", "aceptado", "rechazado", "en_aclaracion", "nc_emitida"];
@@ -597,6 +597,9 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
   const [enviando, setEnviando] = useState(false);
   const [idReclamo, setIdReclamo] = useState("");
   const [guardandoId, setGuardandoId] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [guardandoEd, setGuardandoEd] = useState(false);
+  const [ed, setEd] = useState({ cliente_nombre: "", no_pedido_factura: "", fecha_reclamo: "", fecha_recepcion: "", descripcion: "" });
 
   useEffect(() => {
     if (!id) return;
@@ -663,6 +666,35 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     if (error) { toast.error(error.message); return; }
     toast.success(v ? "ID de reclamo guardado" : "ID de reclamo eliminado");
     setData({ ...data, reclamo: { ...r, ...update } });
+    qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
+  };
+
+  const iniciarEdicion = () => {
+    setEd({
+      cliente_nombre: r?.cliente_nombre || "",
+      no_pedido_factura: r?.no_pedido_factura || "",
+      fecha_reclamo: (r?.fecha_reclamo || "").slice(0, 10),
+      fecha_recepcion: (r?.fecha_recepcion || "").slice(0, 10),
+      descripcion: r?.descripcion || "",
+    });
+    setEditando(true);
+  };
+
+  const guardarEdicion = async () => {
+    setGuardandoEd(true);
+    const update: any = {
+      cliente_nombre: ed.cliente_nombre.trim() || null,
+      no_pedido_factura: ed.no_pedido_factura.trim() || null,
+      fecha_reclamo: ed.fecha_reclamo || null,
+      fecha_recepcion: ed.fecha_recepcion || null,
+      descripcion: ed.descripcion.trim() || null,
+    };
+    const { error } = await (supabase as any).from("inv_reclamos").update(update).eq("id", id);
+    setGuardandoEd(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Reclamo actualizado");
+    setData({ ...data, reclamo: { ...r, ...update } });
+    setEditando(false);
     qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
   };
 
@@ -765,6 +797,27 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
         </SheetHeader>
         {r && (
           <div className="space-y-5 mt-4">
+            <div className="flex justify-end -mb-3">
+              {!editando ? (
+                <Button size="sm" variant="outline" onClick={iniciarEdicion}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />Editar reclamo
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setEditando(false)}>Cancelar</Button>
+                  <Button size="sm" onClick={guardarEdicion} disabled={guardandoEd}>{guardandoEd ? "Guardando..." : "Guardar cambios"}</Button>
+                </div>
+              )}
+            </div>
+            {editando ? (
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><Label className={labelCls}>Cliente</Label><Input value={ed.cliente_nombre} onChange={(e) => setEd({ ...ed, cliente_nombre: e.target.value })} /></div>
+                <div><Label className={labelCls}>No. Pedido en Factura</Label><Input value={ed.no_pedido_factura} onChange={(e) => setEd({ ...ed, no_pedido_factura: e.target.value })} /></div>
+                <div><Label className={labelCls}>Fecha de reclamo</Label><Input type="date" value={ed.fecha_reclamo} onChange={(e) => setEd({ ...ed, fecha_reclamo: e.target.value })} /></div>
+                <div><Label className={labelCls}>Fecha de recepción</Label><Input type="date" value={ed.fecha_recepcion} onChange={(e) => setEd({ ...ed, fecha_recepcion: e.target.value })} /></div>
+                <div className="col-span-2"><Label className={labelCls}>Descripción</Label><Textarea value={ed.descripcion} onChange={(e) => setEd({ ...ed, descripcion: e.target.value })} /></div>
+              </div>
+            ) : (
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><div className={labelCls}>Cliente</div><div>{r.cliente_nombre || "LUMAGGS"}</div></div>
               <div><div className={labelCls}>Pedido</div><div className="font-mono text-xs">{r.inv_pedidos?.numero_po_interno || "—"}</div></div>
@@ -781,6 +834,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
               </div>
               {r.descripcion && <div className="col-span-2"><div className={labelCls}>Descripción</div><div className="text-sm">{r.descripcion}</div></div>}
             </div>
+            )}
 
             <div className="rounded-lg border bg-gradient-to-r from-violet-50/60 to-blue-50/60 p-3">
               <div className="flex items-center justify-between gap-2 mb-2">
