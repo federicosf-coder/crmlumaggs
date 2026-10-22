@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ReclamoCorreoDialog } from "@/components/inventario/ReclamoCorreoDialog";
 import { toast } from "sonner";
 import { Plus, Upload, Trash2, Mail, FileText, Pencil } from "lucide-react";
 import { useReclamos } from "@/hooks/usePedidosInventario";
@@ -26,9 +26,6 @@ const ESTATUS_LABEL: Record<string, string> = {
   investigacion: "Investigación", nc_emitida: "NC Emitida",
 };
 
-const RECLAMOS_FROM = "Lumaggs Reclamos <reclamos@correo.lumaggs.com.mx>";
-const RECLAMOS_FROM_EMAIL = "reclamos@correo.lumaggs.com.mx";
-const PROVEEDOR_EMAIL = "cvxordensmexico@chevron.com";
 
 function fmtFecha(d?: string | null) {
   if (!d) return "—";
@@ -204,7 +201,7 @@ export default function PedidosReclamos() {
         <CardContent className="p-0 max-h-[calc(100vh-14rem)] overflow-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-gradient-to-r from-violet-50 to-blue-50 backdrop-blur">
-              <TableRow>{["Pedido", "Factura", "Cliente", "No. Pedido Factura", "ID Reclamo", "Fecha Reclamo", "SKUs", "Estatus", "Enviado"].map((h, idx) =>
+              <TableRow>{["Pedido", "Factura", "Plaza", "Cliente", "No. Pedido Factura", "ID Reclamo", "Fecha Reclamo", "SKUs", "Estatus", "Enviado"].map((h, idx) =>
                 <TableHead key={h} className={`uppercase tracking-wide text-xs font-medium ${idx === 0 ? "sticky left-0 z-30 bg-background" : ""}`}>{h}</TableHead>)}</TableRow>
             </TableHeader>
             <TableBody>
@@ -212,6 +209,7 @@ export default function PedidosReclamos() {
                 <TableRow key={r.id} className={`cursor-pointer ${i % 2 === 0 ? "" : "bg-muted/20"}`} onClick={() => setDetailId(r.id)}>
                   <TableCell className={`font-mono text-xs sticky left-0 z-10 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>{r.inv_pedidos?.numero_po_interno || "—"}</TableCell>
                   <TableCell className="text-xs">{r.chevron_facturas_recibidas?.folio ? `Folio ${r.chevron_facturas_recibidas.folio} · ${fmtFecha(r.chevron_facturas_recibidas.fecha)}` : "—"}</TableCell>
+                  <TableCell className="text-xs">{r.plaza || "—"}</TableCell>
                   <TableCell className="text-xs font-medium">{r.cliente_nombre || "LUMAGGS"}</TableCell>
                   <TableCell className="font-mono text-xs">{r.no_pedido_factura || "—"}</TableCell>
                   <TableCell><IdReclamoCell reclamo={r} /></TableCell>
@@ -235,7 +233,7 @@ export default function PedidosReclamos() {
                 </TableRow>
               ))}
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sin reclamos</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Sin reclamos</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -258,6 +256,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
   const [facturas, setFacturas] = useState<any[]>([]);
   const [facturaSel, setFacturaSel] = useState<string>("");
   const [noPedidoFactura, setNoPedidoFactura] = useState("");
+  const [plaza, setPlaza] = useState("");
   const [fechaReclamo, setFechaReclamo] = useState(hoyISO());
   const [fechaRecepcion, setFechaRecepcion] = useState(hoyISO());
   const [remitenteNombre, setRemitenteNombre] = useState("");
@@ -337,6 +336,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
 
   const onSave = async () => {
     if (!pedidoSel) { toast.error("Selecciona el pedido"); return; }
+    if (!["Tijuana", "Mexicali"].includes(plaza)) { toast.error("Selecciona la plaza"); return; }
     if (!lineas.length) { toast.error("Agrega al menos un producto a reclamar"); return; }
     if (lineas.some((l) => !l.diferencia || Number(l.diferencia) === 0)) { toast.error("La diferencia es obligatoria en cada producto"); return; }
     if (!remitenteNombre || !remitenteEmail) { toast.error("Captura nombre y correo de quien envía"); return; }
@@ -348,6 +348,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
         empresa_vendedora: pedidoData?.empresa_vendedora || "lumaggs",
         tipo_reclamo: lineas[0]?.tipo_aviso === "Dañado" ? "dañado" : lineas[0]?.tipo_aviso === "Faltante" ? "faltante" : "otro",
         cliente_nombre: "LUMAGGS",
+        plaza,
         no_pedido_factura: noPedidoFactura || null,
         factura_recibida_id: facturaSel || null,
         fecha_reclamo: fechaReclamo,
@@ -394,7 +395,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
       toast.success("Reclamo creado");
       qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
       onOpenChange(false);
-      setLineas([]); setArchivos([]); setDescripcion(""); setFacturaSel(""); setPedidoSel("");
+      setLineas([]); setArchivos([]); setDescripcion(""); setFacturaSel(""); setPedidoSel(""); setPlaza("");
     } catch (e: any) { toast.error(e?.message); }
     finally { setSaving(false); }
   };
@@ -422,6 +423,10 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label className={labelCls}>Plaza *</Label>
+              <Select value={plaza} onValueChange={setPlaza}><SelectTrigger aria-label="Plaza"><SelectValue placeholder="Selecciona plaza" /></SelectTrigger><SelectContent><SelectItem value="Tijuana">Tijuana</SelectItem><SelectItem value="Mexicali">Mexicali</SelectItem></SelectContent></Select>
             </div>
             <div>
               <Label className={labelCls}>Nombre de cliente</Label>
@@ -605,22 +610,24 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
   const [resolucion, setResolucion] = useState("");
   const [notas, setNotas] = useState<any[]>([]);
   const [notaCreditoId, setNotaCreditoId] = useState("");
-  const [enviando, setEnviando] = useState(false);
+  const [correoOpen, setCorreoOpen] = useState(false);
+  const [correosAbiertos, setCorreosAbiertos] = useState<string[]>([]);
   const [idReclamo, setIdReclamo] = useState("");
   const [guardandoId, setGuardandoId] = useState(false);
   const [editando, setEditando] = useState(false);
   const [guardandoEd, setGuardandoEd] = useState(false);
-  const [ed, setEd] = useState({ cliente_nombre: "", no_pedido_factura: "", fecha_reclamo: "", fecha_recepcion: "", descripcion: "" });
+  const [ed, setEd] = useState({ plaza: "", cliente_nombre: "", no_pedido_factura: "", fecha_reclamo: "", fecha_recepcion: "", descripcion: "" });
 
   useEffect(() => {
     if (!id) return;
+    setData(null); setEditando(false); setCorreoOpen(false); setCorreosAbiertos([]);
     (async () => {
       const { data: rec } = await (supabase as any).from("inv_reclamos")
         .select("*, inv_pedidos(numero_po_interno), chevron_facturas_recibidas!inv_reclamos_factura_recibida_id_fkey(folio, fecha, total)")
         .eq("id", id).single();
       const { data: lin } = await (supabase as any).from("inv_reclamo_lineas").select("*").eq("reclamo_id", id);
       const { data: arc } = await (supabase as any).from("inv_reclamo_archivos").select("*").eq("reclamo_id", id);
-      const { data: seg } = await (supabase as any).from("inv_reclamo_seguimiento").select("*").eq("reclamo_id", id).order("created_at", { ascending: false });
+      const { data: seg } = await (supabase as any).from("inv_reclamo_seguimiento").select("*").eq("reclamo_id", id).order("created_at", { ascending: true });
       const { data: ncs } = await (supabase as any).from("chevron_facturas_recibidas")
         .select("id, folio, fecha, total").eq("tipo_comprobante", "E").order("folio", { ascending: false });
       setData({ reclamo: rec, lineas: lin || [], archivos: arc || [], notas: ncs || [] });
@@ -636,7 +643,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
   useEffect(() => {
     if (!editando || !data?.reclamo?.pedido_id) return;
     (supabase as any).from("inv_pedido_lineas").select("codigo_producto, nombre_producto, presentacion, cantidad_solicitada")
-      .eq("pedido_id", r.pedido_id).order("codigo_producto").then(({ data: d }: any) => setPedLineas(d || []));
+      .eq("pedido_id", data.reclamo.pedido_id).order("codigo_producto").then(({ data: d }: any) => setPedLineas(d || []));
   }, [editando, data?.reclamo?.pedido_id]);
 
   if (!id) return null;
@@ -690,6 +697,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
 
   const iniciarEdicion = () => {
     setEd({
+      plaza: r?.plaza || "",
       cliente_nombre: r?.cliente_nombre || "",
       no_pedido_factura: r?.no_pedido_factura || "",
       fecha_reclamo: (r?.fecha_reclamo || "").slice(0, 10),
@@ -700,8 +708,10 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
   };
 
   const guardarEdicion = async () => {
+    if (!["Tijuana", "Mexicali"].includes(ed.plaza)) { toast.error("Selecciona la plaza"); return; }
     setGuardandoEd(true);
     const update: any = {
+      plaza: ed.plaza,
       cliente_nombre: ed.cliente_nombre.trim() || null,
       no_pedido_factura: ed.no_pedido_factura.trim() || null,
       fecha_reclamo: ed.fecha_reclamo || null,
@@ -794,6 +804,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
           <tr><td style="padding:4px 12px 4px 0;color:#888">No. Pedido (PO interno)</td><td><b>${esc(r.inv_pedidos?.numero_po_interno)}</b></td></tr>
           <tr><td style="padding:4px 12px 4px 0;color:#888">No. Pedido en Factura</td><td><b>${esc(r.no_pedido_factura)}</b></td></tr>
           <tr><td style="padding:4px 12px 4px 0;color:#888">Factura</td><td>${r.chevron_facturas_recibidas?.folio ? `Folio ${esc(r.chevron_facturas_recibidas.folio)} · ${esc(fmtFecha(r.chevron_facturas_recibidas.fecha))}` : "—"}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#888">Plaza</td><td>${esc(r.plaza || "—")}</td></tr>
           <tr><td style="padding:4px 12px 4px 0;color:#888">Fecha de reclamo</td><td>${fmtFecha(r.fecha_reclamo)}</td></tr>
           <tr><td style="padding:4px 12px 4px 0;color:#888">Fecha de recepción del pedido</td><td>${fmtFecha(r.fecha_recepcion)}</td></tr>
         </table>
@@ -814,53 +825,29 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
           <tbody>${filas}</tbody>
         </table>
         <p style="font-size:12px;color:#555;margin-top:14px"><b>Respaldo adjunto en el portal:</b><br/>${archivosTxt}</p>
+        <p style="font-size:12px">Referencia: ${esc(r.token_correo)}</p>
       </div>`;
   };
 
-  const enviarAlProveedor = async () => {
-    setEnviando(true);
-    const asunto = `Aviso de Reclamo PROBID · ${r.no_pedido_factura || r.inv_pedidos?.numero_po_interno || ""} · ${fmtFecha(r.fecha_reclamo)}`;
-    const destinatarios = [PROVEEDOR_EMAIL];
-    const cc = [r.remitente_email].filter(Boolean);
-    let estatusEnvio = "enviado";
-    let errorMensaje: string | null = null;
-    try {
-      const { error: fnError } = await supabase.functions.invoke("send-email", {
-        body: { from: RECLAMOS_FROM, to: destinatarios, cc, subject: asunto, html: buildEmailHtml() },
-      });
-      if (fnError) throw new Error(typeof fnError === "string" ? fnError : fnError.message || "Error al enviar");
-    } catch (e: any) {
-      estatusEnvio = "error";
-      errorMensaje = e?.message || "Error desconocido";
-      toast.error(`No se pudo enviar el correo: ${errorMensaje}`);
-    }
-    await (supabase as any).from("inv_reclamo_seguimiento").insert({
-      reclamo_id: id, tipo: "envio", from_email: RECLAMOS_FROM_EMAIL,
-      destinatarios, cc, asunto, cuerpo: buildEmailHtml(),
-      estatus_envio: estatusEnvio, error_mensaje: errorMensaje, creado_por: (await supabase.auth.getUser()).data.user?.id ?? null,
-    });
-    if (estatusEnvio === "enviado") {
-      const update: any = { estatus: "enviado", fecha_envio: new Date().toISOString() };
-      await (supabase as any).from("inv_reclamos").update(update).eq("id", id);
-      setData({ ...data, reclamo: { ...r, ...update } });
-      toast.success("Correo enviado al proveedor");
-      qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
-    }
-    const { data: seg } = await (supabase as any).from("inv_reclamo_seguimiento").select("*").eq("reclamo_id", id).order("created_at", { ascending: false });
+  const recargarCorreos = async () => {
+    const { data: seg, error } = await (supabase as any).from("inv_reclamo_seguimiento").select("*").eq("reclamo_id", id).order("created_at", { ascending: true });
+    if (error) { toast.error(error.message); return; }
     setNotas(seg || []);
-    setEnviando(false);
+    const { data: rec } = await (supabase as any).from("inv_reclamos").select("*, inv_pedidos(numero_po_interno), chevron_facturas_recibidas!inv_reclamos_factura_recibida_id_fkey(folio, fecha, total)").eq("id", id).single();
+    if (rec) setData((previous: any) => ({ ...previous, reclamo: rec }));
+    await qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
   };
 
   const labelCls = "text-[10px] uppercase tracking-wide text-muted-foreground";
 
   return (
-    <Sheet open={!!id} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader className="bg-gradient-to-r from-violet-50 to-blue-50 -mx-6 -mt-6 p-6">
-          <SheetTitle className="font-light">Aviso de Reclamo</SheetTitle>
-        </SheetHeader>
+    <Dialog open={!!id} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-h-[92vh] max-w-5xl flex flex-col overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-violet-50 to-blue-50 px-5 py-4 dark:from-violet-950/30 dark:to-blue-950/30">
+          <DialogTitle className="text-lg font-semibold">Aviso de Reclamo</DialogTitle>
+        </DialogHeader>
         {r && (
-          <div className="space-y-5 mt-4">
+          <div className="flex-1 min-h-0 space-y-5 overflow-y-auto px-5 py-5 font-light">
             <div className="flex justify-end -mb-3">
               {!editando ? (
                 <Button size="sm" variant="outline" onClick={iniciarEdicion}>
@@ -875,6 +862,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
             </div>
             {editando ? (
               <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><Label className={labelCls}>Plaza *</Label><Select value={ed.plaza} onValueChange={(plaza) => setEd({ ...ed, plaza })}><SelectTrigger aria-label="Plaza del reclamo"><SelectValue placeholder="Selecciona plaza" /></SelectTrigger><SelectContent><SelectItem value="Tijuana">Tijuana</SelectItem><SelectItem value="Mexicali">Mexicali</SelectItem></SelectContent></Select></div>
                 <div><Label className={labelCls}>Cliente</Label><Input value={ed.cliente_nombre} onChange={(e) => setEd({ ...ed, cliente_nombre: e.target.value })} /></div>
                 <div><Label className={labelCls}>No. Pedido en Factura</Label><Input value={ed.no_pedido_factura} onChange={(e) => setEd({ ...ed, no_pedido_factura: e.target.value })} /></div>
                 <div><Label className={labelCls}>Fecha de reclamo</Label><Input type="date" value={ed.fecha_reclamo} onChange={(e) => setEd({ ...ed, fecha_reclamo: e.target.value })} /></div>
@@ -883,6 +871,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
               </div>
             ) : (
             <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><div className={labelCls}>Plaza</div><div>{r.plaza || "—"}</div></div>
               <div><div className={labelCls}>Cliente</div><div>{r.cliente_nombre || "LUMAGGS"}</div></div>
               <div><div className={labelCls}>Pedido</div><div className="font-mono text-xs">{r.inv_pedidos?.numero_po_interno || "—"}</div></div>
               <div><div className={labelCls}>No. Pedido en Factura</div><div className="font-mono text-xs">{r.no_pedido_factura || "—"}</div></div>
@@ -935,8 +924,8 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
 
 
             <div className="flex flex-wrap gap-2 items-center">
-              <Button size="sm" onClick={enviarAlProveedor} disabled={enviando}>
-                <Mail className="h-3.5 w-3.5 mr-1.5" />{enviando ? "Enviando..." : "Enviar al proveedor"}
+              <Button size="sm" onClick={() => setCorreoOpen(true)}>
+                <Mail className="h-3.5 w-3.5 mr-1.5" />Enviar al proveedor
               </Button>
               {ESTATUS_FLOW.filter((e) => e !== r.estatus && e !== "borrador").map((e) => (
                 <Button key={e} size="sm" variant="outline" onClick={() => cambiarEstatus(e)}>{ESTATUS_LABEL[e]}</Button>
@@ -1077,21 +1066,27 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
             </div>
 
             <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Seguimiento de correos (reclamos@correo.lumaggs.com.mx)</div>
-              <div className="space-y-2">
-                {notas.map((s: any) => (
-                  <div key={s.id} className="border rounded p-2 text-xs">
-                    <div className="flex justify-between gap-2">
-                      <span className="font-medium">{s.asunto}</span>
-                      <Badge variant="outline" className={s.estatus_envio === "enviado" ? "text-green-700" : "text-red-700"}>{s.estatus_envio}</Badge>
-                    </div>
-                    <div className="text-muted-foreground mt-0.5">
-                      {fmtFechaHora(s.created_at)} · Para: {(s.destinatarios || []).join(", ")}{s.cc?.length ? ` · CC: ${s.cc.join(", ")}` : ""}
-                    </div>
-                    {s.error_mensaje && <div className="text-red-600 mt-0.5">{s.error_mensaje}</div>}
-                  </div>
-                ))}
-                {!notas.length && <div className="text-xs text-muted-foreground">Sin envíos registrados</div>}
+              <div className="flex items-center gap-2 mb-2 text-xs uppercase text-muted-foreground">Seguimiento de correos <Badge variant="secondary">{notas.filter((s: any) => s.direccion === "entrante").length} entrantes</Badge></div>
+              <div className="space-y-3">
+                {notas.map((s: any) => {
+                  const entrante = s.direccion === "entrante";
+                  const expanded = correosAbiertos.includes(s.id);
+                  return <div key={s.id} className={`w-full sm:max-w-[85%] border rounded p-3 text-xs ${entrante ? "mr-auto bg-muted" : "ml-auto bg-secondary"}`}>
+                    <div className="flex flex-wrap justify-between gap-2"><span className="font-semibold break-all">{s.from_nombre ? `${s.from_nombre} · ` : ""}{s.from_email || "reclamos@correo.lumaggs.com.mx"}</span><Badge variant="outline">{s.estatus_envio}</Badge></div>
+                    <div className="mt-1 font-medium break-words">{s.asunto}</div>
+                    <div className="mt-1 text-muted-foreground break-words">{fmtFechaHora(s.created_at)}<br/>Para: {(s.destinatarios || []).join(", ") || "—"}{s.cc?.length ? <><br/>CC: {s.cc.join(", ")}</> : null}</div>
+                    {s.error_mensaje && <div className="mt-1 text-destructive break-words">{s.error_mensaje}</div>}
+                    {(Array.isArray(s.adjuntos) ? s.adjuntos : []).map((a: any, index: number) => <Button key={`${a.path}-${index}`} size="sm" variant="link" className="h-auto max-w-full justify-start px-0 text-xs" onClick={async () => {
+                      if (!a.path) return;
+                      const { data: signed, error } = await supabase.storage.from("inventario-reclamos").createSignedUrl(a.path, 3600, { download: a.nombre || true });
+                      if (error || !signed?.signedUrl) { toast.error("No se pudo descargar el adjunto"); return; }
+                      window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
+                    }}><FileText className="h-3 w-3 mr-1 shrink-0" /><span className="break-all whitespace-normal">{a.nombre}</span></Button>)}
+                    <div className="mt-2"><Button variant="outline" size="sm" onClick={() => setCorreosAbiertos((previous) => expanded ? previous.filter((key) => key !== s.id) : [...previous, s.id])}>{expanded ? "Ocultar correo" : "Ver correo"}</Button></div>
+                    {expanded && (s.cuerpo ? <iframe title={`Correo ${s.asunto || s.id}`} sandbox="" referrerPolicy="no-referrer" srcDoc={s.cuerpo} className="mt-2 w-full h-[320px] rounded border bg-background" /> : <div className="mt-2 whitespace-pre-wrap break-words">{s.cuerpo_texto || "Sin cuerpo de correo"}</div>)}
+                  </div>;
+                })}
+                {!notas.length && <div className="text-xs text-muted-foreground">Sin correos registrados</div>}
               </div>
             </div>
 
@@ -1102,8 +1097,10 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
             </div>
           </div>
         )}
-      </SheetContent>
-    </Sheet>
+        <DialogFooter className="shrink-0 border-t bg-muted/30 px-5 py-3"><Button variant="outline" onClick={onClose}>Cerrar</Button></DialogFooter>
+      </DialogContent>
+      {r && <ReclamoCorreoDialog open={correoOpen} onOpenChange={setCorreoOpen} reclamo={r} lineas={data?.lineas || []} archivos={data?.archivos || []} html={buildEmailHtml()} onSent={recargarCorreos} />}
+    </Dialog>
   );
 }
 
