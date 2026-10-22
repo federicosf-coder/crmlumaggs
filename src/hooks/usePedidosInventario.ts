@@ -66,7 +66,7 @@ export function useReclamos() {
     queryKey: ["inv_reclamos"],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("inv_reclamos")
-        .select("*, inv_pedidos(numero_po_interno, empresa_vendedora), chevron_facturas_recibidas!inv_reclamos_factura_recibida_id_fkey(folio, fecha), inv_reclamo_lineas(id, codigo_producto, diferencia)")
+        .select("*, inv_pedidos(numero_po_interno, empresa_vendedora), chevron_facturas_recibidas!inv_reclamos_factura_recibida_id_fkey(folio, fecha), inv_reclamo_lineas(id, codigo_producto, empaque, diferencia)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];

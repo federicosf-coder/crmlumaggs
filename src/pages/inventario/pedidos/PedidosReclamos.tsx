@@ -221,7 +221,7 @@ export default function PedidosReclamos() {
                       <div className="border rounded bg-muted/30 px-2 py-1 text-[11px] font-mono space-y-0.5 min-w-[140px]">
                         {(r.inv_reclamo_lineas || []).map((l: any) => (
                           <div key={l.id} className="flex justify-between gap-3">
-                            <span>{l.codigo_producto || "—"}</span>
+                            <span>{l.codigo_producto || "—"}{l.empaque ? <span className="text-muted-foreground font-sans"> · {l.empaque}</span> : null}</span>
                             <span className="font-semibold">{Number(l.diferencia ?? 0)}</span>
                           </div>
                         ))}
