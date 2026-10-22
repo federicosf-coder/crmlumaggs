@@ -1,0 +1,2 @@
+ALTER TABLE public.inv_reclamos DROP CONSTRAINT inv_reclamos_estatus_check;
+ALTER TABLE public.inv_reclamos ADD CONSTRAINT inv_reclamos_estatus_check CHECK (estatus = ANY (ARRAY['borrador','enviado','aceptado','rechazado','en_aclaracion','abierto','enviado_proveedor','en_revision','resuelto','cerrado','investigacion','nc_emitida']));
