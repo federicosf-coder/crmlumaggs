@@ -1071,7 +1071,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                 {notas.map((s: any) => {
                   const entrante = s.direccion === "entrante";
                   const expanded = correosAbiertos.includes(s.id);
-                  return <div key={s.id} className={`w-full sm:max-w-[85%] border rounded p-3 text-xs ${entrante ? "mr-auto bg-muted" : "ml-auto bg-secondary"}`}>
+                  return <div key={s.id} className={`w-full sm:max-w-[85%] border rounded p-3 text-xs ${entrante ? "mr-auto bg-muted" : "ml-auto bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30"}`}>
                     <div className="flex flex-wrap justify-between gap-2"><span className="font-semibold break-all">{s.from_nombre ? `${s.from_nombre} · ` : ""}{s.from_email || "reclamos@correo.lumaggs.com.mx"}</span><Badge variant="outline">{s.estatus_envio}</Badge></div>
                     <div className="mt-1 font-medium break-words">{s.asunto}</div>
                     <div className="mt-1 text-muted-foreground break-words">{fmtFechaHora(s.created_at)}<br/>Para: {(s.destinatarios || []).join(", ") || "—"}{s.cc?.length ? <><br/>CC: {s.cc.join(", ")}</> : null}</div>
