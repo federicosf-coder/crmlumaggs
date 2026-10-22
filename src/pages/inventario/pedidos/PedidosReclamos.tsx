@@ -856,12 +856,28 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
   };
 
   const imprimirFormato = () => {
-    const win = window.open("", "_blank", "noopener,noreferrer");
-    if (!win) { toast.error("Permite las ventanas emergentes para descargar el PDF"); return; }
-    win.document.write(formatoHtml);
-    win.document.close();
-    win.focus();
-    win.print();
+    const frame = document.createElement("iframe");
+    frame.setAttribute("style", "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;");
+    document.body.appendChild(frame);
+    const doc = frame.contentWindow?.document;
+    if (!doc) { frame.remove(); return; }
+    doc.open();
+    doc.write(formatoHtml);
+    doc.close();
+    Promise.all(
+      Array.from(doc.images).map((img) =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise<void>((res) => {
+              img.addEventListener("load", () => res());
+              img.addEventListener("error", () => res());
+            })
+      )
+    ).then(() => setTimeout(() => {
+      frame.contentWindow?.focus();
+      frame.contentWindow?.print();
+      setTimeout(() => frame.remove(), 1000);
+    }, 5000));
   };
 
   const descargarHtml = () => {
@@ -1163,7 +1179,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
             <DialogFooter className="shrink-0 border-t bg-muted/30 px-5 py-3 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="outline" onClick={() => setFormatoOpen(false)}>Cerrar</Button>
               <Button variant="outline" onClick={descargarHtml}>Descargar HTML</Button>
-              <Button onClick={imprimirFormato}>Descargar PDF</Button>
+              <Button onClick={imprimirFormato} disabled={!formatoHtml}>Descargar PDF</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
