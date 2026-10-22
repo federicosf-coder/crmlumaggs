@@ -3,3 +3,4 @@
 - The client credit wizard shares the portal draft and existing update_form contract; advance only after a confirmed save to preserve partial entries and avoid parallel data sources.
 - Corporate delivery quantities and status are saved atomically through a security-invoker RPC; pending demand uses ordered minus delivered quantities, and notification never closes a partially delivered order.
 - Invoice executive attribution is per plaza: suggest via sugerirEjecutivoPorPlaza (company_ejecutivos.plaza_id, then latest pedido/cotización in the same plaza), never cross-plaza — keeps units per executive when one razón social buys in several plazas.
+- Reclamo email composition belongs to ReclamoCorreoDialog; inbound mail is signature-verified and matched by the claim token in reclamos-inbound-webhook — isolates mail handling from purchase-order intake and preserves one chronological claim thread.

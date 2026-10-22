@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
   try {
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     const resendKey = Deno.env.get('RESEND_API_KEY');
-    const signingSecret = Deno.env.get('RESEND_WEBHOOK_SECRET');
+    const signingSecret = Deno.env.get('RESEND_WEBHOOK_SECRET_RECLAMOS') || Deno.env.get('RESEND_WEBHOOK_SECRET');
     const url = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!apiKey || !resendKey || !signingSecret || !url || !serviceKey) return json({ error: 'configuracion_incompleta' }, 500);
@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
     const event = parsed.data;
     if (event.type !== 'email.received') return json({ ok: true, ignorado: 'tipo_evento' });
     const data: any = event.data || {};
+    if (extraerEmail(data.from).endsWith('@correo.lumaggs.com.mx')) return json({ ok: true, ignorado: 'remitente_interno' });
     const emailId = data.email_id || data.id;
     if (typeof emailId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(emailId)) return json({ error: 'email_id_invalido' }, 400);
     const gatewayHeaders = { Authorization: `Bearer ${apiKey}`, 'X-Connection-Api-Key': resendKey };

@@ -23,9 +23,12 @@ interface Props {
 }
 
 const BUZON = "reclamos@correo.lumaggs.com.mx";
-const MAX_BYTES = 35 * 1024 * 1024;
+export const MAX_RECLAMO_ATTACHMENT_BYTES = 35 * 1024 * 1024;
+const MAX_BYTES = MAX_RECLAMO_ATTACHMENT_BYTES;
 const validEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-const uniqueEmails = (emails: string[]) => Array.from(new Set(emails.map((e) => e.trim().toLowerCase()).filter(validEmail)));
+export const uniqueEmails = (emails: string[]) => Array.from(new Set(emails.map((e) => e.trim().toLowerCase()).filter(validEmail)));
+export const reclamoSubject = (subject: string, token: string) => subject.toUpperCase().includes(token.toUpperCase()) ? subject.trim() : `${subject.trim()} [${token}]`;
+export const attachmentsExceedLimit = (bytes: number) => bytes > MAX_BYTES;
 const escapeHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const fileKey = (file: any) => String(file.id || file.url_archivo);
 
@@ -117,8 +120,8 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
     if (!subject.trim() || !finalHtml.trim()) { toast.error("El asunto y el cuerpo son obligatorios"); return; }
     const token = String(reclamo.token_correo || "").trim();
     if (!/^REC-[A-F0-9]{6}$/i.test(token)) { toast.error("Este reclamo no tiene una referencia de correo válida"); return; }
-    if (totalBytes > MAX_BYTES) { toast.error("Los adjuntos superan 35 MB"); return; }
-    const finalSubject = subject.toUpperCase().includes(token.toUpperCase()) ? subject.trim() : `${subject.trim()} [${token}]`;
+    if (attachmentsExceedLimit(totalBytes)) { toast.error("Los adjuntos superan 35 MB"); return; }
+    const finalSubject = reclamoSubject(subject, token);
     setSubject(finalSubject); setSending(true);
     let deliveryStarted = false;
     let deliveryId: string | null = null;
@@ -135,7 +138,7 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
         const { data: blob, error } = await supabase.storage.from("inventario-reclamos").download(file.url_archivo);
         if (error || !blob) throw new Error(`No se pudo descargar ${file.nombre_archivo}`);
         actualBytes += blob.size;
-        if (actualBytes > MAX_BYTES) throw new Error("Los adjuntos superan 35 MB");
+        if (attachmentsExceedLimit(actualBytes)) throw new Error("Los adjuntos superan 35 MB");
         const content = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onerror = () => reject(new Error("No se pudo leer el adjunto"));
@@ -203,10 +206,10 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
             <span className="min-w-0 flex-1 break-all">{file.nombre_archivo}</span><span className="shrink-0 text-xs text-muted-foreground">{((sizes[fileKey(file)] || 0) / 1024 / 1024).toFixed(2)} MB</span>
           </label>)}
           {!archivos.length && <p className="text-sm text-muted-foreground">Sin adjuntos</p>}
-          <p role={totalBytes > MAX_BYTES ? "alert" : undefined} className={`text-sm ${totalBytes > MAX_BYTES ? "text-destructive" : "text-muted-foreground"}`}>Total: {(totalBytes / 1024 / 1024).toFixed(2)} MB / 35 MB</p>
+          <p role={attachmentsExceedLimit(totalBytes) ? "alert" : undefined} className={`text-sm ${attachmentsExceedLimit(totalBytes) ? "text-destructive" : "text-muted-foreground"}`}>Total: {(totalBytes / 1024 / 1024).toFixed(2)} MB / 35 MB</p>
         </div>
       </div>
-      <DialogFooter className="shrink-0 border-t bg-muted/30 px-5 py-3"><Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>Cerrar</Button><Button onClick={send} disabled={loading || sending || sent || !!loadError || !to.length || totalBytes > MAX_BYTES}><Mail className="h-4 w-4 mr-2" />{sending ? "Enviando…" : sent ? "Enviado" : "Enviar"}</Button></DialogFooter>
+      <DialogFooter className="shrink-0 border-t bg-muted/30 px-5 py-3"><Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>Cerrar</Button><Button onClick={send} disabled={loading || sending || sent || !!loadError || !to.length || attachmentsExceedLimit(totalBytes)}><Mail className="h-4 w-4 mr-2" />{sending ? "Enviando…" : sent ? "Enviado" : "Enviar"}</Button></DialogFooter>
     </DialogContent>
   </Dialog>;
 }

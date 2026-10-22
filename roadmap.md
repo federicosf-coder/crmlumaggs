@@ -11,3 +11,8 @@
 - [x] Facilitar registro directo de entregado y entrega parcial, conservando evidencia y ubicación.
 - [x] Verificar presentación con datos de ejemplo y ejecutar cinco pruebas de captura y pendientes.
 - [ ] Verificar guardado real con sesión del usuario; bloqueado hasta que inicie sesión en la vista previa.
+
+## Reclamos de pedidos
+- [x] Añadir plaza, ficha centrada, correo editable con adjuntos e hilo cronológico.
+- [x] Desplegar envío y recepción de correos sin migraciones ni cambios al alta o recepción de pedidos.
+- [ ] Verificar envío y respuesta reales; requiere sesión del usuario y conexión del nuevo receptor en Resend.
