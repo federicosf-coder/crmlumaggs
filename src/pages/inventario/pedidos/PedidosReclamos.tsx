@@ -600,7 +600,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     if (!id) return;
     (async () => {
       const { data: rec } = await (supabase as any).from("inv_reclamos")
-        .select("*, inv_pedidos(numero_po_interno), chevron_facturas_recibidas(folio, fecha, total)")
+        .select("*, inv_pedidos(numero_po_interno), chevron_facturas_recibidas!inv_reclamos_factura_recibida_id_fkey(folio, fecha, total)")
         .eq("id", id).single();
       const { data: lin } = await (supabase as any).from("inv_reclamo_lineas").select("*").eq("reclamo_id", id);
       const { data: arc } = await (supabase as any).from("inv_reclamo_archivos").select("*").eq("reclamo_id", id);
