@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { to, cc, subject, html, text, from, attachments } = await req.json();
+    const { to, cc, subject, html, text, from, attachments, reply_to, headers } = await req.json();
 
     if (!to || !subject || (!html && !text)) {
       return new Response(JSON.stringify({ error: "Faltan campos requeridos: to, subject, html o text" }), {
@@ -35,6 +35,8 @@ serve(async (req) => {
       subject,
     };
     if (cc) body.cc = Array.isArray(cc) ? cc : [cc];
+    if (reply_to) body.reply_to = reply_to;
+    if (headers) body.headers = headers;
     if (html) body.html = html;
     if (text) body.text = text;
     if (Array.isArray(attachments) && attachments.length > 0) {

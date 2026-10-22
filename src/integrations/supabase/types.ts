@@ -7334,48 +7334,72 @@ export type Database = {
       }
       inv_reclamo_seguimiento: {
         Row: {
+          adjuntos: Json
           asunto: string | null
           cc: string[] | null
           creado_por: string | null
           created_at: string
           cuerpo: string | null
+          cuerpo_texto: string | null
           destinatarios: string[] | null
+          direccion: string
           error_mensaje: string | null
           estatus_envio: string
           from_email: string | null
+          from_nombre: string | null
           id: string
+          in_reply_to: string | null
+          message_id: string | null
           nota: string | null
           reclamo_id: string
+          reply_to: string[] | null
+          resend_email_id: string | null
           tipo: string
         }
         Insert: {
+          adjuntos?: Json
           asunto?: string | null
           cc?: string[] | null
           creado_por?: string | null
           created_at?: string
           cuerpo?: string | null
+          cuerpo_texto?: string | null
           destinatarios?: string[] | null
+          direccion?: string
           error_mensaje?: string | null
           estatus_envio?: string
           from_email?: string | null
+          from_nombre?: string | null
           id?: string
+          in_reply_to?: string | null
+          message_id?: string | null
           nota?: string | null
           reclamo_id: string
+          reply_to?: string[] | null
+          resend_email_id?: string | null
           tipo?: string
         }
         Update: {
+          adjuntos?: Json
           asunto?: string | null
           cc?: string[] | null
           creado_por?: string | null
           created_at?: string
           cuerpo?: string | null
+          cuerpo_texto?: string | null
           destinatarios?: string[] | null
+          direccion?: string
           error_mensaje?: string | null
           estatus_envio?: string
           from_email?: string | null
+          from_nombre?: string | null
           id?: string
+          in_reply_to?: string | null
+          message_id?: string | null
           nota?: string | null
           reclamo_id?: string
+          reply_to?: string[] | null
+          resend_email_id?: string | null
           tipo?: string
         }
         Relationships: [
@@ -7414,11 +7438,13 @@ export type Database = {
           nota_credito_id: string | null
           nota_credito_monto: number | null
           pedido_id: string | null
+          plaza: string | null
           recepcion_id: string | null
           remitente_email: string | null
           remitente_nombre: string | null
           resolucion: string | null
           tipo_reclamo: string
+          token_correo: string | null
           total_skus_afectados: number | null
           updated_at: string | null
         }
@@ -7447,11 +7473,13 @@ export type Database = {
           nota_credito_id?: string | null
           nota_credito_monto?: number | null
           pedido_id?: string | null
+          plaza?: string | null
           recepcion_id?: string | null
           remitente_email?: string | null
           remitente_nombre?: string | null
           resolucion?: string | null
           tipo_reclamo?: string
+          token_correo?: string | null
           total_skus_afectados?: number | null
           updated_at?: string | null
         }
@@ -7480,11 +7508,13 @@ export type Database = {
           nota_credito_id?: string | null
           nota_credito_monto?: number | null
           pedido_id?: string | null
+          plaza?: string | null
           recepcion_id?: string | null
           remitente_email?: string | null
           remitente_nombre?: string | null
           resolucion?: string | null
           tipo_reclamo?: string
+          token_correo?: string | null
           total_skus_afectados?: number | null
           updated_at?: string | null
         }
