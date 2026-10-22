@@ -105,7 +105,9 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
       finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };
-  }, [open, reclamo?.id, reclamo?.plaza, html, archivos]);
+    // A history refresh after delivery must not reset the sent guard or the user's edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, reclamo?.id, reclamo?.plaza]);
 
   const finalHtml = useMemo(() => {
     if (!intro.trim()) return editedHtml;
