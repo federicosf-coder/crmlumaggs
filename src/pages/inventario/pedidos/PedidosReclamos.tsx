@@ -611,6 +611,8 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
   const [notas, setNotas] = useState<any[]>([]);
   const [notaCreditoId, setNotaCreditoId] = useState("");
   const [correoOpen, setCorreoOpen] = useState(false);
+  const [formatoOpen, setFormatoOpen] = useState(false);
+  const [formatoHtml, setFormatoHtml] = useState("");
   const [correosAbiertos, setCorreosAbiertos] = useState<string[]>([]);
   const [idReclamo, setIdReclamo] = useState("");
   const [guardandoId, setGuardandoId] = useState(false);
@@ -645,6 +647,30 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     (supabase as any).from("inv_pedido_lineas").select("codigo_producto, nombre_producto, presentacion, cantidad_solicitada")
       .eq("pedido_id", data.reclamo.pedido_id).order("codigo_producto").then(({ data: d }: any) => setPedLineas(d || []));
   }, [editando, data?.reclamo?.pedido_id]);
+
+  useEffect(() => {
+    if (!formatoOpen || !data) return;
+    let on = true;
+    (async () => {
+      const imgs = (data.archivos || []).filter((a: any) =>
+        (a.tipo_archivo || "").startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/i.test(a.nombre_archivo || ""));
+      const miniaturas: string[] = [];
+      for (const a of imgs) {
+        const { data: s } = await supabase.storage.from("inventario-reclamos").createSignedUrl(a.url_archivo, 3600);
+        if (s?.signedUrl) miniaturas.push(`<img src="${s.signedUrl}" style="height:110px;border:1px solid #ddd;border-radius:4px;margin:4px" />`);
+      }
+      if (!on) return;
+      const thumbs = miniaturas.length
+        ? `<div style="margin-top:14px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:4px">Evidencias fotográficas</div>${miniaturas.join("")}</div>`
+        : "";
+      const base = buildEmailHtml();
+      const marker = `<p style="font-size:12px">Referencia:`;
+      const i = base.indexOf(marker);
+      const conMiniaturas = i >= 0 ? base.slice(0, i) + thumbs + base.slice(i) : base + thumbs;
+      setFormatoHtml(`<!doctype html><html><head><meta charset="utf-8"><title>Aviso de Reclamo ${esc(r?.token_correo)}</title><style>@page { size: letter; margin: 12mm } body { margin: 0; padding: 16px; background: #fff }</style></head><body>${conMiniaturas}</body></html>`);
+    })();
+    return () => { on = false; };
+  }, [formatoOpen, data]);
 
   if (!id) return null;
   const r = data?.reclamo;
@@ -829,6 +855,27 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       </div>`;
   };
 
+  const imprimirFormato = () => {
+    const win = window.open("", "_blank", "noopener,noreferrer");
+    if (!win) { toast.error("Permite las ventanas emergentes para descargar el PDF"); return; }
+    win.document.write(formatoHtml);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
+
+  const descargarHtml = () => {
+    const blob = new Blob([formatoHtml], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Aviso_Reclamo_${r?.token_correo || "reclamo"}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const recargarCorreos = async () => {
     const { data: seg, error } = await (supabase as any).from("inv_reclamo_seguimiento").select("*").eq("reclamo_id", id).order("created_at", { ascending: true });
     if (error) { toast.error(error.message); return; }
@@ -926,6 +973,9 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
             <div className="flex flex-wrap gap-2 items-center">
               <Button size="sm" onClick={() => setCorreoOpen(true)}>
                 <Mail className="h-3.5 w-3.5 mr-1.5" />Enviar al proveedor
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setFormatoOpen(true)}>
+                <FileText className="h-3.5 w-3.5 mr-1.5" />Ver formato
               </Button>
               {ESTATUS_FLOW.filter((e) => e !== r.estatus && e !== "borrador").map((e) => (
                 <Button key={e} size="sm" variant="outline" onClick={() => cambiarEstatus(e)}>{ESTATUS_LABEL[e]}</Button>
@@ -1100,6 +1150,24 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
         <DialogFooter className="shrink-0 border-t bg-muted/30 px-5 py-3"><Button variant="outline" onClick={onClose}>Cerrar</Button></DialogFooter>
       </DialogContent>
       {r && <ReclamoCorreoDialog open={correoOpen} onOpenChange={setCorreoOpen} reclamo={r} lineas={data?.lineas || []} archivos={data?.archivos || []} html={buildEmailHtml()} onSent={recargarCorreos} />}
+      {r && (
+        <Dialog open={formatoOpen} onOpenChange={setFormatoOpen}>
+          <DialogContent className="max-h-[92vh] max-w-4xl flex flex-col overflow-hidden p-0">
+            <DialogHeader className="bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 px-5 py-4 border-b shrink-0 text-left space-y-1">
+              <DialogTitle className="text-lg font-semibold tracking-tight">Ver formato</DialogTitle>
+              <p className="text-xs text-muted-foreground font-light">Aviso de Reclamo{r.token_correo ? ` · Referencia ${r.token_correo}` : ""}</p>
+            </DialogHeader>
+            <div className="flex-1 min-h-0 px-5 py-4">
+              <iframe srcDoc={formatoHtml} title="Aviso de Reclamo" sandbox="" className="w-full h-[70vh] border rounded-md bg-white" />
+            </div>
+            <DialogFooter className="shrink-0 border-t bg-muted/30 px-5 py-3 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setFormatoOpen(false)}>Cerrar</Button>
+              <Button variant="outline" onClick={descargarHtml}>Descargar HTML</Button>
+              <Button onClick={imprimirFormato}>Descargar PDF</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }
