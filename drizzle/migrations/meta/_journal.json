@@ -71,6 +71,13 @@
       "when": 1792514909653,
       "tag": "0009_company_ejecutivos_plaza",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792694219548,
+      "tag": "0010_reclamos_estatus_investigacion_nc",
+      "breakpoints": true
     }
   ]
 }

@@ -17,12 +17,13 @@ import { toast } from "sonner";
 import { Plus, Upload, Trash2, Mail, FileText } from "lucide-react";
 import { useReclamos } from "@/hooks/usePedidosInventario";
 
-const ESTATUS_FLOW = ["borrador", "enviado", "aceptado", "rechazado", "en_aclaracion"];
+const ESTATUS_FLOW = ["borrador", "enviado", "investigacion", "aceptado", "rechazado", "en_aclaracion", "nc_emitida"];
 const ESTATUS_LABEL: Record<string, string> = {
   borrador: "Borrador", enviado: "Enviado", aceptado: "Aceptado",
   rechazado: "Rechazado", en_aclaracion: "En Aclaración",
   abierto: "Abierto", enviado_proveedor: "Enviado a proveedor",
   en_revision: "En revisión", resuelto: "Resuelto", cerrado: "Cerrado",
+  investigacion: "Investigación", nc_emitida: "NC Emitida",
 };
 
 const RECLAMOS_FROM = "Lumaggs Reclamos <reclamos@correo.lumaggs.com.mx>";
@@ -142,6 +143,7 @@ function estatusReclamoColor(e: string) {
     rechazado: "bg-red-100 text-red-800",
     en_aclaracion: "bg-amber-100 text-amber-800", en_revision: "bg-amber-100 text-amber-800",
     cerrado: "bg-slate-200 text-slate-700",
+    investigacion: "bg-violet-100 text-violet-800", nc_emitida: "bg-emerald-100 text-emerald-800",
   }[e] || "bg-gray-100";
 }
 
