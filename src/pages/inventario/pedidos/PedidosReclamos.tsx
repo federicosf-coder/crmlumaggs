@@ -631,6 +631,14 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     })();
   }, [id]);
 
+  const [pedLineas, setPedLineas] = useState<any[]>([]);
+  const [nl, setNl] = useState({ codigo: "", recibida: "", diferencia: "", aviso: "faltante", detalle: "" });
+  useEffect(() => {
+    if (!editando || !data?.reclamo?.pedido_id) return;
+    (supabase as any).from("inv_pedido_lineas").select("codigo_producto, nombre_producto, presentacion, cantidad_solicitada")
+      .eq("pedido_id", r.pedido_id).order("codigo_producto").then(({ data: d }: any) => setPedLineas(d || []));
+  }, [editando, data?.reclamo?.pedido_id]);
+
   if (!id) return null;
   const r = data?.reclamo;
 
@@ -708,14 +716,6 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     setEditando(false);
     qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
   };
-
-  const [pedLineas, setPedLineas] = useState<any[]>([]);
-  const [nl, setNl] = useState({ codigo: "", recibida: "", diferencia: "", aviso: "faltante", detalle: "" });
-  useEffect(() => {
-    if (!editando || !r?.pedido_id) return;
-    (supabase as any).from("inv_pedido_lineas").select("codigo_producto, nombre_producto, presentacion, cantidad_solicitada")
-      .eq("pedido_id", r.pedido_id).order("codigo_producto").then(({ data: d }: any) => setPedLineas(d || []));
-  }, [editando, r?.pedido_id]);
 
   const syncSkus = async (n: number) => {
     await (supabase as any).from("inv_reclamos").update({ total_skus_afectados: n }).eq("id", id);
