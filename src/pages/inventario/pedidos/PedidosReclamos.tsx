@@ -709,6 +709,59 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
   };
 
+  const [pedLineas, setPedLineas] = useState<any[]>([]);
+  const [nl, setNl] = useState({ codigo: "", recibida: "", diferencia: "", aviso: "faltante", detalle: "" });
+  useEffect(() => {
+    if (!editando || !r?.pedido_id) return;
+    (supabase as any).from("inv_pedido_lineas").select("codigo_producto, nombre_producto, presentacion, cantidad_solicitada")
+      .eq("pedido_id", r.pedido_id).order("codigo_producto").then(({ data: d }: any) => setPedLineas(d || []));
+  }, [editando, r?.pedido_id]);
+
+  const syncSkus = async (n: number) => {
+    await (supabase as any).from("inv_reclamos").update({ total_skus_afectados: n }).eq("id", id);
+    qc.invalidateQueries({ queryKey: ["inv_reclamos"] });
+  };
+
+  const agregarLinea = async () => {
+    const pl = pedLineas.find((x) => x.codigo_producto === nl.codigo);
+    const codigo = nl.codigo.trim();
+    if (!codigo) { toast.error("Elige o escribe un código"); return; }
+    if (!nl.diferencia || Number(nl.diferencia) === 0) { toast.error("La diferencia es obligatoria"); return; }
+    const pres = pl?.presentacion || "";
+    const row = {
+      reclamo_id: id,
+      codigo_producto: codigo,
+      nombre_producto: pl?.nombre_producto || "",
+      descripcion: "",
+      tipo_producto: pres.toLowerCase().includes("tambor") || pres.toLowerCase().includes("granel") ? "Granel" : "Empacado",
+      empaque: pres,
+      tipo_aviso: nl.aviso,
+      cantidad_solicitada: pl?.cantidad_solicitada ?? null,
+      cantidad_recibida: nl.recibida === "" ? null : Number(nl.recibida),
+      cantidad_afectada: Math.abs(Number(nl.diferencia)),
+      diferencia: Number(nl.diferencia),
+      unidad: pres.toLowerCase().includes("tambor") ? "Litros" : "Piezas",
+      detalle_reclamacion: nl.detalle,
+    };
+    const { data: ins, error } = await (supabase as any).from("inv_reclamo_lineas").insert(row).select().single();
+    if (error) { toast.error(error.message); return; }
+    const lineas = [...(data?.lineas || []), ins];
+    setData({ ...data, lineas });
+    setNl({ codigo: "", recibida: "", diferencia: "", aviso: "faltante", detalle: "" });
+    await syncSkus(lineas.length);
+    toast.success("Producto agregado");
+  };
+
+  const quitarLinea = async (l: any) => {
+    if (!confirm(`¿Quitar el producto ${l.codigo_producto} del reclamo?`)) return;
+    const { error } = await (supabase as any).from("inv_reclamo_lineas").delete().eq("id", l.id);
+    if (error) { toast.error(error.message); return; }
+    const lineas = data.lineas.filter((x: any) => x.id !== l.id);
+    setData({ ...data, lineas });
+    await syncSkus(lineas.length);
+    toast.success("Producto quitado");
+  };
+
   const guardarResolucion = async () => {
     await (supabase as any).from("inv_reclamos").update({ resolucion }).eq("id", id);
     toast.success("Resolución guardada");
@@ -894,7 +947,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Productos reclamados</div>
               <div className="border rounded overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-muted/40"><TableRow>{["Tipo", "Código", "Descripción", "Empaque", "Aviso", "Sol.", "Rec.", "Dif.", "Unidad"].map((h) => <TableHead key={h} className="text-[10px] uppercase">{h}</TableHead>)}</TableRow></TableHeader>
+                  <TableHeader className="bg-muted/40"><TableRow>{["Tipo", "Código", "Descripción", "Empaque", "Aviso", "Sol.", "Rec.", "Dif.", "Unidad", ...(editando ? [""] : [])].map((h) => <TableHead key={h} className="text-[10px] uppercase">{h}</TableHead>)}</TableRow></TableHeader>
                   <TableBody>
                     {data?.lineas.map((l: any) => (
                       <Fragment key={l.id}>
@@ -908,9 +961,16 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                         <TableCell className="text-right text-xs">{l.cantidad_recibida ?? "—"}</TableCell>
                         <TableCell className="text-right text-xs font-medium">{l.diferencia ?? "—"}</TableCell>
                         <TableCell className="text-xs">{l.unidad || "—"}</TableCell>
+                        {editando && (
+                          <TableCell>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Quitar producto" aria-label="Quitar producto" onClick={() => quitarLinea(l)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                       <TableRow>
-                        <TableCell colSpan={9} className="bg-muted/30">
+                        <TableCell colSpan={editando ? 10 : 9} className="bg-muted/30">
                           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Detalle de la reclamación</div>
                           <div className="text-xs whitespace-pre-wrap mt-0.5">{l.detalle_reclamacion || "—"}</div>
                         </TableCell>
@@ -920,6 +980,35 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                   </TableBody>
                 </Table>
               </div>
+              {editando && (
+                <div className="mt-2 border rounded p-2 grid grid-cols-2 sm:grid-cols-6 gap-2 items-end bg-muted/20">
+                  <div className="col-span-2">
+                    <Label className={labelCls}>Producto</Label>
+                    <Input list="reclamo-ped-lineas" placeholder="Código" value={nl.codigo} onChange={(e) => setNl({ ...nl, codigo: e.target.value })} />
+                    <datalist id="reclamo-ped-lineas">
+                      {pedLineas.filter((p) => !data?.lineas.some((x: any) => x.codigo_producto === p.codigo_producto)).map((p) => (
+                        <option key={p.codigo_producto} value={p.codigo_producto}>{p.nombre_producto} · {p.presentacion}</option>
+                      ))}
+                    </datalist>
+                  </div>
+                  <div>
+                    <Label className={labelCls}>Aviso</Label>
+                    <Select value={nl.aviso} onValueChange={(v) => setNl({ ...nl, aviso: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="faltante">Faltante</SelectItem>
+                        <SelectItem value="dañado">Dañado</SelectItem>
+                        <SelectItem value="sobrante">Sobrante</SelectItem>
+                        <SelectItem value="otro">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label className={labelCls}>Recibida</Label><Input type="number" value={nl.recibida} onChange={(e) => setNl({ ...nl, recibida: e.target.value })} /></div>
+                  <div><Label className={labelCls}>Diferencia</Label><Input type="number" value={nl.diferencia} onChange={(e) => setNl({ ...nl, diferencia: e.target.value })} /></div>
+                  <Button size="sm" onClick={agregarLinea}><Plus className="h-3.5 w-3.5 mr-1" />Agregar</Button>
+                  <div className="col-span-2 sm:col-span-6"><Input placeholder="Detalle de la reclamación" value={nl.detalle} onChange={(e) => setNl({ ...nl, detalle: e.target.value })} /></div>
+                </div>
+              )}
             </div>
 
             <div>
