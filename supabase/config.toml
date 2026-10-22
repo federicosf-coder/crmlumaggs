@@ -60,6 +60,9 @@ verify_jwt = false
 [functions.rvs-reportes-intake]
 verify_jwt = false
 
+[functions.reclamos-inbound-webhook]
+verify_jwt = false
+
 
 
 
