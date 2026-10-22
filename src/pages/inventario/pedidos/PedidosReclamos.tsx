@@ -216,7 +216,18 @@ export default function PedidosReclamos() {
                   <TableCell className="font-mono text-xs">{r.no_pedido_factura || "—"}</TableCell>
                   <TableCell><IdReclamoCell reclamo={r} /></TableCell>
                   <TableCell className="text-xs">{fmtFecha(r.fecha_reclamo)}</TableCell>
-                  <TableCell className="text-right">{r.total_skus_afectados ?? 0}</TableCell>
+                  <TableCell>
+                    {(r.inv_reclamo_lineas || []).length ? (
+                      <div className="border rounded bg-muted/30 px-2 py-1 text-[11px] font-mono space-y-0.5 min-w-[140px]">
+                        {(r.inv_reclamo_lineas || []).map((l: any) => (
+                          <div key={l.id} className="flex justify-between gap-3">
+                            <span>{l.codigo_producto || "—"}</span>
+                            <span className="font-semibold">{Number(l.diferencia ?? 0)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
+                  </TableCell>
                   <TableCell>
                     <Badge className={estatusReclamoColor(r.estatus)}>{ESTATUS_LABEL[r.estatus] || r.estatus}</Badge>
                   </TableCell>
@@ -928,10 +939,49 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
             </div>
 
             <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Archivos de respaldo</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Archivos de respaldo</div>
+                <label className="cursor-pointer">
+                  <input type="file" multiple className="hidden" onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    e.target.value = "";
+                    if (!files.length || !id) return;
+                    const nuevos: any[] = [];
+                    for (const f of files) {
+                      const path = `${id}/${Date.now()}_${f.name}`;
+                      const { error: uErr } = await supabase.storage.from("inventario-reclamos").upload(path, f);
+                      if (uErr) { toast.error(`Error subiendo ${f.name}`); continue; }
+                      const { data: row, error } = await (supabase as any).from("inv_reclamo_archivos").insert({
+                        reclamo_id: id, nombre_archivo: f.name, url_archivo: path, tipo_archivo: f.type,
+                      }).select().single();
+                      if (error) { toast.error(error.message); await supabase.storage.from("inventario-reclamos").remove([path]); continue; }
+                      nuevos.push(row);
+                    }
+                    if (nuevos.length) {
+                      setData((d: any) => ({ ...d, archivos: [...(d?.archivos || []), ...nuevos] }));
+                      toast.success("Archivos agregados");
+                    }
+                  }} />
+                  <Button asChild size="sm" variant="outline"><span><Upload className="h-3.5 w-3.5 mr-1.5" />Agregar archivos</span></Button>
+                </label>
+              </div>
               <div className="space-y-1 text-sm">
                 {data?.archivos.map((a: any) => (
-                  <div key={a.id} className="border rounded p-2 text-xs flex items-center gap-2"><FileText className="h-3.5 w-3.5" />{a.nombre_archivo}</div>
+                  <div key={a.id} className="border rounded p-2 text-xs flex items-center gap-2">
+                    <FileText className="h-3.5 w-3.5" />
+                    <button type="button" className="truncate text-left hover:underline flex-1" onClick={async () => {
+                      const { data: s } = await supabase.storage.from("inventario-reclamos").createSignedUrl(a.url_archivo, 3600);
+                      if (s?.signedUrl) window.open(s.signedUrl, "_blank");
+                    }}>{a.nombre_archivo}</button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" title="Quitar archivo" aria-label="Quitar archivo" onClick={async () => {
+                      if (!confirm(`¿Quitar "${a.nombre_archivo}"?`)) return;
+                      const { error } = await (supabase as any).from("inv_reclamo_archivos").delete().eq("id", a.id);
+                      if (error) { toast.error(error.message); return; }
+                      await supabase.storage.from("inventario-reclamos").remove([a.url_archivo]);
+                      setData((d: any) => ({ ...d, archivos: d.archivos.filter((x: any) => x.id !== a.id) }));
+                      toast.success("Archivo quitado");
+                    }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                  </div>
                 ))}
                 {!data?.archivos.length && <div className="text-xs text-muted-foreground">Sin archivos</div>}
               </div>
