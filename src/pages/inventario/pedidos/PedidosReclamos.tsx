@@ -968,7 +968,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
               <div className="space-y-1 text-sm">
                 {data?.archivos.map((a: any) => (
                   <div key={a.id} className="border rounded p-2 text-xs flex items-center gap-2">
-                    <FileText className="h-3.5 w-3.5" />
+                    <ArchivoThumb a={a} />
                     <button type="button" className="truncate text-left hover:underline flex-1" onClick={async () => {
                       const { data: s } = await supabase.storage.from("inventario-reclamos").createSignedUrl(a.url_archivo, 3600);
                       if (s?.signedUrl) window.open(s.signedUrl, "_blank");
@@ -1016,4 +1016,17 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       </SheetContent>
     </Sheet>
   );
+}
+
+function ArchivoThumb({ a }: { a: any }) {
+  const esImg = (a.tipo_archivo || "").startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/i.test(a.nombre_archivo || "");
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!esImg) return;
+    let on = true;
+    supabase.storage.from("inventario-reclamos").createSignedUrl(a.url_archivo, 3600).then(({ data }) => { if (on) setUrl(data?.signedUrl ?? null); });
+    return () => { on = false; };
+  }, [a.url_archivo, esImg]);
+  if (esImg && url) return <img src={url} alt={a.nombre_archivo} className="h-12 w-12 rounded object-cover border shrink-0" loading="lazy" />;
+  return <div className="h-12 w-12 rounded border bg-muted flex items-center justify-center shrink-0"><FileText className="h-5 w-5 text-muted-foreground" /></div>;
 }
