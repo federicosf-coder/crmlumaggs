@@ -63,9 +63,9 @@ export interface ReclamoPdfResult { blob: Blob; fileName: string; embebidos: str
 
 /** `embebidos` = url_archivo de las evidencias que quedaron pegadas dentro del PDF. */
 export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], archivos: any[]): Promise<ReclamoPdfResult> {
-  // Render all product blocks, then fit the form (not the evidence) to one landscape sheet.
-  const formHeight = Math.max(215.9, 110 + Math.max(1, lineas.length) * 29 + 48);
-  const doc = new jsPDF({ unit: "mm", format: [279.4, formHeight], orientation: formHeight > 279.4 ? "portrait" : "landscape" });
+  // Render all product blocks, then fit the form (not the evidence) to one portrait letter sheet.
+  const formHeight = Math.max(279.4, 110 + Math.max(1, lineas.length) * 29 + 48);
+  const doc = new jsPDF({ unit: "mm", format: [215.9, formHeight], orientation: "portrait" });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const M = 14;
@@ -99,10 +99,10 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   const factura = f?.folio ? `${f.folio}${f.fecha ? ` · ${fmtFecha(f.fecha)}` : ""}` : "";
   let y = 30;
   etiqueta("Nombre de Cliente:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.cliente_nombre));
-  etiqueta("Fecha de Reclamo:", 145, y + 3.6, 8); caja(202, y, W - M - 202, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
+  etiqueta("Fecha de Reclamo:", 118, y + 3.6, 8); caja(158, y, W - M - 158, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
   y += 8;
   etiqueta("No. Pedido en Factura:", M, y + 3.6, 8); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.no_pedido_factura || reclamo.inv_pedidos?.numero_po_interno));
-  etiqueta("Fecha de Recepción del producto:", 145, y + 3.6, 7); caja(202, y, W - M - 202, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
+  etiqueta("Fecha de Recepción del producto:", 118, y + 3.6, 7); caja(158, y, W - M - 158, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
   y += 8;
   etiqueta("Factura:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, factura);
   y += 10;
@@ -116,7 +116,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
 
   // ---- Un bloque por producto ----
   const RH = 5; // alto de fila
-  const xL = M, wL = 32, xV = M + 32, wV = 95, xL2 = xV + wV + 4, wL2 = 36, xV2 = xL2 + wL2, wV2 = 48, xU = xV2 + wV2, wU = W - M - xU;
+  const xL = M, wL = 30, xV = M + 30, wV = 58, xL2 = xV + wV + 4, wL2 = 34, xV2 = xL2 + wL2, wV2 = 42, xU = xV2 + wV2, wU = W - M - xU;
   const bloque = (l: any) => {
     const filas: [string, string, string, string, [number, number, number]][] = [
       ["Tipo de Producto", txt(l.tipo_producto), "Tipo de aviso", txt(l.tipo_aviso), AZUL],
