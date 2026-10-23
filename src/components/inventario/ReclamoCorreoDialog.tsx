@@ -40,7 +40,7 @@ export const attachmentsExceedLimit = (bytes: number) => bytes > MAX_BYTES;
 const escapeHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const fileKey = (file: any) => String(file.id || file.url_archivo);
 
-function EmailChips({ label, value, onChange, disabled }: { label: string; value: string[]; onChange: (emails: string[]) => void; disabled: boolean }) {
+export function EmailChips({ label, value, onChange, disabled }: { label: string; value: string[]; onChange: (emails: string[]) => void; disabled: boolean }) {
   const [input, setInput] = useState("");
   const add = () => {
     if (!input.trim()) return;
