@@ -254,6 +254,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
   const { user, profile } = useAuth();
   const qc = useQueryClient();
   const { data: mapaEmp } = useQuery({ queryKey: ["empaques-presentaciones"], queryFn: fetchMapaEmpaques, staleTime: 5 * 60 * 1000 });
+  const { data: mapaProd } = useQuery({ queryKey: ["productos-nombres"], queryFn: fetchMapaProductos, staleTime: 5 * 60 * 1000 });
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [pedidoSel, setPedidoSel] = useState<string>("");
   const [pedidoData, setPedidoData] = useState<any>(null);
@@ -623,6 +624,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
 function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
   const qc = useQueryClient();
   const { data: mapaEmp } = useQuery({ queryKey: ["empaques-presentaciones"], queryFn: fetchMapaEmpaques, staleTime: 5 * 60 * 1000 });
+  const { data: mapaProd } = useQuery({ queryKey: ["productos-nombres"], queryFn: fetchMapaProductos, staleTime: 5 * 60 * 1000 });
   const [data, setData] = useState<any>(null);
   const [resolucion, setResolucion] = useState("");
   const [notas, setNotas] = useState<any[]>([]);
