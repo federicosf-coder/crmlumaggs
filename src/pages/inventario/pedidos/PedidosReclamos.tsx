@@ -320,7 +320,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
     if (!l || lineas.some((x) => x.codigo_producto === codigo)) return;
     setLineas([...lineas, {
       codigo_producto: l.codigo_producto,
-      descripcion: l.nombre_producto || "",
+      descripcion: nombreProductoEtiqueta(l.codigo_producto, l.nombre_producto || "", mapaProd),
       empaque: empaqueEtiqueta(l.codigo_producto, l.presentacion, mapaEmp),
       tipo_producto: l.presentacion?.toLowerCase().includes("tambor") || l.presentacion?.toLowerCase().includes("granel") ? "Granel" : "Empacado",
       tipo_aviso: "Faltante",
@@ -488,7 +488,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
                 <SelectContent className="max-h-[260px]">
                   {lineasPedido.filter((l) => !lineas.some((x) => x.codigo_producto === l.codigo_producto)).map((l) => (
                     <SelectItem key={l.codigo_producto} value={l.codigo_producto}>
-                      {l.codigo_producto} · {l.nombre_producto}
+                      {l.codigo_producto} · {nombreProductoEtiqueta(l.codigo_producto, l.nombre_producto, mapaProd)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -777,7 +777,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     const row = {
       reclamo_id: id,
       codigo_producto: codigo,
-      nombre_producto: pl?.nombre_producto || "",
+      nombre_producto: nombreProductoEtiqueta(codigo, pl?.nombre_producto || "", mapaProd),
       descripcion: "",
       tipo_producto: pres.toLowerCase().includes("tambor") || pres.toLowerCase().includes("granel") ? "Granel" : "Empacado",
       empaque: empaqueEtiqueta(codigo, pres, mapaEmp),
@@ -826,7 +826,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       <tr>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.tipo_producto)}</td>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.codigo_producto)}</td>
-        <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.nombre_producto)}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd">${esc(nombreProductoEtiqueta(l.codigo_producto, l.nombre_producto, mapaProd))}</td>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp))}</td>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.tipo_aviso)}</td>
         <td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${l.cantidad_solicitada ?? ""}</td>
@@ -1019,7 +1019,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                       <TableRow>
                         <TableCell className="text-xs">{l.tipo_producto || "—"}</TableCell>
                         <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
-                        <TableCell className="text-xs max-w-[150px] truncate" title={l.nombre_producto || ""}>{l.nombre_producto || "—"}</TableCell>
+                        <TableCell className="text-xs max-w-[150px] truncate" title={nombreProductoEtiqueta(l.codigo_producto, l.nombre_producto || "", mapaProd)}>{nombreProductoEtiqueta(l.codigo_producto, l.nombre_producto || "", mapaProd) || "—"}</TableCell>
                         <TableCell className="text-xs">{empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp) || "—"}</TableCell>
                         <TableCell className="text-xs">{l.tipo_aviso || "—"}</TableCell>
                         <TableCell className="text-right text-xs">{l.cantidad_solicitada ?? "—"}</TableCell>
