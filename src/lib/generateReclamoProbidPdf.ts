@@ -102,7 +102,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   etiqueta("Fecha de Reclamo:", 118, y + 3.6, 8); caja(158, y, W - M - 158, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
   y += 8;
   etiqueta("No. Pedido en Factura:", M, y + 3.6, 8); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.no_pedido_factura || reclamo.inv_pedidos?.numero_po_interno));
-  etiqueta("Fecha de Recepción del producto:", 118, y + 3.6, 7); caja(158, y, W - M - 158, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
+  etiqueta("Fecha de Recepción del producto:", 118, y + 3.6, 6.5); caja(158, y, W - M - 158, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
   y += 8;
   etiqueta("Factura:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, factura);
   y += 10;
