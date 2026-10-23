@@ -14,6 +14,7 @@
 
 ## Reclamos de pedidos
 - [x] Añadir confirmación de facturación por producto y ajustar el formato a una hoja horizontal con evidencias posteriores; 11 pruebas y muestra visual verificadas.
+- [x] Empaque desde el catálogo de Presentaciones y Descripción desde el catálogo de Productos (por código, con lo capturado como respaldo); typecheck y 10 pruebas ok.
 - [ ] Verificar guardado de la confirmación en un reclamo real; requiere iniciar sesión en la vista previa (no se pudo recuperar la sesión).
 - [x] Añadir plaza, ficha centrada, correo editable con adjuntos e hilo cronológico.
 - [x] Desplegar envío y recepción de correos sin migraciones ni cambios al alta o recepción de pedidos.
