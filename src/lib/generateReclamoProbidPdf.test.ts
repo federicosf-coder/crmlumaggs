@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { PDFDocument } from "pdf-lib";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: () => ({ select: async () => ({ data: [] }) }) } }));
-import { empaqueEtiqueta, generateReclamoProbidPdf } from "@/lib/generateReclamoProbidPdf";
+import { empaqueEtiqueta, nombreProductoEtiqueta, generateReclamoProbidPdf } from "@/lib/generateReclamoProbidPdf";
 
 describe("empaqueEtiqueta", () => {
   it("usa el nombre del catálogo de Presentaciones cuando hay mapa", () => {
@@ -18,6 +18,19 @@ describe("empaqueEtiqueta", () => {
     expect(empaqueEtiqueta("X1", "Tambor 200L", { "ABC": "Litro" })).toBe("Tambor 200L");
     expect(empaqueEtiqueta("X1", "Tambor 200L", undefined)).toBe("Tambor 200L");
     expect(empaqueEtiqueta("", "", { "ABC": "Litro" })).toBe("");
+  });
+});
+
+describe("nombreProductoEtiqueta", () => {
+  it("usa el nombre del catálogo de Productos cuando hay mapa", () => {
+    const mapa = { "273271981": "DELO 400 XLE SAE 15W-40" };
+    expect(nombreProductoEtiqueta("273271981", "capturado", mapa)).toBe("DELO 400 XLE SAE 15W-40");
+  });
+
+  it("regresa lo capturado si el código no está en el catálogo", () => {
+    expect(nombreProductoEtiqueta("X1", "DELO 400 XLE", { "ABC": "Otro" })).toBe("DELO 400 XLE");
+    expect(nombreProductoEtiqueta("X1", "DELO 400 XLE", undefined)).toBe("DELO 400 XLE");
+    expect(nombreProductoEtiqueta("", "", { "ABC": "Otro" })).toBe("");
   });
 });
 

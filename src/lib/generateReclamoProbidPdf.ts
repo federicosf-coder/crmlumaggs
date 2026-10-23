@@ -38,10 +38,26 @@ export async function fetchMapaEmpaques(): Promise<Record<string, string>> {
   return out;
 }
 
+/** Mapa código de producto → nombre oficial según el catálogo de productos (admin → Productos). */
+export async function fetchMapaProductos(): Promise<Record<string, string>> {
+  const { data: prods } = await supabase.from("productos").select("codigo, nombre_producto");
+  const out: Record<string, string> = {};
+  for (const p of prods || []) {
+    if (p.nombre_producto && p.codigo) out[String(p.codigo).trim().toUpperCase()] = p.nombre_producto;
+  }
+  return out;
+}
+
 /** Nombre de empaque a mostrar: catálogo por código; si no hay, lo capturado. */
 export function empaqueEtiqueta(codigo: any, empaqueActual: any, mapa: Record<string, string> | undefined): string {
   const key = String(codigo || "").trim().toUpperCase();
   return (mapa && key && mapa[key]) || txt(empaqueActual);
+}
+
+/** Nombre de producto a mostrar: catálogo por código; si no hay, lo capturado. */
+export function nombreProductoEtiqueta(codigo: any, nombreActual: any, mapa: Record<string, string> | undefined): string {
+  const key = String(codigo || "").trim().toUpperCase();
+  return (mapa && key && mapa[key]) || txt(nombreActual);
 }
 
 async function imagenAJpeg(blob: Blob): Promise<{ data: string; w: number; h: number } | null> {
@@ -70,6 +86,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   const H = doc.internal.pageSize.getHeight();
   const M = 14;
   const mapaEmp = await fetchMapaEmpaques();
+  const mapaProd = await fetchMapaProductos();
 
   const caja = (x: number, y: number, w: number, h: number, fill: [number, number, number], value = "", align: "left" | "right" = "left") => {
     doc.setFillColor(...fill); doc.setDrawColor(0); doc.setLineWidth(0.2);
@@ -121,7 +138,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     const filas: [string, string, string, string, [number, number, number]][] = [
       ["Tipo de Producto", txt(l.tipo_producto), "Tipo de aviso", txt(l.tipo_aviso), AZUL],
       ["Código de Producto", txt(l.codigo_producto), "Cantidad Solicitada:", txt(l.cantidad_solicitada), AZUL],
-      ["Descripción:", txt(l.nombre_producto || l.descripcion), "Cantidad Recibida:", txt(l.cantidad_recibida), AZUL],
+      ["Descripción:", nombreProductoEtiqueta(l.codigo_producto, l.nombre_producto || l.descripcion, mapaProd), "Cantidad Recibida:", txt(l.cantidad_recibida), AZUL],
       ["Empaque:", empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp), "Diferencia:", txt(l.diferencia), NARANJA],
     ];
     filas.forEach(([a, b, c, d, fill], i) => {
