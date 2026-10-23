@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReclamoCorreoDialog } from "@/components/inventario/ReclamoCorreoDialog";
-import { generateReclamoProbidPdf } from "@/lib/generateReclamoProbidPdf";
+import { generateReclamoProbidPdf, fetchMapaEmpaques, empaqueEtiqueta } from "@/lib/generateReclamoProbidPdf";
 import { toast } from "sonner";
 import { Plus, Upload, Trash2, Mail, FileText, Pencil } from "lucide-react";
 import { useReclamos } from "@/hooks/usePedidosInventario";
@@ -147,6 +147,7 @@ function estatusReclamoColor(e: string) {
 
 export default function PedidosReclamos() {
   const { data: reclamos = [] } = useReclamos();
+  const { data: mapaEmp } = useQuery({ queryKey: ["empaques-presentaciones"], queryFn: fetchMapaEmpaques, staleTime: 5 * 60 * 1000 });
   const [params] = useSearchParams();
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -220,7 +221,7 @@ export default function PedidosReclamos() {
                       <div className="border rounded bg-muted/30 px-2 py-1 text-[11px] font-mono space-y-0.5 min-w-[140px]">
                         {(r.inv_reclamo_lineas || []).map((l: any) => (
                           <div key={l.id} className="flex justify-between gap-3">
-                            <span>{l.codigo_producto || "—"}{l.empaque ? <span className="text-muted-foreground font-sans"> · {l.empaque}</span> : null}</span>
+                            <span>{l.codigo_producto || "—"}{empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp) ? <span className="text-muted-foreground font-sans"> · {empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp)}</span> : null}</span>
                             <span className="font-semibold">{Number(l.diferencia ?? 0)}</span>
                           </div>
                         ))}
@@ -250,6 +251,7 @@ export default function PedidosReclamos() {
 function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
+  const { data: mapaEmp } = useQuery({ queryKey: ["empaques-presentaciones"], queryFn: fetchMapaEmpaques, staleTime: 5 * 60 * 1000 });
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [pedidoSel, setPedidoSel] = useState<string>("");
   const [pedidoData, setPedidoData] = useState<any>(null);
@@ -316,7 +318,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
     setLineas([...lineas, {
       codigo_producto: l.codigo_producto,
       descripcion: l.nombre_producto || "",
-      empaque: l.presentacion || "",
+      empaque: empaqueEtiqueta(l.codigo_producto, l.presentacion, mapaEmp),
       tipo_producto: l.presentacion?.toLowerCase().includes("tambor") || l.presentacion?.toLowerCase().includes("granel") ? "Granel" : "Empacado",
       tipo_aviso: "Faltante",
       tipo_aviso_otro: "",
@@ -516,7 +518,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
                       </div>
                       <div className="min-w-0 md:col-span-2">
                         <Label className={labelCls}>Empaque</Label>
-                        <p className="mt-2 break-words text-xs">{l.empaque || "—"}</p>
+                        <p className="mt-2 break-words text-xs">{empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp) || "—"}</p>
                       </div>
                       <div className="min-w-0 md:col-span-2">
                         <Label className={labelCls}>Tipo de aviso</Label>
