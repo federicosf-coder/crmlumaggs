@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReclamoCorreoDialog } from "@/components/inventario/ReclamoCorreoDialog";
+import { ReclamosResumenDialog } from "@/components/inventario/ReclamosResumenDialog";
 import { generateReclamoProbidPdf, fetchMapaEmpaques, fetchMapaProductos, empaqueEtiqueta, nombreProductoEtiqueta } from "@/lib/generateReclamoProbidPdf";
 import { confirmacionFacturacion, etiquetaFacturacion } from "@/lib/reclamoFacturacion";
 import { toast } from "sonner";
@@ -147,7 +148,7 @@ function estatusReclamoColor(e: string) {
 }
 
 export default function PedidosReclamos() {
-  const { data: reclamos = [] } = useReclamos();
+  const { data: reclamos = [], isLoading: reclamosLoading } = useReclamos();
   const { data: mapaEmp } = useQuery({ queryKey: ["empaques-presentaciones"], queryFn: fetchMapaEmpaques, staleTime: 5 * 60 * 1000 });
   const { data: mapaProd } = useQuery({ queryKey: ["productos-nombres"], queryFn: fetchMapaProductos, staleTime: 5 * 60 * 1000 });
   const [params] = useSearchParams();
@@ -156,6 +157,7 @@ export default function PedidosReclamos() {
   const [empresa, setEmpresa] = useState("todas");
   const [estatus, setEstatus] = useState("todos");
   const [soloSinId, setSoloSinId] = useState(false);
+  const [resumenOpen, setResumenOpen] = useState(false);
 
   useEffect(() => { if (params.get("recepcion")) setOpen(true); }, [params]);
 
@@ -167,6 +169,7 @@ export default function PedidosReclamos() {
   });
 
   const pendientesId = reclamos.filter((r: any) => r.fecha_envio && !r.id_reclamo_proveedor).length;
+  const filtrosResumen = `${empresa === "todas" ? "Todas las empresas" : empresa === "lumaggs" ? "Lumaggs" : "Galsa"} · ${estatus === "todos" ? "Todos los estatus" : ESTATUS_LABEL[estatus] || estatus}${soloSinId ? " · Sin ID de Chevron" : ""}`;
 
   return (
     <div className="p-6 space-y-4">
@@ -197,7 +200,10 @@ export default function PedidosReclamos() {
               Sin ID de Chevron{pendientesId ? ` (${pendientesId})` : ""}
             </Button>
           </div>
-          <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Nuevo reclamo</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" disabled={reclamosLoading || !filtered.length} onClick={() => setResumenOpen(true)}><FileText className="h-4 w-4 mr-2" />Resumen PDF</Button>
+            <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Nuevo reclamo</Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -246,6 +252,7 @@ export default function PedidosReclamos() {
 
       <NuevoReclamoDialog open={open} onOpenChange={setOpen} recepcionId={params.get("recepcion")} pedidoId={params.get("pedido")} />
       <ReclamoDetailSheet id={detailId} onClose={() => setDetailId(null)} />
+      <ReclamosResumenDialog open={resumenOpen} onOpenChange={setResumenOpen} reclamos={filtered} empaques={mapaEmp || {}} estatus={ESTATUS_LABEL} filtros={filtrosResumen} />
     </div>
   );
 }
