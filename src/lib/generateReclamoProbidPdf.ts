@@ -86,6 +86,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   const H = doc.internal.pageSize.getHeight();
   const M = 14;
   const mapaEmp = await fetchMapaEmpaques();
+  const mapaProd = await fetchMapaProductos();
 
   const caja = (x: number, y: number, w: number, h: number, fill: [number, number, number], value = "", align: "left" | "right" = "left") => {
     doc.setFillColor(...fill); doc.setDrawColor(0); doc.setLineWidth(0.2);
