@@ -85,11 +85,11 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     doc.setFont("helvetica", "bold"); doc.setFontSize(size); doc.setTextColor(0); doc.text(s, x, y);
   };
 
-  const encabezado = () => {
+  const encabezado = (w = W) => {
     doc.addImage(CHEVRON_LOGO_PNG, "PNG", M, 10, 15, 13.8);
-    doc.setFillColor(...BARRA); doc.rect(M + 20, 12, W - 2 * M - 20, 9, "F");
+    doc.setFillColor(...BARRA); doc.rect(M + 20, 12, w - 2 * M - 20, 9, "F");
     doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(255, 255, 255);
-    doc.text("AVISO DE RECLAMO PROBID", M + 20 + (W - 2 * M - 20) / 2, 18.4, { align: "center" });
+    doc.text("AVISO DE RECLAMO PROBID", M + 20 + (w - 2 * M - 20) / 2, 18.4, { align: "center" });
     doc.setTextColor(0);
   };
 
@@ -173,9 +173,11 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     if (esPdf(a)) { pdfs.push({ nombre: a.nombre_archivo, bytes: await blob.arrayBuffer(), path: a.url_archivo }); continue; }
     const img = await imagenAJpeg(blob);
     if (!img) { otros.push(a.nombre_archivo); continue; }
-    doc.addPage("letter", "landscape"); encabezado();
+    doc.addPage("letter", "portrait");
+    const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+    encabezado(pw);
     etiqueta(`Evidencia: ${a.nombre_archivo}`, M, 30, 9);
-    const maxW = W - 2 * M, maxH = 215.9 - 34 - M;
+    const maxW = pw - 2 * M, maxH = ph - 34 - M;
     const k = Math.min(maxW / img.w, maxH / img.h);
     const w = img.w * k, h = img.h * k;
     doc.addImage(img.data, "JPEG", M + (maxW - w) / 2, 34, w, h);
@@ -189,9 +191,9 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   const rendered = await PDFDocument.load(doc.output("arraybuffer"));
   const out = await PDFDocument.create();
   const [form] = await out.embedPages([rendered.getPage(0)]);
-  const page = out.addPage([792, 612]); // Letter landscape, regardless of product count.
-  const scale = Math.min(792 / form.width, 612 / form.height);
-  page.drawPage(form, { x: (792 - form.width * scale) / 2, y: (612 - form.height * scale) / 2, width: form.width * scale, height: form.height * scale });
+  const page = out.addPage([612, 792]); // Carta vertical, sin importar la cantidad de productos.
+  const scale = Math.min(612 / form.width, 792 / form.height);
+  page.drawPage(form, { x: (612 - form.width * scale) / 2, y: (792 - form.height * scale) / 2, width: form.width * scale, height: form.height * scale });
   if (rendered.getPageCount() > 1) {
     const evidence = await out.copyPages(rendered, rendered.getPageIndices().slice(1));
     evidence.forEach((pg) => out.addPage(pg));
