@@ -13,7 +13,8 @@
 - [ ] Verificar guardado real con sesión del usuario; bloqueado hasta que inicie sesión en la vista previa.
 
 ## Reclamos de pedidos
-- [ ] Agregar resumen del listado filtrado en PDF descargable y adjunto por correo, sin cambiar el aviso oficial ni el estatus de los reclamos.
+- [x] Agregar resumen del listado filtrado en PDF descargable y adjunto por correo, sin cambiar el aviso oficial ni el estatus de los reclamos; pruebas del PDF y adjunto aprobadas, tres páginas revisadas visualmente y ancho de tabla corregido.
+- [ ] Verificar descarga y envío del resumen desde el listado real; requiere sesión del usuario en la vista previa (la recuperación automática de sesión falló).
 - [x] Añadir confirmación de facturación por producto y ajustar el formato a una hoja horizontal con evidencias posteriores; 11 pruebas y muestra visual verificadas.
 - [x] Empaque desde el catálogo de Presentaciones y Descripción desde el catálogo de Productos (por código, con lo capturado como respaldo); typecheck y 10 pruebas ok.
 - [ ] Verificar guardado de la confirmación en un reclamo real; requiere iniciar sesión en la vista previa (no se pudo recuperar la sesión).
