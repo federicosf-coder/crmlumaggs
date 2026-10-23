@@ -72,13 +72,13 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   const f = reclamo.chevron_facturas_recibidas;
   const factura = f?.folio ? `${f.folio}${f.fecha ? ` · ${fmtFecha(f.fecha)}` : ""}` : "";
   let y = 30;
-  etiqueta("Nombre de Cliente:", M, y + 3.6); caja(M + 34, y, 70, 5, AZUL, txt(reclamo.cliente_nombre));
+  etiqueta("Nombre de Cliente:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.cliente_nombre));
   etiqueta("Fecha de Reclamo:", 113, y + 3.6, 8); caja(156, y, W - M - 156, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
   y += 8;
-  etiqueta("No. Pedido en Factura:", M, y + 3.6, 8); caja(M + 34, y, 70, 5, AZUL, txt(reclamo.no_pedido_factura || reclamo.inv_pedidos?.numero_po_interno));
+  etiqueta("No. Pedido en Factura:", M, y + 3.6, 8); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.no_pedido_factura || reclamo.inv_pedidos?.numero_po_interno));
   etiqueta("Fecha de Recepción del producto:", 113, y + 3.6, 7); caja(156, y, W - M - 156, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
   y += 8;
-  etiqueta("Factura:", M, y + 3.6); caja(M + 34, y, 70, 5, AZUL, factura);
+  etiqueta("Factura:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, factura);
   y += 10;
 
   doc.setFont("helvetica", "normal"); doc.setFontSize(8.6);
