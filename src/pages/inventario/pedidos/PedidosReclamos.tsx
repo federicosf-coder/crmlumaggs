@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReclamoCorreoDialog } from "@/components/inventario/ReclamoCorreoDialog";
-import { generateReclamoProbidPdf, fetchMapaEmpaques, empaqueEtiqueta } from "@/lib/generateReclamoProbidPdf";
+import { generateReclamoProbidPdf, fetchMapaEmpaques, fetchMapaProductos, empaqueEtiqueta, nombreProductoEtiqueta } from "@/lib/generateReclamoProbidPdf";
 import { confirmacionFacturacion, etiquetaFacturacion } from "@/lib/reclamoFacturacion";
 import { toast } from "sonner";
 import { Plus, Upload, Trash2, Mail, FileText, Pencil } from "lucide-react";
@@ -149,6 +149,7 @@ function estatusReclamoColor(e: string) {
 export default function PedidosReclamos() {
   const { data: reclamos = [] } = useReclamos();
   const { data: mapaEmp } = useQuery({ queryKey: ["empaques-presentaciones"], queryFn: fetchMapaEmpaques, staleTime: 5 * 60 * 1000 });
+  const { data: mapaProd } = useQuery({ queryKey: ["productos-nombres"], queryFn: fetchMapaProductos, staleTime: 5 * 60 * 1000 });
   const [params] = useSearchParams();
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
