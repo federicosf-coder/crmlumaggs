@@ -22,6 +22,27 @@ const txt = (v: any) => (v === null || v === undefined ? "" : String(v));
 const esImagen = (a: any) => (a.tipo_archivo || "").startsWith("image/") || /\.(jpe?g|png|webp|gif|bmp)$/i.test(a.nombre_archivo || "");
 const esPdf = (a: any) => (a.tipo_archivo || "") === "application/pdf" || /\.pdf$/i.test(a.nombre_archivo || "");
 
+/** Mapa código de producto → nombre de presentación según el catálogo (admin → Presentaciones). */
+export async function fetchMapaEmpaques(): Promise<Record<string, string>> {
+  const [{ data: prods }, { data: pres }] = await Promise.all([
+    supabase.from("productos").select("codigo, presentacion_id"),
+    supabase.from("presentaciones").select("id, nombre"),
+  ]);
+  const nombres = new Map<string, string>((pres || []).map((p: any) => [p.id, p.nombre]));
+  const out: Record<string, string> = {};
+  for (const p of prods || []) {
+    const n = p.presentacion_id ? nombres.get(p.presentacion_id) : null;
+    if (n && p.codigo) out[String(p.codigo).trim().toUpperCase()] = n;
+  }
+  return out;
+}
+
+/** Nombre de empaque a mostrar: catálogo por código; si no hay, lo capturado. */
+export function empaqueEtiqueta(codigo: any, empaqueActual: any, mapa: Record<string, string> | undefined): string {
+  const key = String(codigo || "").trim().toUpperCase();
+  return (mapa && key && mapa[key]) || txt(empaqueActual);
+}
+
 async function imagenAJpeg(blob: Blob): Promise<{ data: string; w: number; h: number } | null> {
   try {
     const bmp = await createImageBitmap(blob);
@@ -45,6 +66,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const M = 14;
+  const mapaEmp = await fetchMapaEmpaques();
 
   const caja = (x: number, y: number, w: number, h: number, fill: [number, number, number], value = "", align: "left" | "right" = "left") => {
     doc.setFillColor(...fill); doc.setDrawColor(0); doc.setLineWidth(0.2);
@@ -96,7 +118,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
       ["Tipo de Producto", txt(l.tipo_producto), "Tipo de aviso", txt(l.tipo_aviso), AZUL],
       ["Código de Producto", txt(l.codigo_producto), "Cantidad Solicitada:", txt(l.cantidad_solicitada), AZUL],
       ["Descripción:", txt(l.nombre_producto || l.descripcion), "Cantidad Recibida:", txt(l.cantidad_recibida), AZUL],
-      ["Empaque:", txt(l.empaque), "Diferencia:", txt(l.diferencia), NARANJA],
+      ["Empaque:", empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp), "Diferencia:", txt(l.diferencia), NARANJA],
     ];
     filas.forEach(([a, b, c, d, fill], i) => {
       const yy = y + i * RH;
@@ -124,8 +146,8 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   doc.setFillColor(...AZUL); doc.rect(xL2 - 4, y, W - M - xL2 + 4, 15, "F");
   doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
   doc.text(doc.splitTextToSize(txt(reclamo.domicilio_recoleccion), W - M - xL2).slice(0, 3), xL2 - 3, y + 4);
-  etiqueta("Contacto:", M, y + 8.6, 8); caja(xV, y + 5, wV, 5, AZUL, txt(reclamo.contacto_recoleccion));
-  etiqueta("Correo:", M, y + 13.6, 8); caja(xV, y + 10, wV, 5, AZUL, txt(reclamo.correo_recoleccion));
+  etiqueta("Contacto:", M, y + 8.6, 8); caja(xV, y + 5, wV, 5, AZUL, "Federico Sariñana");
+  etiqueta("Correo:", M, y + 13.6, 8); caja(xV, y + 10, wV, 5, AZUL, "f.sarinanaf@lumaggs.com.mx");
   y += 24;
   etiqueta("ENVIAR FORMATO AL CORREO:", M + 20, y, 8);
   doc.setTextColor(230, 120, 50); doc.setFontSize(11); doc.text("cvxordenesmexico@chevron.com", xL2 - 4, y);

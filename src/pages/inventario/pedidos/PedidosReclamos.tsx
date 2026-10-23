@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReclamoCorreoDialog } from "@/components/inventario/ReclamoCorreoDialog";
-import { generateReclamoProbidPdf } from "@/lib/generateReclamoProbidPdf";
+import { generateReclamoProbidPdf, fetchMapaEmpaques, empaqueEtiqueta } from "@/lib/generateReclamoProbidPdf";
 import { toast } from "sonner";
 import { Plus, Upload, Trash2, Mail, FileText, Pencil } from "lucide-react";
 import { useReclamos } from "@/hooks/usePedidosInventario";
@@ -147,6 +147,7 @@ function estatusReclamoColor(e: string) {
 
 export default function PedidosReclamos() {
   const { data: reclamos = [] } = useReclamos();
+  const { data: mapaEmp } = useQuery({ queryKey: ["empaques-presentaciones"], queryFn: fetchMapaEmpaques, staleTime: 5 * 60 * 1000 });
   const [params] = useSearchParams();
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -220,7 +221,7 @@ export default function PedidosReclamos() {
                       <div className="border rounded bg-muted/30 px-2 py-1 text-[11px] font-mono space-y-0.5 min-w-[140px]">
                         {(r.inv_reclamo_lineas || []).map((l: any) => (
                           <div key={l.id} className="flex justify-between gap-3">
-                            <span>{l.codigo_producto || "—"}{l.empaque ? <span className="text-muted-foreground font-sans"> · {l.empaque}</span> : null}</span>
+                            <span>{l.codigo_producto || "—"}{empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp) ? <span className="text-muted-foreground font-sans"> · {empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp)}</span> : null}</span>
                             <span className="font-semibold">{Number(l.diferencia ?? 0)}</span>
                           </div>
                         ))}
@@ -250,6 +251,7 @@ export default function PedidosReclamos() {
 function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
+  const { data: mapaEmp } = useQuery({ queryKey: ["empaques-presentaciones"], queryFn: fetchMapaEmpaques, staleTime: 5 * 60 * 1000 });
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [pedidoSel, setPedidoSel] = useState<string>("");
   const [pedidoData, setPedidoData] = useState<any>(null);
@@ -316,7 +318,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
     setLineas([...lineas, {
       codigo_producto: l.codigo_producto,
       descripcion: l.nombre_producto || "",
-      empaque: l.presentacion || "",
+      empaque: empaqueEtiqueta(l.codigo_producto, l.presentacion, mapaEmp),
       tipo_producto: l.presentacion?.toLowerCase().includes("tambor") || l.presentacion?.toLowerCase().includes("granel") ? "Granel" : "Empacado",
       tipo_aviso: "Faltante",
       tipo_aviso_otro: "",
@@ -516,7 +518,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
                       </div>
                       <div className="min-w-0 md:col-span-2">
                         <Label className={labelCls}>Empaque</Label>
-                        <p className="mt-2 break-words text-xs">{l.empaque || "—"}</p>
+                        <p className="mt-2 break-words text-xs">{empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp) || "—"}</p>
                       </div>
                       <div className="min-w-0 md:col-span-2">
                         <Label className={labelCls}>Tipo de aviso</Label>
@@ -607,6 +609,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
 
 function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
   const qc = useQueryClient();
+  const { data: mapaEmp } = useQuery({ queryKey: ["empaques-presentaciones"], queryFn: fetchMapaEmpaques, staleTime: 5 * 60 * 1000 });
   const [data, setData] = useState<any>(null);
   const [resolucion, setResolucion] = useState("");
   const [notas, setNotas] = useState<any[]>([]);
@@ -762,7 +765,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       nombre_producto: pl?.nombre_producto || "",
       descripcion: "",
       tipo_producto: pres.toLowerCase().includes("tambor") || pres.toLowerCase().includes("granel") ? "Granel" : "Empacado",
-      empaque: pres,
+      empaque: empaqueEtiqueta(codigo, pres, mapaEmp),
       tipo_aviso: nl.aviso,
       cantidad_solicitada: pl?.cantidad_solicitada ?? null,
       cantidad_recibida: nl.recibida === "" ? null : Number(nl.recibida),
@@ -801,7 +804,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.tipo_producto)}</td>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.codigo_producto)}</td>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.nombre_producto)}</td>
-        <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.empaque)}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd">${esc(empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp))}</td>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.tipo_aviso)}</td>
         <td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${l.cantidad_solicitada ?? ""}</td>
         <td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${l.cantidad_recibida ?? ""}</td>
@@ -987,7 +990,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                         <TableCell className="text-xs">{l.tipo_producto || "—"}</TableCell>
                         <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate" title={l.nombre_producto || ""}>{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-xs">{l.empaque || "—"}</TableCell>
+                        <TableCell className="text-xs">{empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp) || "—"}</TableCell>
                         <TableCell className="text-xs">{l.tipo_aviso || "—"}</TableCell>
                         <TableCell className="text-right text-xs">{l.cantidad_solicitada ?? "—"}</TableCell>
                         <TableCell className="text-right text-xs">{l.cantidad_recibida ?? "—"}</TableCell>
