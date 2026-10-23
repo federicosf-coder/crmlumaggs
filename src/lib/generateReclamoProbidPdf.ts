@@ -43,7 +43,7 @@ export async function fetchMapaProductos(): Promise<Record<string, string>> {
   const { data: prods } = await supabase.from("productos").select("codigo, nombre_producto");
   const out: Record<string, string> = {};
   for (const p of prods || []) {
-    if (p.nombre && p.codigo) out[String(p.codigo).trim().toUpperCase()] = p.nombre;
+    if (p.nombre_producto && p.codigo) out[String(p.codigo).trim().toUpperCase()] = p.nombre_producto;
   }
   return out;
 }
