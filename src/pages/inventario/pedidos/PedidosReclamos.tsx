@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReclamoCorreoDialog } from "@/components/inventario/ReclamoCorreoDialog";
 import { generateReclamoProbidPdf, fetchMapaEmpaques, empaqueEtiqueta } from "@/lib/generateReclamoProbidPdf";
+import { confirmacionFacturacion, etiquetaFacturacion } from "@/lib/reclamoFacturacion";
 import { toast } from "sonner";
 import { Plus, Upload, Trash2, Mail, FileText, Pencil } from "lucide-react";
 import { useReclamos } from "@/hooks/usePedidosInventario";
@@ -328,6 +329,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
       unidad: l.presentacion?.toLowerCase().includes("tambor") ? "Litros" : "Piezas",
       unidad_otro: "",
       detalle_reclamacion: "",
+      facturar_intercambiado: null,
     }]);
   };
 
@@ -379,6 +381,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
         diferencia: Number(l.diferencia),
         unidad: l.unidad === "otro" ? l.unidad_otro || "Piezas" : l.unidad,
         detalle_reclamacion: l.detalle_reclamacion || "",
+        facturar_intercambiado: confirmacionFacturacion(l.facturar_intercambiado),
       })));
 
       if (facturaSel) {
@@ -528,6 +531,8 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
                             <SelectContent>
                               <SelectItem value="Faltante">Faltante</SelectItem>
                               <SelectItem value="Dañado">Dañado</SelectItem>
+                              <SelectItem value="Sobrante">Sobrante</SelectItem>
+                              <SelectItem value="Intercambiado">Intercambiado</SelectItem>
                               <SelectItem value="otro">Otro…</SelectItem>
                             </SelectContent>
                           </Select>
@@ -536,6 +541,13 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
                       </div>
                     </div>
 
+                    <div className="flex flex-wrap items-center gap-3 border-t p-3">
+                      <Label className="text-xs text-muted-foreground">Confirmar si el producto intercambiado, sobrante le sea facturado.</Label>
+                      <Select value={confirmacionFacturacion(l.facturar_intercambiado) || "pendiente"} onValueChange={(v) => updLinea(idx, "facturar_intercambiado", confirmacionFacturacion(v))}>
+                        <SelectTrigger className="h-8 w-36" aria-label={`Facturar producto ${l.codigo_producto}`}><SelectValue /></SelectTrigger>
+                        <SelectContent><SelectItem value="pendiente">Sin confirmar</SelectItem><SelectItem value="si">Sí</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                      </Select>
+                    </div>
                     <div className="grid min-w-0 grid-cols-2 gap-3 border-t p-3 sm:grid-cols-4 md:grid-cols-[repeat(4,minmax(0,1fr))_2.5rem]">
                       <div className="min-w-0">
                         <Label className={labelCls}>Cant. solicitada</Label>
@@ -793,6 +805,14 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     toast.success("Producto quitado");
   };
 
+  const guardarFacturacion = async (linea: any, value: string) => {
+    const respuesta = confirmacionFacturacion(value);
+    const { error } = await (supabase as any).from("inv_reclamo_lineas").update({ facturar_intercambiado: respuesta }).eq("id", linea.id).eq("reclamo_id", id);
+    if (error) { toast.error(error.message); return; }
+    setData({ ...data, lineas: data.lineas.map((l: any) => l.id === linea.id ? { ...l, facturar_intercambiado: respuesta } : l) });
+    toast.success("Confirmación guardada");
+  };
+
   const guardarResolucion = async () => {
     await (supabase as any).from("inv_reclamos").update({ resolucion }).eq("id", id);
     toast.success("Resolución guardada");
@@ -1008,6 +1028,13 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                         <TableCell colSpan={editando ? 10 : 9} className="bg-muted/30">
                           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Detalle de la reclamación</div>
                           <div className="text-xs whitespace-pre-wrap mt-0.5">{l.detalle_reclamacion || "—"}</div>
+                          <div className="mt-2 flex flex-wrap items-center gap-3">
+                            <Label className="text-xs text-muted-foreground">Confirmar si el producto intercambiado, sobrante le sea facturado.</Label>
+                            {editando ? <Select value={confirmacionFacturacion(l.facturar_intercambiado) || "pendiente"} onValueChange={(v) => guardarFacturacion(l, v)}>
+                              <SelectTrigger className="h-8 w-36" aria-label={`Facturar producto ${l.codigo_producto}`}><SelectValue /></SelectTrigger>
+                              <SelectContent><SelectItem value="pendiente">Sin confirmar</SelectItem><SelectItem value="si">Sí</SelectItem><SelectItem value="no">No</SelectItem></SelectContent>
+                            </Select> : <span className="text-xs font-medium">{etiquetaFacturacion(l.facturar_intercambiado)}</span>}
+                          </div>
                         </TableCell>
                       </TableRow>
                       </Fragment>

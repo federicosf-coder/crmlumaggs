@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import { supabase } from "@/integrations/supabase/client";
 import { CHEVRON_LOGO_PNG } from "@/lib/chevronLogo";
+import { etiquetaFacturacion } from "@/lib/reclamoFacturacion";
 
 /** Formato oficial Chevron «Aviso de Reclamo PROBID»: datos generales una vez,
  *  un bloque por producto y todas las evidencias (fotos y PDFs) pegadas al final. */
@@ -62,7 +63,9 @@ export interface ReclamoPdfResult { blob: Blob; fileName: string; embebidos: str
 
 /** `embebidos` = url_archivo de las evidencias que quedaron pegadas dentro del PDF. */
 export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], archivos: any[]): Promise<ReclamoPdfResult> {
-  const doc = new jsPDF({ unit: "mm", format: "letter" });
+  // Render all product blocks, then fit the form (not the evidence) to one landscape sheet.
+  const formHeight = Math.max(215.9, 110 + Math.max(1, lineas.length) * 29 + 48);
+  const doc = new jsPDF({ unit: "mm", format: [279.4, formHeight], orientation: formHeight > 279.4 ? "portrait" : "landscape" });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const M = 14;
@@ -73,8 +76,9 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     doc.rect(x, y, w, h, "FD");
     if (value) {
       doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(0);
-      const line = doc.splitTextToSize(value, w - 2)[0] || "";
-      doc.text(line, align === "right" ? x + w - 1 : x + 1, y + h - 1.4, { align });
+      let size = 8.5;
+      while (doc.getTextWidth(value) > w - 2 && size > 4) { size -= 0.25; doc.setFontSize(size); }
+      doc.text(value, align === "right" ? x + w - 1 : x + 1, y + h - 1.4, { align });
     }
   };
   const etiqueta = (s: string, x: number, y: number, size = 8.5) => {
@@ -95,10 +99,10 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   const factura = f?.folio ? `${f.folio}${f.fecha ? ` · ${fmtFecha(f.fecha)}` : ""}` : "";
   let y = 30;
   etiqueta("Nombre de Cliente:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.cliente_nombre));
-  etiqueta("Fecha de Reclamo:", 113, y + 3.6, 8); caja(156, y, W - M - 156, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
+  etiqueta("Fecha de Reclamo:", 145, y + 3.6, 8); caja(202, y, W - M - 202, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
   y += 8;
   etiqueta("No. Pedido en Factura:", M, y + 3.6, 8); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.no_pedido_factura || reclamo.inv_pedidos?.numero_po_interno));
-  etiqueta("Fecha de Recepción del producto:", 113, y + 3.6, 7); caja(156, y, W - M - 156, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
+  etiqueta("Fecha de Recepción del producto:", 145, y + 3.6, 7); caja(202, y, W - M - 202, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
   y += 8;
   etiqueta("Factura:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, factura);
   y += 10;
@@ -112,7 +116,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
 
   // ---- Un bloque por producto ----
   const RH = 5; // alto de fila
-  const xL = M, wL = 30, xV = M + 30, wV = 66, xL2 = xV + wV + 4, wL2 = 32, xV2 = xL2 + wL2, wV2 = 36, xU = xV2 + wV2, wU = W - M - xU;
+  const xL = M, wL = 32, xV = M + 32, wV = 95, xL2 = xV + wV + 4, wL2 = 36, xV2 = xL2 + wL2, wV2 = 48, xU = xV2 + wV2, wU = W - M - xU;
   const bloque = (l: any) => {
     const filas: [string, string, string, string, [number, number, number]][] = [
       ["Tipo de Producto", txt(l.tipo_producto), "Tipo de aviso", txt(l.tipo_aviso), AZUL],
@@ -131,16 +135,17 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.text("Unidad", xU + wU / 2, y + 3.6, { align: "center" });
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
     doc.text(txt(l.unidad), xU + 1.5, y + RH * 4 - 1.4);
-    y += RH * 4 + 4;
+    y += RH * 4;
+    caja(M, y, W - 2 * M - 30, RH, GRIS, "Confirmar si el producto intercambiado, sobrante le sea facturado.");
+    caja(W - M - 30, y, 30, RH, AZUL, etiquetaFacturacion(l.facturar_intercambiado));
+    y += RH + 4;
   };
   for (const l of lineas) {
-    if (y + RH * 4 > H - 40) { doc.addPage(); encabezado(); y = 30; }
     bloque(l);
   }
   if (!lineas.length) { doc.setFontSize(9); doc.text("Sin productos capturados.", M, y + 4); y += 10; }
 
   // ---- Recolección y pie ----
-  if (y > H - 45) { doc.addPage(); encabezado(); y = 30; }
   y += 2;
   etiqueta("En caso de devolución indique el domicilio de recolección:", M, y + 3.6, 8);
   doc.setFillColor(...AZUL); doc.rect(xL2 - 4, y, W - M - xL2 + 4, 15, "F");
@@ -168,9 +173,9 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     if (esPdf(a)) { pdfs.push({ nombre: a.nombre_archivo, bytes: await blob.arrayBuffer(), path: a.url_archivo }); continue; }
     const img = await imagenAJpeg(blob);
     if (!img) { otros.push(a.nombre_archivo); continue; }
-    doc.addPage(); encabezado();
+    doc.addPage("letter", "landscape"); encabezado();
     etiqueta(`Evidencia: ${a.nombre_archivo}`, M, 30, 9);
-    const maxW = W - 2 * M, maxH = H - 34 - M;
+    const maxW = W - 2 * M, maxH = 215.9 - 34 - M;
     const k = Math.min(maxW / img.w, maxH / img.h);
     const w = img.w * k, h = img.h * k;
     doc.addImage(img.data, "JPEG", M + (maxW - w) / 2, 34, w, h);
@@ -181,9 +186,17 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     doc.text(`Otros archivos enviados como adjuntos: ${otros.join(", ")}`, M, H - 12, { maxWidth: W - 2 * M });
   }
 
-  let bytes: ArrayBuffer | Uint8Array = doc.output("arraybuffer");
+  const rendered = await PDFDocument.load(doc.output("arraybuffer"));
+  const out = await PDFDocument.create();
+  const [form] = await out.embedPages([rendered.getPage(0)]);
+  const page = out.addPage([792, 612]); // Letter landscape, regardless of product count.
+  const scale = Math.min(792 / form.width, 612 / form.height);
+  page.drawPage(form, { x: (792 - form.width * scale) / 2, y: (612 - form.height * scale) / 2, width: form.width * scale, height: form.height * scale });
+  if (rendered.getPageCount() > 1) {
+    const evidence = await out.copyPages(rendered, rendered.getPageIndices().slice(1));
+    evidence.forEach((pg) => out.addPage(pg));
+  }
   if (pdfs.length) {
-    const out = await PDFDocument.load(bytes);
     for (const p of pdfs) {
       try {
         const src = await PDFDocument.load(p.bytes, { ignoreEncryption: true });
@@ -192,8 +205,8 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
         embebidos.push(p.path);
       } catch { /* PDF protegido o dañado: se envía como adjunto suelto */ }
     }
-    bytes = await out.save();
   }
+  const bytes = await out.save();
   const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
   return { blob, fileName: `Aviso_Reclamo_${txt(reclamo.token_correo) || "reclamo"}.pdf`, embebidos };
 }
