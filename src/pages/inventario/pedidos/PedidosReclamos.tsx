@@ -762,6 +762,8 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       fecha_reclamo: ed.fecha_reclamo || null,
       fecha_recepcion: ed.fecha_recepcion || null,
       descripcion: ed.descripcion.trim() || null,
+      remitente_nombre: ed.remitente_nombre.trim() || null,
+      remitente_email: ed.remitente_email.trim() || null,
     };
     const { error } = await (supabase as any).from("inv_reclamos").update(update).eq("id", id);
     setGuardandoEd(false);
