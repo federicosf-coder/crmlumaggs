@@ -930,6 +930,13 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                 <div><Label className={labelCls}>No. Pedido en Factura</Label><Input value={ed.no_pedido_factura} onChange={(e) => setEd({ ...ed, no_pedido_factura: e.target.value })} /></div>
                 <div><Label className={labelCls}>Fecha de reclamo</Label><Input type="date" value={ed.fecha_reclamo} onChange={(e) => setEd({ ...ed, fecha_reclamo: e.target.value })} /></div>
                 <div><Label className={labelCls}>Fecha de recepción</Label><Input type="date" value={ed.fecha_recepcion} onChange={(e) => setEd({ ...ed, fecha_recepcion: e.target.value })} /></div>
+                <div><div className={labelCls}>Pedido</div><div className="font-mono text-xs py-1.5">{r.inv_pedidos?.numero_po_interno || "—"}</div></div>
+                <div><div className={labelCls}>Factura</div><div className="text-xs py-1.5">{r.chevron_facturas_recibidas?.folio ? `Folio ${r.chevron_facturas_recibidas.folio} · ${fmtFecha(r.chevron_facturas_recibidas.fecha)}` : "—"}</div></div>
+                <div><div className={labelCls}>Enviado por</div><div className="text-xs py-1.5">{r.remitente_nombre || "—"}<br/><span className="text-muted-foreground">{r.remitente_email || ""}</span></div></div>
+                <div><div className={labelCls}>Estatus</div><div className="py-1.5"><Badge className={estatusReclamoColor(r.estatus)}>{ESTATUS_LABEL[r.estatus] || r.estatus}</Badge></div></div>
+                <div className="col-span-2"><div className={labelCls}>Domicilio de recolección (en caso de devolución)</div><div className="text-xs py-1.5">{r.domicilio_recoleccion || "—"}</div></div>
+                <div><div className={labelCls}>Contacto</div><div className="text-xs py-1.5">Federico Sariñana</div></div>
+                <div><div className={labelCls}>Correo</div><div className="text-xs py-1.5">f.sarinanaf@lumaggs.com.mx</div></div>
                 <div className="col-span-2"><Label className={labelCls}>Descripción</Label><Textarea value={ed.descripcion} onChange={(e) => setEd({ ...ed, descripcion: e.target.value })} /></div>
               </div>
             ) : (
