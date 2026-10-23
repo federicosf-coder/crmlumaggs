@@ -96,7 +96,11 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
           if (downloadError || !blob) throw new Error(`No se pudo comprobar ${file.nombre_archivo}`);
           measured[fileKey(file)] = blob.size;
         }));
+        const generado = await generateReclamoProbidPdf(reclamo, lineas, archivos);
         if (!active) return;
+        setPdf(generado);
+        // Lo que ya quedó pegado dentro del formato no se vuelve a adjuntar suelto.
+        setSelected(archivos.filter((a) => !generado.embebidos.includes(a.url_archivo)).map(fileKey));
         setTo(uniqueEmails(emailsFor(names[0])));
         setCc(uniqueEmails([...emailsFor(names[1]), ...emailsFor(names[2]), auth.user.email]));
         setReplyTo(uniqueEmails([auth.user.email, BUZON]));
@@ -150,6 +154,9 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
         attachments.push({ filename: file.nombre_archivo, content });
         metadata.push({ nombre: file.nombre_archivo, path: file.url_archivo, tipo: file.tipo_archivo || blob.type, tamano: blob.size });
       }
+      if (!pdf) throw new Error("El formato PDF aún no está listo");
+      attachments.unshift({ filename: pdf.fileName, content: await blobToBase64(pdf.blob) });
+      metadata.unshift({ nombre: pdf.fileName, path: null, tipo: "application/pdf", tamano: pdf.blob.size });
       deliveryStarted = true;
       const { data: result, error } = await supabase.functions.invoke("send-email", { body: {
         from: `Lumaggs Reclamos <${BUZON}>`, to: uniqueEmails(to), cc: uniqueEmails(cc), reply_to: uniqueEmails(replyTo), subject: finalSubject, html: finalHtml, attachments,
@@ -203,6 +210,12 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
         </Tabs>
         <div className="space-y-2">
           <Label className="text-xs uppercase text-muted-foreground">Adjuntos</Label>
+          <div className="flex items-center gap-2 text-sm">
+            <Checkbox checked disabled />
+            <span className="min-w-0 flex-1 break-all font-normal">{pdf?.fileName || "Formato oficial Aviso de Reclamo PROBID (PDF)"} <span className="text-xs text-muted-foreground">· formato Chevron con fotos y PDFs pegados</span></span>
+            <span className="shrink-0 text-xs text-muted-foreground">{pdf ? `${(pdf.blob.size / 1024 / 1024).toFixed(2)} MB` : "…"}</span>
+          </div>
+          {archivos.length > 0 && <p className="text-xs text-muted-foreground">Archivos sueltos (las fotos y PDFs ya van dentro del formato):</p>}
           {archivos.map((file) => <label key={fileKey(file)} className="flex items-center gap-2 text-sm">
             <Checkbox disabled={loading || sending || sent} checked={selected.includes(fileKey(file))} onCheckedChange={(checked) => setSelected((prev) => checked === true ? [...prev, fileKey(file)] : prev.filter((key) => key !== fileKey(file)))} />
             <span className="min-w-0 flex-1 break-all">{file.nombre_archivo}</span><span className="shrink-0 text-xs text-muted-foreground">{((sizes[fileKey(file)] || 0) / 1024 / 1024).toFixed(2)} MB</span>
