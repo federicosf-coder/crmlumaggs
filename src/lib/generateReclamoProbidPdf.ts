@@ -40,7 +40,7 @@ export async function fetchMapaEmpaques(): Promise<Record<string, string>> {
 
 /** Mapa código de producto → nombre oficial según el catálogo de productos (admin → Productos). */
 export async function fetchMapaProductos(): Promise<Record<string, string>> {
-  const { data: prods } = await supabase.from("productos").select("codigo, nombre");
+  const { data: prods } = await supabase.from("productos").select("codigo, nombre_producto");
   const out: Record<string, string> = {};
   for (const p of prods || []) {
     if (p.nombre && p.codigo) out[String(p.codigo).trim().toUpperCase()] = p.nombre;
