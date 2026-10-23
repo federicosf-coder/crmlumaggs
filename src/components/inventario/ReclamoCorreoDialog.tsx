@@ -11,6 +11,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, X } from "lucide-react";
 import { toast } from "sonner";
+import { generateReclamoProbidPdf, type ReclamoPdfResult } from "@/lib/generateReclamoProbidPdf";
+
+const blobToBase64 = (blob: Blob) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onerror = () => reject(new Error("No se pudo leer el adjunto"));
+  reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+  reader.readAsDataURL(blob);
+});
 
 interface Props {
   open: boolean;
@@ -53,7 +61,7 @@ function EmailChips({ label, value, onChange, disabled }: { label: string; value
   </div>;
 }
 
-export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, html, onSent }: Props) {
+export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, lineas, archivos, html, onSent }: Props) {
   const [to, setTo] = useState<string[]>([]);
   const [cc, setCc] = useState<string[]>([]);
   const [replyTo, setReplyTo] = useState<string[]>([]);
@@ -66,12 +74,13 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
   const [loadError, setLoadError] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [pdf, setPdf] = useState<ReclamoPdfResult | null>(null);
 
   useEffect(() => {
     if (!open || !reclamo?.id) return;
     let active = true;
     setLoading(true); setLoadError(""); setSent(false);
-    setTo([]); setCc([]); setReplyTo([]); setSizes({});
+    setTo([]); setCc([]); setReplyTo([]); setSizes({}); setPdf(null);
     setEditedHtml(html); setIntro("");
     setSelected(archivos.map(fileKey));
     const fecha = reclamo.fecha_reclamo ? new Date(`${String(reclamo.fecha_reclamo).slice(0, 10)}T00:00:00`).toLocaleDateString("es-MX") : "";
@@ -96,7 +105,11 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
           if (downloadError || !blob) throw new Error(`No se pudo comprobar ${file.nombre_archivo}`);
           measured[fileKey(file)] = blob.size;
         }));
+        const generado = await generateReclamoProbidPdf(reclamo, lineas, archivos);
         if (!active) return;
+        setPdf(generado);
+        // Lo que ya quedó pegado dentro del formato no se vuelve a adjuntar suelto.
+        setSelected(archivos.filter((a) => !generado.embebidos.includes(a.url_archivo)).map(fileKey));
         setTo(uniqueEmails(emailsFor(names[0])));
         setCc(uniqueEmails([...emailsFor(names[1]), ...emailsFor(names[2]), auth.user.email]));
         setReplyTo(uniqueEmails([auth.user.email, BUZON]));
@@ -114,7 +127,7 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
     const message = `<div style="white-space:pre-wrap;font-family:Arial,Helvetica,sans-serif;margin-bottom:16px">${escapeHtml(intro)}</div>`;
     return /<body\b[^>]*>/i.test(editedHtml) ? editedHtml.replace(/<body\b[^>]*>/i, (tag) => tag + message) : message + editedHtml;
   }, [editedHtml, intro]);
-  const totalBytes = selected.reduce((total, key) => total + (sizes[key] || 0), 0);
+  const totalBytes = selected.reduce((total, key) => total + (sizes[key] || 0), pdf?.blob.size || 0);
 
   const send = async () => {
     if (sending || sent || loading || loadError) return;
@@ -135,7 +148,7 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
       if (authError || !auth.user) throw new Error("Inicia sesión para enviar el correo");
       userId = auth.user.id;
       const attachments: { filename: string; content: string }[] = [];
-      let actualBytes = 0;
+      let actualBytes = pdf?.blob.size || 0;
       for (const file of archivos.filter((a) => selected.includes(fileKey(a)))) {
         const { data: blob, error } = await supabase.storage.from("inventario-reclamos").download(file.url_archivo);
         if (error || !blob) throw new Error(`No se pudo descargar ${file.nombre_archivo}`);
@@ -150,6 +163,9 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
         attachments.push({ filename: file.nombre_archivo, content });
         metadata.push({ nombre: file.nombre_archivo, path: file.url_archivo, tipo: file.tipo_archivo || blob.type, tamano: blob.size });
       }
+      if (!pdf) throw new Error("El formato PDF aún no está listo");
+      attachments.unshift({ filename: pdf.fileName, content: await blobToBase64(pdf.blob) });
+      metadata.unshift({ nombre: pdf.fileName, path: null, tipo: "application/pdf", tamano: pdf.blob.size });
       deliveryStarted = true;
       const { data: result, error } = await supabase.functions.invoke("send-email", { body: {
         from: `Lumaggs Reclamos <${BUZON}>`, to: uniqueEmails(to), cc: uniqueEmails(cc), reply_to: uniqueEmails(replyTo), subject: finalSubject, html: finalHtml, attachments,
@@ -187,7 +203,7 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
     <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col overflow-hidden p-0">
       <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-violet-50 to-blue-50 px-5 py-4 dark:from-violet-950/30 dark:to-blue-950/30"><DialogTitle className="text-lg font-semibold">Enviar aviso de reclamo</DialogTitle></DialogHeader>
       <div className="flex-1 overflow-y-auto space-y-5 px-5 py-5 font-light">
-        {loading && <p className="text-sm text-muted-foreground">Preparando destinatarios y adjuntos…</p>}
+        {loading && <p className="text-sm text-muted-foreground">Preparando destinatarios y formato oficial con evidencias…</p>}
         {loadError && <p role="alert" className="text-sm text-destructive">{loadError}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
           <EmailChips label="Para" value={to} onChange={setTo} disabled={loading || sending || sent} />
@@ -203,6 +219,12 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
         </Tabs>
         <div className="space-y-2">
           <Label className="text-xs uppercase text-muted-foreground">Adjuntos</Label>
+          <div className="flex items-center gap-2 text-sm">
+            <Checkbox checked disabled />
+            <span className="min-w-0 flex-1 break-all font-normal">{pdf?.fileName || "Formato oficial Aviso de Reclamo PROBID (PDF)"} <span className="text-xs text-muted-foreground">· formato Chevron con fotos y PDFs pegados</span></span>
+            <span className="shrink-0 text-xs text-muted-foreground">{pdf ? `${(pdf.blob.size / 1024 / 1024).toFixed(2)} MB` : "…"}</span>
+          </div>
+          {archivos.length > 0 && <p className="text-xs text-muted-foreground">Archivos sueltos (las fotos y PDFs ya van dentro del formato):</p>}
           {archivos.map((file) => <label key={fileKey(file)} className="flex items-center gap-2 text-sm">
             <Checkbox disabled={loading || sending || sent} checked={selected.includes(fileKey(file))} onCheckedChange={(checked) => setSelected((prev) => checked === true ? [...prev, fileKey(file)] : prev.filter((key) => key !== fileKey(file)))} />
             <span className="min-w-0 flex-1 break-all">{file.nombre_archivo}</span><span className="shrink-0 text-xs text-muted-foreground">{((sizes[fileKey(file)] || 0) / 1024 / 1024).toFixed(2)} MB</span>
