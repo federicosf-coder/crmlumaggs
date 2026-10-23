@@ -50,7 +50,7 @@ export function generateReclamosResumenPdf(reclamos: ReclamoResumenFila[], empaq
     styles: { fontSize: 9, cellPadding: 4, overflow: "linebreak", lineWidth: 0.4, lineColor: [214, 222, 231], textColor: [30, 40, 55] },
     headStyles: { fillColor: [56, 84, 186], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [243, 246, 250] },
-    columnStyles: { 0: { cellWidth: 75 }, 1: { cellWidth: 60 }, 2: { cellWidth: 40 }, 3: { cellWidth: 60 }, 4: { cellWidth: 75 }, 5: { cellWidth: 55 }, 6: { cellWidth: 55 }, 7: { cellWidth: 130 }, 8: { cellWidth: 55 }, 9: { cellWidth: 51 } },
+    columnStyles: { 0: { cellWidth: 85 }, 1: { cellWidth: 70 }, 2: { cellWidth: 50 }, 3: { cellWidth: 80 }, 4: { cellWidth: 85 }, 5: { cellWidth: 65 }, 6: { cellWidth: 60 }, 7: { cellWidth: 135 }, 8: { cellWidth: 65 }, 9: { cellWidth: 61 } },
     didDrawPage: () => {
       doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(56, 84, 186);
       doc.text("Resumen de reclamos de pedidos", 18, 32);
