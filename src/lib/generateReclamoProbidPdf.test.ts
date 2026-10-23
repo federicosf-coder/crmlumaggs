@@ -21,6 +21,19 @@ describe("empaqueEtiqueta", () => {
   });
 });
 
+describe("nombreProductoEtiqueta", () => {
+  it("usa el nombre del catálogo de Productos cuando hay mapa", () => {
+    const mapa = { "273271981": "DELO 400 XLE SAE 15W-40" };
+    expect(nombreProductoEtiqueta("273271981", "capturado", mapa)).toBe("DELO 400 XLE SAE 15W-40");
+  });
+
+  it("regresa lo capturado si el código no está en el catálogo", () => {
+    expect(nombreProductoEtiqueta("X1", "DELO 400 XLE", { "ABC": "Otro" })).toBe("DELO 400 XLE");
+    expect(nombreProductoEtiqueta("X1", "DELO 400 XLE", undefined)).toBe("DELO 400 XLE");
+    expect(nombreProductoEtiqueta("", "", { "ABC": "Otro" })).toBe("");
+  });
+});
+
 describe("hoja oficial de reclamo", () => {
   it.each([1, 3, 10])("mantiene %i productos en una sola hoja carta vertical", async (cantidad) => {
     const lineas = Array.from({ length: cantidad }, (_, i) => ({ codigo_producto: `P${i}`, nombre_producto: "DELO 400 XLE", cantidad_solicitada: 50, cantidad_recibida: 45, diferencia: 5, facturar_intercambiado: i % 2 ? "si" : "no" }));
