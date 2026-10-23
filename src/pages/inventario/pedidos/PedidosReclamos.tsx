@@ -215,7 +215,7 @@ export default function PedidosReclamos() {
                   <TableCell className="text-xs">{r.chevron_facturas_recibidas?.folio ? `Folio ${r.chevron_facturas_recibidas.folio} · ${fmtFecha(r.chevron_facturas_recibidas.fecha)}` : "—"}</TableCell>
                   <TableCell className="text-xs">{r.plaza || "—"}</TableCell>
                   <TableCell className="text-xs font-medium">{r.cliente_nombre || "LUMAGGS"}</TableCell>
-                  <TableCell className="font-mono text-xs">{r.no_pedido_factura || "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{r.inv_pedidos?.numero_po_interno || r.no_pedido_factura || "—"}</TableCell>
                   <TableCell><IdReclamoCell reclamo={r} /></TableCell>
                   <TableCell className="text-xs">{fmtFecha(r.fecha_reclamo)}</TableCell>
                   <TableCell>
@@ -735,7 +735,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
     setEd({
       plaza: r?.plaza || "",
       cliente_nombre: r?.cliente_nombre || "",
-      no_pedido_factura: r?.no_pedido_factura || "",
+      no_pedido_factura: r?.no_pedido_factura || r?.inv_pedidos?.numero_po_interno || "",
       fecha_reclamo: (r?.fecha_reclamo || "").slice(0, 10),
       fecha_recepcion: (r?.fecha_recepcion || "").slice(0, 10),
       descripcion: r?.descripcion || "",
@@ -846,7 +846,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
         <p style="color:#777;font-size:12px;margin:0 0 14px">LUMAGGS · Enviado por ${esc(r.remitente_nombre)} (${esc(r.remitente_email)})</p>
         <table style="border-collapse:collapse;font-size:13px;margin-bottom:16px">
           <tr><td style="padding:4px 12px 4px 0;color:#888">No. Pedido (PO interno)</td><td><b>${esc(r.inv_pedidos?.numero_po_interno)}</b></td></tr>
-          <tr><td style="padding:4px 12px 4px 0;color:#888">No. Pedido en Factura</td><td><b>${esc(r.no_pedido_factura)}</b></td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#888">No. Pedido en Factura</td><td><b>${esc(r.inv_pedidos?.numero_po_interno || r.no_pedido_factura)}</b></td></tr>
           <tr><td style="padding:4px 12px 4px 0;color:#888">Factura</td><td>${r.chevron_facturas_recibidas?.folio ? `Folio ${esc(r.chevron_facturas_recibidas.folio)} · ${esc(fmtFecha(r.chevron_facturas_recibidas.fecha))}` : "—"}</td></tr>
           <tr><td style="padding:4px 12px 4px 0;color:#888">Plaza</td><td>${esc(r.plaza || "—")}</td></tr>
           <tr><td style="padding:4px 12px 4px 0;color:#888">Fecha de reclamo</td><td>${fmtFecha(r.fecha_reclamo)}</td></tr>
@@ -947,7 +947,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
               <div><div className={labelCls}>Plaza</div><div>{r.plaza || "—"}</div></div>
               <div><div className={labelCls}>Cliente</div><div>{r.cliente_nombre || "LUMAGGS"}</div></div>
               <div><div className={labelCls}>Pedido</div><div className="font-mono text-xs">{r.inv_pedidos?.numero_po_interno || "—"}</div></div>
-              <div><div className={labelCls}>No. Pedido en Factura</div><div className="font-mono text-xs">{r.no_pedido_factura || "—"}</div></div>
+              <div><div className={labelCls}>No. Pedido en Factura</div><div className="font-mono text-xs">{r.inv_pedidos?.numero_po_interno || r.no_pedido_factura || "—"}</div></div>
               <div><div className={labelCls}>Factura</div><div className="text-xs">{r.chevron_facturas_recibidas?.folio ? `Folio ${r.chevron_facturas_recibidas.folio} · ${fmtFecha(r.chevron_facturas_recibidas.fecha)}` : "—"}</div></div>
               <div><div className={labelCls}>Fecha de reclamo</div><div>{fmtFecha(r.fecha_reclamo)}</div></div>
               <div><div className={labelCls}>Fecha de recepción</div><div>{fmtFecha(r.fecha_recepcion)}</div></div>
