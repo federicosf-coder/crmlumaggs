@@ -80,11 +80,11 @@ export interface ReclamoPdfResult { blob: Blob; fileName: string; embebidos: str
 /** `embebidos` = url_archivo de las evidencias que quedaron pegadas dentro del PDF. */
 export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], archivos: any[]): Promise<ReclamoPdfResult> {
   // Render all product blocks, then fit the form (not the evidence) to one portrait letter sheet.
-  const formHeight = Math.max(279.4, 110 + Math.max(1, lineas.length) * 29 + 48);
+  const formHeight = Math.max(279.4, 100 + Math.max(1, lineas.length) * 24 + 48);
   const doc = new jsPDF({ unit: "mm", format: [215.9, formHeight], orientation: "portrait" });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
-  const M = 14;
+  const M = 6; // márgenes mínimos para impresión carta
   const mapaEmp = await fetchMapaEmpaques();
   const mapaProd = await fetchMapaProductos();
 
@@ -102,11 +102,18 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     doc.setFont("helvetica", "bold"); doc.setFontSize(size); doc.setTextColor(0); doc.text(s, x, y);
   };
 
+  // Columnas proporcionales al formato oficial (Hoja de reclamo), a todo el ancho útil.
+  const k = (W - 2 * M) / 993;
+  const xL = M, wL = 116 * k, xV = xL + wL, wV = 269 * k;
+  const xL2 = xV + wV + 48 * k, wL2 = 173 * k, xV2 = xL2 + wL2, wV2 = 175 * k;
+  const xU = xV2 + wV2, wU = 55 * k, xC = xU + wU, wC = 106 * k, xB = xC + wC, wB = W - M - xB;
+
   const encabezado = (w = W) => {
-    doc.addImage(CHEVRON_LOGO_PNG, "PNG", M, 10, 15, 13.8);
-    doc.setFillColor(...BARRA); doc.rect(M + 20, 12, w - 2 * M - 20, 9, "F");
+    doc.addImage(CHEVRON_LOGO_PNG, "PNG", M + 4, 8, 15, 13.8);
+    const bx = xV, bw = (w === W ? xU + wU : w - M) - bx;
+    doc.setFillColor(...BARRA); doc.rect(bx, 10, bw, 7, "F");
     doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(255, 255, 255);
-    doc.text("AVISO DE RECLAMO PROBID", M + 20 + (w - 2 * M - 20) / 2, 18.4, { align: "center" });
+    doc.text("AVISO DE RECLAMO PROBID", bx + bw / 2, 15.2, { align: "center" });
     doc.setTextColor(0);
   };
 
@@ -114,26 +121,26 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   encabezado();
   const f = reclamo.chevron_facturas_recibidas;
   const factura = f?.folio ? `${f.folio}${f.fecha ? ` · ${fmtFecha(f.fecha)}` : ""}` : "";
-  let y = 30;
-  etiqueta("Nombre de Cliente:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.cliente_nombre));
-  etiqueta("Fecha de Reclamo:", 118, y + 3.6, 8); caja(160, y, W - M - 160, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
-  y += 8;
-  etiqueta("No. Pedido en Factura:", M, y + 3.6, 8); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.no_pedido_factura || reclamo.inv_pedidos?.numero_po_interno));
-  etiqueta("Fecha de Recepción del producto:", 118, y + 3.6, 6); caja(160, y, W - M - 160, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
-  y += 8;
-  etiqueta("Factura:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, factura);
-  y += 10;
+  const pedido = txt(reclamo.inv_pedidos?.numero_po_interno || reclamo.no_pedido_factura);
+  let y = 26;
+  etiqueta("Nombre de Cliente:", M, y + 3.6, 8); caja(xV, y, wV, 4.5, AZUL, txt(reclamo.cliente_nombre));
+  etiqueta("Fecha de Reclamo:", xL2, y + 3.6, 8); caja(xV2, y, wV2, 4.5, AZUL, fmtFecha(reclamo.fecha_reclamo));
+  y += 7;
+  etiqueta("No. Pedido en Factura:", M, y + 3.6, 8); caja(xV, y, wV, 4.5, AZUL, pedido);
+  etiqueta("Fecha de Recepción del producto:", xL2, y + 3.6, 7.5); caja(xV2, y, wV2, 4.5, AZUL, fmtFecha(reclamo.fecha_recepcion));
+  y += 7;
+  etiqueta("Factura:", M, y + 3.6, 8); caja(xV, y, wV, 4.5, AZUL, factura);
+  y += 9;
 
   doc.setFont("helvetica", "normal"); doc.setFontSize(8.6);
   const aviso = "Al recibir e inspeccionar la mercancía en un plazo máximo de 48 hrs posterior a la recepción, se identificaron los siguientes defectos/diferencias:";
-  const avisoLines = doc.splitTextToSize(aviso, W - 2 * M - 2);
-  doc.setFillColor(...ROSA); doc.rect(M, y, W - 2 * M, avisoLines.length * 4 + 1.5, "F");
+  const avisoLines = doc.splitTextToSize(aviso, xU + wU + wC - M - 2);
+  doc.setFillColor(...ROSA); doc.rect(M, y, xU + wU + wC - M, avisoLines.length * 4 + 1.5, "F");
   doc.text(avisoLines, M + 1, y + 3.6);
-  y += avisoLines.length * 4 + 5;
+  y += avisoLines.length * 4 + 4;
 
-  // ---- Un bloque por producto ----
-  const RH = 5; // alto de fila
-  const xL = M, wL = 30, xV = M + 30, wV = 58, xL2 = xV + wV + 4, wL2 = 34, xV2 = xL2 + wL2, wV2 = 42, xU = xV2 + wV2, wU = W - M - xU;
+  // ---- Un bloque por producto (confirmación de facturación a la derecha) ----
+  const RH = 4.2;
   const bloque = (l: any) => {
     const filas: [string, string, string, string, [number, number, number]][] = [
       ["Tipo de Producto", txt(l.tipo_producto), "Tipo de aviso", txt(l.tipo_aviso), AZUL],
@@ -143,19 +150,20 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     ];
     filas.forEach(([a, b, c, d, fill], i) => {
       const yy = y + i * RH;
-      caja(xL, yy, wL, RH, GRIS); etiqueta(a, xL + 1, yy + 3.6, 8);
+      caja(xL, yy, wL, RH, GRIS); etiqueta(a, xL + 0.8, yy + 3.1, 6.8);
       caja(xV, yy, wV, RH, AZUL, b);
-      caja(xL2, yy, wL2, RH, GRIS); etiqueta(c, xL2 + 1, yy + 3.6, 8);
+      caja(xL2, yy, wL2, RH, GRIS); etiqueta(c, xL2 + 0.8, yy + 3.1, 6.8);
       caja(xV2, yy, wV2, RH, fill, d, i === 0 ? "left" : "right");
     });
     doc.setDrawColor(0); doc.rect(xU, y, wU, RH * 4);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.text("Unidad", xU + wU / 2, y + 3.6, { align: "center" });
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
-    doc.text(txt(l.unidad), xU + 1.5, y + RH * 4 - 1.4);
-    y += RH * 4;
-    caja(M, y, W - 2 * M - 30, RH, GRIS, "Confirmar si el producto intercambiado, sobrante le sea facturado.");
-    caja(W - M - 30, y, 30, RH, AZUL, etiquetaFacturacion(l.facturar_intercambiado));
-    y += RH + 4;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(6.8); doc.text("Unidad", xU + wU / 2, y + 3.1, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(6.8);
+    doc.text(txt(l.unidad), xU + 0.8, y + RH * 4 - 1.2, { maxWidth: wU - 1 });
+    // Confirmación a la derecha del bloque, como en el formato oficial
+    doc.setFont("helvetica", "bold"); doc.setFontSize(4.6);
+    doc.text(["Confirmar si el producto", "intercambiado, sobrante le sea", "facturado"], xC + wC / 2, y + RH * 2 + 0.6, { align: "center" });
+    caja(xB, y + RH * 3, wB, RH, AZUL, etiquetaFacturacion(l.facturar_intercambiado));
+    y += RH * 4 + 3.5;
   };
   for (const l of lineas) {
     bloque(l);
@@ -163,14 +171,14 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   if (!lineas.length) { doc.setFontSize(9); doc.text("Sin productos capturados.", M, y + 4); y += 10; }
 
   // ---- Recolección y pie ----
-  y += 2;
-  etiqueta("En caso de devolución indique el domicilio de recolección:", M, y + 3.6, 8);
-  doc.setFillColor(...AZUL); doc.rect(xL2 - 4, y, W - M - xL2 + 4, 15, "F");
-  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
-  doc.text(doc.splitTextToSize(txt(reclamo.domicilio_recoleccion), W - M - xL2).slice(0, 3), xL2 - 3, y + 4);
-  etiqueta("Contacto:", M, y + 8.6, 8); caja(xV, y + 5, wV, 5, AZUL, "Federico Sariñana");
-  etiqueta("Correo:", M, y + 13.6, 8); caja(xV, y + 10, wV, 5, AZUL, "f.sarinanaf@lumaggs.com.mx");
-  y += 24;
+  y += 1;
+  etiqueta("En caso de devolución indique el domicilio de recolección:", M, y + 3, 6.8);
+  doc.setFillColor(...AZUL); doc.rect(xV + wV, y, xU - (xV + wV), 13, "F");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+  doc.text(doc.splitTextToSize(txt(reclamo.domicilio_recoleccion), xU - (xV + wV) - 2).slice(0, 3), xV + wV + 1, y + 3.5);
+  etiqueta("Contacto:", M, y + 7.5, 6.8); caja(xV, y + 4.5, wV, 4, AZUL, "Federico Sariñana");
+  etiqueta("Correo:", M, y + 11.5, 6.8); caja(xV, y + 8.5, wV, 4, AZUL, "f.sarinanaf@lumaggs.com.mx");
+  y += 22;
   etiqueta("ENVIAR FORMATO AL CORREO:", M + 20, y, 8);
   doc.setTextColor(230, 120, 50); doc.setFontSize(11); doc.text("cvxordenesmexico@chevron.com", xL2 - 4, y);
   y += 8;
