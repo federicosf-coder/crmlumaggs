@@ -138,7 +138,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     const filas: [string, string, string, string, [number, number, number]][] = [
       ["Tipo de Producto", txt(l.tipo_producto), "Tipo de aviso", txt(l.tipo_aviso), AZUL],
       ["Código de Producto", txt(l.codigo_producto), "Cantidad Solicitada:", txt(l.cantidad_solicitada), AZUL],
-      ["Descripción:", txt(l.nombre_producto || l.descripcion), "Cantidad Recibida:", txt(l.cantidad_recibida), AZUL],
+      ["Descripción:", nombreProductoEtiqueta(l.codigo_producto, l.nombre_producto || l.descripcion, mapaProd), "Cantidad Recibida:", txt(l.cantidad_recibida), AZUL],
       ["Empaque:", empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp), "Diferencia:", txt(l.diferencia), NARANJA],
     ];
     filas.forEach(([a, b, c, d, fill], i) => {
