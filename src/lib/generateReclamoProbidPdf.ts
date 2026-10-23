@@ -72,13 +72,13 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   const f = reclamo.chevron_facturas_recibidas;
   const factura = f?.folio ? `${f.folio}${f.fecha ? ` · ${fmtFecha(f.fecha)}` : ""}` : "";
   let y = 30;
-  etiqueta("Nombre de Cliente:", M, y + 3.6); caja(M + 30, y, 70, 5, AZUL, txt(reclamo.cliente_nombre));
-  etiqueta("Fecha de Reclamo:", 120, y + 3.6); caja(158, y, W - M - 158, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
+  etiqueta("Nombre de Cliente:", M, y + 3.6); caja(M + 34, y, 70, 5, AZUL, txt(reclamo.cliente_nombre));
+  etiqueta("Fecha de Reclamo:", 113, y + 3.6, 8); caja(156, y, W - M - 156, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
   y += 8;
-  etiqueta("No. Pedido en Factura:", M, y + 3.6); caja(M + 30, y, 70, 5, AZUL, txt(reclamo.no_pedido_factura || reclamo.inv_pedidos?.numero_po_interno));
-  etiqueta("Fecha de Recepción del producto:", 120, y + 3.6, 7.5); caja(158, y, W - M - 158, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
+  etiqueta("No. Pedido en Factura:", M, y + 3.6, 8); caja(M + 34, y, 70, 5, AZUL, txt(reclamo.no_pedido_factura || reclamo.inv_pedidos?.numero_po_interno));
+  etiqueta("Fecha de Recepción del producto:", 113, y + 3.6, 7); caja(156, y, W - M - 156, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
   y += 8;
-  etiqueta("Factura:", M, y + 3.6); caja(M + 30, y, 70, 5, AZUL, factura);
+  etiqueta("Factura:", M, y + 3.6); caja(M + 34, y, 70, 5, AZUL, factura);
   y += 10;
 
   doc.setFont("helvetica", "normal"); doc.setFontSize(8.6);
@@ -106,7 +106,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
       caja(xV2, yy, wV2, RH, fill, d, i === 0 ? "left" : "right");
     });
     doc.setDrawColor(0); doc.rect(xU, y, wU, RH * 4);
-    etiqueta("Unidad", xU + wU / 2, y + 3.6, 8.5);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.text("Unidad", xU + wU / 2, y + 3.6, { align: "center" });
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
     doc.text(txt(l.unidad), xU + 1.5, y + RH * 4 - 1.4);
     y += RH * 4 + 4;
