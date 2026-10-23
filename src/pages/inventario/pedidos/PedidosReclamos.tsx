@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReclamoCorreoDialog } from "@/components/inventario/ReclamoCorreoDialog";
+import { generateReclamoProbidPdf } from "@/lib/generateReclamoProbidPdf";
 import { toast } from "sonner";
 import { Plus, Upload, Trash2, Mail, FileText, Pencil } from "lucide-react";
 import { useReclamos } from "@/hooks/usePedidosInventario";
@@ -648,28 +649,19 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       .eq("pedido_id", data.reclamo.pedido_id).order("codigo_producto").then(({ data: d }: any) => setPedLineas(d || []));
   }, [editando, data?.reclamo?.pedido_id]);
 
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfError, setPdfError] = useState("");
   useEffect(() => {
-    if (!formatoOpen || !data) return;
+    if (!formatoOpen || !data?.reclamo) return;
     let on = true;
-    (async () => {
-      const imgs = (data.archivos || []).filter((a: any) =>
-        (a.tipo_archivo || "").startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/i.test(a.nombre_archivo || ""));
-      const miniaturas: string[] = [];
-      for (const a of imgs) {
-        const { data: s } = await supabase.storage.from("inventario-reclamos").createSignedUrl(a.url_archivo, 3600);
-        if (s?.signedUrl) miniaturas.push(`<img src="${s.signedUrl}" style="height:110px;border:1px solid #ddd;border-radius:4px;margin:4px" />`);
-      }
-      if (!on) return;
-      const thumbs = miniaturas.length
-        ? `<div style="margin-top:14px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:4px">Evidencias fotográficas</div>${miniaturas.join("")}</div>`
-        : "";
-      const base = buildEmailHtml();
-      const marker = `<p style="font-size:12px">Referencia:`;
-      const i = base.indexOf(marker);
-      const conMiniaturas = i >= 0 ? base.slice(0, i) + thumbs + base.slice(i) : base + thumbs;
-      setFormatoHtml(`<!doctype html><html><head><meta charset="utf-8"><title>Aviso de Reclamo ${esc(r?.token_correo)}</title><style>@page { size: letter; margin: 12mm } body { margin: 0; padding: 16px; background: #fff }</style></head><body>${conMiniaturas}</body></html>`);
-    })();
-    return () => { on = false; };
+    let url = "";
+    setPdfUrl(""); setPdfError("");
+    setFormatoHtml(`<!doctype html><html><head><meta charset="utf-8"><title>Aviso de Reclamo ${esc(data.reclamo.token_correo)}</title></head><body>${buildEmailHtml()}</body></html>`);
+    generateReclamoProbidPdf(data.reclamo, data.lineas || [], data.archivos || [])
+      .then(({ blob }) => { if (!on) return; url = URL.createObjectURL(blob); setPdfUrl(url); })
+      .catch((e) => { if (on) setPdfError(e?.message || "No se pudo generar el formato"); });
+    return () => { on = false; if (url) URL.revokeObjectURL(url); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formatoOpen, data]);
 
   if (!id) return null;
@@ -855,33 +847,14 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       </div>`;
   };
 
-  const imprimirFormato = () => {
-    const frame = document.createElement("iframe");
-    frame.setAttribute("style", "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;");
-    document.body.appendChild(frame);
-    const doc = frame.contentWindow?.document;
-    if (!doc) { frame.remove(); return; }
-    doc.open();
-    doc.write(formatoHtml);
-    doc.close();
-    const imagenesListas = Promise.all(
-      Array.from(doc.images).map((img) =>
-        img.complete
-          ? Promise.resolve()
-          : new Promise<void>((res) => {
-              img.addEventListener("load", () => res());
-              img.addEventListener("error", () => res());
-            })
-      )
-    );
-    Promise.race([
-      imagenesListas,
-      new Promise<void>((res) => setTimeout(res, 5000)),
-    ]).then(() => {
-      frame.contentWindow?.focus();
-      frame.contentWindow?.print();
-      setTimeout(() => frame.remove(), 1000);
-    });
+  const descargarPdf = () => {
+    if (!pdfUrl) return;
+    const a = document.createElement("a");
+    a.href = pdfUrl;
+    a.download = `Aviso_Reclamo_${r?.token_correo || "reclamo"}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const descargarHtml = () => {
@@ -1178,12 +1151,14 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
               <p className="text-xs text-muted-foreground font-light">Aviso de Reclamo{r.token_correo ? ` · Referencia ${r.token_correo}` : ""}</p>
             </DialogHeader>
             <div className="flex-1 min-h-0 px-5 py-4">
-              <iframe srcDoc={formatoHtml} title="Aviso de Reclamo" sandbox="" className="w-full h-[70vh] border rounded-md bg-white" />
+              {pdfUrl
+                ? <iframe src={pdfUrl} title="Aviso de Reclamo" className="w-full h-[70vh] border rounded-md bg-white" />
+                : <div className="h-[70vh] flex items-center justify-center text-sm text-muted-foreground font-light">{pdfError || "Generando formato con evidencias…"}</div>}
             </div>
             <DialogFooter className="shrink-0 border-t bg-muted/30 px-5 py-3 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="outline" onClick={() => setFormatoOpen(false)}>Cerrar</Button>
-              <Button variant="outline" onClick={descargarHtml}>Descargar HTML</Button>
-              <Button onClick={imprimirFormato} disabled={!formatoHtml}>Descargar PDF</Button>
+              <Button variant="outline" onClick={descargarHtml} disabled={!formatoHtml}>Descargar HTML</Button>
+              <Button onClick={descargarPdf} disabled={!pdfUrl}>Descargar PDF</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
