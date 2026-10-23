@@ -306,7 +306,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
         .eq("pedido_id", pedidoSel).order("codigo_producto");
       setLineasPedido(lns || []);
       setLineas([]);
-      setNoPedidoFactura(p?.numero_orden_proveedor || p?.numero_po_interno || "");
+      setNoPedidoFactura(p?.numero_po_interno || p?.numero_orden_proveedor || "");
       if (recepcionId) {
         const { data: rec } = await (supabase as any).from("inv_recepciones").select("fecha_recepcion").eq("id", recepcionId).maybeSingle();
         if (rec?.fecha_recepcion) setFechaRecepcion(rec.fecha_recepcion);
@@ -442,7 +442,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
             </div>
             <div>
               <Label className={labelCls}>No. Pedido en Factura</Label>
-              <Input value={noPedidoFactura} onChange={(e) => setNoPedidoFactura(e.target.value)} placeholder="Automático del pedido" />
+              <Input value={noPedidoFactura} onChange={(e) => setNoPedidoFactura(e.target.value)} placeholder="Ej. DAGAL_NAL_MXL_26065" />
             </div>
             <div className="col-span-2 md:col-span-1">
               <Label className={labelCls}>Factura</Label>
