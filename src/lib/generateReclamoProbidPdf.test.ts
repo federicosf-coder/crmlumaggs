@@ -22,7 +22,7 @@ describe("empaqueEtiqueta", () => {
 });
 
 describe("hoja oficial de reclamo", () => {
-  it.each([1, 3, 10])("mantiene %i productos en una sola hoja carta horizontal", async (cantidad) => {
+  it.each([1, 3, 10])("mantiene %i productos en una sola hoja carta vertical", async (cantidad) => {
     const lineas = Array.from({ length: cantidad }, (_, i) => ({ codigo_producto: `P${i}`, nombre_producto: "DELO 400 XLE", cantidad_solicitada: 50, cantidad_recibida: 45, diferencia: 5, facturar_intercambiado: i % 2 ? "si" : "no" }));
     const { blob } = await generateReclamoProbidPdf({ cliente_nombre: "LUMAGGS", token_correo: "REC-3F9A2C" }, lineas, []);
     const bytes = await new Promise<ArrayBuffer>((resolve, reject) => {
@@ -33,6 +33,6 @@ describe("hoja oficial de reclamo", () => {
     });
     const pdf = await PDFDocument.load(bytes);
     expect(pdf.getPageCount()).toBe(1);
-    expect(pdf.getPage(0).getSize()).toEqual({ width: 792, height: 612 });
+    expect(pdf.getPage(0).getSize()).toEqual({ width: 612, height: 792 });
   });
 });

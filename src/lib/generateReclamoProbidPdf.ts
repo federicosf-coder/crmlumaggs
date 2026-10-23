@@ -63,9 +63,9 @@ export interface ReclamoPdfResult { blob: Blob; fileName: string; embebidos: str
 
 /** `embebidos` = url_archivo de las evidencias que quedaron pegadas dentro del PDF. */
 export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], archivos: any[]): Promise<ReclamoPdfResult> {
-  // Render all product blocks, then fit the form (not the evidence) to one landscape sheet.
-  const formHeight = Math.max(215.9, 110 + Math.max(1, lineas.length) * 29 + 48);
-  const doc = new jsPDF({ unit: "mm", format: [279.4, formHeight], orientation: formHeight > 279.4 ? "portrait" : "landscape" });
+  // Render all product blocks, then fit the form (not the evidence) to one portrait letter sheet.
+  const formHeight = Math.max(279.4, 110 + Math.max(1, lineas.length) * 29 + 48);
+  const doc = new jsPDF({ unit: "mm", format: [215.9, formHeight], orientation: "portrait" });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const M = 14;
@@ -85,11 +85,11 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     doc.setFont("helvetica", "bold"); doc.setFontSize(size); doc.setTextColor(0); doc.text(s, x, y);
   };
 
-  const encabezado = () => {
+  const encabezado = (w = W) => {
     doc.addImage(CHEVRON_LOGO_PNG, "PNG", M, 10, 15, 13.8);
-    doc.setFillColor(...BARRA); doc.rect(M + 20, 12, W - 2 * M - 20, 9, "F");
+    doc.setFillColor(...BARRA); doc.rect(M + 20, 12, w - 2 * M - 20, 9, "F");
     doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(255, 255, 255);
-    doc.text("AVISO DE RECLAMO PROBID", M + 20 + (W - 2 * M - 20) / 2, 18.4, { align: "center" });
+    doc.text("AVISO DE RECLAMO PROBID", M + 20 + (w - 2 * M - 20) / 2, 18.4, { align: "center" });
     doc.setTextColor(0);
   };
 
@@ -99,10 +99,10 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   const factura = f?.folio ? `${f.folio}${f.fecha ? ` · ${fmtFecha(f.fecha)}` : ""}` : "";
   let y = 30;
   etiqueta("Nombre de Cliente:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.cliente_nombre));
-  etiqueta("Fecha de Reclamo:", 145, y + 3.6, 8); caja(202, y, W - M - 202, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
+  etiqueta("Fecha de Reclamo:", 118, y + 3.6, 8); caja(160, y, W - M - 160, 5, AZUL, fmtFecha(reclamo.fecha_reclamo));
   y += 8;
   etiqueta("No. Pedido en Factura:", M, y + 3.6, 8); caja(M + 34, y, 62, 5, AZUL, txt(reclamo.no_pedido_factura || reclamo.inv_pedidos?.numero_po_interno));
-  etiqueta("Fecha de Recepción del producto:", 145, y + 3.6, 7); caja(202, y, W - M - 202, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
+  etiqueta("Fecha de Recepción del producto:", 118, y + 3.6, 6); caja(160, y, W - M - 160, 5, AZUL, fmtFecha(reclamo.fecha_recepcion));
   y += 8;
   etiqueta("Factura:", M, y + 3.6); caja(M + 34, y, 62, 5, AZUL, factura);
   y += 10;
@@ -116,7 +116,7 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
 
   // ---- Un bloque por producto ----
   const RH = 5; // alto de fila
-  const xL = M, wL = 32, xV = M + 32, wV = 95, xL2 = xV + wV + 4, wL2 = 36, xV2 = xL2 + wL2, wV2 = 48, xU = xV2 + wV2, wU = W - M - xU;
+  const xL = M, wL = 30, xV = M + 30, wV = 58, xL2 = xV + wV + 4, wL2 = 34, xV2 = xL2 + wL2, wV2 = 42, xU = xV2 + wV2, wU = W - M - xU;
   const bloque = (l: any) => {
     const filas: [string, string, string, string, [number, number, number]][] = [
       ["Tipo de Producto", txt(l.tipo_producto), "Tipo de aviso", txt(l.tipo_aviso), AZUL],
@@ -173,9 +173,11 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
     if (esPdf(a)) { pdfs.push({ nombre: a.nombre_archivo, bytes: await blob.arrayBuffer(), path: a.url_archivo }); continue; }
     const img = await imagenAJpeg(blob);
     if (!img) { otros.push(a.nombre_archivo); continue; }
-    doc.addPage("letter", "landscape"); encabezado();
+    doc.addPage("letter", "portrait");
+    const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+    encabezado(pw);
     etiqueta(`Evidencia: ${a.nombre_archivo}`, M, 30, 9);
-    const maxW = W - 2 * M, maxH = 215.9 - 34 - M;
+    const maxW = pw - 2 * M, maxH = ph - 34 - M;
     const k = Math.min(maxW / img.w, maxH / img.h);
     const w = img.w * k, h = img.h * k;
     doc.addImage(img.data, "JPEG", M + (maxW - w) / 2, 34, w, h);
@@ -189,9 +191,9 @@ export async function generateReclamoProbidPdf(reclamo: any, lineas: any[], arch
   const rendered = await PDFDocument.load(doc.output("arraybuffer"));
   const out = await PDFDocument.create();
   const [form] = await out.embedPages([rendered.getPage(0)]);
-  const page = out.addPage([792, 612]); // Letter landscape, regardless of product count.
-  const scale = Math.min(792 / form.width, 612 / form.height);
-  page.drawPage(form, { x: (792 - form.width * scale) / 2, y: (612 - form.height * scale) / 2, width: form.width * scale, height: form.height * scale });
+  const page = out.addPage([612, 792]); // Carta vertical, sin importar la cantidad de productos.
+  const scale = Math.min(612 / form.width, 792 / form.height);
+  page.drawPage(form, { x: (612 - form.width * scale) / 2, y: (792 - form.height * scale) / 2, width: form.width * scale, height: form.height * scale });
   if (rendered.getPageCount() > 1) {
     const evidence = await out.copyPages(rendered, rendered.getPageIndices().slice(1));
     evidence.forEach((pg) => out.addPage(pg));
