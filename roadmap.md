@@ -13,7 +13,8 @@
 - [ ] Verificar guardado real con sesión del usuario; bloqueado hasta que inicie sesión en la vista previa.
 
 ## Reclamos de pedidos
-- [ ] Añadir confirmación de facturación por producto y ajustar el formato a una hoja horizontal con evidencias posteriores.
+- [x] Añadir confirmación de facturación por producto y ajustar el formato a una hoja horizontal con evidencias posteriores; 11 pruebas y muestra visual verificadas.
+- [ ] Verificar guardado de la confirmación en un reclamo real; requiere iniciar sesión en la vista previa (no se pudo recuperar la sesión).
 - [x] Añadir plaza, ficha centrada, correo editable con adjuntos e hilo cronológico.
 - [x] Desplegar envío y recepción de correos sin migraciones ni cambios al alta o recepción de pedidos.
 - [ ] Verificar envío y respuesta reales; requiere sesión del usuario y conexión del nuevo receptor en Resend.
