@@ -609,6 +609,7 @@ function NuevoReclamoDialog({ open, onOpenChange, recepcionId, pedidoId }: any) 
 
 function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
   const qc = useQueryClient();
+  const { data: mapaEmp } = useQuery({ queryKey: ["empaques-presentaciones"], queryFn: fetchMapaEmpaques, staleTime: 5 * 60 * 1000 });
   const [data, setData] = useState<any>(null);
   const [resolucion, setResolucion] = useState("");
   const [notas, setNotas] = useState<any[]>([]);
@@ -764,7 +765,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       nombre_producto: pl?.nombre_producto || "",
       descripcion: "",
       tipo_producto: pres.toLowerCase().includes("tambor") || pres.toLowerCase().includes("granel") ? "Granel" : "Empacado",
-      empaque: pres,
+      empaque: empaqueEtiqueta(codigo, pres, mapaEmp),
       tipo_aviso: nl.aviso,
       cantidad_solicitada: pl?.cantidad_solicitada ?? null,
       cantidad_recibida: nl.recibida === "" ? null : Number(nl.recibida),
@@ -803,7 +804,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.tipo_producto)}</td>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.codigo_producto)}</td>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.nombre_producto)}</td>
-        <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.empaque)}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd">${esc(empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp))}</td>
         <td style="padding:6px 10px;border:1px solid #ddd">${esc(l.tipo_aviso)}</td>
         <td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${l.cantidad_solicitada ?? ""}</td>
         <td style="padding:6px 10px;border:1px solid #ddd;text-align:right">${l.cantidad_recibida ?? ""}</td>
@@ -989,7 +990,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                         <TableCell className="text-xs">{l.tipo_producto || "—"}</TableCell>
                         <TableCell className="font-mono text-xs">{l.codigo_producto}</TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate" title={l.nombre_producto || ""}>{l.nombre_producto || "—"}</TableCell>
-                        <TableCell className="text-xs">{l.empaque || "—"}</TableCell>
+                        <TableCell className="text-xs">{empaqueEtiqueta(l.codigo_producto, l.empaque, mapaEmp) || "—"}</TableCell>
                         <TableCell className="text-xs">{l.tipo_aviso || "—"}</TableCell>
                         <TableCell className="text-right text-xs">{l.cantidad_solicitada ?? "—"}</TableCell>
                         <TableCell className="text-right text-xs">{l.cantidad_recibida ?? "—"}</TableCell>
