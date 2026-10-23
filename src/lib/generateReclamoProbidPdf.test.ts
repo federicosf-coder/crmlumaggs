@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { PDFDocument } from "pdf-lib";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: () => ({ select: async () => ({ data: [] }) }) } }));
-import { empaqueEtiqueta, generateReclamoProbidPdf } from "@/lib/generateReclamoProbidPdf";
+import { empaqueEtiqueta, nombreProductoEtiqueta, generateReclamoProbidPdf } from "@/lib/generateReclamoProbidPdf";
 
 describe("empaqueEtiqueta", () => {
   it("usa el nombre del catálogo de Presentaciones cuando hay mapa", () => {

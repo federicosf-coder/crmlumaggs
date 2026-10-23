@@ -1059,7 +1059,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                     <Input list="reclamo-ped-lineas" placeholder="Código" value={nl.codigo} onChange={(e) => setNl({ ...nl, codigo: e.target.value })} />
                     <datalist id="reclamo-ped-lineas">
                       {pedLineas.filter((p) => !data?.lineas.some((x: any) => x.codigo_producto === p.codigo_producto)).map((p) => (
-                        <option key={p.codigo_producto} value={p.codigo_producto}>{p.nombre_producto} · {p.presentacion}</option>
+                        <option key={p.codigo_producto} value={p.codigo_producto}>{nombreProductoEtiqueta(p.codigo_producto, p.nombre_producto, mapaProd)} · {p.presentacion}</option>
                       ))}
                     </datalist>
                   </div>
