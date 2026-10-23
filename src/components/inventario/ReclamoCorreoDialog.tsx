@@ -11,6 +11,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, X } from "lucide-react";
 import { toast } from "sonner";
+import { generateReclamoProbidPdf, type ReclamoPdfResult } from "@/lib/generateReclamoProbidPdf";
+
+const blobToBase64 = (blob: Blob) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onerror = () => reject(new Error("No se pudo leer el adjunto"));
+  reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+  reader.readAsDataURL(blob);
+});
 
 interface Props {
   open: boolean;
@@ -53,7 +61,7 @@ function EmailChips({ label, value, onChange, disabled }: { label: string; value
   </div>;
 }
 
-export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, html, onSent }: Props) {
+export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, lineas, archivos, html, onSent }: Props) {
   const [to, setTo] = useState<string[]>([]);
   const [cc, setCc] = useState<string[]>([]);
   const [replyTo, setReplyTo] = useState<string[]>([]);
@@ -66,12 +74,13 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
   const [loadError, setLoadError] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [pdf, setPdf] = useState<ReclamoPdfResult | null>(null);
 
   useEffect(() => {
     if (!open || !reclamo?.id) return;
     let active = true;
     setLoading(true); setLoadError(""); setSent(false);
-    setTo([]); setCc([]); setReplyTo([]); setSizes({});
+    setTo([]); setCc([]); setReplyTo([]); setSizes({}); setPdf(null);
     setEditedHtml(html); setIntro("");
     setSelected(archivos.map(fileKey));
     const fecha = reclamo.fecha_reclamo ? new Date(`${String(reclamo.fecha_reclamo).slice(0, 10)}T00:00:00`).toLocaleDateString("es-MX") : "";
@@ -118,7 +127,7 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
     const message = `<div style="white-space:pre-wrap;font-family:Arial,Helvetica,sans-serif;margin-bottom:16px">${escapeHtml(intro)}</div>`;
     return /<body\b[^>]*>/i.test(editedHtml) ? editedHtml.replace(/<body\b[^>]*>/i, (tag) => tag + message) : message + editedHtml;
   }, [editedHtml, intro]);
-  const totalBytes = selected.reduce((total, key) => total + (sizes[key] || 0), 0);
+  const totalBytes = selected.reduce((total, key) => total + (sizes[key] || 0), pdf?.blob.size || 0);
 
   const send = async () => {
     if (sending || sent || loading || loadError) return;
@@ -139,7 +148,7 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
       if (authError || !auth.user) throw new Error("Inicia sesión para enviar el correo");
       userId = auth.user.id;
       const attachments: { filename: string; content: string }[] = [];
-      let actualBytes = 0;
+      let actualBytes = pdf?.blob.size || 0;
       for (const file of archivos.filter((a) => selected.includes(fileKey(a)))) {
         const { data: blob, error } = await supabase.storage.from("inventario-reclamos").download(file.url_archivo);
         if (error || !blob) throw new Error(`No se pudo descargar ${file.nombre_archivo}`);
@@ -194,7 +203,7 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, archivos, htm
     <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col overflow-hidden p-0">
       <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-violet-50 to-blue-50 px-5 py-4 dark:from-violet-950/30 dark:to-blue-950/30"><DialogTitle className="text-lg font-semibold">Enviar aviso de reclamo</DialogTitle></DialogHeader>
       <div className="flex-1 overflow-y-auto space-y-5 px-5 py-5 font-light">
-        {loading && <p className="text-sm text-muted-foreground">Preparando destinatarios y adjuntos…</p>}
+        {loading && <p className="text-sm text-muted-foreground">Preparando destinatarios y formato oficial con evidencias…</p>}
         {loadError && <p role="alert" className="text-sm text-destructive">{loadError}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
           <EmailChips label="Para" value={to} onChange={setTo} disabled={loading || sending || sent} />
