@@ -644,7 +644,7 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
   const [guardandoId, setGuardandoId] = useState(false);
   const [editando, setEditando] = useState(false);
   const [guardandoEd, setGuardandoEd] = useState(false);
-  const [ed, setEd] = useState({ plaza: "", cliente_nombre: "", no_pedido_factura: "", fecha_reclamo: "", fecha_recepcion: "", descripcion: "" });
+  const [ed, setEd] = useState({ plaza: "", cliente_nombre: "", no_pedido_factura: "", fecha_reclamo: "", fecha_recepcion: "", descripcion: "", remitente_nombre: "", remitente_email: "" });
 
   useEffect(() => {
     if (!id) return;
@@ -746,6 +746,8 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       fecha_reclamo: (r?.fecha_reclamo || "").slice(0, 10),
       fecha_recepcion: (r?.fecha_recepcion || "").slice(0, 10),
       descripcion: r?.descripcion || "",
+      remitente_nombre: r?.remitente_nombre || "",
+      remitente_email: r?.remitente_email || "",
     });
     setEditando(true);
   };
@@ -760,6 +762,8 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
       fecha_reclamo: ed.fecha_reclamo || null,
       fecha_recepcion: ed.fecha_recepcion || null,
       descripcion: ed.descripcion.trim() || null,
+      remitente_nombre: ed.remitente_nombre.trim() || null,
+      remitente_email: ed.remitente_email.trim() || null,
     };
     const { error } = await (supabase as any).from("inv_reclamos").update(update).eq("id", id);
     setGuardandoEd(false);
@@ -942,7 +946,8 @@ function ReclamoDetailSheet({ id, onClose }: { id: string | null; onClose: () =>
                 <div><Label className={labelCls}>Fecha de recepción</Label><Input type="date" value={ed.fecha_recepcion} onChange={(e) => setEd({ ...ed, fecha_recepcion: e.target.value })} /></div>
                 <div><div className={labelCls}>Pedido</div><div className="font-mono text-xs py-1.5">{r.inv_pedidos?.numero_po_interno || "—"}</div></div>
                 <div><div className={labelCls}>Factura</div><div className="text-xs py-1.5">{r.chevron_facturas_recibidas?.folio ? `Folio ${r.chevron_facturas_recibidas.folio} · ${fmtFecha(r.chevron_facturas_recibidas.fecha)}` : "—"}</div></div>
-                <div><div className={labelCls}>Enviado por</div><div className="text-xs py-1.5">{r.remitente_nombre || "—"}<br/><span className="text-muted-foreground">{r.remitente_email || ""}</span></div></div>
+                <div><Label className={labelCls}>Enviado por (nombre)</Label><Input value={ed.remitente_nombre} onChange={(e) => setEd({ ...ed, remitente_nombre: e.target.value })} /></div>
+                <div><Label className={labelCls}>Correo del remitente</Label><Input value={ed.remitente_email} onChange={(e) => setEd({ ...ed, remitente_email: e.target.value })} /></div>
                 <div><div className={labelCls}>Estatus</div><div className="py-1.5"><Badge className={estatusReclamoColor(r.estatus)}>{ESTATUS_LABEL[r.estatus] || r.estatus}</Badge></div></div>
                 <div className="col-span-2"><div className={labelCls}>Domicilio de recolección (en caso de devolución)</div><div className="text-xs py-1.5">{r.domicilio_recoleccion || "—"}</div></div>
                 <div><div className={labelCls}>Contacto</div><div className="text-xs py-1.5">Federico Sariñana</div></div>

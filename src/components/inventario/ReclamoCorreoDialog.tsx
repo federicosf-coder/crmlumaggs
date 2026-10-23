@@ -61,6 +61,8 @@ export function EmailChips({ label, value, onChange, disabled }: { label: string
   </div>;
 }
 
+export const INTRO_SALUDO = "Buen día equipo Chevron,\n\nPor medio del presente hacemos llegar el siguiente aviso de reclamo de producto:";
+
 export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, lineas, archivos, html, onSent }: Props) {
   const [to, setTo] = useState<string[]>([]);
   const [cc, setCc] = useState<string[]>([]);
@@ -81,7 +83,7 @@ export function ReclamoCorreoDialog({ open, onOpenChange, reclamo, lineas, archi
     let active = true;
     setLoading(true); setLoadError(""); setSent(false);
     setTo([]); setCc([]); setReplyTo([]); setSizes({}); setPdf(null);
-    setEditedHtml(html); setIntro("");
+    setEditedHtml(html); setIntro(INTRO_SALUDO);
     setSelected(archivos.map(fileKey));
     const fecha = reclamo.fecha_reclamo ? new Date(`${String(reclamo.fecha_reclamo).slice(0, 10)}T00:00:00`).toLocaleDateString("es-MX") : "";
     setSubject(`Aviso de Reclamo PROBID · ${reclamo.no_pedido_factura || reclamo.inv_pedidos?.numero_po_interno || reclamo.numero_po_interno || ""} · ${fecha} [${reclamo.token_correo || ""}]`);
