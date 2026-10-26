@@ -65,6 +65,7 @@ type Template = {
   header_image_url: string | null;
   header_video_url: string | null;
   rejection_reason: string | null;
+  waba_id?: string | null;
 };
 
 type Account = {
@@ -73,6 +74,8 @@ type Account = {
   label: string;
   display_phone: string | null;
   is_active: boolean;
+  waba_id?: string | null;
+  status?: string | null;
 };
 
 type Contact = {
@@ -271,17 +274,17 @@ export default function WhatsAppCampaigns() {
     const loadTpls = () =>
       supabase
         .from("whatsapp_templates")
-        .select("id,name,language,status,body,source_body,variable_map,header_type,header_image_url,header_video_url,rejection_reason")
+        .select("id,name,language,status,body,source_body,variable_map,header_type,header_image_url,header_video_url,rejection_reason,waba_id")
         .order("name")
         .then(({ data }) => setTemplates(((data ?? []) as unknown) as Template[]));
     loadTpls();
     supabase
       .from("whatsapp_accounts")
-      .select("id,business_phone_number_id,label,display_phone,is_active")
+      .select("id,business_phone_number_id,label,display_phone,is_active,waba_id,status")
       .eq("is_active", true)
       .order("label")
       .then(({ data }) => {
-        const accs = ((data ?? []) as unknown) as Account[];
+        const accs = (((data ?? []) as unknown) as Account[]).filter((a) => a.status !== "disconnected");
         setAccounts(accs);
         if (!linePhoneId && accs[0]) setLinePhoneId(accs[0].business_phone_number_id);
       });
@@ -421,9 +424,14 @@ export default function WhatsAppCampaigns() {
     setExcludeRecent(true);
   };
 
+  // Solo plantillas de la misma cuenta de WhatsApp que la línea elegida (evita error 132001).
+  const lineTemplates = useMemo(() => {
+    const waba = accounts.find((a) => a.business_phone_number_id === linePhoneId)?.waba_id;
+    return waba ? templates.filter((t) => !t.waba_id || t.waba_id === waba) : templates;
+  }, [templates, accounts, linePhoneId]);
   const selectedTpl = useMemo(
-    () => templates.find((t) => t.name === tplName) || null,
-    [templates, tplName],
+    () => lineTemplates.find((t) => t.name === tplName) || null,
+    [lineTemplates, tplName],
   );
   const requiresImage = selectedTpl?.header_type === "IMAGE";
   const requiresVideo = selectedTpl?.header_type === "VIDEO";
@@ -681,9 +689,9 @@ export default function WhatsAppCampaigns() {
                   <Select value={tplName} onValueChange={(v) => { setTplName(v); setVariables({}); setHeaderImageUrl(null); setHeaderVideoUrl(null); setHeaderDocUrl(null); setHeaderDocName(null); }}>
                     <SelectTrigger><SelectValue placeholder="Selecciona…" /></SelectTrigger>
                     <SelectContent>
-                      {templates.length === 0 ? (
-                        <div className="px-2 py-1 text-xs text-muted-foreground">Sin plantillas</div>
-                      ) : templates.map((t) => (
+                      {lineTemplates.length === 0 ? (
+                        <div className="px-2 py-1 text-xs text-muted-foreground">Sin plantillas para esta línea</div>
+                      ) : lineTemplates.map((t) => (
                           <SelectItem key={t.id} value={t.name}>
                             {t.name} ({t.language}) — {t.status}
                           </SelectItem>
