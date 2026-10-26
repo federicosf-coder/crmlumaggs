@@ -629,7 +629,6 @@ export default function DocumentForm() {
         return;
       }
     }
-    if (form.tipo_documento === "pedido" && !form.direccion_envio) { toast.error("La dirección de envío es obligatoria para pedidos"); return; }
     if (form.tipo_documento === "entrega_corporativa") {
       if (!form.empresa_id) { toast.error("El cliente es obligatorio"); return; }
       if (!form.direccion_envio) { toast.error("La dirección de envío es obligatoria"); return; }
@@ -1670,7 +1669,13 @@ export default function DocumentForm() {
         <CardHeader><CardTitle>Información Adicional</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Dirección de Envío {form.tipo_documento === "pedido" && <span className="text-destructive">*</span>}</Label>
+            <Label>Dirección de Envío</Label>
+            {form.direccion_envio === "Recolección" ? (
+              <div className="flex gap-1 items-center">
+                <div className="flex-1 h-10 px-3 flex items-center rounded-md border bg-muted text-sm">Recolección (el cliente pasa por ella)</div>
+                <Button variant="outline" size="sm" onClick={() => set("direccion_envio", "")}>Quitar</Button>
+              </div>
+            ) : (
             <div className="flex gap-1">
               <SearchableSelect
                 value={form.direccion_envio}
@@ -1686,7 +1691,11 @@ export default function DocumentForm() {
                 className="flex-1 text-left"
               />
               <Button variant="outline" size="icon" onClick={() => setShowNewAddress(true)} disabled={!form.empresa_id}><Plus className="h-4 w-4" /></Button>
+              {form.tipo_documento === "pedido" && (
+                <Button variant="outline" onClick={() => set("direccion_envio", "Recolección")}>Recolección</Button>
+              )}
             </div>
+            )}
           </div>
           <div>
             <Label>Notas</Label>
