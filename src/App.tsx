@@ -63,6 +63,7 @@ import CobranzaResumenReporte from "@/pages/cobranza/CobranzaResumenReporte";
 import Unsubscribe from "@/pages/Unsubscribe";
 import WhatsAppInbox from "@/pages/whatsapp/WhatsAppInbox";
 import WhatsAppCampaigns from "@/pages/whatsapp/WhatsAppCampaigns";
+import WhatsAppAudiences from "@/pages/whatsapp/WhatsAppAudiences";
 import WhatsAppTemplates from "@/pages/whatsapp/WhatsAppTemplates";
 import WhatsAppRules from "@/pages/whatsapp/WhatsAppRules";
 import WhatsAppSettings from "@/pages/whatsapp/WhatsAppSettings";
@@ -204,6 +205,7 @@ const App = () => (
             
             <Route path="/whatsapp" element={<ProtectedRoute><WhatsAppInbox /></ProtectedRoute>} />
             <Route path="/whatsapp/campaigns" element={<ProtectedRoute><WhatsAppCampaigns /></ProtectedRoute>} />
+            <Route path="/whatsapp/audiencias" element={<ProtectedRoute><WhatsAppAudiences /></ProtectedRoute>} />
             <Route path="/whatsapp/templates" element={<ProtectedRoute><WhatsAppTemplates /></ProtectedRoute>} />
             <Route path="/whatsapp/rules" element={<ProtectedRoute><WhatsAppRules /></ProtectedRoute>} />
             <Route path="/whatsapp/settings" element={<ProtectedRoute><WhatsAppSettings /></ProtectedRoute>} />
