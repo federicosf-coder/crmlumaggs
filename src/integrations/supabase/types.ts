@@ -10550,6 +10550,36 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_audiences: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          filters_json: Json
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          filters_json?: Json
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          filters_json?: Json
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_auto_replies_log: {
         Row: {
           id: string
@@ -11360,6 +11390,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      count_audience_contacts: { Args: { filters: Json }; Returns: number }
       create_short_link: {
         Args: { _expires_at?: string; _target_url: string }
         Returns: string

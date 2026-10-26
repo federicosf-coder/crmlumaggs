@@ -71,6 +71,7 @@ const adminItems: NavItem[] = [
 const whatsappItems: NavItem[] = [
   { title: "Conversaciones", url: "/whatsapp", icon: MessageCircle, roles: "all", group: "whatsapp" },
   { title: "Campañas", url: "/whatsapp/campaigns", icon: Megaphone, roles: ["admin", "manager"], group: "whatsapp" },
+  { title: "Audiencias", url: "/whatsapp/audiencias", icon: Megaphone, roles: ["admin", "manager"], group: "whatsapp" },
   { title: "Plantillas", url: "/whatsapp/templates", icon: FileBadge, roles: ["admin", "manager"], group: "whatsapp" },
   { title: "Bot", url: "/whatsapp/rules", icon: Bot, roles: ["admin", "manager"], group: "whatsapp" },
   { title: "Configuración", url: "/whatsapp/settings", icon: Settings, roles: ["admin", "manager"], group: "whatsapp" },
