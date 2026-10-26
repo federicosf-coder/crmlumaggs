@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { normalizeWhatsAppTemplate } from "../_shared/whatsapp-template.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -234,9 +235,15 @@ async function sendAndLogText(
   return res;
 }
 
-async function sendWhatsAppTemplate(toPhone: string, name: string, language: string, businessPhoneId?: string | null) {
+async function sendWhatsAppTemplate(toPhone: string, name: string, language?: string | null, businessPhoneId?: string | null) {
   const { TOKEN, phoneId } = resolveCredentials(businessPhoneId);
   if (!TOKEN || !phoneId) return { ok: false, error: "Missing WhatsApp credentials" };
+  let template: ReturnType<typeof normalizeWhatsAppTemplate>;
+  try {
+    template = normalizeWhatsAppTemplate(name, language);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Plantilla inválida" };
+  }
   const r = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
@@ -244,7 +251,7 @@ async function sendWhatsAppTemplate(toPhone: string, name: string, language: str
       messaging_product: "whatsapp",
       to: toPhone,
       type: "template",
-      template: { name, language: { code: language } },
+      template,
     }),
   });
   const data = await r.json().catch(() => ({}));
@@ -886,7 +893,7 @@ Deno.serve(async (req) => {
                     await sendWhatsAppTemplate(
                       fromPhone,
                       r.reply_template_name,
-                      r.reply_template_language || "es_MX",
+                      r.reply_template_language,
                       businessPhoneId,
                     );
                   } else if (r.reply_text) {
@@ -930,7 +937,7 @@ Deno.serve(async (req) => {
                   await sendWhatsAppTemplate(
                     fromPhone,
                     settings.away_template_name,
-                    settings.away_template_language || "es_MX",
+                    settings.away_template_language,
                     businessPhoneId,
                   );
                   await admin.from("whatsapp_auto_replies_log").insert({

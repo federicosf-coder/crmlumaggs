@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { normalizeWhatsAppTemplate } from "../_shared/whatsapp-template.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,8 +48,17 @@ Deno.serve(async (req) => {
     const conversationId = body?.conversation_id as string | undefined;
     const kind = body?.kind as "text" | "template" | "media";
     const text = body?.text as string | undefined;
-    const templateName = body?.template_name as string | undefined;
-    const templateLanguage = (body?.template_language as string | undefined) || "es_MX";
+    let templateName = body?.template_name as string | undefined;
+    let templateLanguage = body?.template_language as string | undefined;
+    if (kind === "template" && templateName) {
+      try {
+        const identity = normalizeWhatsAppTemplate(templateName, templateLanguage);
+        templateName = identity.name;
+        templateLanguage = identity.language.code;
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : "Plantilla inválida" }, 400);
+      }
+    }
     let templateComponents = body?.template_components as unknown[] | undefined;
     // Nuevo: variables nombradas { nombre_cliente: "...", folio_cotizacion: "..." }
     const templateVariables = body?.template_variables as Record<string, string | number> | undefined;

@@ -6,6 +6,7 @@
 // so it does not require a user JWT.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { normalizeWhatsAppTemplate } from "../_shared/whatsapp-template.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -70,12 +71,13 @@ Deno.serve(async (req) => {
     }
     const adminPhone = normalizePhone(settings.admin_phone);
     const tplName = settings.alert_template_name as string | null;
-    const tplLang = (settings.alert_template_language as string | null) || "es_MX";
+    const tplLang = settings.alert_template_language as string | null;
     const delayMin = Number(settings.notification_delay_minutes ?? 5);
 
     if (!adminPhone || !tplName) {
       return json({ ok: true, skipped: "missing_admin_or_template" });
     }
+    const templateIdentity = normalizeWhatsAppTemplate(tplName, tplLang);
 
     const cutoff = new Date(Date.now() - delayMin * 60_000).toISOString();
 
@@ -136,8 +138,7 @@ Deno.serve(async (req) => {
               to: adminPhone,
               type: "template",
               template: {
-                name: tplName,
-                language: { code: tplLang },
+                ...templateIdentity,
                 components: [
                   {
                     type: "body",
