@@ -235,7 +235,7 @@ async function sendAndLogText(
   return res;
 }
 
-async function sendWhatsAppTemplate(toPhone: string, name: string, language: string, businessPhoneId?: string | null) {
+async function sendWhatsAppTemplate(toPhone: string, name: string, language?: string | null, businessPhoneId?: string | null) {
   const { TOKEN, phoneId } = resolveCredentials(businessPhoneId);
   if (!TOKEN || !phoneId) return { ok: false, error: "Missing WhatsApp credentials" };
   let template: ReturnType<typeof normalizeWhatsAppTemplate>;
@@ -893,7 +893,7 @@ Deno.serve(async (req) => {
                     await sendWhatsAppTemplate(
                       fromPhone,
                       r.reply_template_name,
-                      r.reply_template_language || "es_MX",
+                      r.reply_template_language,
                       businessPhoneId,
                     );
                   } else if (r.reply_text) {
@@ -937,7 +937,7 @@ Deno.serve(async (req) => {
                   await sendWhatsAppTemplate(
                     fromPhone,
                     settings.away_template_name,
-                    settings.away_template_language || "es_MX",
+                    settings.away_template_language,
                     businessPhoneId,
                   );
                   await admin.from("whatsapp_auto_replies_log").insert({

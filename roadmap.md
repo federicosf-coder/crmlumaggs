@@ -1,6 +1,6 @@
 
 ## Plantillas WhatsApp
-- [ ] Separar nombre técnico e idioma antes del envío individual y de campañas; verificar los payloads sin enviar mensajes reales.
+- [x] Separar nombre técnico e idioma antes del envío individual, campañas y respuestas/alertas automáticas; 14 pruebas aprobadas, funciones desplegadas, sin enviar mensajes reales.
 
 ## RVS (Reporte de Ventas Sistema)
 - [x] Tablas por plaza/zona/sucursal vacías: derivar de rvs_ventas_mes usando la plaza de la pestaña Personal cuando rvs_ventas_mes_plaza no tiene datos
