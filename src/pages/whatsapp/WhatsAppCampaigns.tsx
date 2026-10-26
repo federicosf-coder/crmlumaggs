@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { filterContactsByAudience, normalizeAudienceFilters, type AudienceFilters } from "@/lib/whatsappAudience";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase: any = _supabaseTyped;
@@ -156,9 +157,9 @@ export default function WhatsAppCampaigns() {
   const [headerDocName, setHeaderDocName] = useState<string | null>(null);
   const [linePhoneId, setLinePhoneId] = useState<string>("");
   const [variables, setVariables] = useState<Record<string, string>>({});
-  const [plazaFilter, setPlazaFilter] = useState<string>("all");
+  const [audienceId, setAudienceId] = useState<string>("all");
+  const [audiences, setAudiences] = useState<{ id: string; name: string; filters_json: unknown }[]>([]);
   const [plazas, setPlazas] = useState<{ id: string; nombre: string }[]>([]);
-  const [giroFilter, setGiroFilter] = useState<string[]>([]);
   const [intereses, setIntereses] = useState<{ id: string; nombre: string }[]>([]);
   const [scheduleMode, setScheduleMode] = useState<"now" | "later">("now");
   const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
@@ -294,6 +295,12 @@ export default function WhatsAppCampaigns() {
       });
 
     (supabase as any)
+      .from("whatsapp_audiences")
+      .select("id,name,filters_json")
+      .order("name")
+      .then(({ data }: any) => setAudiences(data || []));
+
+    (supabase as any)
       .from("intereses_giro")
       .select("id,nombre")
       .eq("is_active", true)
@@ -344,21 +351,16 @@ export default function WhatsAppCampaigns() {
       });
   };
 
-  const eligible = useMemo(() => {
-    return contacts.filter((c) => {
-      if (!(c.whatsapp_phone || c.mobile)) return false;
-      if (plazaFilter !== "all" && c.plaza_id !== plazaFilter) return false;
-      if (giroFilter.length > 0) {
-        const ids = c.interes_ids || [];
-        // OR: contact must have AT LEAST ONE selected giro
-        if (!giroFilter.some((g) => ids.includes(g))) return false;
-      }
-      if (excludeRecent && recentContactIds.has(c.id)) return false;
-      const digits = (c.whatsapp_phone || c.mobile || "").replace(/\D/g, "");
-      if (digits && blockedPhones.has(digits)) return false;
-      return true;
-    });
-  }, [contacts, plazaFilter, giroFilter, excludeRecent, recentContactIds, blockedPhones]);
+  const audienceFilters = useMemo<AudienceFilters>(() => {
+    const a = audiences.find((x) => x.id === audienceId);
+    return normalizeAudienceFilters(a?.filters_json ?? {});
+  }, [audiences, audienceId]);
+
+  const breakdown = useMemo(
+    () => filterContactsByAudience(contacts, audienceFilters, { recentIds: recentContactIds, blockedPhones, excludeRecent }),
+    [contacts, audienceFilters, excludeRecent, recentContactIds, blockedPhones],
+  );
+  const eligible = breakdown.eligible;
 
   // Preselección desde Seguimiento → Productos
   useEffect(() => {
@@ -622,41 +624,24 @@ export default function WhatsAppCampaigns() {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Plaza</Label>
-                    <Select value={plazaFilter} onValueChange={(v) => { setPlazaFilter(v); setSelected(new Set()); }}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas las plazas</SelectItem>
-                        {plazas.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Seleccionar audiencia</Label>
+                    <a href="/whatsapp/audiencias" className="text-xs text-primary underline">Administrar audiencias</a>
                   </div>
-                  <div>
-                    <Label className="text-xs">Giro (cumple cualquiera de los seleccionados)</Label>
-                    <div className="flex flex-wrap gap-2 rounded-md border bg-background p-2 min-h-10">
-                      {intereses.length === 0 ? (
-                        <span className="text-xs text-muted-foreground">Sin giros</span>
-                      ) : intereses.map((g) => {
-                        const checked = giroFilter.includes(g.id);
-                        return (
-                          <label key={g.id} className="flex items-center gap-1 text-sm cursor-pointer">
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={(v) => {
-                                setGiroFilter((prev) => v ? [...prev, g.id] : prev.filter((x) => x !== g.id));
-                                setSelected(new Set());
-                              }}
-                            />
-                            {g.nombre}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <Select value={audienceId} onValueChange={(v) => { setAudienceId(v); setSelected(new Set()); }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los contactos (sin audiencia)</SelectItem>
+                      {audiences.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Plaza: {audienceFilters.plaza_id ? (plazas.find((p) => p.id === audienceFilters.plaza_id)?.nombre ?? "—") : "Todas"}
+                    {" · "}Giros: {audienceFilters.giro_ids.length ? audienceFilters.giro_ids.map((g) => intereses.find((i) => i.id === g)?.nombre ?? "—").join(", ") : "Todos"}
+                  </p>
                 </div>
                 <label className="flex items-center gap-2 text-xs cursor-pointer">
                   <Checkbox
@@ -666,6 +651,12 @@ export default function WhatsAppCampaigns() {
                   Excluir contactos a los que se les envió una campaña en las últimas 48 horas
                   <Badge variant="outline" className="ml-1">{recentContactIds.size} excluibles</Badge>
                 </label>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge variant="outline">Coinciden con la audiencia: {breakdown.matched}</Badge>
+                  <Badge variant="outline">Excluidos por 48 h: {breakdown.excludedRecent}</Badge>
+                  <Badge variant="outline">Excluidos por bloqueo: {breakdown.excludedBlocked}</Badge>
+                  <Badge>Destinatarios finales: {eligible.length}</Badge>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
