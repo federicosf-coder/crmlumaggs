@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { normalizeWhatsAppTemplate } from "../_shared/whatsapp-template.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -104,12 +105,20 @@ Deno.serve(async (req) => {
       return json({ error: "No hay business_phone_number_id configurado para la campaña" }, 500);
     }
 
+    // Separar la etiqueta visible del nombre técnico antes de consultar o enviar.
+    let templateIdentity: ReturnType<typeof normalizeWhatsAppTemplate>;
+    try {
+      templateIdentity = normalizeWhatsAppTemplate(campaign.template_name, campaign.template_language);
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "Plantilla inválida" }, 400);
+    }
+
     // Validar que la plantilla esté APPROVED antes de enviar.
     const { data: tplRow } = await admin
       .from("whatsapp_templates")
       .select("status, header_type, variable_map")
-      .eq("name", campaign.template_name)
-      .eq("language", campaign.template_language || "es_MX")
+      .eq("name", templateIdentity.name)
+      .eq("language", templateIdentity.language.code)
       .maybeSingle();
     if (!tplRow) return json({ error: "Plantilla no encontrada" }, 404);
     if (tplRow.status !== "APPROVED") {
@@ -214,8 +223,7 @@ Deno.serve(async (req) => {
           });
         }
         const tplPayload: Record<string, unknown> = {
-          name: campaign.template_name,
-          language: { code: campaign.template_language || "es_MX" },
+          ...templateIdentity,
         };
         if (components.length > 0) tplPayload.components = components;
 
