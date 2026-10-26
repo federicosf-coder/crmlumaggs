@@ -10657,9 +10657,13 @@ export type Database = {
       }
       whatsapp_campaigns: {
         Row: {
+          audience_filters: Json | null
+          audience_id: string | null
+          audience_name: string | null
           business_phone_number_id: string | null
           created_at: string
           created_by: string | null
+          exclude_recent: boolean | null
           failed_count: number
           finished_at: string | null
           header_document_filename: string | null
@@ -10681,9 +10685,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audience_filters?: Json | null
+          audience_id?: string | null
+          audience_name?: string | null
           business_phone_number_id?: string | null
           created_at?: string
           created_by?: string | null
+          exclude_recent?: boolean | null
           failed_count?: number
           finished_at?: string | null
           header_document_filename?: string | null
@@ -10705,9 +10713,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audience_filters?: Json | null
+          audience_id?: string | null
+          audience_name?: string | null
           business_phone_number_id?: string | null
           created_at?: string
           created_by?: string | null
+          exclude_recent?: boolean | null
           failed_count?: number
           finished_at?: string | null
           header_document_filename?: string | null
@@ -10729,6 +10741,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "whatsapp_campaigns_audience_id_fkey"
+            columns: ["audience_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_audiences"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "whatsapp_campaigns_template_id_fkey"
             columns: ["template_id"]

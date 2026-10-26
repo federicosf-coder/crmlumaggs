@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { filterContactsByAudience, normalizeAudienceFilters, type AudienceFilters } from "@/lib/whatsappAudience";
+import { retryCounters, filterContactsByAudience, normalizeAudienceFilters, type AudienceFilters } from "@/lib/whatsappAudience";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase: any = _supabaseTyped;
@@ -47,6 +47,10 @@ type Campaign = {
   finished_at: string | null;
   business_phone_number_id: string | null;
   scheduled_at?: string | null;
+  audience_id?: string | null;
+  audience_name?: string | null;
+  audience_filters?: unknown;
+  exclude_recent?: boolean | null;
 };
 
 type Template = {
@@ -175,16 +179,20 @@ export default function WhatsAppCampaigns() {
   const [reportCampaign, setReportCampaign] = useState<Campaign | null>(null);
   const [reportRows, setReportRows] = useState<Array<{ id: string; wa_phone: string; status: string; error_message: string | null; sent_at: string | null; contact_name?: string | null }>>([]);
   const [reportLoading, setReportLoading] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [deleteCampaign, setDeleteCampaign] = useState<Campaign | null>(null);
 
   const load = async () => {
     const { data } = await supabase
       .from("whatsapp_campaigns")
-      .select("id,nombre,template_name,template_language,status,total_recipients,sent_count,failed_count,skipped_count,created_at,started_at,finished_at,business_phone_number_id")
+      .select("id,nombre,template_name,template_language,status,total_recipients,sent_count,failed_count,skipped_count,created_at,started_at,finished_at,business_phone_number_id,audience_id,audience_name,audience_filters,exclude_recent")
       .order("created_at", { ascending: false })
       .limit(100);
     setCampaigns((data ?? []) as Campaign[]);
   };
+
+  const audienceLabel = (c: Campaign) => c.audience_name || (c.audience_filters ? "Todos los contactos" : "Sin registro");
+  const reportFailed = reportRows.filter((r) => r.status === "failed").length;
 
   const openReport = async (c: Campaign) => {
     setReportCampaign(c);
@@ -225,7 +233,7 @@ export default function WhatsAppCampaigns() {
       .eq("status", "failed");
     if (uErr) { toast.error(uErr.message); return; }
     if (!count) { toast.info("No hay fallidos para reintentar"); return; }
-    await supabase.from("whatsapp_campaigns").update({ status: "running", failed_count: 0, finished_at: null }).eq("id", c.id);
+    await supabase.from("whatsapp_campaigns").update({ status: "running", failed_count: retryCounters(c.failed_count, count), finished_at: null }).eq("id", c.id);
     const { error: rErr } = await supabase.functions.invoke("whatsapp-campaign-runner", { body: { campaign_id: c.id } });
     if (rErr) { toast.error(rErr.message); return; }
     toast.success(`Reintentando ${count} destinatario(s)`);
@@ -530,6 +538,10 @@ export default function WhatsAppCampaigns() {
         header_document_filename: headerDocName,
         business_phone_number_id: linePhoneId,
         template_variables: Object.keys(variables).length > 0 ? variables : null,
+        audience_id: audienceId !== "all" ? audienceId : null,
+        audience_name: preselect ? `Preselección: ${preselect.label}` : (audiences.find((a) => a.id === audienceId)?.name ?? "Todos los contactos"),
+        audience_filters: audienceFilters as any,
+        exclude_recent: excludeRecent,
       })
       .select("id")
       .single();
@@ -999,7 +1011,7 @@ export default function WhatsAppCampaigns() {
               const showProgress = c.status === "running" || c.status === "paused" || (c.status === "completed" && processed < c.total_recipients);
               return (
               <TableRow key={c.id}>
-                <TableCell className="font-medium">{c.nombre}</TableCell>
+                <TableCell className="font-medium">{c.nombre}<div className="text-xs font-normal text-muted-foreground">Audiencia: {audienceLabel(c)}</div></TableCell>
                 <TableCell className="text-sm">{c.template_name} ({c.template_language})</TableCell>
                 <TableCell className="text-xs">
                   {acc ? (
@@ -1086,6 +1098,21 @@ export default function WhatsAppCampaigns() {
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Reporte: {reportCampaign?.nombre}</DialogTitle>
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <span className="text-xs text-muted-foreground">Audiencia: {reportCampaign ? audienceLabel(reportCampaign) : ""}{reportCampaign?.exclude_recent ? " · excluyó envíos de 48 h" : ""}</span>
+              <Button size="sm" variant="outline" disabled={reportFailed === 0 || retrying}
+                onClick={async () => {
+                  if (!reportCampaign) return;
+                  if (!window.confirm(`¿Reintentar ${reportFailed} envío(s) fallido(s)? Los enviados con éxito no se tocan.`)) return;
+                  setRetrying(true);
+                  await retryFailed(reportCampaign);
+                  setRetrying(false);
+                  openReport(reportCampaign);
+                }}>
+                {retrying ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <AlertTriangle className="h-4 w-4 mr-1" />}
+                Reintentar envíos fallidos ({reportFailed})
+              </Button>
+            </div>
           </DialogHeader>
           <div className="flex-1 overflow-auto">
             {reportLoading ? (
