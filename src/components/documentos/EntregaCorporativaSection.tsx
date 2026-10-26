@@ -26,6 +26,29 @@ function isImage(mime: string) {
   return mime?.startsWith("image/");
 }
 
+/** Orden de Compra del cliente (PDF o imagen) para cotización, pedido y factura. */
+export function OrdenCompraArchivosSection({ documentoId }: { documentoId: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <FileText className="h-5 w-5" />
+          Orden de Compra del cliente
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <FileSection
+          documentoId={documentoId}
+          title="Archivo de la Orden de Compra (PDF o imagen)"
+          table="documento_orden_compra_archivos"
+          storagePrefix="orden_compra"
+          queryKey="oc_archivos"
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 function FileSection({
   documentoId,
   title,
@@ -152,7 +175,7 @@ function FileSection({
         ) : (
           <>
             <Upload className="h-5 w-5" />
-            <span>Haz clic para subir un archivo (PDF o imagen)</span>
+            <span>Haz clic para subir o tomar foto (PDF o imagen)</span>
           </>
         )}
         <input

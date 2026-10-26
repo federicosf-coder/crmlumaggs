@@ -34,7 +34,7 @@ import { AddressAutocompleteInput, emptyAddress, type AddressValue } from "@/com
 import { fireAutomation } from "@/hooks/useFireAutomation";
 import { useLastAutomationRuns } from "@/hooks/useLastAutomationRuns";
 import { LastSendStamp } from "@/components/automations/LastSendStamp";
-import { EntregaCorporativaSection } from "@/components/documentos/EntregaCorporativaSection";
+import { EntregaCorporativaSection, OrdenCompraArchivosSection } from "@/components/documentos/EntregaCorporativaSection";
 import { buildAutorizacionPrecioDraft } from "@/lib/autorizacionPrecioFlow";
 import PedidoStatusStepper from "@/components/documents/PedidoStatusStepper";
 import UltimoCambioEstatus from "@/components/documents/UltimoCambioEstatus";
@@ -854,6 +854,15 @@ export default function DocumentForm() {
           ...itemRest, documento_id: inserted.id,
         }));
         await supabase.from("documento_productos").insert(newItems);
+      }
+
+      // Heredar la Orden de Compra del cliente al nuevo documento
+      const { data: ocFiles } = await supabase.from("documento_orden_compra_archivos").select("*").eq("documento_id", id);
+      if (ocFiles && ocFiles.length > 0) {
+        const { error: ocErr } = await supabase.from("documento_orden_compra_archivos").insert(
+          ocFiles.map(({ id: _oid, fecha_carga: _fc, documento_id: _d, ...r }) => ({ ...r, documento_id: inserted.id })),
+        );
+        if (ocErr) toast.warning("No se pudo copiar la Orden de Compra: " + ocErr.message);
       }
 
       if (targetType === "pedido") {
@@ -1708,6 +1717,11 @@ export default function DocumentForm() {
       {/* Sección Entrega Corporativa: archivos OC, Acuse, fecha real */}
       {isEdit && id && isEntregaCorp && (
         <EntregaCorporativaSection documentoId={id} tipoDocumento={form.tipo_documento} />
+      )}
+
+      {/* Orden de Compra del cliente: se hereda al convertir a pedido/factura */}
+      {isEdit && id && ["cotizacion", "pedido", "factura"].includes(form.tipo_documento) && (
+        <OrdenCompraArchivosSection documentoId={id} />
       )}
 
       {/* Dialog: Nueva Empresa (formulario completo) */}
