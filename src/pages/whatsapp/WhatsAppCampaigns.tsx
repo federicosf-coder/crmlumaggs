@@ -229,6 +229,15 @@ export default function WhatsAppCampaigns() {
   };
 
   const retryFailed = async (c: Campaign) => {
+    // Si la línea original no pertenece a la cuenta de la plantilla, cambiar a una línea compatible.
+    const tplWabas = templates.filter((t) => t.name === c.template_name).map((t) => t.waba_id).filter(Boolean);
+    const curWaba = accounts.find((a) => a.business_phone_number_id === c.business_phone_number_id)?.waba_id;
+    if (tplWabas.length && !tplWabas.includes(curWaba ?? null)) {
+      const alt = accounts.find((a) => a.waba_id && tplWabas.includes(a.waba_id));
+      if (!alt) { toast.error("Ninguna línea conectada tiene esta plantilla."); return; }
+      if (!window.confirm(`La plantilla no existe en la línea original. ¿Reintentar desde ${alt.label}?`)) return;
+      await supabase.from("whatsapp_campaigns").update({ business_phone_number_id: alt.business_phone_number_id }).eq("id", c.id);
+    }
     const { error: uErr, count } = await supabase
       .from("whatsapp_campaign_recipients")
       .update({ status: "pending", error_message: null, sent_at: null }, { count: "exact" })
