@@ -37,3 +37,9 @@ describe("filterContactsByAudience", () => {
     expect(r.eligible).toHaveLength(2);
   });
 });
+
+import { retryCounters } from "./whatsappAudience";
+describe("retryCounters", () => {
+  it("resta solo los reintentados", () => { expect(retryCounters(5, 3)).toBe(2); });
+  it("nunca negativo", () => { expect(retryCounters(1, 4)).toBe(0); expect(retryCounters(null, 2)).toBe(0); });
+});

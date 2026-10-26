@@ -51,3 +51,8 @@ export function filterContactsByAudience<T extends AudienceContact>(
   }
   return { eligible, matched, excludedRecent, excludedBlocked };
 }
+
+/** Fallidos tras poner en cola un reintento: solo resta los reintentados. */
+export function retryCounters(failedCount: number | null | undefined, retried: number): number {
+  return Math.max(0, (failedCount ?? 0) - retried);
+}
