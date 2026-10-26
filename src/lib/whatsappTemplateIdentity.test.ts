@@ -12,9 +12,14 @@ describe("Meta template identity", () => {
       name: "nombre_plantilla", language: { code: "es_MX" },
     });
   });
-  it("preserves the explicitly selected translation", () => {
-    expect(normalizeWhatsAppTemplate("nombre_plantilla (es)", " es_MX ")).toEqual({
-      name: "nombre_plantilla", language: { code: "es_MX" },
+  it("uses the suffix language over a different stored language", () => {
+    expect(normalizeWhatsAppTemplate("prueba (es)", " es_MX ")).toEqual({
+      name: "prueba", language: { code: "es" },
+    });
+  });
+  it("uses the stored language when there is no suffix", () => {
+    expect(normalizeWhatsAppTemplate("prueba", "es")).toEqual({
+      name: "prueba", language: { code: "es" },
     });
   });
   it("keeps a technical name unchanged and defaults only missing languages", () => {

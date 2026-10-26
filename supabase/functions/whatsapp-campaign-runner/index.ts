@@ -113,14 +113,33 @@ Deno.serve(async (req) => {
       return json({ error: error instanceof Error ? error.message : "Plantilla inválida" }, 400);
     }
 
-    // Validar que la plantilla esté APPROVED antes de enviar.
-    const { data: tplRow } = await admin
-      .from("whatsapp_templates")
-      .select("status, header_type, variable_map")
-      .eq("name", templateIdentity.name)
-      .eq("language", templateIdentity.language.code)
+    // La plantilla debe pertenecer a la misma cuenta (WABA) que la línea emisora.
+    const { data: lineAcct } = await admin
+      .from("whatsapp_accounts")
+      .select("waba_id, label")
+      .eq("business_phone_number_id", activePhoneId)
       .maybeSingle();
-    if (!tplRow) return json({ error: "Plantilla no encontrada" }, 404);
+    const { data: tplRows } = await admin
+      .from("whatsapp_templates")
+      .select("status, header_type, variable_map, waba_id")
+      .eq("name", templateIdentity.name)
+      .eq("language", templateIdentity.language.code);
+    if (!tplRows || tplRows.length === 0) return json({ error: "Plantilla no encontrada" }, 404);
+    const tplRow = lineAcct?.waba_id
+      ? tplRows.find((t: any) => !t.waba_id || t.waba_id === lineAcct.waba_id)
+      : tplRows[0];
+    if (!tplRow) {
+      const { data: okLines } = await admin
+        .from("whatsapp_accounts")
+        .select("label")
+        .in("waba_id", tplRows.map((t: any) => t.waba_id).filter(Boolean));
+      const sugeridas = (okLines ?? []).map((l: any) => l.label).join(" o ");
+      const msg = `La plantilla ${templateIdentity.name} no existe en la cuenta de la línea ${lineAcct?.label ?? activePhoneId}${sugeridas ? `; elige ${sugeridas}` : ""}.`;
+      await admin.from("whatsapp_campaigns")
+        .update({ status: "failed", finished_at: new Date().toISOString() })
+        .eq("id", campaign_id);
+      return json({ error: msg }, 400);
+    }
     if (tplRow.status !== "APPROVED") {
       await admin.from("whatsapp_campaigns")
         .update({ status: "failed", finished_at: new Date().toISOString() })
