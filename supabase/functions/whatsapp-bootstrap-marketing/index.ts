@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
 
     const payload = {
       label: "Marketing",
+      status: "connected",
       business_phone_number_id: PHONE_ID,
       waba_id: WABA_ID,
       display_phone,
