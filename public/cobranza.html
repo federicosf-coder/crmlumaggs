@@ -46,6 +46,13 @@ html,body{margin:0;background:var(--color-bg);}
 #dash-root .cb-dsum{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin:0 0 .5rem;font-variant-numeric:tabular-nums;}
 #dash-root .cb-dwrap{max-height:34rem;overflow:auto;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);}
 #dash-root .cb-dinner{min-width:46rem;}
+#dash-root .cb-dinner>.cb-d:not(.grp):not(.ej){grid-template-columns:var(--cols,6.5rem 9rem 5.5rem 5.5rem 5.5rem 7.5rem 1fr);}
+#dash-root .cb-d.hd>div{position:relative;user-select:none;}
+#dash-root .cb-d.hd .hl{cursor:pointer;}
+#dash-root .cb-d.hd .hl:hover{color:var(--color-fg);}
+#dash-root .cb-d.hd .rz{position:absolute;top:-.35rem;bottom:-.35rem;right:-.45rem;width:.7rem;cursor:col-resize;z-index:2;touch-action:none;}
+#dash-root .cb-d.hd .rz::after{content:"";position:absolute;top:25%;bottom:25%;left:50%;width:1px;background:var(--color-border-line);}
+#dash-root .cb-d.hd .rz:hover::after{background:#4c78d8;width:2px;}
 #dash-root .cb-d .ejc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 #dash-root .cb-dbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--cds-gap-sm);margin:0 0 .5rem;}
 #dash-root .cb-dbar .cb-dsum{margin:0;}
@@ -176,6 +183,9 @@ html,body{margin:0;background:var(--color-bg);}
         <button type="button" class="cb-btn" data-plaza="MXL" aria-pressed="false">Mexicali</button>
         <button type="button" class="cb-btn" data-plaza="MR" aria-pressed="false">Morelos</button>
         <button type="button" class="cb-btn" data-plaza="ENS" aria-pressed="false">Ensenada</button>
+        <button type="button" class="cb-btn cb-xp" data-plaza="SLRC" aria-pressed="false" style="display:none">San Luis R.C.</button>
+        <button type="button" class="cb-btn cb-xp" data-plaza="PEN" aria-pressed="false" style="display:none">Puerto Peñasco</button>
+        <button type="button" class="cb-btn cb-xp" data-plaza="K43" aria-pressed="false" style="display:none">Km 43</button>
       </div>
       <div class="cb-btns"><label class="cb-sellbl">Ejecutivo <select class="cb-select" id="cb-ej"><option value="Todos">Todos los ejecutivos</option></select></label></div>
     </div>
@@ -219,6 +229,9 @@ html,body{margin:0;background:var(--color-bg);}
         <button type="button" class="cb-btn" data-plaza="MXL" aria-pressed="false">Mexicali</button>
         <button type="button" class="cb-btn" data-plaza="MR" aria-pressed="false">Morelos</button>
         <button type="button" class="cb-btn" data-plaza="ENS" aria-pressed="false">Ensenada</button>
+        <button type="button" class="cb-btn cb-xp" data-plaza="SLRC" aria-pressed="false" style="display:none">San Luis R.C.</button>
+        <button type="button" class="cb-btn cb-xp" data-plaza="PEN" aria-pressed="false" style="display:none">Puerto Peñasco</button>
+        <button type="button" class="cb-btn cb-xp" data-plaza="K43" aria-pressed="false" style="display:none">Km 43</button>
       </div>
       <div class="cb-btns"><label class="cb-sellbl">Ejecutivo <select class="cb-select" id="cb-pv-ej"><option value="Todos">Todos los ejecutivos</option></select></label></div>
     </div>
@@ -248,11 +261,15 @@ html,body{margin:0;background:var(--color-bg);}
         <button type="button" class="cb-btn" data-plaza="MXL" aria-pressed="false">Mexicali</button>
         <button type="button" class="cb-btn" data-plaza="MR" aria-pressed="false">Morelos</button>
         <button type="button" class="cb-btn" data-plaza="ENS" aria-pressed="false">Ensenada</button>
+        <button type="button" class="cb-btn cb-xp" data-plaza="SLRC" aria-pressed="false" style="display:none">San Luis R.C.</button>
+        <button type="button" class="cb-btn cb-xp" data-plaza="PEN" aria-pressed="false" style="display:none">Puerto Peñasco</button>
+        <button type="button" class="cb-btn cb-xp" data-plaza="K43" aria-pressed="false" style="display:none">Km 43</button>
       </div>
       <div class="cb-btns"><label class="cb-sellbl">Ejecutivo <select class="cb-select" id="cb-ejec-sel"><option value="Todos">Todos los ejecutivos</option></select></label></div>
     </div>
     </details>
-    <div class="cb-dbar"><p class="cb-dsum" id="cb-ejec-sum"></p><button type="button" class="cb-btn cb-dlbtn" id="cb-ejec-dl">Descargar Excel (un ejecutivo por hoja impresa)</button></div>
+    <div class="cb-dbar"><p class="cb-dsum" id="cb-ejec-sum"></p></div>
+    <p class="cb-dsum" id="cb-ejec-vinc" hidden></p>
     <div class="cb-dwrap"><div class="cb-dinner" id="cb-ejec"></div></div>
   </div>
 </div>
@@ -261,6 +278,16 @@ html,body{margin:0;background:var(--color-bg);}
 </div>
 <script>
   const LS_KEY = new URLSearchParams(location.search).get('marca') === 'galsa' ? 'cobranza_facturas_v1_galsa' : 'cobranza_facturas_v1';
+window.__ejMap = {};
+const ejInfo = (raw) => window.__ejMap[String(raw || '').trim()] || null;
+const PLZ2 = {'TIJUANA':'TIJ','MEXICALI':'MXL','MORELOS':'MR','ENSENADA':'ENS','SAN LUIS':'SLRC','SAN LUIS RIO COLORADO':'SLRC','PUERTO PENASCO':'PEN','KM43':'K43','KM 43':'K43'};
+const plazaDe = (r) => {
+  const p2 = String(r.plaza2 || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+  if (PLZ2[p2]) return PLZ2[p2];
+  const sr = String(r.serie || '');
+  return /MXL/.test(sr) ? 'MXL' : /TIJ/.test(sr) ? 'TIJ' : /ENS/.test(sr) ? 'ENS' : /MR/.test(sr) ? 'MR' : 'Otra';
+};
+const ejNombre = (raw) => { const m = ejInfo(raw); return (m && m.nombre_mostrar) || String(raw || '').replace(/\uFFFD/g, 'Ñ').trim() || 'Sin ejecutivo'; };
 (function(){
   const store={facturas:[]}, calcs={}, subs=[], months=new Set();
   function compute(id){
@@ -350,10 +377,13 @@ dash.calc('relacion', {
           fecha: r.fecha_factura,
           cliente: r.razon_social,
           codigo: String(r.cliente_codigo || ''),
-          ejecutivo: String(r.agente || '').trim() || 'Sin ejecutivo',
+          ejecutivo: ejNombre(r.agente),
+          agenteRaw: String(r.agente || '').trim(),
+          ejUsuario: ejInfo(r.agente) ? (ejInfo(r.agente).usuario || null) : null,
+          ejVinc: ejInfo(r.agente) ? !!ejInfo(r.agente).user_id : null,
           importe: Math.round(Number(r.pendiente) * 100) / 100,
           tipo: r.clasif,
-          plaza: /MXL/.test(r.serie) ? 'MXL' : /TIJ/.test(r.serie) ? 'TIJ' : /ENS/.test(r.serie) ? 'ENS' : /MR/.test(r.serie) ? 'MR' : 'Otra',
+          plaza: plazaDe(r),
           vence: new Date(venc).toISOString().slice(0, 10),
           dias: dias,
           estado: dias > 0 ? 'Vencida' : 'Por vencer'
@@ -391,12 +421,12 @@ dash.calc('plazas', {
   inputs: ['facturas'],
   fn: (facturas) => {
     const DIA = 86400000, CORTE = Date.parse((facturas[0] && facturas[0].corte) || '2026-10-27'), CREDITO = 30;
-    const tipos = ['Total', 'CES', 'CR'], plazas = ['TIJ', 'MXL', 'MR', 'ENS'];
+    const tipos = ['Total', 'CES', 'CR'], plazas = ['TIJ', 'MXL', 'MR', 'ENS', 'SLRC', 'PEN', 'K43'];
     const acc = {};
     tipos.forEach(t => plazas.forEach(p => { acc[t + '|' + p] = {tipo: t, plaza: p, vig_n: 0, vig_imp: 0, venc_n: 0, venc_imp: 0}; }));
     facturas.filter(r => Number(r.pendiente) > 0 && r.cancelada !== 'Sí' && (r.clasif === 'CES' || r.clasif === 'CR')).forEach(r => {
-      const p = /MXL/.test(r.serie) ? 'MXL' : /TIJ/.test(r.serie) ? 'TIJ' : /ENS/.test(r.serie) ? 'ENS' : /MR/.test(r.serie) ? 'MR' : null;
-      if (!p) return;
+      const p = plazaDe(r);
+      if (!acc['Total|' + p]) return;
       const d = Math.round((CORTE - (Date.parse(r.fecha_factura) + CREDITO * DIA)) / DIA);
       const k = d > 0 ? 'venc' : 'vig';
       ['Total', r.clasif].forEach(t => { acc[t + '|' + p][k + '_n'] += 1; acc[t + '|' + p][k + '_imp'] += Number(r.pendiente); });
@@ -432,7 +462,9 @@ const get = (id, bucket) => {
 
 const NM_TIPOS = {Total: 'Total crédito', CES: 'Crédito Cescemex (CES)', CR: 'Crédito Directo (CR)'};
 const TOP_TIPOS = {Total: '#4c78d8', CES: '#8e6bd8', CR: '#f0a020'};
-const ORDEN_PLAZAS = ['TIJ', 'MXL', 'MR', 'ENS'];
+const ORDEN_PLAZAS = ['TIJ', 'MXL', 'MR', 'ENS', 'SLRC', 'PEN', 'K43'];
+const PLAZAS_EXTRA = ['SLRC', 'PEN', 'K43'];
+const plazaVisible = (r) => r && (PLAZAS_EXTRA.indexOf(r.plaza) < 0 || r.saldo > 0);
 function renderFilas(tipos, plazas) {
   const box = document.getElementById('cb-tipos');
   box.textContent = '';
@@ -467,7 +499,7 @@ function renderFilas(tipos, plazas) {
     const right = fila.append('div').attr('class', 'fr').append('div').attr('class', 'tw').append('div').attr('class', 'tin');
     const hd = right.append('div').attr('class', 'cb-pt hd');
     ['Plaza', 'Vigente', '%', 'Vencido', '%', 'Saldo'].forEach((t, i) => hd.append('div').attr('class', i ? 'r' : '').text(t));
-    const lines = ORDEN_PLAZAS.map(p => plazas.find(r => r.tipo === x.tipo && r.plaza === p)).filter(Boolean)
+    const lines = ORDEN_PLAZAS.map(p => plazas.find(r => r.tipo === x.tipo && r.plaza === p)).filter(plazaVisible)
       .map(r => ({nombre: NOMPLAZA[r.plaza], r, tot: false})).concat([{nombre: 'Total', r: x, tot: true}]);
     lines.forEach(({nombre, r, tot}) => {
       const row = right.append('div').attr('class', 'cb-pt' + (tot ? ' tot' : ''));
@@ -491,11 +523,12 @@ let estadoSel = 'Todas', tipoSel = 'Todos', plazaSel = 'Todas', ejSel = 'Todos';
 function fillEj(sel, cur) {
   const v = dash.data('relacion');
   const list = v.status === 'ok' ? [...new Set((v.data || []).map(r => r.ejecutivo))].sort((a, b) => a.localeCompare(b, 'es')) : [];
-  const sig = list.join('|');
+  const sinU = new Set(v.status === 'ok' ? (v.data || []).filter(r => r.ejVinc === false).map(r => r.ejecutivo) : []);
+  const sig = list.join('|') + '#' + [...sinU].join('|');
   if (sel.dataset.sig !== sig) {
     sel.textContent = '';
     const o = document.createElement('option'); o.value = 'Todos'; o.textContent = 'Todos los ejecutivos'; sel.appendChild(o);
-    list.forEach(x => { const op = document.createElement('option'); op.value = x; op.textContent = x; sel.appendChild(op); });
+    list.forEach(x => { const op = document.createElement('option'); op.value = x; op.textContent = x + (sinU.has(x) ? ' (sin usuario)' : ''); sel.appendChild(op); });
     sel.dataset.sig = sig;
   }
   if (cur !== 'Todos' && !list.includes(cur)) cur = 'Todos';
@@ -513,7 +546,7 @@ function setFil(id, parts) {
 const fmtD = (iso) => { const [y, m, d] = String(iso).split('-'); return `${d}/${m}/${y}`; };
 const diasTxt = (d) => d > 0 ? `${d} d vencida` : d === 0 ? 'vence hoy' : `vence en ${-d} d`;
 const NOMTIPO = {Todos: 'Todos los tipos', CES: 'Crédito Cescemex (CES)', CR: 'Crédito Directo (CR)'};
-const NOMPLAZA = {Todas: 'Todas las plazas', TIJ: 'Tijuana', MXL: 'Mexicali', MR: 'Morelos', ENS: 'Ensenada'};
+const NOMPLAZA = {Todas: 'Todas las plazas', TIJ: 'Tijuana', MXL: 'Mexicali', MR: 'Morelos', ENS: 'Ensenada', SLRC: 'San Luis R.C.', PEN: 'Puerto Peñasco', K43: 'Km 43'};
 const NOMEST = {Todas: 'Todas', Vencida: 'Vencidas', 'Por vencer': 'Por vencer'};
 
 function filtradas() {
@@ -523,12 +556,62 @@ function filtradas() {
     (tipoSel === 'Todos' || r.tipo === tipoSel) && (plazaSel === 'Todas' || r.plaza === plazaSel) &&
     (ejSel === 'Todos' || r.ejecutivo === ejSel));
 }
-function agrupar(rows) {
+// ---- Orden por columna y ancho de columnas ajustable (encabezados de las tablas) ----
+const SORT = {det: null, pv: null, ex: null};
+const COLKEYS = ['factura', 'ejecutivo', 'tipo', 'fecha', 'vence', 'dias', 'importe'];
+const cmpV = (a, b) => (typeof a === 'number' && typeof b === 'number') ? a - b : String(a).localeCompare(String(b), 'es', {numeric: true, sensitivity: 'base'});
+const sortItems = (items, so) => so ? items.slice().sort((a, b) => cmpV(a[so.k], b[so.k]) * so.dir) : items;
+const valGrupo = (items, so) => so.k === 'importe' ? items.reduce((t, r) => t + r.importe, 0) : sortItems(items, so)[0][so.k];
+const ordenGrupos = (list, itemsOf, so) => so ? list.slice().sort((a, b) => cmpV(valGrupo(itemsOf(a), so), valGrupo(itemsOf(b), so)) * so.dir) : list;
+const RENDER = {det: () => renderDetalle(), pv: () => renderPV(), ex: () => renderEjec()};
+const COLS = {};
+const colsKey = (k) => 'cobranza_cols_v1_' + k;
+const colsCargar = (k) => { if (COLS[k] === undefined) { try { const v = JSON.parse(localStorage.getItem(colsKey(k)) || 'null'); COLS[k] = Array.isArray(v) && v.length === 6 ? v : null; } catch (e) { COLS[k] = null; } } return COLS[k]; };
+const colsAplicar = (box, k) => {
+  const w = colsCargar(k);
+  if (!w) { box.style.removeProperty('--cols'); box.style.minWidth = ''; return; }
+  box.style.setProperty('--cols', w.map(x => x + 'px').join(' ') + ' minmax(7rem,1fr)');
+  box.style.minWidth = (w.reduce((t, x) => t + x, 0) + 7 * 16 + 7 * 12 + 24) + 'px';
+};
+function armarEncabezado(head, box, k, labels) {
+  const so = SORT[k];
+  labels.forEach((t, i) => {
+    const cell = document.createElement('div');
+    if (i >= 6) cell.className = 'r';
+    const lb = document.createElement('span'); lb.className = 'hl'; lb.title = 'Clic para ordenar';
+    const on = so && so.k === COLKEYS[i];
+    lb.textContent = t + (on ? (so.dir > 0 ? ' ▲' : ' ▼') : '');
+    if (on) cell.setAttribute('aria-sort', so.dir > 0 ? 'ascending' : 'descending');
+    lb.addEventListener('click', () => {
+      const cur = SORT[k], kk = COLKEYS[i];
+      SORT[k] = !cur || cur.k !== kk ? {k: kk, dir: 1} : cur.dir === 1 ? {k: kk, dir: -1} : null;
+      RENDER[k]();
+    });
+    cell.appendChild(lb);
+    if (i < 6) {
+      const rz = document.createElement('div'); rz.className = 'rz'; rz.title = 'Arrastra para cambiar el ancho (doble clic: restablecer)';
+      rz.addEventListener('dblclick', (e) => { e.stopPropagation(); COLS[k] = null; try { localStorage.removeItem(colsKey(k)); } catch (er) {} colsAplicar(box, k); });
+      rz.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); e.stopPropagation(); rz.setPointerCapture(e.pointerId);
+        const px = getComputedStyle(head).gridTemplateColumns.split(' ').map(parseFloat).slice(0, 6);
+        const w = px.map(x => Math.round(x)), x0 = e.clientX, w0 = w[i];
+        const mv = (ev) => { w[i] = Math.max(48, Math.round(w0 + ev.clientX - x0)); COLS[k] = w.slice(); colsAplicar(box, k); };
+        const up = () => { rz.removeEventListener('pointermove', mv); rz.removeEventListener('pointerup', up); rz.removeEventListener('pointercancel', up); try { localStorage.setItem(colsKey(k), JSON.stringify(COLS[k])); } catch (er) {} };
+        rz.addEventListener('pointermove', mv); rz.addEventListener('pointerup', up); rz.addEventListener('pointercancel', up);
+      });
+      cell.appendChild(rz);
+    }
+    head.appendChild(cell);
+  });
+  colsAplicar(box, k);
+}
+function agrupar(rows, so) {
   const groups = new Map();
   rows.forEach(r => {
     if (!groups.has(r.cliente)) groups.set(r.cliente, {cliente: r.cliente, codigo: r.codigo, items: [], max: -1e9, sum: 0});
     const g = groups.get(r.cliente); g.items.push(r); g.max = Math.max(g.max, r.dias); g.sum += r.importe;
   });
+  if (so) { const l = [...groups.values()]; l.forEach(g => { g.items = sortItems(g.items, so); }); return ordenGrupos(l, g => g.items, so); }
   const list = [...groups.values()].sort((a, b) => b.max - a.max || b.sum - a.sum);
   list.forEach(g => g.items.sort((a, b) => b.dias - a.dias));
   return list;
@@ -541,11 +624,11 @@ function renderDetalle() {
   setFil('cb-fil-rel-s', [[NOMEST[estadoSel], estadoSel === 'Todas'], [NOMTIPO[tipoSel], tipoSel === 'Todos'], [NOMPLAZA[plazaSel], plazaSel === 'Todas'], [ejSel, ejSel === 'Todos']]);
   const rows = filtradas();
   if (!rows) { sum.textContent = ''; return; }
-  const list = agrupar(rows);
+  const list = agrupar(rows, SORT.det);
   sum.textContent = `${n.format(rows.length)} facturas · ${n.format(list.length)} clientes · ${mx.format(rows.reduce((s, r) => s + r.importe, 0))}`;
   const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const head = mk('div', 'cb-d hd');
-  ['Factura', 'Ejecutivo', 'Tipo', 'Fecha', 'Vence', 'Estado', 'Importe'].forEach((t, i) => head.appendChild(mk('div', i >= 6 ? 'r' : '', t)));
+  armarEncabezado(head, box, 'det', ['Factura', 'Ejecutivo', 'Tipo', 'Fecha', 'Vence', 'Estado', 'Importe']);
   box.appendChild(head);
   list.forEach(g => {
     const gh = mk('div', 'cb-d grp');
@@ -604,8 +687,7 @@ function zipStore(files) {
   let o = 0; all.forEach(p => { out.set(p, o); o += p.length; });
   return out;
 }
-function xlsxBytes(rows, desc, opts) {
-  opts = opts || {};
+function xlsxBytes(rows, desc, so) {
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const L = 'ABCDEFGHIJ';
   const serial = (iso) => { const [y, m, d] = iso.split('-').map(Number); return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000; };
@@ -617,15 +699,14 @@ function xlsxBytes(rows, desc, opts) {
     return `<c r="${ref}" s="${s}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`;
   };
   const r2 = (x) => Math.round(x * 100) / 100;
-  const list = agrupar(rows);
+  const list = agrupar(rows, so);
   const out = [];
   out.push(`<row r="1">${c(0, 1, 'Relación de facturas de crédito', 1)}</row>`);
   out.push(`<row r="2">${c(0, 2, 'Filtros: ' + desc + '. Corte ' + corteTxt + '. Vencimiento = fecha de factura + 30 días de crédito (supuesto: el archivo origen no trae fecha de vencimiento).', 2)}</row>`);
   const H = ['Cliente', 'Factura', 'Ejecutivo', 'Tipo de crédito', 'Plaza', 'Fecha de factura', 'Vencimiento', 'Estado', 'Días (vencida / por vencer)', 'Importe pendiente'];
   out.push(`<row r="4" ht="30" customHeight="1">${H.map((t, i) => c(i, 4, t, 3)).join('')}</row>`);
   let r = 5;
-  const breaks = [];
-  const pintaClientes = (lst) => lst.forEach(g => {
+  list.forEach(g => {
     const d0 = r + 1, d1 = r + g.items.length;
     out.push(`<row r="${r}">${c(0, r, g.codigo ? `${g.cliente} (${g.codigo})` : g.cliente, 4)}${c(1, r, `${g.items.length} factura(s)`, 4, `COUNT(J${d0}:J${d1})&" factura(s)"`)}${[2, 3, 4, 5, 6, 7, 8].map(i => c(i, r, '', 4)).join('')}${c(9, r, r2(g.sum), 5, `SUBTOTAL(9,J${d0}:J${d1})`)}</row>`);
     r++;
@@ -634,22 +715,6 @@ function xlsxBytes(rows, desc, opts) {
       r++;
     });
   });
-  if (opts.porEjecutivo) {
-    const ge = new Map();
-    rows.forEach(x => { if (!ge.has(x.ejecutivo)) ge.set(x.ejecutivo, []); ge.get(x.ejecutivo).push(x); });
-    const ejs = [...ge.entries()].map(([ej, items]) => ({ej, items, venc: items.filter(x => x.estado === 'Vencida').reduce((a, x) => a + x.importe, 0), tot: items.reduce((a, x) => a + x.importe, 0)}))
-      .sort((a, b) => b.venc - a.venc || b.tot - a.tot);
-    ejs.forEach((e, i) => {
-      const h = r, nCli = agrupar(e.items).length, nFac = e.items.length;
-      const d1 = h + nCli + nFac;
-      out.push(`<row r="${h}">${c(0, h, 'EJECUTIVO: ' + e.ej, 12)}${c(1, h, `${nFac} factura(s)`, 12)}${c(2, h, 'Vencido ' + mx.format(e.venc), 12)}${[3, 4, 5, 6, 7, 8].map(k => c(k, h, '', 12)).join('')}${c(9, h, r2(e.tot), 13, `SUBTOTAL(9,J${h + 1}:J${d1})`)}</row>`);
-      r++;
-      pintaClientes(agrupar(e.items));
-      if (i < ejs.length - 1) breaks.push(r - 1);
-    });
-  } else {
-    pintaClientes(list);
-  }
   const last = r - 1, tot = r2(rows.reduce((s, x) => s + x.importe, 0));
   out.push(`<row r="${r}">${c(0, r, 'TOTAL', 12)}${c(1, r, `${rows.length} factura(s)`, 12, `SUBTOTAL(2,J5:J${last})&" factura(s)"`)}${[2, 3, 4, 5, 6, 7, 8].map(i => c(i, r, '', 12)).join('')}${c(9, r, tot, 13, `SUBTOTAL(9,J5:J${last})`)}</row>`);
   const widths = [46, 16, 26, 16, 14, 16, 14, 13, 14, 20];
@@ -658,7 +723,7 @@ function xlsxBytes(rows, desc, opts) {
   const sheet = `${X}<worksheet xmlns="${NS}"><sheetPr><outlinePr summaryBelow="0"/><pageSetUpPr fitToPage="1"/></sheetPr>` +
     `<sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>` +
     `<sheetFormatPr defaultRowHeight="15" outlineLevelRow="1"/><cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>` +
-    `<sheetData>${out.join('')}</sheetData><pageMargins left="0.5" right="0.5" top="0.75" bottom="0.75" header="0.3" footer="0.3"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>${breaks.length ? `<rowBreaks count="${breaks.length}" manualBreakCount="${breaks.length}">${breaks.map(b => `<brk id="${b}" max="16383" man="1"/>`).join('')}</rowBreaks>` : ''}</worksheet>`;
+    `<sheetData>${out.join('')}</sheetData><pageMargins left="0.5" right="0.5" top="0.75" bottom="0.75" header="0.3" footer="0.3"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
   const font = (extra) => `<font>${extra}<sz val="${extra.sz || 10}"/><name val="Arial"/></font>`;
   const styles = `${X}<styleSheet xmlns="${NS}"><numFmts count="2"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="&quot;$&quot;#,##0.00;\\(&quot;$&quot;#,##0.00\\);\\-"/></numFmts>` +
     `<fonts count="5"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="14"/><name val="Arial"/></font><font><i/><sz val="9"/><color rgb="FF595959"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font></fonts>` +
@@ -683,20 +748,20 @@ function xlsxBytes(rows, desc, opts) {
   return zipStore([
     {name: '[Content_Types].xml', text: `${X}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`},
     {name: '_rels/.rels', text: `${X}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
-    {name: 'xl/workbook.xml', text: `${X}<workbook xmlns="${NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Relacion" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Titles" localSheetId="0">Relacion!$4:$4</definedName></definedNames><calcPr fullCalcOnLoad="1"/></workbook>`},
+    {name: 'xl/workbook.xml', text: `${X}<workbook xmlns="${NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Relacion" sheetId="1" r:id="rId1"/></sheets><calcPr fullCalcOnLoad="1"/></workbook>`},
     {name: 'xl/_rels/workbook.xml.rels', text: `${X}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
     {name: 'xl/styles.xml', text: styles},
     {name: 'xl/worksheets/sheet1.xml', text: sheet}
   ]);
 }
-async function descargar(rows, filename, desc, link, opts) {
+async function descargar(rows, filename, desc, link, so) {
   const orig = link.textContent;
   const say = (t) => { link.textContent = t; setTimeout(() => { link.textContent = orig; }, 4000); };
   if (!rows || !rows.length) { say('No hay facturas con esos filtros'); return; }
   try {
     const dl = window.claude && await window.claude.use('downloads');
     if (!dl) { say('Descarga no disponible aquí'); return; }
-    await dl.save({filename, data: xlsxBytes(rows, desc, opts)});
+    await dl.save({filename, data: xlsxBytes(rows, desc, so)});
   } catch (err) {
     if (!err || err.code !== 'declined') say('No se pudo descargar');
   }
@@ -704,7 +769,7 @@ async function descargar(rows, filename, desc, link, opts) {
 document.getElementById('cb-detalle-dl').addEventListener('click', (e) => {
   const desc = `${NOMEST[estadoSel]} · ${NOMTIPO[tipoSel]} · ${NOMPLAZA[plazaSel]} · ${NOMEJ(ejSel)}`;
   const name = `relacion_facturas_${estadoSel}_${tipoSel}_${plazaSel}${ejSel === 'Todos' ? '' : '_' + ejSel}.xlsx`.replace(/\s+/g, '_');
-  descargar(filtradas(), name, desc, e.currentTarget);
+  descargar(filtradas(), name, desc, e.currentTarget, SORT.det);
 });
 document.getElementById('cb-vencido-dl').addEventListener('click', (e) => {
   e.preventDefault();
@@ -739,11 +804,11 @@ function renderPV() {
   setFil('cb-fil-pv-s', [[NOMRANGO[pvRango], pvRango === 'Todas'], [NOMTIPO[pvTipo], pvTipo === 'Todos'], [NOMPLAZA[pvPlaza], pvPlaza === 'Todas'], [pvEj, pvEj === 'Todos']]);
   const rows = pvFiltradas();
   if (!rows) { sum.textContent = ''; return; }
-  const list = agrupar(rows);
+  const list = agrupar(rows, SORT.pv);
   sum.textContent = `${n.format(rows.length)} facturas · ${n.format(list.length)} clientes · ${mx.format(rows.reduce((s, r) => s + r.importe, 0))}`;
   const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const head = mk('div', 'cb-d hd');
-  ['Factura', 'Ejecutivo', 'Tipo', 'Fecha', 'Vence', 'Vencimiento', 'Importe'].forEach((t, i) => head.appendChild(mk('div', i >= 6 ? 'r' : '', t)));
+  armarEncabezado(head, box, 'pv', ['Factura', 'Ejecutivo', 'Tipo', 'Fecha', 'Vence', 'Vencimiento', 'Importe']);
   box.appendChild(head);
   list.forEach(g => {
     const gh = mk('div', 'cb-d grp');
@@ -777,16 +842,9 @@ document.getElementById('cb-pv-btns').addEventListener('click', (e) => {
 document.getElementById('cb-pv-dl').addEventListener('click', (e) => {
   const desc = `Por vencer · ${NOMRANGO[pvRango]} · ${NOMTIPO[pvTipo]} · ${NOMPLAZA[pvPlaza]} · ${NOMEJ(pvEj)}`;
   const name = `relacion_por_vencer_${pvRango}_${pvTipo}_${pvPlaza}${pvEj === 'Todos' ? '' : '_' + pvEj}.xlsx`.replace(/\s+/g, '_');
-  descargar(pvFiltradas(), name, desc, e.currentTarget);
+  descargar(pvFiltradas(), name, desc, e.currentTarget, SORT.pv);
 });
 
-document.addEventListener('click', (e) => {
-  const b = e.target.closest && e.target.closest('#cb-ejec-dl');
-  if (!b) return;
-  const desc = `Por ejecutivo · ${NOMEST[exEstado]} · ${NOMTIPO[exTipo]} · ${NOMPLAZA[exPlaza]} · ${NOMEJ(exEj)}`;
-  const name = `cobranza_por_ejecutivo_${exEstado}_${exTipo}_${exPlaza}${exEj === 'Todos' ? '' : '_' + exEj}.xlsx`.replace(/\s+/g, '_');
-  descargar(exFiltradas(), name, desc, b, {porEjecutivo: true});
-});
 // ---- Bloque "Cobranza por ejecutivo": ejecutivo > cliente > facturas, con vencido y por vencer por ejecutivo ----
 let exEstado = 'Todas', exTipo = 'Todos', exPlaza = 'Todas', exEj = 'Todos';
 function exFiltradas() {
@@ -801,11 +859,22 @@ function renderEjec() {
   box.textContent = '';
   exEj = fillEj(document.getElementById('cb-ejec-sel'), exEj);
   setFil('cb-fil-ejec-s', [[NOMEST[exEstado], exEstado === 'Todas'], [NOMTIPO[exTipo], exTipo === 'Todos'], [NOMPLAZA[exPlaza], exPlaza === 'Todas'], [exEj, exEj === 'Todos']]);
+  const vincEl = document.getElementById('cb-ejec-vinc');
+  const todasRel = dash.data('relacion');
+  const estados = new Map();
+  if (todasRel.status === 'ok') (todasRel.data || []).forEach(r => { if (r.ejVinc !== null) estados.set(r.ejecutivo, r.ejVinc); });
+  if (estados.size) {
+    const con = [...estados.values()].filter(Boolean).length, sin = estados.size - con;
+    vincEl.hidden = false;
+    vincEl.textContent = `${con} de ${estados.size} ejecutivos ligados a un usuario` +
+      (sin ? ` · ${sin} sin usuario (asígnalos en Reporte de Ventas Sistema › Personal)` : '') +
+      (window.__ejNuevos ? ` · ${window.__ejNuevos === 1 ? '1 dado' : window.__ejNuevos + ' dados'} de alta en el sistema ahora` : '');
+  } else vincEl.hidden = true;
   const rows = exFiltradas();
   if (!rows) { sum.textContent = ''; return; }
   const groups = new Map();
   rows.forEach(r => {
-    if (!groups.has(r.ejecutivo)) groups.set(r.ejecutivo, {ej: r.ejecutivo, items: [], venc: 0, vencN: 0, pv: 0, pvN: 0});
+    if (!groups.has(r.ejecutivo)) groups.set(r.ejecutivo, {ej: r.ejecutivo, items: [], venc: 0, vencN: 0, pv: 0, pvN: 0, vinc: r.ejVinc, usuario: r.ejUsuario});
     const g = groups.get(r.ejecutivo); g.items.push(r);
     if (r.estado === 'Vencida') { g.venc += r.importe; g.vencN += 1; } else { g.pv += r.importe; g.pvN += 1; }
   });
@@ -814,18 +883,18 @@ function renderEjec() {
   sum.textContent = `${n.format(rows.length)} facturas · ${n.format(clientes)} clientes · ${n.format(list.length)} ejecutivos · ${mx.format(rows.reduce((s, r) => s + r.importe, 0))}`;
   const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const head = mk('div', 'cb-d hd');
-  ['Factura', 'Ejecutivo', 'Tipo', 'Fecha', 'Vence', 'Estado', 'Importe'].forEach((t, i) => head.appendChild(mk('div', i >= 6 ? 'r' : '', t)));
+  armarEncabezado(head, box, 'ex', ['Factura', 'Ejecutivo', 'Tipo', 'Fecha', 'Vence', 'Estado', 'Importe']);
   box.appendChild(head);
-  list.forEach(g => {
+  ordenGrupos(list, g => g.items, SORT.ex).forEach(g => {
     const eh = mk('div', 'cb-d ej');
     const nm = mk('div', 'cl', g.ej);
-    nm.appendChild(mk('small', '', `· ${g.items.length} fact.`));
+    nm.appendChild(mk('small', '', `· ${g.items.length} fact.` + (g.vinc === true ? ` · usuario: ${String(g.usuario || 'vinculado').trim()}` : g.vinc === false ? ' · sin usuario' : '')));
     eh.appendChild(nm);
     eh.appendChild(mk('div', 'r', `Vencido ${mx.format(g.venc)} (${g.vencN})`));
     eh.appendChild(mk('div', 'r', `Por vencer ${mx.format(g.pv)} (${g.pvN})`));
     eh.appendChild(mk('div', 'r', `Total ${mx.format(g.venc + g.pv)}`));
     box.appendChild(eh);
-    agrupar(g.items).forEach(c => {
+    agrupar(g.items, SORT.ex).forEach(c => {
       const gh = mk('div', 'cb-d grp');
       const cl = mk('div', 'cl', c.cliente);
       if (c.codigo) cl.appendChild(mk('small', '', '· ' + c.codigo));
@@ -854,6 +923,27 @@ document.getElementById('cb-ejec-btns').addEventListener('click', (e) => {
   if (b.dataset.estado) exEstado = b.dataset.estado; else if (b.dataset.tipo) exTipo = b.dataset.tipo; else exPlaza = b.dataset.plaza;
   b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   renderEjec();
+});
+
+// ---- Emparejamiento de ejecutivos con usuarios (lo resuelve el portal; mismo sistema que Reporte de Ventas Sistema) ----
+let agSig = '';
+function anunciarAgentes() {
+  if (window.parent === window) return;
+  const v = dash.data('relacion');
+  if (v.status !== 'ok') return;
+  const nombres = [...new Set((v.data || []).map(r => r.agenteRaw).filter(Boolean))].sort();
+  const sig = nombres.join('|');
+  if (!nombres.length || sig === agSig) return;
+  agSig = sig;
+  try { window.parent.postMessage({type: 'cobranza-agentes', marca: new URLSearchParams(location.search).get('marca') || 'lumaggs', nombres}, '*'); } catch (e) {}
+}
+window.addEventListener('message', (e) => {
+  if (window.parent === window || e.source !== window.parent || e.origin !== location.origin) return;
+  const d = e.data;
+  if (!d || d.type !== 'cobranza-ejecutivos' || !Array.isArray(d.items)) return;
+  d.items.forEach(i => { if (i && i.nombre_agente) window.__ejMap[String(i.nombre_agente).trim()] = i; });
+  window.__ejNuevos = d.items.filter(i => i && i.creada).length;
+  dash.refresh();
 });
 
 // ---- PDF: todo el panel (sin filtros), generado en la página ----
@@ -927,7 +1017,8 @@ function pdfBytes(D) {
   // ----- Tipo de crédito y plaza -----
   section('Vigente vs vencido por tipo de crédito y plaza');
   D.tipos.forEach(x => {
-    const bh2 = 108; ensure(bh2 + 8);
+    const lines = ORDEN_PLAZAS.map(p => D.plazas.find(r => r.tipo === x.tipo && r.plaza === p)).filter(plazaVisible).map(r => ({nm: NOMPLAZA[r.plaza], r, t: false})).concat([{nm: 'Total', r: x, t: true}]);
+    const bh2 = Math.max(108, 14 * lines.length + 38); ensure(bh2 + 8);
     rect(M, y - bh2, CW, bh2, '#f7f8fb'); rect(M, y - 3, CW, 3, TOP_TIPOS[x.tipo]);
     text(M + 8, y - 17, NM_TIPOS[x.tipo], 9.5, true, INK);
     const cx = M + 56, cy = y - 66;
@@ -938,7 +1029,6 @@ function pdfBytes(D) {
     let ty = y - 28;
     ['Plaza', 'Vigente', '%', 'Vencido', '%', 'Saldo', 'Fact.'].forEach((t, i) => text(i ? R[i - 1] : x0, ty, t, 7, true, MUT, i ? 'r' : 'l'));
     ty -= 6;
-    const lines = ORDEN_PLAZAS.map(p => D.plazas.find(r => r.tipo === x.tipo && r.plaza === p)).filter(Boolean).map(r => ({nm: NOMPLAZA[r.plaza], r, t: false})).concat([{nm: 'Total', r: x, t: true}]);
     lines.forEach(({nm, r, t}) => {
       ty -= 14;
       if (t) { hline(x0 - 4, M + CW - 8, ty + 10, '#b8c0cc'); }
@@ -955,6 +1045,7 @@ function pdfBytes(D) {
   });
 
   // ----- Antigüedad de saldos -----
+  ensure(235);
   section('Antigüedad de saldos', '#ee7a2c');
   text(M, y - 2, `Días transcurridos desde el vencimiento (fecha de factura + 30 días de crédito), al ${D.corte}.`, 7.5, false, MUT); y -= 14;
   const bcol = {Vigente: '#2fa36b', '1-7': '#f2c744', '8-14': '#f0a020', '15-21': '#ee7a2c', '22-30': '#e5484d', Mas30: '#a61e2b', Total: '#4c78d8'};
@@ -990,7 +1081,7 @@ function pdfBytes(D) {
     text(M, y - 2, note, 7.5, false, MUT); y -= 14;
     const hdr = () => {
       rect(M, y - 15, CW, 15, '#1f3864');
-      [['Factura', 8], ['Tipo', 78], ['Fecha', 132], ['Vence', 186], ['Estado', 240], ['Ejecutivo', 322]].forEach(([t, dx]) => text(M + dx, y - 10.5, t, 7.5, true, '#ffffff'));
+      [['Factura', 8], ['Tipo', 70], ['Fecha', 116], ['Vence', 166], ['Estado', 216], ['Ejecutivo', 280]].forEach(([t, dx]) => text(M + dx, y - 10.5, t, 7.5, true, '#ffffff'));
       text(M + CW - 6, y - 10.5, 'Importe', 7.5, true, '#ffffff', 'r');
       y -= 15;
     };
@@ -1010,11 +1101,11 @@ function pdfBytes(D) {
       g.items.forEach(r => {
         ensure(13, () => { hdr(); grow(g, true); });
         text(M + 8, y - 9.5, r.factura, 8, false, INK);
-        text(M + 78, y - 9.5, r.tipo === 'CES' ? 'Cescemex' : 'Directo', 8, false, INK);
-        text(M + 132, y - 9.5, fmtD(r.fecha), 8, false, INK);
-        text(M + 186, y - 9.5, fmtD(r.vence), 8, false, INK);
-        text(M + 240, y - 9.5, diasTxt(r.dias), 8, true, sevCol(r.dias));
-        text(M + 322, y - 9.5, r.ejecutivo, 8, false, INK, 'l', 130);
+        text(M + 70, y - 9.5, r.tipo === 'CES' ? 'Cescemex' : 'Directo', 8, false, INK);
+        text(M + 116, y - 9.5, fmtD(r.fecha), 8, false, INK);
+        text(M + 166, y - 9.5, fmtD(r.vence), 8, false, INK);
+        text(M + 216, y - 9.5, diasTxt(r.dias), 8, true, sevCol(r.dias));
+        text(M + 280, y - 9.5, r.ejecutivo, 8, false, INK, 'l', 168);
         text(M + CW - 6, y - 9.5, mx.format(r.importe), 8, false, INK, 'r');
         y -= 13;
       });
@@ -1028,6 +1119,61 @@ function pdfBytes(D) {
   };
   relacion('Relación de facturas vencidas', 'Agrupadas por cliente; primero los clientes con la factura más atrasada.', D.rel.filter(r => r.estado === 'Vencida'), '#e5484d');
   relacion('Facturas por vencer', 'Facturas vigentes agrupadas por cliente; primero las que vencen más pronto.', D.rel.filter(r => r.estado === 'Por vencer'), '#2fa36b');
+
+  // ----- Cobranza por ejecutivo (ejecutivo > cliente: vencido y por vencer) -----
+  (() => {
+    const ge = new Map();
+    D.rel.forEach(r => {
+      if (!ge.has(r.ejecutivo)) ge.set(r.ejecutivo, {ej: r.ejecutivo, usuario: r.ejUsuario, vinc: r.ejVinc, venc: 0, pv: 0, nV: 0, nP: 0, cl: new Map()});
+      const g = ge.get(r.ejecutivo);
+      if (!g.cl.has(r.cliente)) g.cl.set(r.cliente, {cliente: r.cliente, codigo: r.codigo, venc: 0, pv: 0, nV: 0, nP: 0});
+      const c = g.cl.get(r.cliente);
+      if (r.estado === 'Vencida') { g.venc += r.importe; g.nV++; c.venc += r.importe; c.nV++; } else { g.pv += r.importe; g.nP++; c.pv += r.importe; c.nP++; }
+    });
+    const list = [...ge.values()].sort((a, b) => b.venc - a.venc || (b.venc + b.pv) - (a.venc + a.pv));
+    newPage(); section('Cobranza por ejecutivo', '#8e6bd8');
+    text(M, y - 2, 'Por ejecutivo (nombre del agente) y después por cliente: lo que tiene vencido y lo que vence. El detalle de cada factura está en las relaciones.', 7.5, false, MUT); y -= 14;
+    const X = {n: M + CW - 6, tot: M + CW - 6, pv: M + CW - 92, ve: M + CW - 170, f: M + CW - 232};
+    const hd = () => {
+      rect(M, y - 15, CW, 15, '#1f3864');
+      text(M + 6, y - 10.5, 'Ejecutivo / cliente', 7.5, true, '#ffffff');
+      text(X.f, y - 10.5, 'Fact.', 7.5, true, '#ffffff', 'r'); text(X.ve, y - 10.5, 'Vencido', 7.5, true, '#ffffff', 'r');
+      text(X.pv, y - 10.5, 'Por vencer', 7.5, true, '#ffffff', 'r'); text(X.tot, y - 10.5, 'Total', 7.5, true, '#ffffff', 'r');
+      y -= 15;
+    };
+    hd();
+    let tV = 0, tP = 0, tN = 0;
+    list.forEach(g => {
+      const cls = [...g.cl.values()].sort((a, b) => b.venc - a.venc || (b.venc + b.pv) - (a.venc + a.pv));
+      ensure(30, hd);
+      const eh = (cont) => {
+        rect(M, y - 16, CW, 16, '#e4dcf5');
+        const tag = g.vinc === true ? (g.usuario ? '  · usuario: ' + g.usuario : '') : g.vinc === false ? '  · sin usuario' : '';
+        text(M + 6, y - 11.5, g.ej + tag + (cont ? '  - continuación' : ''), 8, true, INK, 'l', 240);
+        text(X.f, y - 11.5, n.format(g.nV + g.nP), 8, true, INK, 'r'); text(X.ve, y - 11.5, mx.format(g.venc), 8, true, '#c8323a', 'r');
+        text(X.pv, y - 11.5, mx.format(g.pv), 8, true, '#1f8a58', 'r'); text(X.tot, y - 11.5, mx.format(g.venc + g.pv), 8, true, INK, 'r');
+        y -= 16;
+      };
+      eh(false);
+      tV += g.venc; tP += g.pv; tN += g.nV + g.nP;
+      cls.forEach(c => {
+        ensure(13, () => { hd(); eh(true); });
+        text(M + 14, y - 9.5, c.cliente + (c.codigo ? '  (' + c.codigo + ')' : ''), 8, false, INK, 'l', 215);
+        text(X.f, y - 9.5, n.format(c.nV + c.nP), 8, false, INK, 'r');
+        text(X.ve, y - 9.5, c.venc ? mx.format(c.venc) : '-', 8, false, c.venc ? '#c8323a' : MUT, 'r');
+        text(X.pv, y - 9.5, c.pv ? mx.format(c.pv) : '-', 8, false, c.pv ? '#1f8a58' : MUT, 'r');
+        text(X.tot, y - 9.5, mx.format(c.venc + c.pv), 8, false, INK, 'r');
+        y -= 13;
+      });
+      y -= 4;
+    });
+    ensure(24);
+    hline(M, M + CW, y, '#b8c0cc');
+    text(M + 6, y - 12, 'TOTAL', 8.5, true, INK);
+    text(X.f, y - 12, n.format(tN), 8.5, true, INK, 'r'); text(X.ve, y - 12, mx.format(tV), 8.5, true, '#c8323a', 'r');
+    text(X.pv, y - 12, mx.format(tP), 8.5, true, '#1f8a58', 'r'); text(X.tot, y - 12, mx.format(tV + tP), 8.5, true, INK, 'r');
+    y -= 20;
+  })();
 
   // ----- Pie de página -----
   pages.forEach((p, i) => {
@@ -1099,10 +1245,23 @@ document.getElementById('cb-pdf-btn').addEventListener('click', async (e) => {
       const hi = lines.findIndex(l => l.includes('\t') && norm(l).includes('pendiente') && norm(l).includes('fecha'));
       if (hi < 0) throw new Error('No encontré los encabezados (Fecha, Pendiente…). ¿Es el reporte "Todos los Documentos"?');
       const hdr = lines[hi].split('\t').map(norm);
+      // Algunos exportes traen la letra acentuada dañada (carácter U+FFFD): ese carácter cuenta como comodín al buscar columnas.
+      const idx = (name) => { let i = hdr.indexOf(name); if (i >= 0) return i; return hdr.findIndex(h => h.length === name.length && [...h].every((ch, k) => ch === name[k] || ch === '\uFFFD')); };
+      const fixN = (v) => String(v || '').replace(/\uFFFD/g, 'Ñ');
       const need = {fecha: 'fecha', serie: 'serie', folio: 'folio', cod: 'codigo cliente', cli: 'razon social', agente: 'nombre del agente',
-        clasif: 'abreviatura clasif cliente 1', total: 'total', pend: 'pendiente', canc: 'cancelado'};
+        total: 'total', pend: 'pendiente'};
       const col = {};
-      Object.keys(need).forEach(k => { col[k] = hdr.indexOf(need[k]); if (col[k] < 0) throw new Error(`Falta la columna "${need[k]}".`); });
+      Object.keys(need).forEach(k => { col[k] = idx(need[k]); if (col[k] < 0) throw new Error(`Falta la columna "${need[k]}".`); });
+      // Tipo de crédito: abreviatura (Lumaggs) o la clasificación completa (Galsa: CREDITO / CESCE / CONTADO)
+      col.clasifAbr = idx('abreviatura clasif cliente 1');
+      col.clasifTxt = idx('clasificacion cliente 1');
+      if (col.clasifAbr < 0 && col.clasifTxt < 0) throw new Error('Falta la columna "Clasificación Cliente 1" (o "Abreviatura Clasif Cliente 1").');
+      // Cancelada: columna "Cancelado" (Lumaggs) o "UUID Descripción" = Cancelado (Galsa)
+      col.canc = idx('cancelado');
+      col.uuidDesc = idx('uuid descripcion');
+      if (col.canc < 0 && col.uuidDesc < 0) throw new Error('Falta la columna "Cancelado" (o "UUID Descripción").');
+      col.plaza2 = idx('clasificacion cliente 2');
+      const tipoDe = (v) => { const t = norm(v); return t === 'credito' ? 'CR' : t === 'cesce' ? 'CES' : t === 'contado' ? 'CO' : String(v || '').trim(); };
       const num = (s) => { const v = parseFloat(String(s).replace(/,/g, '')); return isNaN(v) ? 0 : v; };
       const out = [];
       for (let i = hi + 1; i < lines.length; i++) {
@@ -1111,8 +1270,9 @@ document.getElementById('cb-pdf-btn').addEventListener('click', async (e) => {
         const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(c[col.fecha] || '');
         if (!m) continue;
         out.push({fecha_factura: `${m[3]}-${m[2]}-${m[1]}`, serie: c[col.serie], folio: String(c[col.folio]).replace(/,/g, ''),
-          cliente_codigo: c[col.cod], razon_social: c[col.cli], agente: c[col.agente], clasif: c[col.clasif],
-          total: num(c[col.total]), pendiente: num(c[col.pend]), cancelada: c[col.canc] === '1' ? 'Sí' : 'No'});
+          cliente_codigo: c[col.cod], razon_social: fixN(c[col.cli]), agente: c[col.agente], clasif: col.clasifAbr >= 0 ? c[col.clasifAbr] : tipoDe(c[col.clasifTxt]),
+          plaza2: col.plaza2 >= 0 ? fixN(c[col.plaza2]) : '',
+          total: num(c[col.total]), pendiente: num(c[col.pend]), cancelada: (col.canc >= 0 ? c[col.canc] === '1' : norm(c[col.uuidDesc]) === 'cancelado') ? 'Sí' : 'No'});
       }
       if (!out.length) throw new Error('No encontré facturas en el archivo.');
       const maxF = out.reduce((a, r) => r.fecha_factura > a ? r.fecha_factura : a, '');
@@ -1125,7 +1285,7 @@ document.getElementById('cb-pdf-btn').addEventListener('click', async (e) => {
       return {rows: out.map(r => ({...r, corte})), corte};
     };
     const csvOf = (rows) => {
-      const cols = ['fecha_factura', 'serie', 'folio', 'cliente_codigo', 'razon_social', 'agente', 'clasif', 'total', 'pendiente', 'cancelada', 'corte'];
+      const cols = ['fecha_factura', 'serie', 'folio', 'cliente_codigo', 'razon_social', 'agente', 'clasif', 'plaza2', 'total', 'pendiente', 'cancelada', 'corte'];
       const q = (v) => typeof v === 'number' ? String(v) : '"' + String(v).replace(/"/g, '""') + '"';
       return [cols.join(',')].concat(rows.map(r => cols.map(k => q(r[k])).join(','))).join('\n');
     };
@@ -1151,9 +1311,15 @@ document.getElementById('cb-pdf-btn').addEventListener('click', async (e) => {
 })();
 
 dash.onData(() => {
+  try {
+    const rl = dash.data('relacion'), hay = {};
+    ((rl && rl.status === 'ok' && rl.data) || []).forEach(r => { hay[r.plaza] = true; });
+    document.querySelectorAll('.cb-xp').forEach(b => { b.style.display = hay[b.dataset.plaza] ? '' : 'none'; });
+  } catch (e) {}
   renderDetalle();
   renderPV();
   renderEjec();
+  anunciarAgentes();
   const ct = dash.data('corte');
   if (ct.status === 'ok' && ct.data && ct.data[0]) {
     corteTxt = ct.data[0].texto;
