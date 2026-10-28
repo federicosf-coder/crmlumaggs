@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => ({
           /^\/~/,
           /^\/\.lovable\//,
           /^\/\.well-known\//,
+          /^\/cobranza\.html/,
           /^\/docs\//,
           /^\/guias\//,
           /\.(?:pdf|xml|zip|docx?|xlsx?|csv|txt|png|jpe?g|svg|webp)$/i,
