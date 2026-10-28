@@ -30,6 +30,7 @@ describe("gerentes de equipos", () => {
     await waitFor(() => expect(screen.getByRole("checkbox", { name: "Gerente dos" })).not.toBeDisabled());
     fireEvent.click(screen.getByRole("checkbox", { name: "Gerente dos" }));
     await waitFor(() => expect(mocks.upsert).toHaveBeenCalledWith({ team_id: "t1", user_id: "m2" }, expect.anything()));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Gerentes del equipo Equipo dos" })).toBeEnabled());
     fireEvent.keyDown(screen.getByRole("checkbox", { name: "Gerente dos" }), { key: "Escape" });
     fireEvent.click(screen.getByRole("button", { name: "Gerentes del equipo Equipo dos" }));
     fireEvent.click(await screen.findByRole("checkbox", { name: "Gerente uno" }));

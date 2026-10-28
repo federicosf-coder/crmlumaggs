@@ -35,7 +35,7 @@ export function validateCobranzaEmail(value: unknown): CobranzaEmailBody {
     if (typeof body[field] !== "number" || !Number.isFinite(body[field])) throw new Error(`Campo numérico inválido: ${field}`);
   }
   if (!Number.isInteger(body.n_facturas) || (body.n_facturas as number) < 0 || (body.n_facturas as number) > 2147483647) throw new Error("Cantidad de facturas inválida");
-  if (typeof body.pdf !== "string" || body.pdf.length > Math.ceil(MAX_PDF_BYTES / 3) * 4 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(body.pdf)) throw new Error("PDF inválido o mayor a 8 MB");
+  if (typeof body.pdf !== "string" || body.pdf.length > Math.ceil(MAX_PDF_BYTES / 3) * 4 || body.pdf.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(body.pdf)) throw new Error("PDF inválido o mayor a 8 MB");
   const decoded = atob(body.pdf);
   if (decoded.length > MAX_PDF_BYTES) throw new Error("El PDF supera los 8 MB");
   if (!decoded.startsWith("%PDF-")) throw new Error("El adjunto no es un PDF");
