@@ -252,7 +252,7 @@ html,body{margin:0;background:var(--color-bg);}
       <div class="cb-btns"><label class="cb-sellbl">Ejecutivo <select class="cb-select" id="cb-ejec-sel"><option value="Todos">Todos los ejecutivos</option></select></label></div>
     </div>
     </details>
-    <div class="cb-dbar"><p class="cb-dsum" id="cb-ejec-sum"></p></div>
+    <div class="cb-dbar"><p class="cb-dsum" id="cb-ejec-sum"></p><button type="button" class="cb-btn cb-dlbtn" id="cb-ejec-dl">Descargar Excel (un ejecutivo por hoja impresa)</button></div>
     <div class="cb-dwrap"><div class="cb-dinner" id="cb-ejec"></div></div>
   </div>
 </div>
@@ -604,7 +604,8 @@ function zipStore(files) {
   let o = 0; all.forEach(p => { out.set(p, o); o += p.length; });
   return out;
 }
-function xlsxBytes(rows, desc) {
+function xlsxBytes(rows, desc, opts) {
+  opts = opts || {};
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const L = 'ABCDEFGHIJ';
   const serial = (iso) => { const [y, m, d] = iso.split('-').map(Number); return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000; };
@@ -623,7 +624,8 @@ function xlsxBytes(rows, desc) {
   const H = ['Cliente', 'Factura', 'Ejecutivo', 'Tipo de crédito', 'Plaza', 'Fecha de factura', 'Vencimiento', 'Estado', 'Días (vencida / por vencer)', 'Importe pendiente'];
   out.push(`<row r="4" ht="30" customHeight="1">${H.map((t, i) => c(i, 4, t, 3)).join('')}</row>`);
   let r = 5;
-  list.forEach(g => {
+  const breaks = [];
+  const pintaClientes = (lst) => lst.forEach(g => {
     const d0 = r + 1, d1 = r + g.items.length;
     out.push(`<row r="${r}">${c(0, r, g.codigo ? `${g.cliente} (${g.codigo})` : g.cliente, 4)}${c(1, r, `${g.items.length} factura(s)`, 4, `COUNT(J${d0}:J${d1})&" factura(s)"`)}${[2, 3, 4, 5, 6, 7, 8].map(i => c(i, r, '', 4)).join('')}${c(9, r, r2(g.sum), 5, `SUBTOTAL(9,J${d0}:J${d1})`)}</row>`);
     r++;
@@ -632,6 +634,22 @@ function xlsxBytes(rows, desc) {
       r++;
     });
   });
+  if (opts.porEjecutivo) {
+    const ge = new Map();
+    rows.forEach(x => { if (!ge.has(x.ejecutivo)) ge.set(x.ejecutivo, []); ge.get(x.ejecutivo).push(x); });
+    const ejs = [...ge.entries()].map(([ej, items]) => ({ej, items, venc: items.filter(x => x.estado === 'Vencida').reduce((a, x) => a + x.importe, 0), tot: items.reduce((a, x) => a + x.importe, 0)}))
+      .sort((a, b) => b.venc - a.venc || b.tot - a.tot);
+    ejs.forEach((e, i) => {
+      const h = r, nCli = agrupar(e.items).length, nFac = e.items.length;
+      const d1 = h + nCli + nFac;
+      out.push(`<row r="${h}">${c(0, h, 'EJECUTIVO: ' + e.ej, 12)}${c(1, h, `${nFac} factura(s)`, 12)}${c(2, h, 'Vencido ' + mx.format(e.venc), 12)}${[3, 4, 5, 6, 7, 8].map(k => c(k, h, '', 12)).join('')}${c(9, h, r2(e.tot), 13, `SUBTOTAL(9,J${h + 1}:J${d1})`)}</row>`);
+      r++;
+      pintaClientes(agrupar(e.items));
+      if (i < ejs.length - 1) breaks.push(r - 1);
+    });
+  } else {
+    pintaClientes(list);
+  }
   const last = r - 1, tot = r2(rows.reduce((s, x) => s + x.importe, 0));
   out.push(`<row r="${r}">${c(0, r, 'TOTAL', 12)}${c(1, r, `${rows.length} factura(s)`, 12, `SUBTOTAL(2,J5:J${last})&" factura(s)"`)}${[2, 3, 4, 5, 6, 7, 8].map(i => c(i, r, '', 12)).join('')}${c(9, r, tot, 13, `SUBTOTAL(9,J5:J${last})`)}</row>`);
   const widths = [46, 16, 26, 16, 14, 16, 14, 13, 14, 20];
@@ -640,7 +658,7 @@ function xlsxBytes(rows, desc) {
   const sheet = `${X}<worksheet xmlns="${NS}"><sheetPr><outlinePr summaryBelow="0"/><pageSetUpPr fitToPage="1"/></sheetPr>` +
     `<sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>` +
     `<sheetFormatPr defaultRowHeight="15" outlineLevelRow="1"/><cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>` +
-    `<sheetData>${out.join('')}</sheetData><pageMargins left="0.5" right="0.5" top="0.75" bottom="0.75" header="0.3" footer="0.3"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+    `<sheetData>${out.join('')}</sheetData><pageMargins left="0.5" right="0.5" top="0.75" bottom="0.75" header="0.3" footer="0.3"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>${breaks.length ? `<rowBreaks count="${breaks.length}" manualBreakCount="${breaks.length}">${breaks.map(b => `<brk id="${b}" max="16383" man="1"/>`).join('')}</rowBreaks>` : ''}</worksheet>`;
   const font = (extra) => `<font>${extra}<sz val="${extra.sz || 10}"/><name val="Arial"/></font>`;
   const styles = `${X}<styleSheet xmlns="${NS}"><numFmts count="2"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="&quot;$&quot;#,##0.00;\\(&quot;$&quot;#,##0.00\\);\\-"/></numFmts>` +
     `<fonts count="5"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="14"/><name val="Arial"/></font><font><i/><sz val="9"/><color rgb="FF595959"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font></fonts>` +
@@ -665,20 +683,20 @@ function xlsxBytes(rows, desc) {
   return zipStore([
     {name: '[Content_Types].xml', text: `${X}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`},
     {name: '_rels/.rels', text: `${X}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
-    {name: 'xl/workbook.xml', text: `${X}<workbook xmlns="${NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Relacion" sheetId="1" r:id="rId1"/></sheets><calcPr fullCalcOnLoad="1"/></workbook>`},
+    {name: 'xl/workbook.xml', text: `${X}<workbook xmlns="${NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Relacion" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Titles" localSheetId="0">Relacion!$4:$4</definedName></definedNames><calcPr fullCalcOnLoad="1"/></workbook>`},
     {name: 'xl/_rels/workbook.xml.rels', text: `${X}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
     {name: 'xl/styles.xml', text: styles},
     {name: 'xl/worksheets/sheet1.xml', text: sheet}
   ]);
 }
-async function descargar(rows, filename, desc, link) {
+async function descargar(rows, filename, desc, link, opts) {
   const orig = link.textContent;
   const say = (t) => { link.textContent = t; setTimeout(() => { link.textContent = orig; }, 4000); };
   if (!rows || !rows.length) { say('No hay facturas con esos filtros'); return; }
   try {
     const dl = window.claude && await window.claude.use('downloads');
     if (!dl) { say('Descarga no disponible aquí'); return; }
-    await dl.save({filename, data: xlsxBytes(rows, desc)});
+    await dl.save({filename, data: xlsxBytes(rows, desc, opts)});
   } catch (err) {
     if (!err || err.code !== 'declined') say('No se pudo descargar');
   }
@@ -762,6 +780,13 @@ document.getElementById('cb-pv-dl').addEventListener('click', (e) => {
   descargar(pvFiltradas(), name, desc, e.currentTarget);
 });
 
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('#cb-ejec-dl');
+  if (!b) return;
+  const desc = `Por ejecutivo · ${NOMEST[exEstado]} · ${NOMTIPO[exTipo]} · ${NOMPLAZA[exPlaza]} · ${NOMEJ(exEj)}`;
+  const name = `cobranza_por_ejecutivo_${exEstado}_${exTipo}_${exPlaza}${exEj === 'Todos' ? '' : '_' + exEj}.xlsx`.replace(/\s+/g, '_');
+  descargar(exFiltradas(), name, desc, b, {porEjecutivo: true});
+});
 // ---- Bloque "Cobranza por ejecutivo": ejecutivo > cliente > facturas, con vencido y por vencer por ejecutivo ----
 let exEstado = 'Todas', exTipo = 'Todos', exPlaza = 'Todas', exEj = 'Todos';
 function exFiltradas() {
