@@ -64,6 +64,12 @@ html,body{margin:0;background:var(--color-bg);}
 #dash-root .cb-d .sev3{color:var(--color-bad);font-weight:500;}
 #dash-root .cb-sec h2{border-left:4px solid #4c78d8;padding-left:.55rem;}
 #dash-root .cb-btn[aria-pressed="true"]{background:#4c78d8;border-color:#4c78d8;color:#fff;}
+#dash-root .cb-select{font:inherit;font-size:var(--cds-font-size-body);color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:.35rem .6rem;max-width:100%;}
+#dash-root .cb-sellbl{display:inline-flex;align-items:center;gap:.5rem;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);}
+#dash-root .cb-d.ej{grid-template-columns:1fr auto auto auto;background:#4c78d8;color:#fff;font-weight:600;margin-top:.9rem;}
+#dash-root .cb-d.ej:first-child{margin-top:0;}
+#dash-root .cb-d.ej .cl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#dash-root .cb-d.ej small{font-weight:400;opacity:.85;margin-left:.4rem;}
 #dash-root .cb-fila{display:grid;grid-template-columns:minmax(11rem,14rem) 1fr;gap:var(--cds-gap-md);border:1px solid var(--color-border-line);border-top:4px solid #4c78d8;border-radius:var(--cds-radius);padding:var(--cds-pad-md);margin-bottom:var(--cds-gap-md);align-items:center;}
 @media (max-width:42rem){#dash-root .cb-fila{grid-template-columns:1fr;}}
 #dash-root .cb-fila .pt{font-weight:500;margin-bottom:.25rem;text-align:center;}
@@ -141,7 +147,7 @@ html,body{margin:0;background:var(--color-bg);}
 
   <div class="cb-sec">
     <h2>Relación de Facturas</h2>
-    <p class="note">Agrupadas por cliente; primero los clientes con la factura más atrasada. Filtra por estado, tipo de crédito y plaza (según la serie de la factura).</p>
+    <p class="note">Agrupadas por cliente; primero los clientes con la factura más atrasada. Filtra por estado, tipo de crédito, plaza (según la serie de la factura) y ejecutivo.</p>
     <div id="cb-btns">
       <div class="cb-btns">
         <button type="button" class="cb-btn" data-estado="Todas" aria-pressed="true">Todas</button>
@@ -160,6 +166,7 @@ html,body{margin:0;background:var(--color-bg);}
         <button type="button" class="cb-btn" data-plaza="MR" aria-pressed="false">Morelos</button>
         <button type="button" class="cb-btn" data-plaza="ENS" aria-pressed="false">Ensenada</button>
       </div>
+      <div class="cb-btns"><label class="cb-sellbl">Ejecutivo <select class="cb-select" id="cb-ej"><option value="Todos">Todos los ejecutivos</option></select></label></div>
     </div>
     <div class="cb-dbar"><p class="cb-dsum" id="cb-detalle-sum"></p><button type="button" class="cb-btn cb-dlbtn" id="cb-detalle-dl">Descargar Excel (filtros seleccionados)</button></div>
     <div class="cb-dwrap"><div class="cb-dinner" id="cb-detalle" data-source="relacion"></div></div>
@@ -179,7 +186,7 @@ html,body{margin:0;background:var(--color-bg);}
 
   <div class="cb-sec">
     <h2>Facturas por vencer</h2>
-    <p class="note">Facturas vigentes agrupadas por cliente; primero las que vencen más pronto. Filtra por rango de vencimiento, tipo de crédito y plaza.</p>
+    <p class="note">Facturas vigentes agrupadas por cliente; primero las que vencen más pronto. Filtra por rango de vencimiento, tipo de crédito, plaza y ejecutivo.</p>
     <div id="cb-pv-btns">
       <div class="cb-btns">
         <button type="button" class="cb-btn" data-rango="Todas" aria-pressed="true">Todas</button>
@@ -200,9 +207,37 @@ html,body{margin:0;background:var(--color-bg);}
         <button type="button" class="cb-btn" data-plaza="MR" aria-pressed="false">Morelos</button>
         <button type="button" class="cb-btn" data-plaza="ENS" aria-pressed="false">Ensenada</button>
       </div>
+      <div class="cb-btns"><label class="cb-sellbl">Ejecutivo <select class="cb-select" id="cb-pv-ej"><option value="Todos">Todos los ejecutivos</option></select></label></div>
     </div>
     <div class="cb-dbar"><p class="cb-dsum" id="cb-pv-sum"></p><button type="button" class="cb-btn cb-dlbtn" id="cb-pv-dl">Descargar Excel (filtros seleccionados)</button></div>
     <div class="cb-dwrap"><div class="cb-dinner" id="cb-pv" data-source="relacion"></div></div>
+  </div>
+
+  <div class="cb-sec">
+    <h2>Cobranza por ejecutivo</h2>
+    <p class="note">Facturas con saldo agrupadas por ejecutivo (nombre del agente) y después por cliente. Cada ejecutivo ve cuánto tiene vencido y cuánto por vencer. Filtra por estado, tipo de crédito, plaza y ejecutivo.</p>
+    <div id="cb-ejec-btns">
+      <div class="cb-btns">
+        <button type="button" class="cb-btn" data-estado="Todas" aria-pressed="true">Todas</button>
+        <button type="button" class="cb-btn" data-estado="Vencida" aria-pressed="false">Vencidas</button>
+        <button type="button" class="cb-btn" data-estado="Por vencer" aria-pressed="false">Por vencer</button>
+      </div>
+      <div class="cb-btns">
+        <button type="button" class="cb-btn" data-tipo="Todos" aria-pressed="true">Todos</button>
+        <button type="button" class="cb-btn" data-tipo="CES" aria-pressed="false">Crédito Cescemex (CES)</button>
+        <button type="button" class="cb-btn" data-tipo="CR" aria-pressed="false">Crédito Directo (CR)</button>
+      </div>
+      <div class="cb-btns">
+        <button type="button" class="cb-btn" data-plaza="Todas" aria-pressed="true">Todas las plazas</button>
+        <button type="button" class="cb-btn" data-plaza="TIJ" aria-pressed="false">Tijuana</button>
+        <button type="button" class="cb-btn" data-plaza="MXL" aria-pressed="false">Mexicali</button>
+        <button type="button" class="cb-btn" data-plaza="MR" aria-pressed="false">Morelos</button>
+        <button type="button" class="cb-btn" data-plaza="ENS" aria-pressed="false">Ensenada</button>
+      </div>
+      <div class="cb-btns"><label class="cb-sellbl">Ejecutivo <select class="cb-select" id="cb-ejec-sel"><option value="Todos">Todos los ejecutivos</option></select></label></div>
+    </div>
+    <div class="cb-dbar"><p class="cb-dsum" id="cb-ejec-sum"></p></div>
+    <div class="cb-dwrap"><div class="cb-dinner" id="cb-ejec"></div></div>
   </div>
 </div>
 
@@ -299,6 +334,7 @@ dash.calc('relacion', {
           fecha: r.fecha_factura,
           cliente: r.razon_social,
           codigo: String(r.cliente_codigo || ''),
+          ejecutivo: String(r.agente || '').trim() || 'Sin ejecutivo',
           importe: Math.round(Number(r.pendiente) * 100) / 100,
           tipo: r.clasif,
           plaza: /MXL/.test(r.serie) ? 'MXL' : /TIJ/.test(r.serie) ? 'TIJ' : /ENS/.test(r.serie) ? 'ENS' : /MR/.test(r.serie) ? 'MR' : 'Otra',
@@ -434,7 +470,23 @@ function renderFilas(tipos, plazas) {
   });
 }
 
-let estadoSel = 'Todas', tipoSel = 'Todos', plazaSel = 'Todas';
+let estadoSel = 'Todas', tipoSel = 'Todos', plazaSel = 'Todas', ejSel = 'Todos';
+// Llena el selector de ejecutivos con los agentes presentes en los datos y conserva la selección si sigue existiendo.
+function fillEj(sel, cur) {
+  const v = dash.data('relacion');
+  const list = v.status === 'ok' ? [...new Set((v.data || []).map(r => r.ejecutivo))].sort((a, b) => a.localeCompare(b, 'es')) : [];
+  const sig = list.join('|');
+  if (sel.dataset.sig !== sig) {
+    sel.textContent = '';
+    const o = document.createElement('option'); o.value = 'Todos'; o.textContent = 'Todos los ejecutivos'; sel.appendChild(o);
+    list.forEach(x => { const op = document.createElement('option'); op.value = x; op.textContent = x; sel.appendChild(op); });
+    sel.dataset.sig = sig;
+  }
+  if (cur !== 'Todos' && !list.includes(cur)) cur = 'Todos';
+  sel.value = cur;
+  return cur;
+}
+const NOMEJ = (e) => e === 'Todos' ? 'Todos los ejecutivos' : e;
 const fmtD = (iso) => { const [y, m, d] = String(iso).split('-'); return `${d}/${m}/${y}`; };
 const diasTxt = (d) => d > 0 ? `${d} d vencida` : d === 0 ? 'vence hoy' : `vence en ${-d} d`;
 const NOMTIPO = {Todos: 'Todos los tipos', CES: 'Crédito Cescemex (CES)', CR: 'Crédito Directo (CR)'};
@@ -445,7 +497,8 @@ function filtradas() {
   const v = dash.data('relacion');
   if (v.status !== 'ok') return null;
   return (v.data || []).filter(r => (estadoSel === 'Todas' || r.estado === estadoSel) &&
-    (tipoSel === 'Todos' || r.tipo === tipoSel) && (plazaSel === 'Todas' || r.plaza === plazaSel));
+    (tipoSel === 'Todos' || r.tipo === tipoSel) && (plazaSel === 'Todas' || r.plaza === plazaSel) &&
+    (ejSel === 'Todos' || r.ejecutivo === ejSel));
 }
 function agrupar(rows) {
   const groups = new Map();
@@ -461,6 +514,7 @@ function agrupar(rows) {
 function renderDetalle() {
   const box = document.getElementById('cb-detalle'), sum = document.getElementById('cb-detalle-sum');
   box.textContent = '';
+  ejSel = fillEj(document.getElementById('cb-ej'), ejSel);
   const rows = filtradas();
   if (!rows) { sum.textContent = ''; return; }
   const list = agrupar(rows);
@@ -605,8 +659,8 @@ async function descargar(rows, filename, desc, link) {
   }
 }
 document.getElementById('cb-detalle-dl').addEventListener('click', (e) => {
-  const desc = `${NOMEST[estadoSel]} · ${NOMTIPO[tipoSel]} · ${NOMPLAZA[plazaSel]}`;
-  const name = `relacion_facturas_${estadoSel}_${tipoSel}_${plazaSel}.xlsx`.replace(/\s+/g, '_');
+  const desc = `${NOMEST[estadoSel]} · ${NOMTIPO[tipoSel]} · ${NOMPLAZA[plazaSel]} · ${NOMEJ(ejSel)}`;
+  const name = `relacion_facturas_${estadoSel}_${tipoSel}_${plazaSel}${ejSel === 'Todos' ? '' : '_' + ejSel}.xlsx`.replace(/\s+/g, '_');
   descargar(filtradas(), name, desc, e.currentTarget);
 });
 document.getElementById('cb-vencido-dl').addEventListener('click', (e) => {
@@ -615,6 +669,7 @@ document.getElementById('cb-vencido-dl').addEventListener('click', (e) => {
   const rows = v.status === 'ok' ? (v.data || []).filter(r => r.estado === 'Vencida') : null;
   descargar(rows, 'facturas_vencidas.xlsx', 'Vencidas · Todos los tipos · Todas las plazas', e.currentTarget);
 });
+document.getElementById('cb-ej').addEventListener('change', (e) => { ejSel = e.target.value; renderDetalle(); });
 document.getElementById('cb-btns').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-estado], button[data-tipo], button[data-plaza]');
   if (!b) return;
@@ -624,18 +679,20 @@ document.getElementById('cb-btns').addEventListener('click', (e) => {
 });
 
 // ---- Bloque "Facturas por vencer": rango de vencimiento + tipo + plaza ----
-let pvRango = 'Todas', pvTipo = 'Todos', pvPlaza = 'Todas';
+let pvRango = 'Todas', pvTipo = 'Todos', pvPlaza = 'Todas', pvEj = 'Todos';
 const NOMRANGO = {Todas: 'Todos los rangos', '0-7': 'Hoy a 7 días', '8-14': '8 a 14 días', '15-21': '15 a 21 días', '22-30': '22 a 30 días'};
 function pvFiltradas() {
   const v = dash.data('relacion');
   if (v.status !== 'ok') return null;
   const en = (falta) => pvRango === 'Todas' || (pvRango === '0-7' ? falta <= 7 : pvRango === '8-14' ? falta >= 8 && falta <= 14 : pvRango === '15-21' ? falta >= 15 && falta <= 21 : falta >= 22);
   return (v.data || []).filter(r => r.estado === 'Por vencer' && en(-r.dias) &&
-    (pvTipo === 'Todos' || r.tipo === pvTipo) && (pvPlaza === 'Todas' || r.plaza === pvPlaza));
+    (pvTipo === 'Todos' || r.tipo === pvTipo) && (pvPlaza === 'Todas' || r.plaza === pvPlaza) &&
+    (pvEj === 'Todos' || r.ejecutivo === pvEj));
 }
 function renderPV() {
   const box = document.getElementById('cb-pv'), sum = document.getElementById('cb-pv-sum');
   box.textContent = '';
+  pvEj = fillEj(document.getElementById('cb-pv-ej'), pvEj);
   const rows = pvFiltradas();
   if (!rows) { sum.textContent = ''; return; }
   const list = agrupar(rows);
@@ -664,6 +721,7 @@ function renderPV() {
     });
   });
 }
+document.getElementById('cb-pv-ej').addEventListener('change', (e) => { pvEj = e.target.value; renderPV(); });
 document.getElementById('cb-pv-btns').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-rango], button[data-tipo], button[data-plaza]');
   if (!b) return;
@@ -672,9 +730,76 @@ document.getElementById('cb-pv-btns').addEventListener('click', (e) => {
   renderPV();
 });
 document.getElementById('cb-pv-dl').addEventListener('click', (e) => {
-  const desc = `Por vencer · ${NOMRANGO[pvRango]} · ${NOMTIPO[pvTipo]} · ${NOMPLAZA[pvPlaza]}`;
-  const name = `relacion_por_vencer_${pvRango}_${pvTipo}_${pvPlaza}.xlsx`.replace(/\s+/g, '_');
+  const desc = `Por vencer · ${NOMRANGO[pvRango]} · ${NOMTIPO[pvTipo]} · ${NOMPLAZA[pvPlaza]} · ${NOMEJ(pvEj)}`;
+  const name = `relacion_por_vencer_${pvRango}_${pvTipo}_${pvPlaza}${pvEj === 'Todos' ? '' : '_' + pvEj}.xlsx`.replace(/\s+/g, '_');
   descargar(pvFiltradas(), name, desc, e.currentTarget);
+});
+
+// ---- Bloque "Cobranza por ejecutivo": ejecutivo > cliente > facturas, con vencido y por vencer por ejecutivo ----
+let exEstado = 'Todas', exTipo = 'Todos', exPlaza = 'Todas', exEj = 'Todos';
+function exFiltradas() {
+  const v = dash.data('relacion');
+  if (v.status !== 'ok') return null;
+  return (v.data || []).filter(r => (exEstado === 'Todas' || r.estado === exEstado) &&
+    (exTipo === 'Todos' || r.tipo === exTipo) && (exPlaza === 'Todas' || r.plaza === exPlaza) &&
+    (exEj === 'Todos' || r.ejecutivo === exEj));
+}
+function renderEjec() {
+  const box = document.getElementById('cb-ejec'), sum = document.getElementById('cb-ejec-sum');
+  box.textContent = '';
+  exEj = fillEj(document.getElementById('cb-ejec-sel'), exEj);
+  const rows = exFiltradas();
+  if (!rows) { sum.textContent = ''; return; }
+  const groups = new Map();
+  rows.forEach(r => {
+    if (!groups.has(r.ejecutivo)) groups.set(r.ejecutivo, {ej: r.ejecutivo, items: [], venc: 0, vencN: 0, pv: 0, pvN: 0});
+    const g = groups.get(r.ejecutivo); g.items.push(r);
+    if (r.estado === 'Vencida') { g.venc += r.importe; g.vencN += 1; } else { g.pv += r.importe; g.pvN += 1; }
+  });
+  const list = [...groups.values()].sort((a, b) => b.venc - a.venc || (b.venc + b.pv) - (a.venc + a.pv));
+  const clientes = new Set(rows.map(r => r.cliente)).size;
+  sum.textContent = `${n.format(rows.length)} facturas · ${n.format(clientes)} clientes · ${n.format(list.length)} ejecutivos · ${mx.format(rows.reduce((s, r) => s + r.importe, 0))}`;
+  const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const head = mk('div', 'cb-d hd');
+  ['Factura', 'Tipo', 'Fecha', 'Vence', 'Estado', 'Importe'].forEach((t, i) => head.appendChild(mk('div', i >= 5 ? 'r' : '', t)));
+  box.appendChild(head);
+  list.forEach(g => {
+    const eh = mk('div', 'cb-d ej');
+    const nm = mk('div', 'cl', g.ej);
+    nm.appendChild(mk('small', '', `· ${g.items.length} fact.`));
+    eh.appendChild(nm);
+    eh.appendChild(mk('div', 'r', `Vencido ${mx.format(g.venc)} (${g.vencN})`));
+    eh.appendChild(mk('div', 'r', `Por vencer ${mx.format(g.pv)} (${g.pvN})`));
+    eh.appendChild(mk('div', 'r', `Total ${mx.format(g.venc + g.pv)}`));
+    box.appendChild(eh);
+    agrupar(g.items).forEach(c => {
+      const gh = mk('div', 'cb-d grp');
+      const cl = mk('div', 'cl', c.cliente);
+      if (c.codigo) cl.appendChild(mk('small', '', '· ' + c.codigo));
+      gh.appendChild(cl);
+      gh.appendChild(mk('div', 'r', `${c.items.length} fact. · ${diasTxt(c.max)}`));
+      gh.appendChild(mk('div', 'r', mx.format(c.sum)));
+      box.appendChild(gh);
+      c.items.forEach(r => {
+        const row = mk('div', 'cb-d');
+        row.appendChild(mk('div', '', r.factura));
+        row.appendChild(mk('div', '', r.tipo === 'CES' ? 'Cescemex' : 'Directo'));
+        row.appendChild(mk('div', '', fmtD(r.fecha)));
+        row.appendChild(mk('div', '', fmtD(r.vence)));
+        row.appendChild(mk('div', 'sev' + (r.dias > 14 ? '3' : r.dias > 7 ? '2' : r.dias > 0 ? '1' : '0'), diasTxt(r.dias)));
+        row.appendChild(mk('div', 'r', mx.format(r.importe)));
+        box.appendChild(row);
+      });
+    });
+  });
+}
+document.getElementById('cb-ejec-sel').addEventListener('change', (e) => { exEj = e.target.value; renderEjec(); });
+document.getElementById('cb-ejec-btns').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-estado], button[data-tipo], button[data-plaza]');
+  if (!b) return;
+  if (b.dataset.estado) exEstado = b.dataset.estado; else if (b.dataset.tipo) exTipo = b.dataset.tipo; else exPlaza = b.dataset.plaza;
+  b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderEjec();
 });
 
 // ---- PDF: todo el panel (sin filtros), generado en la página ----
@@ -973,6 +1098,7 @@ document.getElementById('cb-pdf-btn').addEventListener('click', async (e) => {
 dash.onData(() => {
   renderDetalle();
   renderPV();
+  renderEjec();
   const ct = dash.data('corte');
   if (ct.status === 'ok' && ct.data && ct.data[0]) {
     corteTxt = ct.data[0].texto;
