@@ -128,7 +128,7 @@ html,body{margin:0;background:var(--color-bg);}
     <h1>Cobranza: facturas de crédito</h1>
     <p class="cb-take" id="cb-take">Cargando datos…</p>
     <p class="cb-take" style="font-size:var(--cds-font-size-caption)">Incluye crédito Cescemex (CES) y crédito directo (CR). Excluye contado (CN) y facturas canceladas. Corte <span data-source="corte" data-field="texto" data-row="0">—</span>.</p>
-    <div class="cb-btns" style="margin:.25rem 0 .5rem"><button type="button" class="cb-btn cb-dlbtn" id="cb-pdf-btn">Descargar PDF</button></div>
+    <div class="cb-btns" style="margin:.25rem 0 .5rem"><button type="button" class="cb-btn cb-dlbtn" id="cb-pdf-btn">Descargar PDF</button> <button type="button" class="cb-btn cb-updbtn" id="cb-env-btn" hidden>Enviar reportes a ejecutivos y gerentes</button></div>
     <div class="cb-upd" id="cb-upd" hidden>
       <button type="button" class="cb-btn cb-updbtn" id="cb-upd-btn">Actualizar datos</button>
       <input type="file" id="cb-upd-file" accept=".txt,.tsv,.csv,text/plain" hidden>
@@ -147,6 +147,9 @@ html,body{margin:0;background:var(--color-bg);}
       <div class="big" id="cb-vencido" style="color:#e5484d">—</div>
       <div class="sub"><span id="cb-vencido-n">—</span> facturas · <span data-source="tipos" data-field="pct_venc" data-where="tipo=Total">—</span> del saldo</div>
       <div class="sub"><a id="cb-vencido-dl" href="#" class="cb-dl">Descargar Excel por cliente</a></div></div>
+    <div class="cb-card" style="border-top:4px solid #f2c744;background:#fff9e8"><div class="lbl">Vencidas de 1 a 7 días · aún comisionan</div>
+      <div class="big" style="color:#8a5a00" data-source="antiguedad" data-field="importe" data-where="bucket=1-7">—</div>
+      <div class="sub"><span data-source="antiguedad" data-field="facturas" data-where="bucket=1-7">—</span> facturas</div></div>
     <div class="cb-card" style="border-top:4px solid #f0a020"><div class="lbl">Vencen en 7 días</div>
       <div class="big" data-source="proximos" data-field="importe" data-where="grupo=prox7">—</div>
       <div class="sub"><span data-source="proximos" data-field="facturas" data-where="grupo=prox7">—</span> facturas</div></div>
@@ -307,12 +310,14 @@ const ejNombre = (raw) => { const m = ejInfo(raw); return (m && m.nombre_mostrar
     colors:['#4c78d8','#2fa36b','#f0a020','#e5484d','#8e6bd8','#ee7a2c','#3fb8c9','#9aa3b2']
   };
   window.__setFacturas=function(rows){store.facturas=rows;
-    try{localStorage.setItem(LS_KEY,JSON.stringify(rows));}catch(e){}
+    if(!window.__dbMode){try{localStorage.setItem(LS_KEY,JSON.stringify(rows));}catch(e){}}
     dash.refresh();};
+  window.__cargarFacturas=function(rows){store.facturas=rows||[];dash.refresh();};
+  window.__cargarLocal=function(){try{const s=localStorage.getItem(LS_KEY);if(s){store.facturas=JSON.parse(s)||[];dash.refresh();}}catch(e){}};
   window.__months=months;
   window.__monthsAvail=()=>[...new Set(store.facturas.map(r=>String(r.fecha_factura).slice(0,7)))].sort();
   window.__hasData=()=>store.facturas.length>0;
-  try{const s=localStorage.getItem(LS_KEY);if(s)store.facturas=JSON.parse(s)||[];}catch(e){}
+  if(window.parent===window){try{const s=localStorage.getItem(LS_KEY);if(s)store.facturas=JSON.parse(s)||[];}catch(e){}}
   window.claude={use:async(n)=>n==='downloads'?{save:async({filename,data})=>{
     const b=new Blob([data],{type:filename.endsWith('.pdf')?'application/pdf':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=filename;document.body.appendChild(a);a.click();
@@ -1298,9 +1303,10 @@ document.getElementById('cb-pdf-btn').addEventListener('click', async (e) => {
         msg.textContent = 'Leyendo archivo…';
         const {rows, corte} = parse(decode(await f.arrayBuffer()), f.name);
         const cred = rows.filter(r => (r.clasif === 'CES' || r.clasif === 'CR') && r.cancelada !== 'Sí' && r.pendiente > 0);
+        if (window.__dbMode) { msg.textContent = 'Guardando en el sistema…'; await window.__guardarBase(rows, corte); }
         window.__setFacturas(rows);
         const [y, m, d] = corte.split('-');
-        msg.textContent = `Listo: ${n.format(rows.length)} facturas (${n.format(cred.length)} de crédito con saldo), corte ${d}/${m}/${y}.`;
+        msg.textContent = `Listo: ${n.format(rows.length)} facturas (${n.format(cred.length)} de crédito con saldo), corte ${d}/${m}/${y}.` + (window.__dbMode ? ' Guardado en el sistema: cada ejecutivo y gerente ve lo suyo.' : '');
       } catch (e) {
         msg.textContent = 'No se pudo actualizar: ' + ((e && (e.message || e.code)) || 'error desconocido');
       } finally {
@@ -1394,6 +1400,533 @@ dash.onData(() => {
   dash.onData(empty);
   const post=()=>{try{parent.postMessage({type:'cobranza-height',h:document.documentElement.scrollHeight},'*');}catch(e){}};
   new ResizeObserver(post).observe(document.body);post();
+})();
+
+</script>
+<script>
+// ==== Datos en el sistema + reportes por ejecutivo y gerente (PDF, correo, WhatsApp) ====
+(function () {
+  const MARCA = new URLSearchParams(location.search).get('marca') === 'galsa' ? 'galsa' : 'lumaggs';
+  const EN_PORTAL = window.parent !== window;
+  const pend = {};
+  const pedir = (type, payload, timeout) => new Promise((res, rej) => {
+    if (!EN_PORTAL) { rej(new Error('Solo disponible dentro del portal')); return; }
+    const reqId = 'r' + Math.random().toString(36).slice(2);
+    pend[reqId] = {res, rej};
+    window.parent.postMessage(Object.assign({type, reqId, marca: MARCA}, payload || {}), location.origin);
+    setTimeout(() => { if (pend[reqId]) { delete pend[reqId]; rej(new Error('El portal no respondió')); } }, timeout || 60000);
+  });
+  window.__guardarBase = (rows, corte) => pedir('cobranza-guardar', {corte, rows}, 180000);
+
+  // ---- Estado desde el portal ----
+  window.addEventListener('message', (e) => {
+    if (!EN_PORTAL || e.source !== window.parent || e.origin !== location.origin) return;
+    const d = e.data;
+    if (!d || typeof d.type !== 'string') return;
+    if (d.reqId && pend[d.reqId]) {
+      const p = pend[d.reqId]; delete pend[d.reqId];
+      if (d.ok === false || d.error) p.rej(new Error(d.error || 'Error')); else p.res(d);
+      return;
+    }
+    if (d.type === 'cobranza-datos') {
+      window.__dbMode = true;
+      window.__cargarFacturas(Array.isArray(d.rows) ? d.rows : []);
+      const wrap = document.getElementById('cb-upd'), msg = document.getElementById('cb-upd-msg');
+      wrap.hidden = !d.puedeSubir;
+      const st = d.estado;
+      if (d.puedeSubir) {
+        msg.textContent = st && st.corte ? `Datos del sistema: corte ${fmtD(st.corte)} · ${n.format(st.n_facturas)} facturas${st.subido_por ? ' · subidos por ' + st.subido_por : ''}. Sube el .txt de CONTPAQi para actualizar.` : 'Aún no hay datos en el sistema. Sube el .txt de CONTPAQi (Todos los Documentos).';
+      }
+      document.getElementById('cb-env-btn').hidden = !d.puedeEnviar;
+    }
+  });
+  if (EN_PORTAL) {
+    try { window.parent.postMessage({type: 'cobranza-listo', marca: MARCA}, location.origin); } catch (e) {}
+    setTimeout(() => { if (!window.__dbMode) window.__cargarLocal(); }, 3500);
+  }
+
+  // ---- Cálculos ----
+  const r2 = (x) => Math.round(x * 100) / 100;
+  const resumenDe = (rows) => {
+    const f = (fn) => { const a = rows.filter(fn); return {n: a.length, imp: r2(a.reduce((t, r) => t + r.importe, 0))}; };
+    return {total: f(() => true), vig: f(r => r.dias <= 0), venc: f(r => r.dias > 0), v17: f(r => r.dias >= 1 && r.dias <= 7),
+      p7: f(r => r.dias <= 0 && r.dias >= -7), p14: f(r => r.dias <= 0 && r.dias >= -14)};
+  };
+  const pct = (a, b) => b ? pc.format(a / b) : pc.format(0);
+  const antigDe = (rows) => {
+    const def = [['Vigente', 'Vigente', '#2fa36b', r => r.dias <= 0], ['1-7', 'Vencida 1 a 7 días', '#f2c744', r => r.dias >= 1 && r.dias <= 7],
+      ['8-14', 'Vencida 8 a 14 días', '#f0a020', r => r.dias >= 8 && r.dias <= 14], ['15-21', 'Vencida 15 a 21 días', '#ee7a2c', r => r.dias >= 15 && r.dias <= 21],
+      ['22-30', 'Vencida 22 a 30 días', '#e5484d', r => r.dias >= 22 && r.dias <= 30], ['Mas30', 'Vencida más de 30 días', '#a61e2b', r => r.dias > 30]];
+    return def.map(([k, label, color, fn]) => { const a = rows.filter(fn); return {k, label, color, n: a.length, imp: r2(a.reduce((t, r) => t + r.importe, 0))}; });
+  };
+  const sevCol = (d) => d > 14 ? '#c8323a' : d > 7 ? '#c77d00' : d > 0 ? '#9a7d00' : '#1f8a58';
+  const INK = '#1a1a1a', MUT = '#5b6472';
+
+  // ---- Kit PDF (Carta) ----
+  function pdfKit() {
+    const W = 612, H = 792, M = 36, CW = W - 2 * M;
+    const ctx = document.createElement('canvas').getContext('2d');
+    const wid = (s, size, bold) => { ctx.font = `${bold ? 'bold ' : ''}${size}px Helvetica, Arial, sans-serif`; return ctx.measureText(s).width; };
+    const clean = (s) => String(s).replace(/[–—]/g, '-').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/…/g, '...').replace(/·/g, '·').replace(/[^\x20-\x7E\xA0-\xFF]/g, '?');
+    const esc = (s) => clean(s).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    const c3 = (c) => { const v = parseInt(c.slice(1), 16); return [(v >> 16) & 255, (v >> 8) & 255, v & 255].map(x => (x / 255).toFixed(3)).join(' '); };
+    const k = {W, H, M, CW, y: 0, pages: [], cur: null, wid};
+    k.newPage = () => { k.cur = []; k.pages.push(k.cur); k.y = H - M; };
+    const op = (s) => k.cur.push(s);
+    k.rect = (x, yy, w, h, c) => op(`${c3(c)} rg ${x.toFixed(2)} ${yy.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);
+    k.hline = (x1, x2, yy, c) => op(`${c3(c)} RG 0.5 w ${x1.toFixed(2)} ${yy.toFixed(2)} m ${x2.toFixed(2)} ${yy.toFixed(2)} l S`);
+    k.box = (x, yy, w, h, c) => { k.rect(x, yy, w, 1, c); k.rect(x, yy + h - 1, w, 1, c); k.rect(x, yy, 1, h, c); k.rect(x + w - 1, yy, 1, h, c); };
+    k.text = (x, yy, s, size, bold, c, align, maxW) => {
+      s = clean(s);
+      if (maxW && wid(s, size, bold) > maxW) { while (s.length > 1 && wid(s + '...', size, bold) > maxW) s = s.slice(0, -1); s += '...'; }
+      const w = wid(s, size, bold);
+      const xx = align === 'r' ? x - w : align === 'c' ? x - w / 2 : x;
+      op(`BT /F${bold ? 2 : 1} ${size} Tf ${c3(c || INK)} rg ${xx.toFixed(2)} ${yy.toFixed(2)} Td (${esc(s)}) Tj ET`);
+    };
+    k.wrap = (s, size, bold, maxW) => {
+      const out = []; let line = '';
+      String(s).split(' ').forEach(w => { const t = line ? line + ' ' + w : w; if (line && wid(clean(t), size, bold) > maxW) { out.push(line); line = w; } else line = t; });
+      if (line) out.push(line);
+      return out;
+    };
+    k.ensure = (h, redraw) => { if (k.y - h < M + 24) { k.newPage(); if (redraw) redraw(); } };
+    k.section = (title, color, note) => {
+      k.ensure(70); k.y -= 6; k.rect(M, k.y - 15, 3, 15, color || '#4c78d8'); k.text(M + 9, k.y - 12, title, 12.5, true, '#1a1a1a'); k.y -= 24;
+      if (note) { k.text(M, k.y - 2, note, 7.5, false, MUT); k.y -= 14; }
+    };
+    k.finish = (pie) => {
+      k.pages.forEach((p, i) => {
+        k.cur = p;
+        k.hline(M, M + CW, 30, '#d0d5dd');
+        k.text(M, 20, pie, 7, false, MUT);
+        k.text(M + CW, 20, `Página ${i + 1} de ${k.pages.length}`, 7, false, MUT, 'r');
+      });
+      const enc = (s) => { const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i) & 255; return b; };
+      const chunks = [], offs = []; let pos = 0;
+      const push = (s) => { const b = enc(s); chunks.push(b); pos += b.length; };
+      const obj = (i, body) => { offs[i] = pos; push(`${i} 0 obj\n${body}\nendobj\n`); };
+      push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+      const N = k.pages.length;
+      obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+      obj(2, `<< /Type /Pages /Kids [${k.pages.map((_, i) => `${5 + 2 * i} 0 R`).join(' ')}] /Count ${N} >>`);
+      obj(3, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+      obj(4, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+      k.pages.forEach((p, i) => {
+        const content = p.join('\n');
+        obj(5 + 2 * i, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${6 + 2 * i} 0 R >>`);
+        obj(6 + 2 * i, `<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+      });
+      const total = 4 + 2 * N, xref = pos;
+      push(`xref\n0 ${total + 1}\n0000000000 65535 f \n` + offs.slice(1).map(o => String(o).padStart(10, '0') + ' 00000 n \n').join(''));
+      push(`trailer\n<< /Size ${total + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+      const out = new Uint8Array(pos); let o = 0;
+      chunks.forEach(c => { out.set(c, o); o += c.length; });
+      return out;
+    };
+    return k;
+  }
+
+  const MARCAS = {galsa: {color: '#c8323a', nombre: 'GALSA · PHILLIPS 66', corto: 'Galsa'}, lumaggs: {color: '#2f5fc4', nombre: 'LUMAGGS · CHEVRON', corto: 'Lumaggs'}};
+
+  function cabecera(k, o, titulo, sub, headline) {
+    const mc = MARCAS[o.marca] || MARCAS.lumaggs, {M, CW} = k;
+    k.newPage();
+    const wChip = k.wid(mc.nombre, 7, true) + 12;
+    k.rect(M, k.y - 12, wChip, 12, mc.color);
+    k.text(M + 6, k.y - 9, mc.nombre, 7, true, '#ffffff');
+    k.text(M + wChip + 8, k.y - 9, `REPORTE DE COBRANZA · CORTE ${o.corte}`, 7.5, false, MUT);
+    k.y -= 20;
+    k.wrap(titulo, 19, true, CW).forEach(l => { k.text(M, k.y - 18, l, 19, true, INK); k.y -= 23; });
+    k.wrap(sub, 7.5, false, CW).forEach(l => { k.text(M, k.y - 8, l, 7.5, false, MUT); k.y -= 10; });
+    k.y -= 4; k.hline(M, M + CW, k.y, '#d0d5dd'); k.y -= 6;
+    k.wrap(headline, 10, true, CW).forEach(l => { k.text(M, k.y - 11, l, 10, true, INK); k.y -= 13; });
+    k.y -= 8;
+  }
+
+  function tarjetas(k, R, quien) {
+    const {M, CW} = k, cw = (CW - 18) / 3, h = 56;
+    const cards = [
+      ['Saldo de crédito ' + quien, mx.format(R.total.imp), `${n.format(R.total.n)} facturas`, '#4c78d8', '#f7f8fb', MUT, false],
+      ['Vigentes', mx.format(R.vig.imp), `${n.format(R.vig.n)} fact. · ${pct(R.vig.imp, R.total.imp)}`, '#2fa36b', '#f7f8fb', MUT, false],
+      ['Vencidas', mx.format(R.venc.imp), `${n.format(R.venc.n)} fact. · ${pct(R.venc.imp, R.total.imp)}`, '#e5484d', '#f7f8fb', MUT, false],
+      ['Vencidas de 1 a 7 días · aún comisionan', mx.format(R.v17.imp), `${n.format(R.v17.n)} facturas · ${R.v17.n ? 'cóbralas ya' : 'ninguna'}`, '#f0a020', '#fff6e0', '#8a5a00', true],
+      ['Vencen en 7 días', mx.format(R.p7.imp), `${n.format(R.p7.n)} facturas`, '#f0a020', '#f7f8fb', MUT, false],
+      ['Vencen en 14 días', mx.format(R.p14.imp), `${n.format(R.p14.n)} fact. (acum.)`, '#ee7a2c', '#f7f8fb', MUT, false]
+    ];
+    cards.forEach((c, i) => {
+      const x = M + (i % 3) * (cw + 9), top = k.y - Math.floor(i / 3) * (h + 9);
+      k.rect(x, top - h, cw, h, c[4]); k.rect(x, top - 3, cw, 3, c[3]);
+      const ls = k.wrap(c[0], 7.5, false, cw - 16).slice(0, 2);
+      ls.forEach((l, j) => k.text(x + 8, top - 13 - j * 9, l, 7.5, false, MUT));
+      k.text(x + 8, top - 38, c[1], 14.5, true, INK);
+      k.text(x + 8, top - 50, c[2], 7.5, c[6], c[5]);
+    });
+    k.y -= 2 * h + 9 + 12;
+  }
+
+  function cuadroComisionan(k, rows, quien) {
+    const a = rows.filter(r => r.dias >= 1 && r.dias <= 7);
+    if (!a.length) return;
+    const {M, CW} = k;
+    const g = new Map();
+    a.forEach(r => { const key = r.cliente; if (!g.has(key)) g.set(key, {cliente: r.cliente, codigo: r.codigo, ej: r.ejecutivo, n: 0, max: 0, imp: 0}); const x = g.get(key); x.n++; x.max = Math.max(x.max, r.dias); x.imp += r.importe; });
+    const list = [...g.values()].sort((p, q) => q.imp - p.imp);
+    const show = list.slice(0, 9), mas = list.length - show.length;
+    const h = 26 + 12 + show.length * 12.5 + (mas > 0 ? 12 : 0) + 6;
+    k.ensure(h + 8);
+    k.rect(M, k.y - h, CW, h, '#fffaf0'); k.box(M, k.y - h, CW, h, '#f0a020');
+    k.text(M + 8, k.y - 14, 'Aún comisionan · vencidas de 1 a 7 días', 9.5, true, INK);
+    k.text(M + CW - 8, k.y - 14, `${a.length} ${a.length === 1 ? 'factura' : 'facturas'} · ${mx.format(a.reduce((t, r) => t + r.importe, 0))}`, 8, true, '#8a5a00', 'r');
+    let yy = k.y - 26;
+    k.text(M + 8, yy - 8, quien === 'gerente' ? 'Cliente · ejecutivo' : 'Cliente', 7, true, MUT);
+    k.text(M + CW - 160, yy - 8, 'Facturas', 7, true, MUT, 'r'); k.text(M + CW - 92, yy - 8, 'Más atrasada', 7, true, MUT, 'r'); k.text(M + CW - 8, yy - 8, 'Importe', 7, true, MUT, 'r');
+    yy -= 12;
+    show.forEach(x => {
+      k.hline(M + 6, M + CW - 6, yy, '#f3dcae');
+      k.text(M + 8, yy - 9, x.cliente + (x.codigo ? ' (' + x.codigo + ')' : '') + (quien === 'gerente' ? ' · ' + x.ej : ''), 8, false, INK, 'l', 340);
+      k.text(M + CW - 160, yy - 9, String(x.n), 8, false, INK, 'r'); k.text(M + CW - 92, yy - 9, x.max + ' d vencida', 8, true, '#8a5a00', 'r'); k.text(M + CW - 8, yy - 9, mx.format(x.imp), 8, true, INK, 'r');
+      yy -= 12.5;
+    });
+    if (mas > 0) k.text(M + 8, yy - 9, `…y ${mas} ${mas === 1 ? 'cliente más' : 'clientes más'} (están en la relación de vencidas)`, 7.5, false, MUT);
+    k.y -= h + 12;
+  }
+
+  function tablaAntig(k, rows) {
+    const {M, CW} = k, a = antigDe(rows), tot = r2(a.reduce((t, x) => t + x.imp, 0)), totN = a.reduce((t, x) => t + x.n, 0);
+    k.section('Antigüedad de saldos', '#ee7a2c', 'Días transcurridos desde el vencimiento (fecha de factura + 30 días de crédito).');
+    k.ensure(130);
+    k.rect(M, k.y - 15, CW, 15, '#1f3864');
+    k.text(M + 6, k.y - 10.5, 'Tramo', 7.5, true, '#ffffff'); k.text(M + CW - 90, k.y - 10.5, 'Facturas', 7.5, true, '#ffffff', 'r'); k.text(M + CW - 6, k.y - 10.5, 'Importe', 7.5, true, '#ffffff', 'r');
+    k.y -= 15;
+    const maxI = Math.max(...a.map(x => x.imp), 1);
+    a.forEach(x => {
+      k.text(M + 6, k.y - 11, x.label, 8.5, false, INK);
+      if (x.imp > 0) k.rect(M + 140, k.y - 12, Math.max(2, 230 * x.imp / maxI), 8, x.color);
+      k.text(M + CW - 90, k.y - 11, n.format(x.n), 8.5, false, INK, 'r'); k.text(M + CW - 6, k.y - 11, mx.format(x.imp), 8.5, false, INK, 'r');
+      k.y -= 16;
+    });
+    k.hline(M, M + CW, k.y, '#b8c0cc');
+    k.text(M + 6, k.y - 11, 'Total', 8.5, true, INK); k.text(M + CW - 90, k.y - 11, n.format(totN), 8.5, true, INK, 'r'); k.text(M + CW - 6, k.y - 11, mx.format(tot), 8.5, true, INK, 'r');
+    k.y -= 22;
+  }
+
+  function tablaTipos(k, rows) {
+    const {M, CW} = k;
+    k.section('Por tipo de crédito', '#8e6bd8');
+    k.ensure(70);
+    const hd = ['Tipo', 'Facturas', 'Saldo', 'Vencido', '% venc.'], xs = [6, CW - 208, CW - 138, CW - 58, CW - 6];
+    k.rect(M, k.y - 15, CW, 15, '#1f3864');
+    hd.forEach((t, i) => k.text(M + xs[i], k.y - 10.5, t, 7.5, true, '#ffffff', i ? 'r' : 'l'));
+    k.y -= 15;
+    [['CES', 'Crédito Cescemex (CES)'], ['CR', 'Crédito Directo (CR)']].forEach(([t, nom]) => {
+      const a = rows.filter(r => r.tipo === t), sal = r2(a.reduce((s, r) => s + r.importe, 0)), v = r2(a.filter(r => r.dias > 0).reduce((s, r) => s + r.importe, 0));
+      k.text(M + xs[0], k.y - 11, nom, 8.5, false, INK); k.text(M + xs[1], k.y - 11, n.format(a.length), 8.5, false, INK, 'r');
+      k.text(M + xs[2], k.y - 11, mx.format(sal), 8.5, false, INK, 'r'); k.text(M + xs[3], k.y - 11, mx.format(v), 8.5, true, '#c8323a', 'r'); k.text(M + xs[4], k.y - 11, pct(v, sal), 8.5, true, '#c8323a', 'r');
+      k.y -= 16;
+    });
+    k.y -= 6;
+  }
+
+  // Relación por cliente (el ejecutivo no repite su nombre; el gerente sí)
+  function relacion(k, title, note, rows, color, conEj) {
+    const {M, CW} = k;
+    k.newPage(); k.section(title, color, note);
+    const xs = conEj ? {t: 66, f: 112, v: 160, e: 210, ej: 300} : {t: 78, f: 134, v: 190, e: 246};
+    const hdr = () => {
+      k.rect(M, k.y - 15, CW, 15, '#1f3864');
+      [['Factura', 8], ['Tipo', xs.t], ['Fecha', xs.f], ['Vence', xs.v], ['Estado', xs.e]].concat(conEj ? [['Ejecutivo', xs.ej]] : []).forEach(([t, dx]) => k.text(M + dx, k.y - 10.5, t, 7.5, true, '#ffffff'));
+      k.text(M + CW - 6, k.y - 10.5, 'Importe', 7.5, true, '#ffffff', 'r');
+      k.y -= 15;
+    };
+    const grow = (g, cont) => {
+      k.rect(M, k.y - 16, CW, 16, '#d9e1f2');
+      k.text(M + 6, k.y - 11.5, g.cliente + (g.codigo ? '  (' + g.codigo + ')' : '') + (cont ? '  - continuación' : ''), 8, true, INK, 'l', 330);
+      k.text(M + CW - 100, k.y - 11.5, `${g.items.length} fact. · ${diasTxt(g.max)}`, 7.5, false, '#444444', 'r');
+      k.text(M + CW - 6, k.y - 11.5, mx.format(g.sum), 8, true, INK, 'r');
+      k.y -= 16;
+    };
+    hdr();
+    const list = agrupar(rows);
+    if (!list.length) { k.text(M + 6, k.y - 14, 'No hay facturas.', 9, false, MUT); k.y -= 20; }
+    list.forEach(g => {
+      k.ensure(30, hdr); grow(g, false);
+      g.items.forEach(r => {
+        k.ensure(13, () => { hdr(); grow(g, true); });
+        k.text(M + 8, k.y - 9.5, r.factura, 8, false, INK);
+        k.text(M + xs.t, k.y - 9.5, r.tipo === 'CES' ? 'Cescemex' : 'Directo', 8, false, INK);
+        k.text(M + xs.f, k.y - 9.5, fmtD(r.fecha), 8, false, INK);
+        k.text(M + xs.v, k.y - 9.5, fmtD(r.vence), 8, false, INK);
+        const et = diasTxt(r.dias);
+        k.text(M + xs.e, k.y - 9.5, et, 8, true, sevCol(r.dias));
+        if (r.dias >= 1 && r.dias <= 7) {
+          const tx = M + xs.e + k.wid(et, 8, true) + 5;
+          k.rect(tx, k.y - 10, 36, 9, '#fff2cc'); k.box(tx, k.y - 10, 36, 9, '#f0a020'); k.text(tx + 3, k.y - 7.6, 'comisiona', 6, true, '#8a5a00');
+        }
+        if (conEj) k.text(M + xs.ej, k.y - 9.5, r.ejecutivo, 8, false, INK, 'l', 190);
+        k.text(M + CW - 6, k.y - 9.5, mx.format(r.importe), 8, false, INK, 'r');
+        k.y -= 13;
+      });
+    });
+    k.ensure(24);
+    k.hline(M, M + CW, k.y, '#b8c0cc');
+    const tot = r2(rows.reduce((t, r) => t + r.importe, 0));
+    k.text(M + 6, k.y - 12, 'TOTAL', 8.5, true, INK);
+    k.text(M + CW - 100, k.y - 12, `${n.format(rows.length)} facturas · ${n.format(list.length)} clientes`, 7.5, false, '#444444', 'r');
+    k.text(M + CW - 6, k.y - 12, mx.format(tot), 8.5, true, INK, 'r');
+    k.y -= 20;
+  }
+
+  const frase = (R, quien, plural) => {
+    const base = `${pct(R.venc.imp, R.total.imp)} del saldo de crédito ${quien} (${mx.format(R.venc.imp)}) está vencido y ${pct(R.vig.imp, R.total.imp)} vigente.`;
+    if (!R.v17.n) return base;
+    return base + ` ${R.v17.n === 1 ? 'Hay 1 factura vencida' : 'Hay ' + R.v17.n + ' facturas vencidas'} de 1 a 7 días (${mx.format(R.v17.imp)}) que aún comisionan: ${plural ? 'pídeles a tus ejecutivos que las cobren esta semana' : 'cóbralas esta semana'}.`;
+  };
+
+  function pdfEjecutivo(o) {
+    const k = pdfKit(), R = resumenDe(o.rows), cli = new Set(o.rows.map(r => r.cliente)).size;
+    cabecera(k, o, o.nombre, `Tu cartera: ${n.format(cli)} clientes · ${n.format(R.total.n)} facturas de crédito con saldo · incluye crédito Cescemex (CES) y crédito directo (CR) · excluye contado y canceladas`, frase(R, 'de tu cartera', false));
+    tarjetas(k, R, 'pendiente');
+    cuadroComisionan(k, o.rows, 'ejecutivo');
+    tablaAntig(k, o.rows);
+    tablaTipos(k, o.rows);
+    relacion(k, 'Relación de facturas vencidas', 'Agrupadas por cliente; primero los clientes con la factura más atrasada.', o.rows.filter(r => r.dias > 0), '#e5484d', false);
+    relacion(k, 'Relación de todas las facturas', 'Vencidas y por vencer, agrupadas por cliente; primero los clientes con la factura más atrasada.', o.rows, '#4c78d8', false);
+    return k.finish(`${(MARCAS[o.marca] || MARCAS.lumaggs).corto} · cobranza de crédito · corte ${o.corte} · preparado para ${o.nombre}`);
+  }
+
+  function pdfGerente(o) {
+    const k = pdfKit(), {M, CW} = k, R = resumenDe(o.rows), cli = new Set(o.rows.map(r => r.cliente)).size;
+    const porEj = new Map();
+    o.rows.forEach(r => { if (!porEj.has(r.ejecutivo)) porEj.set(r.ejecutivo, []); porEj.get(r.ejecutivo).push(r); });
+    const ejs = [...porEj.entries()].map(([nom, rs]) => ({nom, R: resumenDe(rs), cli: new Set(rs.map(r => r.cliente)).size}))
+      .sort((a, b) => b.R.venc.imp - a.R.venc.imp || b.R.total.imp - a.R.total.imp);
+    cabecera(k, o, o.equipos ? `Equipo ${o.equipos}` : 'Cobranza de tu equipo', `Gerente: ${o.nombre} · ${n.format(ejs.length)} ejecutivos · ${n.format(cli)} clientes · ${n.format(R.total.n)} facturas de crédito con saldo · incluye CES y CR · excluye contado y canceladas`, frase(R, 'de tu equipo', true));
+    tarjetas(k, R, 'del equipo');
+    // por ejecutivo
+    k.section('Cobranza por ejecutivo', '#8e6bd8', 'Ordenado por lo vencido. «Vencido» incluye las de 1 a 7 días.');
+    const X = {cl: 190, f: 218, v: 282, p: 322, a: 408, pv: 470, t: 534};
+    const hdr = () => {
+      k.rect(M, k.y - 15, CW, 15, '#1f3864');
+      k.text(M + 6, k.y - 10.5, 'Ejecutivo', 7.5, true, '#ffffff');
+      [['Clien.', X.cl], ['Fact.', X.f], ['Vencido', X.v], ['% venc.', X.p]].forEach(([t, x]) => k.text(M + x, k.y - 10.5, t, 7.5, true, '#ffffff', 'r'));
+      k.text(M + X.a, k.y - 10.5, '1 a 7 días', 7.5, true, '#ffe08a', 'r'); k.text(M + X.pv, k.y - 10.5, 'Por vencer', 7.5, true, '#ffffff', 'r'); k.text(M + X.t, k.y - 10.5, 'Total', 7.5, true, '#ffffff', 'r');
+      k.y -= 15;
+    };
+    const fila = (nom, e, bold, bg) => {
+      if (bg) k.rect(M, k.y - 15, CW, 15, bg);
+      k.hline(M, M + CW, k.y - 15, '#eef0f4');
+      k.text(M + 6, k.y - 10.5, nom, 8, bold, INK, 'l', 150);
+      k.text(M + X.cl, k.y - 10.5, n.format(e.cli), 8, bold, INK, 'r'); k.text(M + X.f, k.y - 10.5, n.format(e.R.total.n), 8, bold, INK, 'r');
+      k.text(M + X.v, k.y - 10.5, e.R.venc.imp ? mx.format(e.R.venc.imp) : '-', 8, true, '#c8323a', 'r'); k.text(M + X.p, k.y - 10.5, pct(e.R.venc.imp, e.R.total.imp), 8, bold, INK, 'r');
+      if (e.R.v17.n) { k.rect(M + X.a - 74, k.y - 13, 76, 11, '#fff2cc'); k.text(M + X.a, k.y - 10.5, `${mx.format(e.R.v17.imp)} (${e.R.v17.n})`, 7.5, true, '#8a5a00', 'r'); } else k.text(M + X.a, k.y - 10.5, '-', 8, false, MUT, 'r');
+      k.text(M + X.pv, k.y - 10.5, mx.format(e.R.vig.imp), 8, true, '#1f8a58', 'r'); k.text(M + X.t, k.y - 10.5, mx.format(e.R.total.imp), 8, true, INK, 'r');
+      k.y -= 15;
+    };
+    k.ensure(40); hdr();
+    ejs.forEach(e => { k.ensure(16, hdr); fila(e.nom, e, false, null); });
+    k.ensure(18); fila('TOTAL DEL EQUIPO', {cli, R}, true, '#f3f4f8'); k.y -= 10;
+    // acciones
+    const acc = ejs.filter(e => e.R.v17.n);
+    if (acc.length) {
+      const h = 24 + acc.length * 12.5;
+      k.ensure(h + 8);
+      k.rect(M, k.y - h, CW, h, '#fffaf0'); k.box(M, k.y - h, CW, h, '#f0a020');
+      k.text(M + 8, k.y - 14, 'Qué pedirle a cada ejecutivo esta semana', 9, true, INK);
+      let yy = k.y - 22;
+      acc.forEach(e => {
+        k.hline(M + 6, M + CW - 6, yy, '#f3dcae');
+        k.text(M + 8, yy - 9, e.nom, 8, false, INK, 'l', 300);
+        k.text(M + CW - 8, yy - 9, `${e.R.v17.n} ${e.R.v17.n === 1 ? 'factura' : 'facturas'} de 1 a 7 días · ${mx.format(e.R.v17.imp)}`, 8, true, '#8a5a00', 'r');
+        yy -= 12.5;
+      });
+      k.y -= h + 10;
+    }
+    // por cliente
+    const porCli = new Map();
+    o.rows.forEach(r => { const key = r.cliente + '|' + r.codigo + '|' + r.ejecutivo; if (!porCli.has(key)) porCli.set(key, {cliente: r.cliente, codigo: r.codigo, ej: r.ejecutivo, rows: []}); porCli.get(key).rows.push(r); });
+    const cls = [...porCli.values()].map(c => Object.assign(c, {R: resumenDe(c.rows)})).sort((a, b) => b.R.venc.imp - a.R.venc.imp || b.R.total.imp - a.R.total.imp);
+    k.newPage(); k.section('Cobranza del equipo por cliente', '#4c78d8', 'Un renglón por cliente con el ejecutivo que lo atiende. Primero los clientes con saldo vencido.');
+    const Y = {ej: 168, f: 282, v: 346, a: 410, pv: 474, t: 534};
+    const hdr2 = () => {
+      k.rect(M, k.y - 15, CW, 15, '#1f3864');
+      k.text(M + 6, k.y - 10.5, 'Cliente', 7.5, true, '#ffffff'); k.text(M + Y.ej, k.y - 10.5, 'Ejecutivo', 7.5, true, '#ffffff');
+      k.text(M + Y.f, k.y - 10.5, 'Fact.', 7.5, true, '#ffffff', 'r'); k.text(M + Y.v, k.y - 10.5, 'Vencido', 7.5, true, '#ffffff', 'r');
+      k.text(M + Y.a, k.y - 10.5, '1 a 7 días', 7.5, true, '#ffe08a', 'r'); k.text(M + Y.pv, k.y - 10.5, 'Por vencer', 7.5, true, '#ffffff', 'r'); k.text(M + Y.t, k.y - 10.5, 'Total', 7.5, true, '#ffffff', 'r');
+      k.y -= 15;
+    };
+    k.ensure(40, null); hdr2();
+    cls.forEach(c => {
+      k.ensure(15, hdr2);
+      k.hline(M, M + CW, k.y - 14, '#eef0f4');
+      k.text(M + 6, k.y - 10, c.cliente + (c.codigo ? ' (' + c.codigo + ')' : ''), 7.5, false, INK, 'l', Y.ej - 12);
+      k.text(M + Y.ej, k.y - 10, c.ej, 7.5, false, '#3a4250', 'l', 100);
+      k.text(M + Y.f, k.y - 10, n.format(c.R.total.n), 7.5, false, INK, 'r');
+      k.text(M + Y.v, k.y - 10, c.R.venc.imp ? mx.format(c.R.venc.imp) : '-', 7.5, true, c.R.venc.imp ? '#c8323a' : MUT, 'r');
+      if (c.R.v17.n) { k.rect(M + Y.a - 56, k.y - 12, 58, 10, '#fff2cc'); k.text(M + Y.a, k.y - 10, mx.format(c.R.v17.imp), 7.5, true, '#8a5a00', 'r'); } else k.text(M + Y.a, k.y - 10, '-', 7.5, false, MUT, 'r');
+      k.text(M + Y.pv, k.y - 10, c.R.vig.imp ? mx.format(c.R.vig.imp) : '-', 7.5, true, c.R.vig.imp ? '#1f8a58' : MUT, 'r');
+      k.text(M + Y.t, k.y - 10, mx.format(c.R.total.imp), 7.5, true, INK, 'r');
+      k.y -= 14;
+    });
+    k.ensure(20); k.hline(M, M + CW, k.y, '#b8c0cc');
+    k.text(M + 6, k.y - 12, `TOTAL DEL EQUIPO · ${n.format(cls.length)} clientes`, 8, true, INK);
+    k.text(M + Y.f, k.y - 12, n.format(R.total.n), 8, true, INK, 'r'); k.text(M + Y.v, k.y - 12, mx.format(R.venc.imp), 8, true, '#c8323a', 'r');
+    k.text(M + Y.a, k.y - 12, mx.format(R.v17.imp), 8, true, '#8a5a00', 'r'); k.text(M + Y.pv, k.y - 12, mx.format(R.vig.imp), 8, true, '#1f8a58', 'r'); k.text(M + Y.t, k.y - 12, mx.format(R.total.imp), 8, true, INK, 'r');
+    k.y -= 20;
+    return k.finish(`${(MARCAS[o.marca] || MARCAS.lumaggs).corto} · cobranza de crédito · corte ${o.corte} · ${o.equipos ? 'equipo ' + o.equipos : 'equipo de ' + o.nombre}`);
+  }
+
+  // ---- Correo y WhatsApp ----
+  const h = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  function mensajes(it, R, corte, marcaNom) {
+    const gerente = it.tipo === 'gerente', quien = gerente ? 'de tu equipo' : 'de tu cartera';
+    const asunto = `Cobranza ${marcaNom} ${gerente ? 'del equipo ' : ''}· corte ${corte} · vencido ${mx.format(R.venc.imp)}`;
+    const conclusion = `${pct(R.venc.imp, R.total.imp)} del saldo de crédito ${quien} (${mx.format(R.venc.imp)}) está vencido.`;
+    const pedido = R.v17.n
+      ? (gerente ? `Pídeles a tus ejecutivos que cobren esta semana las ${R.v17.n} ${R.v17.n === 1 ? 'factura' : 'facturas'} vencidas de 1 a 7 días (${mx.format(R.v17.imp)}): aún comisionan.`
+        : `Cobra esta semana las ${R.v17.n} ${R.v17.n === 1 ? 'factura' : 'facturas'} vencidas de 1 a 7 días (${mx.format(R.v17.imp)}): aún comisionan.`)
+      : (gerente ? 'No hay facturas vencidas de 1 a 7 días en tu equipo; da seguimiento a las que vencen esta semana.' : 'No tienes facturas vencidas de 1 a 7 días; da seguimiento a las que vencen esta semana.');
+    const lineas = [
+      ['Saldo de crédito', `${mx.format(R.total.imp)} (${n.format(R.total.n)} facturas)`],
+      ['Vigente', `${mx.format(R.vig.imp)} (${n.format(R.vig.n)})`],
+      ['Vencido', `${mx.format(R.venc.imp)} (${n.format(R.venc.n)})`],
+      ['Vencido de 1 a 7 días (aún comisionan)', `${mx.format(R.v17.imp)} (${n.format(R.v17.n)})`],
+      ['Vencen en 7 días', `${mx.format(R.p7.imp)} (${n.format(R.p7.n)})`],
+      ['Vencen en 14 días', `${mx.format(R.p14.imp)} (${n.format(R.p14.n)})`]
+    ];
+    const html = `<div style="font-family:Helvetica,Arial,sans-serif;color:#1a1a1a;max-width:560px;font-size:14px;line-height:1.5">
+<p style="margin:0 0 10px">Hola ${h(it.nombre.split(' ')[0] || it.nombre)},</p>
+<p style="margin:0 0 12px"><b>${h(conclusion)}</b></p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 12px">${lineas.map((l, i) => `<tr style="background:${i === 3 ? '#fff6e0' : '#f7f8fb'}"><td style="padding:6px 10px;border-bottom:1px solid #e6e9ef">${h(l[0])}</td><td style="padding:6px 10px;border-bottom:1px solid #e6e9ef;text-align:right"><b>${h(l[1])}</b></td></tr>`).join('')}</table>
+<p style="margin:0 0 12px">${gerente ? 'Adjunto el reporte de tu equipo: resumen, cobranza por ejecutivo y por cliente.' : 'Adjunto tu reporte con la relación de facturas vencidas y la de todas.'}</p>
+<p style="margin:0 0 12px"><b>Lo que necesito de ti:</b> ${h(pedido)}</p>
+<p style="margin:0;color:#5b6472;font-size:12px">Reporte generado desde el portal · corte ${h(corte)}.</p></div>`;
+    const wa = `Hola ${it.nombre.split(' ')[0] || it.nombre}, resumen de cobranza ${marcaNom} al ${corte}${gerente ? ' (tu equipo)' : ''}:\n` +
+      `• Saldo de crédito: ${mx.format(R.total.imp)} (${R.total.n} fact.)\n• Vencido: ${mx.format(R.venc.imp)} (${R.venc.n})\n` +
+      `• Vencido de 1 a 7 días (aún comisionan): ${mx.format(R.v17.imp)} (${R.v17.n})\n• Vencen en 7 días: ${mx.format(R.p7.imp)} (${R.p7.n})\n• Vigente: ${mx.format(R.vig.imp)} (${R.vig.n})\n` +
+      `${pedido}\nTe llegó el PDF completo por correo.`;
+    return {asunto, html, wa};
+  }
+  const telWA = (t) => {
+    const d = String(t || '').replace(/\D/g, '');
+    if (d.length === 10) return '52' + d;
+    if (d.length === 12 && d.startsWith('52')) return d;
+    if (d.length === 13 && d.startsWith('521')) return '52' + d.slice(3);
+    return null;
+  };
+  const b64 = (u8) => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+  const slug = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '');
+
+  // ---- Vista previa y envío ----
+  const css = document.createElement('style');
+  css.textContent = `.cbm-bg{position:fixed;inset:0;background:rgba(15,20,30,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:1.5rem 1rem}
+.cbm{background:#fff;color:#1a1a1a;border-radius:10px;max-width:1040px;width:100%;padding:1.25rem 1.25rem 1rem;box-shadow:0 10px 40px rgba(0,0,0,.3);font-family:inherit}
+.cbm h2{margin:0 0 .25rem;font-size:1.15rem}.cbm p{margin:.15rem 0}.cbm .mut{color:#5b6472;font-size:.85rem}
+.cbm .tw{overflow-x:auto;margin:.75rem 0}.cbm table{border-collapse:collapse;width:100%;font-size:.85rem;min-width:820px}
+.cbm th{background:#1f3864;color:#fff;text-align:left;padding:.4rem .5rem;font-weight:600;white-space:nowrap}.cbm td{padding:.4rem .5rem;border-bottom:1px solid #e6e9ef;vertical-align:middle}
+.cbm td.r,.cbm th.r{text-align:right}.cbm tr.off td{color:#5b6472;background:#f7f8fb}.cbm .tag{display:inline-block;padding:.05rem .4rem;border-radius:4px;font-size:.72rem;font-weight:600}
+.cbm .t-g{background:#e4dcf5;color:#4a2c9a}.cbm .t-e{background:#e0ecff;color:#1d4fb0}.cbm .t-s{background:#ffe4e4;color:#a11a1a}
+.cbm .am{background:#fff2cc;color:#8a5a00;font-weight:700;padding:.05rem .3rem}.cbm .acts{display:flex;gap:.35rem;flex-wrap:wrap}
+.cbm .ok{color:#1f8a58;font-weight:700}.cbm .er{color:#c8323a;font-weight:700}.cbm .bar{display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.5rem}`;
+  document.head.appendChild(css);
+
+  const mkb = (txt, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'cb-btn' + (cls ? ' ' + cls : ''); b.textContent = txt; b.style.padding = '.25rem .6rem'; return b; };
+
+  async function abrirEnvios(btn) {
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Preparando…';
+    const bg = document.createElement('div'); bg.className = 'cbm-bg';
+    const box = document.createElement('div'); box.className = 'cbm'; bg.appendChild(box);
+    const cerrar = () => bg.remove();
+    bg.addEventListener('click', (e) => { if (e.target === bg) cerrar(); });
+    try {
+      const relD = dash.data('relacion'), corD = dash.data('corte');
+      if (relD.status !== 'ok' || !corD.data || !corD.data[0] || !relD.data.length) throw new Error('Primero carga los datos de cobranza.');
+      const corte = corD.data[0].texto, marcaNom = MARCAS[MARCA].corto;
+      const res = await pedir('cobranza-destinatarios', {});
+      const rel = relD.data;
+      const items = (res.items || []).map(it => {
+        const set = new Set((it.agentes || []).map(s => String(s).trim()));
+        const rows = rel.filter(r => set.has(String(r.agenteRaw).trim()));
+        return Object.assign({}, it, {nombre: String(it.nombre || '').trim(), rows, R: resumenDe(rows)});
+      });
+      const orden = {gerente: 0, ejecutivo: 1, sin_usuario: 2};
+      items.sort((a, b) => orden[a.tipo] - orden[b.tipo] || b.R.venc.imp - a.R.venc.imp);
+      items.forEach(it => {
+        it.motivo = it.tipo === 'sin_usuario' ? 'Sin usuario ligado (asígnalo en Reporte de Ventas Sistema › Personal)'
+          : !it.email ? 'El usuario no tiene correo' : !it.rows.length ? 'Sin saldo de crédito' : '';
+        it.enviable = !it.motivo;
+        if (it.rows.length && it.tipo !== 'sin_usuario') {
+          const o = {nombre: it.nombre, marca: MARCA, corte, rows: it.rows, equipos: it.equipos};
+          it.pdf = it.tipo === 'gerente' ? pdfGerente(o) : pdfEjecutivo(o);
+          it.msg = mensajes(it, it.R, corte, marcaNom);
+          it.file = `cobranza_${marcaNom}_${slug(it.nombre)}_${corte.split('/').reverse().join('-')}.pdf`;
+        }
+        it.tel = telWA(it.telefono);
+      });
+
+      const nG = items.filter(i => i.tipo === 'gerente').length, nE = items.filter(i => i.tipo === 'ejecutivo').length, nS = items.filter(i => i.tipo === 'sin_usuario').length;
+      const t = document.createElement('h2'); t.textContent = `Enviar reportes de cobranza · ${marcaNom} · corte ${corte}`; box.appendChild(t);
+      const sub = document.createElement('p'); sub.className = 'mut';
+      sub.textContent = `${nG} gerentes · ${nE} ejecutivos${nS ? ' · ' + nS + ' ejecutivos sin usuario (no recibirán nada)' : ''}. Cada persona recibe su propio PDF con el mismo contenido que ves aquí; revisa antes de enviar.`;
+      box.appendChild(sub);
+      const tw = document.createElement('div'); tw.className = 'tw';
+      const tb = document.createElement('table');
+      tb.innerHTML = '<thead><tr><th></th><th>Tipo</th><th>Nombre</th><th>Correo</th><th class="r">Clientes</th><th class="r">Saldo</th><th class="r">Vencido</th><th class="r">1 a 7 d</th><th>Reporte</th><th>Estado</th></tr></thead>';
+      const body = document.createElement('tbody'); tb.appendChild(body); tw.appendChild(tb); box.appendChild(tw);
+      items.forEach(it => {
+        const tr = document.createElement('tr'); if (!it.enviable) tr.className = 'off';
+        const td = () => { const c = document.createElement('td'); tr.appendChild(c); return c; };
+        const c0 = td(); it.chk = document.createElement('input'); it.chk.type = 'checkbox'; it.chk.checked = it.enviable; it.chk.disabled = !it.enviable; it.chk.setAttribute('aria-label', 'Enviar a ' + it.nombre); c0.appendChild(it.chk);
+        const c1 = td(); const tg = document.createElement('span'); tg.className = 'tag ' + (it.tipo === 'gerente' ? 't-g' : it.tipo === 'ejecutivo' ? 't-e' : 't-s'); tg.textContent = it.tipo === 'gerente' ? 'Gerente' : it.tipo === 'ejecutivo' ? 'Ejecutivo' : 'Sin usuario'; c1.appendChild(tg);
+        const c2 = td(); c2.textContent = it.nombre + (it.equipos ? ' · ' + it.equipos : '');
+        const c3 = td(); c3.textContent = it.email || '—';
+        const nCli = new Set(it.rows.map(r => r.cliente)).size;
+        const c4 = td(); c4.className = 'r'; c4.textContent = n.format(nCli);
+        const c5 = td(); c5.className = 'r'; c5.textContent = mx.format(it.R.total.imp);
+        const c6 = td(); c6.className = 'r'; c6.textContent = mx.format(it.R.venc.imp);
+        const c7 = td(); c7.className = 'r'; if (it.R.v17.n) { const s = document.createElement('span'); s.className = 'am'; s.textContent = `${mx.format(it.R.v17.imp)} (${it.R.v17.n})`; c7.appendChild(s); } else c7.textContent = '—';
+        const c8 = td(); const ac = document.createElement('div'); ac.className = 'acts'; c8.appendChild(ac);
+        if (it.pdf) {
+          const bp = mkb('Ver PDF'); bp.addEventListener('click', () => { const u = URL.createObjectURL(new Blob([it.pdf], {type: 'application/pdf'})); window.open(u, '_blank'); setTimeout(() => URL.revokeObjectURL(u), 60000); }); ac.appendChild(bp);
+          if (it.tel) { const bw = mkb('WhatsApp'); bw.title = 'Abre WhatsApp con el resumen en texto'; bw.addEventListener('click', () => window.open('https://wa.me/' + it.tel + '?text=' + encodeURIComponent(it.msg.wa), '_blank')); ac.appendChild(bw); }
+          else { const sp = document.createElement('span'); sp.className = 'mut'; sp.textContent = 'sin teléfono válido'; ac.appendChild(sp); }
+        } else { const sp = document.createElement('span'); sp.className = 'mut'; sp.textContent = it.motivo; ac.appendChild(sp); }
+        it.estado = td(); it.estado.textContent = it.enviable ? 'Listo' : '';
+        body.appendChild(tr);
+      });
+      const bar = document.createElement('div'); bar.className = 'bar';
+      const info = document.createElement('span'); info.className = 'mut'; bar.appendChild(info);
+      const acts = document.createElement('div'); acts.className = 'acts';
+      const bc = mkb('Cerrar'); bc.addEventListener('click', cerrar);
+      const be = mkb('Enviar por correo', 'cb-updbtn');
+      acts.appendChild(bc); acts.appendChild(be); bar.appendChild(acts); box.appendChild(bar);
+      const upd = () => { const s = items.filter(i => i.chk && i.chk.checked).length; info.textContent = `${s} seleccionados. Se envía desde el portal, con el PDF adjunto.`; be.disabled = !s; };
+      items.forEach(i => i.chk && i.chk.addEventListener('change', upd)); upd();
+      be.addEventListener('click', async () => {
+        const sel = items.filter(i => i.chk.checked);
+        if (!sel.length) return;
+        be.disabled = true; bc.disabled = true; sel.forEach(i => { i.chk.disabled = true; });
+        let ok = 0, bad = 0;
+        for (const it of sel) {
+          it.estado.textContent = 'Enviando…';
+          try {
+            await pedir('cobranza-enviar', {tipo: it.tipo, user_id: it.user_id, nombre: it.nombre, asunto: it.msg.asunto, html: it.msg.html, filename: it.file, pdf: b64(it.pdf),
+              corte: corD.data[0].iso, n_facturas: it.R.total.n, saldo: it.R.total.imp, vencido: it.R.venc.imp, vencido_1_7: it.R.v17.imp}, 90000);
+            it.estado.className = 'ok'; it.estado.textContent = '✓ Enviado'; ok++;
+          } catch (err) { it.estado.className = 'er'; it.estado.textContent = '✗ ' + (err.message || 'Error'); bad++; }
+        }
+        info.textContent = `Terminado: ${ok} enviados${bad ? ', ' + bad + ' con error' : ''}.`;
+        bc.disabled = false;
+      });
+      document.body.appendChild(bg);
+    } catch (err) {
+      const t = document.createElement('h2'); t.textContent = 'No se pudo preparar el envío'; box.appendChild(t);
+      const p = document.createElement('p'); p.textContent = (err && err.message) || 'Error desconocido'; box.appendChild(p);
+      const bc = mkb('Cerrar'); bc.addEventListener('click', cerrar); box.appendChild(bc);
+      document.body.appendChild(bg);
+    } finally { btn.disabled = false; btn.textContent = orig; }
+  }
+  document.getElementById('cb-env-btn').addEventListener('click', (e) => abrirEnvios(e.currentTarget));
+  window.__pdfEjecutivo = pdfEjecutivo; window.__pdfGerente = pdfGerente; window.__abrirEnvios = abrirEnvios;
 })();
 
 </script>

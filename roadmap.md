@@ -24,3 +24,8 @@
 - [x] Añadir plaza, ficha centrada, correo editable con adjuntos e hilo cronológico.
 - [x] Desplegar envío y recepción de correos sin migraciones ni cambios al alta o recepción de pedidos.
 - [ ] Verificar envío y respuesta reales; requiere sesión del usuario y conexión del nuevo receptor en Resend.
+
+## Panel de Cobranza y equipos
+- [ ] Reemplazar HTML idéntico y conectar lectura, guardado, destinatarios y envío.
+- [ ] Agregar selección múltiple de gerentes y verificar permisos y pruebas.
+- [ ] Verificar flujo con sesión real; recuperación de sesión propia no disponible.
