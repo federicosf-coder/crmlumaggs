@@ -1244,6 +1244,158 @@ export type Database = {
           },
         ]
       }
+      cobranza_cargas: {
+        Row: {
+          corte: string
+          id: string
+          marca: string
+          n_facturas: number
+          subido_en: string
+          subido_por: string | null
+          vigente: boolean
+        }
+        Insert: {
+          corte: string
+          id?: string
+          marca: string
+          n_facturas?: number
+          subido_en?: string
+          subido_por?: string | null
+          vigente?: boolean
+        }
+        Update: {
+          corte?: string
+          id?: string
+          marca?: string
+          n_facturas?: number
+          subido_en?: string
+          subido_por?: string | null
+          vigente?: boolean
+        }
+        Relationships: []
+      }
+      cobranza_envios: {
+        Row: {
+          asunto: string | null
+          canal: string
+          corte: string | null
+          creado_en: string
+          destinatario_email: string | null
+          destinatario_nombre: string | null
+          destinatario_user_id: string | null
+          enviado_por: string | null
+          error: string | null
+          estado: string
+          id: string
+          marca: string
+          n_facturas: number | null
+          saldo: number | null
+          tipo: string
+          vencido: number | null
+          vencido_1_7: number | null
+        }
+        Insert: {
+          asunto?: string | null
+          canal?: string
+          corte?: string | null
+          creado_en?: string
+          destinatario_email?: string | null
+          destinatario_nombre?: string | null
+          destinatario_user_id?: string | null
+          enviado_por?: string | null
+          error?: string | null
+          estado?: string
+          id?: string
+          marca: string
+          n_facturas?: number | null
+          saldo?: number | null
+          tipo: string
+          vencido?: number | null
+          vencido_1_7?: number | null
+        }
+        Update: {
+          asunto?: string | null
+          canal?: string
+          corte?: string | null
+          creado_en?: string
+          destinatario_email?: string | null
+          destinatario_nombre?: string | null
+          destinatario_user_id?: string | null
+          enviado_por?: string | null
+          error?: string | null
+          estado?: string
+          id?: string
+          marca?: string
+          n_facturas?: number | null
+          saldo?: number | null
+          tipo?: string
+          vencido?: number | null
+          vencido_1_7?: number | null
+        }
+        Relationships: []
+      }
+      cobranza_facturas: {
+        Row: {
+          agente: string | null
+          cancelada: boolean
+          carga_id: string
+          clasif: string | null
+          cliente_codigo: string | null
+          corte: string
+          fecha_factura: string
+          folio: string | null
+          id: number
+          marca: string
+          pendiente: number
+          plaza2: string | null
+          razon_social: string | null
+          serie: string | null
+          total: number
+        }
+        Insert: {
+          agente?: string | null
+          cancelada?: boolean
+          carga_id: string
+          clasif?: string | null
+          cliente_codigo?: string | null
+          corte: string
+          fecha_factura: string
+          folio?: string | null
+          id?: number
+          marca: string
+          pendiente?: number
+          plaza2?: string | null
+          razon_social?: string | null
+          serie?: string | null
+          total?: number
+        }
+        Update: {
+          agente?: string | null
+          cancelada?: boolean
+          carga_id?: string
+          clasif?: string | null
+          cliente_codigo?: string | null
+          corte?: string
+          fecha_factura?: string
+          folio?: string | null
+          id?: number
+          marca?: string
+          pendiente?: number
+          plaza2?: string | null
+          razon_social?: string | null
+          serie?: string | null
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranza_facturas_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cobranza_cargas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cobranza_pago_archivos: {
         Row: {
           fecha_carga: string
@@ -9960,6 +10112,35 @@ export type Database = {
         }
         Relationships: []
       }
+      team_managers: {
+        Row: {
+          created_at: string
+          id: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_managers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           created_at: string
@@ -11344,6 +11525,27 @@ export type Database = {
       }
     }
     Functions: {
+      _cobranza_guardar: {
+        Args: { _corte: string; _marca: string; _rows: Json; _uid: string }
+        Returns: number
+      }
+      _cobranza_leer: {
+        Args: { _marca: string; _uid: string }
+        Returns: {
+          agente: string
+          cancelada: string
+          clasif: string
+          cliente_codigo: string
+          corte: string
+          fecha_factura: string
+          folio: string
+          pendiente: number
+          plaza2: string
+          razon_social: string
+          serie: string
+          total: number
+        }[]
+      }
       _cobranza_resolver_ejecutivos: {
         Args: { _crear: boolean; _nombres: string[] }
         Returns: {
@@ -11356,6 +11558,7 @@ export type Database = {
           usuario: string
         }[]
       }
+      _cobranza_visibles: { Args: { _uid: string }; Returns: string[] }
       backfill_documentos_negocio_id: { Args: never; Returns: Json }
       brand_from_empresa_vendedora: {
         Args: { _ev: Database["public"]["Enums"]["empresa_vendedora"] }
@@ -11413,6 +11616,48 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      cobranza_destinatarios: {
+        Args: { _marca: string }
+        Returns: {
+          agentes: string[]
+          email: string
+          equipos: string
+          nombre: string
+          telefono: string
+          tipo: string
+          user_id: string
+        }[]
+      }
+      cobranza_estado_carga: {
+        Args: { _marca: string }
+        Returns: {
+          corte: string
+          n_facturas: number
+          subido_en: string
+          subido_por: string
+        }[]
+      }
+      cobranza_guardar_facturas: {
+        Args: { _corte: string; _marca: string; _rows: Json }
+        Returns: number
+      }
+      cobranza_leer_facturas: {
+        Args: { _marca: string }
+        Returns: {
+          agente: string
+          cancelada: string
+          clasif: string
+          cliente_codigo: string
+          corte: string
+          fecha_factura: string
+          folio: string
+          pendiente: number
+          plaza2: string
+          razon_social: string
+          serie: string
+          total: number
+        }[]
       }
       cobranza_resolver_ejecutivos: {
         Args: { _nombres: string[] }
