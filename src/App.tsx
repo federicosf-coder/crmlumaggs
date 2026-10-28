@@ -57,6 +57,7 @@ import Alertas from "@/pages/Alertas";
 
 import DeliveryAddresses from "@/pages/directory/DeliveryAddresses";
 import ContactosSinEmpresa from "@/pages/directory/ContactosSinEmpresa";
+import CobranzaPanel from "@/pages/cobranza/CobranzaPanel";
 import Cobranza from "@/pages/cobranza/Cobranza";
 import CobranzaReporteDiario from "@/pages/cobranza/CobranzaReporteDiario";
 import CobranzaResumenReporte from "@/pages/cobranza/CobranzaResumenReporte";
@@ -200,6 +201,7 @@ const App = () => (
             <Route path="/cobranza" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
             <Route path="/cobranza/reporte" element={<ProtectedRoute><CobranzaReporteDiario /></ProtectedRoute>} />
             <Route path="/cobranza/resumen" element={<ProtectedRoute><CobranzaResumenReporte /></ProtectedRoute>} />
+            <Route path="/cobranza/panel" element={<ProtectedRoute><CobranzaPanel /></ProtectedRoute>} />
             <Route path="/cobranza/:brand" element={<ProtectedRoute><Cobranza /></ProtectedRoute>} />
 
             
