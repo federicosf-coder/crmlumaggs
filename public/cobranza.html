@@ -209,6 +209,7 @@ html,body{margin:0;background:var(--color-bg);}
 
 </div>
 <script>
+  const LS_KEY = new URLSearchParams(location.search).get('marca') === 'galsa' ? 'cobranza_facturas_v1_galsa' : 'cobranza_facturas_v1';
 (function(){
   const store={facturas:[]}, calcs={}, subs=[], months=new Set();
   function compute(id){
@@ -228,12 +229,12 @@ html,body{margin:0;background:var(--color-bg);}
     colors:['#4c78d8','#2fa36b','#f0a020','#e5484d','#8e6bd8','#ee7a2c','#3fb8c9','#9aa3b2']
   };
   window.__setFacturas=function(rows){store.facturas=rows;
-    try{localStorage.setItem('cobranza_facturas_v1',JSON.stringify(rows));}catch(e){}
+    try{localStorage.setItem(LS_KEY,JSON.stringify(rows));}catch(e){}
     dash.refresh();};
   window.__months=months;
   window.__monthsAvail=()=>[...new Set(store.facturas.map(r=>String(r.fecha_factura).slice(0,7)))].sort();
   window.__hasData=()=>store.facturas.length>0;
-  try{const s=localStorage.getItem('cobranza_facturas_v1');if(s)store.facturas=JSON.parse(s)||[];}catch(e){}
+  try{const s=localStorage.getItem(LS_KEY);if(s)store.facturas=JSON.parse(s)||[];}catch(e){}
   window.claude={use:async(n)=>n==='downloads'?{save:async({filename,data})=>{
     const b=new Blob([data],{type:filename.endsWith('.pdf')?'application/pdf':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=filename;document.body.appendChild(a);a.click();
