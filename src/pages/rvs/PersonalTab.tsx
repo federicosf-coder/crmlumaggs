@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { CreatableCatalogSelect } from "./components/CreatableCatalogSelect";
 import { useRvsCatalogos, labelOf } from "./useRvsCatalogos";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /** Quita el sufijo de clave del reporte, ej. "PEREZ JUAN - DDA" -> "PEREZ JUAN" */
 export const limpiarNombre = (n: string) => (n || "").replace(/\s*-\s*[A-Za-z0-9]{1,6}\s*$/, "").trim();
@@ -88,6 +89,19 @@ export function PersonalTab() {
         .order("nombre_reporte");
       if (error) throw error;
       return (data || []) as Persona[];
+    },
+  });
+
+  const { data: usuarios = [] } = useQuery({
+    queryKey: ["rvs_usuarios_vinculables"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .order("full_name");
+      if (error) throw error;
+      return ((data || []) as { user_id: string | null; full_name: string | null; email: string | null }[])
+        .filter((u): u is { user_id: string; full_name: string | null; email: string | null } => !!u.user_id);
     },
   });
 
@@ -278,16 +292,30 @@ export function PersonalTab() {
                     onCreate={crearPlaza}
                   />
                 </TableCell>
-                <TableCell>
-                  {p.user_id ? (
-                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Vinculado</Badge>
-                  ) : requiereAcceso(p) ? (
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setPersonaUsuario(p)}>
-                      Crear usuario
-                    </Button>
-                  ) : (
-                    <Badge variant="secondary">Sin usuario</Badge>
-                  )}
+                <TableCell className="min-w-[230px]">
+                  <div className="flex items-center gap-1">
+                    <Select
+                      value={p.user_id || "__none__"}
+                      onValueChange={(v) => update(p.id, { user_id: v === "__none__" ? null : v })}
+                    >
+                      <SelectTrigger className="h-7 text-xs">
+                        <SelectValue placeholder="Sin usuario" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        <SelectItem value="__none__">Sin usuario</SelectItem>
+                        {usuarios.map((u) => (
+                          <SelectItem key={u.user_id} value={u.user_id}>
+                            {u.full_name || u.email}{u.email ? ` · ${u.email}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!p.user_id && requiereAcceso(p) && (
+                      <Button variant="outline" size="sm" className="h-7 text-xs shrink-0" onClick={() => setPersonaUsuario(p)}>
+                        Crear
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   {p.sin_clasificar ? (
