@@ -11344,6 +11344,18 @@ export type Database = {
       }
     }
     Functions: {
+      _cobranza_resolver_ejecutivos: {
+        Args: { _crear: boolean; _nombres: string[] }
+        Returns: {
+          creada: boolean
+          metodo: string
+          nombre_agente: string
+          nombre_mostrar: string
+          persona_id: string
+          user_id: string
+          usuario: string
+        }[]
+      }
       backfill_documentos_negocio_id: { Args: never; Returns: Json }
       brand_from_empresa_vendedora: {
         Args: { _ev: Database["public"]["Enums"]["empresa_vendedora"] }
@@ -11401,6 +11413,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      cobranza_resolver_ejecutivos: {
+        Args: { _nombres: string[] }
+        Returns: {
+          creada: boolean
+          metodo: string
+          nombre_agente: string
+          nombre_mostrar: string
+          persona_id: string
+          user_id: string
+          usuario: string
+        }[]
       }
       company_has_sold_units: {
         Args: {
