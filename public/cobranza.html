@@ -147,7 +147,7 @@ html,body{margin:0;background:var(--color-bg);}
       <div class="big" id="cb-vencido" style="color:#e5484d">—</div>
       <div class="sub"><span id="cb-vencido-n">—</span> facturas · <span data-source="tipos" data-field="pct_venc" data-where="tipo=Total">—</span> del saldo</div>
       <div class="sub"><a id="cb-vencido-dl" href="#" class="cb-dl">Descargar Excel por cliente</a></div></div>
-    <div class="cb-card" style="border-top:4px solid #f2c744;background:#fff9e8"><div class="lbl">Vencidas de 1 a 7 días · aún comisionan</div>
+    <div class="cb-card" style="border-top:4px solid #f2c744;background:#fff9e8"><div class="lbl">De las vencidas: 1 a 7 días · aún comisionan</div>
       <div class="big" style="color:#8a5a00" data-source="antiguedad" data-field="importe" data-where="bucket=1-7">—</div>
       <div class="sub"><span data-source="antiguedad" data-field="facturas" data-where="bucket=1-7">—</span> facturas</div></div>
     <div class="cb-card" style="border-top:4px solid #f0a020"><div class="lbl">Vencen en 7 días</div>
@@ -1459,7 +1459,7 @@ dash.onData(() => {
       ['22-30', 'Vencida 22 a 30 días', '#e5484d', r => r.dias >= 22 && r.dias <= 30], ['Mas30', 'Vencida más de 30 días', '#a61e2b', r => r.dias > 30]];
     return def.map(([k, label, color, fn]) => { const a = rows.filter(fn); return {k, label, color, n: a.length, imp: r2(a.reduce((t, r) => t + r.importe, 0))}; });
   };
-  const sevCol = (d) => d > 14 ? '#c8323a' : d > 7 ? '#c77d00' : d > 0 ? '#9a7d00' : '#1f8a58';
+  const sevCol = (d) => d > 0 ? '#c8323a' : '#1f8a58';
   const INK = '#1a1a1a', MUT = '#5b6472';
 
   // ---- Kit PDF (Carta) ----
@@ -1549,7 +1549,7 @@ dash.onData(() => {
       ['Saldo de crédito ' + quien, mx.format(R.total.imp), `${n.format(R.total.n)} facturas`, '#4c78d8', '#f7f8fb', MUT, false],
       ['Vigentes', mx.format(R.vig.imp), `${n.format(R.vig.n)} fact. · ${pct(R.vig.imp, R.total.imp)}`, '#2fa36b', '#f7f8fb', MUT, false],
       ['Vencidas', mx.format(R.venc.imp), `${n.format(R.venc.n)} fact. · ${pct(R.venc.imp, R.total.imp)}`, '#e5484d', '#f7f8fb', MUT, false],
-      ['Vencidas de 1 a 7 días · aún comisionan', mx.format(R.v17.imp), `${n.format(R.v17.n)} facturas · ${R.v17.n ? 'cóbralas ya' : 'ninguna'}`, '#f0a020', '#fff6e0', '#8a5a00', true],
+      ['De las vencidas: 1 a 7 días · aún comisionan', mx.format(R.v17.imp), `${n.format(R.v17.n)} facturas · ${R.v17.n ? 'cóbralas ya' : 'ninguna'}`, '#f0a020', '#fff6e0', '#8a5a00', true],
       ['Vencen en 7 días', mx.format(R.p7.imp), `${n.format(R.p7.n)} facturas`, '#f0a020', '#f7f8fb', MUT, false],
       ['Vencen en 14 días', mx.format(R.p14.imp), `${n.format(R.p14.n)} fact. (acum.)`, '#ee7a2c', '#f7f8fb', MUT, false]
     ];
@@ -1709,7 +1709,7 @@ dash.onData(() => {
       k.rect(M, k.y - 15, CW, 15, '#1f3864');
       k.text(M + 6, k.y - 10.5, 'Ejecutivo', 7.5, true, '#ffffff');
       [['Clien.', X.cl], ['Fact.', X.f], ['Vencido', X.v], ['% venc.', X.p]].forEach(([t, x]) => k.text(M + x, k.y - 10.5, t, 7.5, true, '#ffffff', 'r'));
-      k.text(M + X.a, k.y - 10.5, '1 a 7 días', 7.5, true, '#ffe08a', 'r'); k.text(M + X.pv, k.y - 10.5, 'Por vencer', 7.5, true, '#ffffff', 'r'); k.text(M + X.t, k.y - 10.5, 'Total', 7.5, true, '#ffffff', 'r');
+      k.text(M + X.a, k.y - 10.5, 'Incl. 1 a 7 d', 7.5, true, '#ffe08a', 'r'); k.text(M + X.pv, k.y - 10.5, 'Por vencer', 7.5, true, '#ffffff', 'r'); k.text(M + X.t, k.y - 10.5, 'Total', 7.5, true, '#ffffff', 'r');
       k.y -= 15;
     };
     const fila = (nom, e, bold, bg) => {
@@ -1751,7 +1751,7 @@ dash.onData(() => {
       k.rect(M, k.y - 15, CW, 15, '#1f3864');
       k.text(M + 6, k.y - 10.5, 'Cliente', 7.5, true, '#ffffff'); k.text(M + Y.ej, k.y - 10.5, 'Ejecutivo', 7.5, true, '#ffffff');
       k.text(M + Y.f, k.y - 10.5, 'Fact.', 7.5, true, '#ffffff', 'r'); k.text(M + Y.v, k.y - 10.5, 'Vencido', 7.5, true, '#ffffff', 'r');
-      k.text(M + Y.a, k.y - 10.5, '1 a 7 días', 7.5, true, '#ffe08a', 'r'); k.text(M + Y.pv, k.y - 10.5, 'Por vencer', 7.5, true, '#ffffff', 'r'); k.text(M + Y.t, k.y - 10.5, 'Total', 7.5, true, '#ffffff', 'r');
+      k.text(M + Y.a, k.y - 10.5, 'Incl. 1 a 7 d', 7.5, true, '#ffe08a', 'r'); k.text(M + Y.pv, k.y - 10.5, 'Por vencer', 7.5, true, '#ffffff', 'r'); k.text(M + Y.t, k.y - 10.5, 'Total', 7.5, true, '#ffffff', 'r');
       k.y -= 15;
     };
     k.ensure(40, null); hdr2();
@@ -1788,12 +1788,12 @@ dash.onData(() => {
     const lineas = [
       ['Saldo de crédito', `${mx.format(R.total.imp)} (${n.format(R.total.n)} facturas)`],
       ['Vigente', `${mx.format(R.vig.imp)} (${n.format(R.vig.n)})`],
-      ['Vencido', `${mx.format(R.venc.imp)} (${n.format(R.venc.n)})`],
-      ['Vencido de 1 a 7 días (aún comisionan)', `${mx.format(R.v17.imp)} (${n.format(R.v17.n)})`],
+      ['Vencido (total)', `${mx.format(R.venc.imp)} (${n.format(R.venc.n)})`],
+      ['Del vencido: 1 a 7 días (aún comisionan)', `${mx.format(R.v17.imp)} (${n.format(R.v17.n)})`],
       ['Vencen en 7 días', `${mx.format(R.p7.imp)} (${n.format(R.p7.n)})`],
       ['Vencen en 14 días', `${mx.format(R.p14.imp)} (${n.format(R.p14.n)})`]
     ];
-    const html = `<div style="font-family:Helvetica,Arial,sans-serif;color:#1a1a1a;max-width:560px;font-size:14px;line-height:1.5">
+    const html = `<div style="font-family:'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif;color:#1a1a1a;max-width:560px;font-size:14px;line-height:1.5">
 <p style="margin:0 0 10px">Hola ${h(it.nombre.split(' ')[0] || it.nombre)},</p>
 <p style="margin:0 0 12px"><b>${h(conclusion)}</b></p>
 <table style="border-collapse:collapse;width:100%;margin:0 0 12px">${lineas.map((l, i) => `<tr style="background:${i === 3 ? '#fff6e0' : '#f7f8fb'}"><td style="padding:6px 10px;border-bottom:1px solid #e6e9ef">${h(l[0])}</td><td style="padding:6px 10px;border-bottom:1px solid #e6e9ef;text-align:right"><b>${h(l[1])}</b></td></tr>`).join('')}</table>
@@ -1802,7 +1802,7 @@ dash.onData(() => {
 <p style="margin:0;color:#5b6472;font-size:12px">Reporte generado desde el portal · corte ${h(corte)}.</p></div>`;
     const wa = `Hola ${it.nombre.split(' ')[0] || it.nombre}, resumen de cobranza ${marcaNom} al ${corte}${gerente ? ' (tu equipo)' : ''}:\n` +
       `• Saldo de crédito: ${mx.format(R.total.imp)} (${R.total.n} fact.)\n• Vencido: ${mx.format(R.venc.imp)} (${R.venc.n})\n` +
-      `• Vencido de 1 a 7 días (aún comisionan): ${mx.format(R.v17.imp)} (${R.v17.n})\n• Vencen en 7 días: ${mx.format(R.p7.imp)} (${R.p7.n})\n• Vigente: ${mx.format(R.vig.imp)} (${R.vig.n})\n` +
+      `• Del vencido, 1 a 7 días (aún comisionan): ${mx.format(R.v17.imp)} (${R.v17.n})\n• Vencen en 7 días: ${mx.format(R.p7.imp)} (${R.p7.n})\n• Vigente: ${mx.format(R.vig.imp)} (${R.vig.n})\n` +
       `${pedido}\nTe llegó el PDF completo por correo.`;
     return {asunto, html, wa};
   }
@@ -1819,7 +1819,9 @@ dash.onData(() => {
   // ---- Vista previa y envío ----
   const css = document.createElement('style');
   css.textContent = `.cbm-bg{position:fixed;inset:0;background:rgba(15,20,30,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:1.5rem 1rem}
-.cbm{background:#fff;color:#1a1a1a;border-radius:10px;max-width:1040px;width:100%;padding:1.25rem 1.25rem 1rem;box-shadow:0 10px 40px rgba(0,0,0,.3);font-family:inherit}
+.cbm{background:#fff;color:#1a1a1a;border-radius:10px;max-width:1040px;width:100%;padding:1.25rem 1.25rem 1rem;box-shadow:0 10px 40px rgba(0,0,0,.3);font-family:'Inter','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif}
+.cbm,.cbm *{font-family:'Inter','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif}
+.cbm button{cursor:pointer;border:1px solid #c5ccd8;background:#f4f6fa;color:#1a1a1a;border-radius:6px;font-size:.8rem;font-weight:600}.cbm button:hover{background:#e8ecf4}.cbm button.cb-updbtn{background:#1f3864;color:#fff;border-color:#1f3864}.cbm button:disabled{opacity:.5;cursor:default}
 .cbm h2{margin:0 0 .25rem;font-size:1.15rem}.cbm p{margin:.15rem 0}.cbm .mut{color:#5b6472;font-size:.85rem}
 .cbm .tw{overflow-x:auto;margin:.75rem 0}.cbm table{border-collapse:collapse;width:100%;font-size:.85rem;min-width:820px}
 .cbm th{background:#1f3864;color:#fff;text-align:left;padding:.4rem .5rem;font-weight:600;white-space:nowrap}.cbm td{padding:.4rem .5rem;border-bottom:1px solid #e6e9ef;vertical-align:middle}
@@ -1870,7 +1872,7 @@ dash.onData(() => {
       box.appendChild(sub);
       const tw = document.createElement('div'); tw.className = 'tw';
       const tb = document.createElement('table');
-      tb.innerHTML = '<thead><tr><th></th><th>Tipo</th><th>Nombre</th><th>Correo</th><th class="r">Clientes</th><th class="r">Saldo</th><th class="r">Vencido</th><th class="r">1 a 7 d</th><th>Reporte</th><th>Estado</th></tr></thead>';
+      tb.innerHTML = '<thead><tr><th></th><th>Tipo</th><th>Nombre</th><th>Correo</th><th class="r">Clientes</th><th class="r">Saldo</th><th class="r">Vencido</th><th class="r">Incl. 1 a 7 d</th><th>Reporte</th><th>Estado</th></tr></thead>';
       const body = document.createElement('tbody'); tb.appendChild(body); tw.appendChild(tb); box.appendChild(tw);
       items.forEach(it => {
         const tr = document.createElement('tr'); if (!it.enviable) tr.className = 'off';
