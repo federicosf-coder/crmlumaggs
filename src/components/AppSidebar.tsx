@@ -46,6 +46,7 @@ const mainItems: NavItem[] = [
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
   { title: "Seguimiento a Ventas", url: "/seguimiento", icon: TrendingUp, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Cobranza", url: "/cobranza", icon: Wallet, roles: ["admin", "manager", "accounting"] },
+  { title: "Panel de Cobranza", url: "/cobranza/panel", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
   { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
   { title: "Biblioteca", url: "/biblioteca", icon: FolderOpen, roles: "all" },
   { title: "Solicitudes de Crédito", url: "/credito", icon: FileCheck, roles: ["admin", "manager", "sales", "customer_service", "accounting"] },
@@ -97,6 +98,7 @@ export function AppSidebar() {
   const whatsappAccess = useModuleAccess("whatsapp");
   const inventarioAccess = useModuleAccess("inventario");
   const rvsAccess = useModuleAccess("reporte_ventas_sistema");
+  const cobranzaAccess = useModuleAccess("cobranza");
   const prospectosAccess = useModuleAccess("prospectos");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
   const [documentosOpen, setDocumentosOpen] = useState(
@@ -159,6 +161,7 @@ export function AppSidebar() {
   const visibleMain = mainItems
     .filter(canAccess)
     .filter((item) => (item.url === "/reporte-ventas-sistema" ? rvsAccess.canView : true))
+    .filter((item) => (item.url === "/cobranza/panel" ? cobranzaAccess.canView : true))
     .filter((item) => (item.url === "/leads" ? prospectosAccess.canView : true));
   const visibleAdmin = adminItems.filter(canAccess);
   const visibleWhatsApp = whatsappItems.filter(canAccess).filter(() => whatsappAccess.canView);
