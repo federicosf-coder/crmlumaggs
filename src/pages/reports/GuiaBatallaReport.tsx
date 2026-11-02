@@ -10,7 +10,11 @@ import { PageBanner } from "@/components/PageBanner";
 import { BackButton } from "@/components/BackButton";
 import { cn } from "@/lib/utils";
 import { calcularGuia, rangosCorte, type FacturaGuia } from "@/lib/guiaBatalla";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, FileDown, Mail, Loader2, Sheet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import { generarGuiaPdf, generarGuiaXlsx, nombreArchivoGuia, bytesToBase64, type GuiaArchivoInput } from "@/lib/guiaBatallaArchivos";
 
 const MARCAS = [
   { v: "lumaggs_chevron", l: "Lumaggs · Chevron" },
@@ -102,6 +106,43 @@ export default function GuiaBatallaReport() {
   const mesLbl = (d: number) => MESES[(cm - 1 + d + 12) % 12];
   const nombrePersona = personas.find((p) => p.id === persona)?.nombre ?? "";
 
+  const [enviando, setEnviando] = useState(false);
+  const archivoInput = (): GuiaArchivoInput => ({
+    ejecutivo: nombrePersona, marcaLabel: MARCAS.find((m) => m.v === marca)!.l,
+    corteLabel: `${MESES[cm - 1]} ${cy}`, mesAnterior: mesLbl(-1), mesActual: MESES[cm - 1],
+    activos, perdidos, kpis,
+  });
+  const descargar = (tipo: "pdf" | "xlsx") => {
+    const inp = archivoInput();
+    const nombre = nombreArchivoGuia(inp);
+    if (tipo === "pdf") return generarGuiaPdf(inp).save(`${nombre}.pdf`);
+    const blob = new Blob([generarGuiaXlsx(inp) as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `${nombre}.xlsx`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  const enviar = async () => {
+    setEnviando(true);
+    try {
+      const inp = archivoInput();
+      const pdf = bytesToBase64(new Uint8Array(generarGuiaPdf(inp).output("arraybuffer")));
+      const xlsx = bytesToBase64(generarGuiaXlsx(inp));
+      const { data, error } = await supabase.functions.invoke("guia-batalla-enviar", {
+        body: { user_id: persona, marca: inp.marcaLabel, corte: inp.corteLabel, filename: nombreArchivoGuia(inp), pdf, xlsx },
+      });
+      if (error) {
+        const det = error instanceof FunctionsHttpError ? (await error.context.json().catch(() => ({})))?.error : error.message;
+        throw new Error(det || "No se pudo enviar");
+      }
+      toast.success(`Enviado a ${data.to}${data.cc?.length ? ` con copia a ${data.cc.join(", ")}` : ""}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo enviar");
+    } finally {
+      setEnviando(false);
+    }
+  };
+  const listo = !!persona && !isLoading;
+
   const KPIS = [
     { l: `Unidades 90 días`, s: `${mesLbl(-3)}–${mesLbl(-1)}`, v: kpis.u90 },
     { l: "Promedio mensual", s: "90 días ÷ 3", v: kpis.promedio },
@@ -140,6 +181,13 @@ export default function GuiaBatallaReport() {
               {cortes.map((c) => <SelectItem key={c.v} value={c.v}>Corte {c.l}</SelectItem>)}
             </SelectContent>
           </Select>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" className="h-8 text-xs" disabled={!listo} onClick={() => descargar("pdf")}><FileDown className="h-3.5 w-3.5 mr-1.5" />PDF</Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs" disabled={!listo} onClick={() => descargar("xlsx")}><Sheet className="h-3.5 w-3.5 mr-1.5" />Excel</Button>
+            <Button size="sm" className="h-8 text-xs" disabled={!listo || enviando} onClick={enviar}>
+              {enviando ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Mail className="h-3.5 w-3.5 mr-1.5" />}Enviar por correo
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
