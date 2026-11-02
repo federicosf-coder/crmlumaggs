@@ -372,7 +372,7 @@ serve(async (req) => {
     // Upload to storage
     // A new version avoids storage overwrite locks during repeated generation.
     const fileName = `cotizaciones/${documento_id}-${crypto.randomUUID()}.pdf`;
-    const { error: uploadErr } = await sb.storage
+    const { error: uploadErr } = await userClient.storage
       .from("document-files")
       .upload(fileName, new Blob([pdfBytes], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
 
