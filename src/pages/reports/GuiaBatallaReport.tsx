@@ -48,11 +48,12 @@ export default function GuiaBatallaReport() {
     queryKey: ["guia-batalla-personas", user?.id, verTodos],
     enabled: !!user,
     queryFn: async () => {
+      if (!user) return [];
       let ids: string[] | null = null;
       if (!verTodos) {
-        const { data: tm } = await supabase.from("team_managers").select("team_id").eq("user_id", user!.id);
+        const { data: tm } = await supabase.from("team_managers").select("team_id").eq("user_id", user.id);
         const teamIds = (tm ?? []).map((t) => t.team_id);
-        const set = new Set<string>([user!.id]);
+        const set = new Set<string>([user.id]);
         if (teamIds.length) {
           const { data: mem } = await supabase.from("team_members").select("user_id").in("team_id", teamIds);
           (mem ?? []).forEach((m) => m.user_id && set.add(m.user_id));
@@ -75,29 +76,13 @@ export default function GuiaBatallaReport() {
     }
   }, [personas, persona, user]);
 
-  const r = rangosCorte(corte);
-  const { data: facturas = [], isLoading } = useQuery({
+  const { data: facturas = [], isLoading, error: errorGuia } = useQuery({
     queryKey: ["guia-batalla", marca, corte, persona],
     enabled: !!persona,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("documentos")
-        .select("empresa_id, fecha_documento, unidades_equivalentes_total, companies(name, razon_social)")
-        .eq("empresa_vendedora", marca as never)
-        .eq("tipo_documento", "factura")
-        .eq("ejecutivo_venta_id", persona)
-        .neq("estatus_factura", "cancelada")
-        .or("numero_factura.is.null,numero_factura.not.ilike.RFC*")
-        .gte("fecha_documento", r.inicioHistorico)
-        .lt("fecha_documento", r.finCorte)
-        .limit(10000);
+      const { data, error } = await supabase.rpc("contpaq_guia", { _marca: marca, _usuario: persona, _mes: `${corte}-01` });
       if (error) throw error;
-      return (data ?? []).map((d: any): FacturaGuia => ({
-        empresa_id: d.empresa_id,
-        cliente: d.companies?.name || d.companies?.razon_social || "Sin nombre",
-        fecha: d.fecha_documento ?? "",
-        unidades: Number(d.unidades_equivalentes_total ?? 0),
-      }));
+      return (data ?? []) as unknown as FacturaGuia[];
     },
   });
 
@@ -108,7 +93,7 @@ export default function GuiaBatallaReport() {
 
   const [enviando, setEnviando] = useState(false);
   const archivoInput = (): GuiaArchivoInput => ({
-    ejecutivo: nombrePersona, marcaLabel: MARCAS.find((m) => m.v === marca)!.l,
+    ejecutivo: nombrePersona, marcaLabel: MARCAS.find((m) => m.v === marca)?.l ?? "Lumaggs",
     corteLabel: `${MESES[cm - 1]} ${cy}`, mesAnterior: mesLbl(-1), mesActual: MESES[cm - 1],
     activos, perdidos, kpis,
   });
@@ -141,7 +126,7 @@ export default function GuiaBatallaReport() {
       setEnviando(false);
     }
   };
-  const listo = !!persona && !isLoading;
+  const listo = !!persona && !isLoading && !errorGuia;
 
   const KPIS = [
     { l: `Unidades 90 días`, s: `${mesLbl(-3)}–${mesLbl(-1)}`, v: kpis.u90 },
@@ -160,6 +145,7 @@ export default function GuiaBatallaReport() {
       </div>
       <PageBanner title="Guía de Batalla por Ejecutivo" description="Clientes a cuidar este mes: ningún cliente sin venta." />
       <div className="container mx-auto p-4 space-y-4">
+        {errorGuia && <p role="alert" className="text-destructive">{errorGuia.message}</p>}
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-full border overflow-hidden">
             {MARCAS.map((m) => (

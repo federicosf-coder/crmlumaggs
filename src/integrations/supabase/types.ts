@@ -2357,6 +2357,226 @@ export type Database = {
           },
         ]
       }
+      contpaq_agentes: {
+        Row: {
+          codigo: string
+          marca: string
+          nombre: string
+          persona_id: string | null
+        }
+        Insert: {
+          codigo: string
+          marca: string
+          nombre: string
+          persona_id?: string | null
+        }
+        Update: {
+          codigo?: string
+          marca?: string
+          nombre?: string
+          persona_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contpaq_agentes_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "rvs_personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contpaq_cargas: {
+        Row: {
+          archivo: string
+          creado_por: string | null
+          created_at: string
+          filas: number
+          hash: string
+          id: string
+          marca: string
+          ruta: string
+          tipo: string
+        }
+        Insert: {
+          archivo: string
+          creado_por?: string | null
+          created_at?: string
+          filas?: number
+          hash: string
+          id?: string
+          marca: string
+          ruta: string
+          tipo: string
+        }
+        Update: {
+          archivo?: string
+          creado_por?: string | null
+          created_at?: string
+          filas?: number
+          hash?: string
+          id?: string
+          marca?: string
+          ruta?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      contpaq_clientes: {
+        Row: {
+          codigo: string
+          marca: string
+          nombre: string
+          rfc: string | null
+        }
+        Insert: {
+          codigo: string
+          marca: string
+          nombre: string
+          rfc?: string | null
+        }
+        Update: {
+          codigo?: string
+          marca?: string
+          nombre?: string
+          rfc?: string | null
+        }
+        Relationships: []
+      }
+      contpaq_cortes: {
+        Row: {
+          created_at: string
+          historico: Json
+          marca: string
+          mes: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          historico: Json
+          marca: string
+          mes: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          historico?: Json
+          marca?: string
+          mes?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
+      contpaq_originales: {
+        Row: {
+          contenido: string
+          created_at: string
+          hash: string
+          nombre: string
+        }
+        Insert: {
+          contenido: string
+          created_at?: string
+          hash: string
+          nombre: string
+        }
+        Update: {
+          contenido?: string
+          created_at?: string
+          hash?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      contpaq_productos: {
+        Row: {
+          codigo: string
+          marca: string
+          nombre: string
+          producto_id: string | null
+        }
+        Insert: {
+          codigo: string
+          marca: string
+          nombre: string
+          producto_id?: string | null
+        }
+        Update: {
+          codigo?: string
+          marca?: string
+          nombre?: string
+          producto_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contpaq_productos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contpaq_productos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clasificacion_pendiente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contpaq_ventas: {
+        Row: {
+          agente_codigo: string
+          carga_id: string | null
+          cliente_codigo: string
+          concepto: string
+          estado: string
+          fecha: string
+          folio: string
+          lineas: Json
+          marca: string
+          moneda: string
+          serie: string
+          tc: number
+        }
+        Insert: {
+          agente_codigo: string
+          carga_id?: string | null
+          cliente_codigo: string
+          concepto: string
+          estado: string
+          fecha: string
+          folio: string
+          lineas: Json
+          marca: string
+          moneda: string
+          serie: string
+          tc: number
+        }
+        Update: {
+          agente_codigo?: string
+          carga_id?: string | null
+          cliente_codigo?: string
+          concepto?: string
+          estado?: string
+          fecha?: string
+          folio?: string
+          lineas?: Json
+          marca?: string
+          moneda?: string
+          serie?: string
+          tc?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contpaq_ventas_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "contpaq_cargas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_client_sessions: {
         Row: {
           created_at: string
@@ -11677,6 +11897,45 @@ export type Database = {
           _empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
         }
         Returns: boolean
+      }
+      contpaq_admin: { Args: never; Returns: boolean }
+      contpaq_asignar_usuario: {
+        Args: { _codigo: string; _marca: string; _usuario: string }
+        Returns: undefined
+      }
+      contpaq_facturas: {
+        Args: {
+          _fin: string
+          _inicio: string
+          _marca: string
+          _usuario: string
+        }
+        Returns: Json
+      }
+      contpaq_guardar_original: {
+        Args: { _contenido: string; _hash: string; _nombre: string }
+        Returns: undefined
+      }
+      contpaq_guia: {
+        Args: { _marca: string; _mes: string; _usuario: string }
+        Returns: Json
+      }
+      contpaq_importar: {
+        Args: {
+          _archivo: string
+          _filas: Json
+          _hash: string
+          _marca: string
+          _ruta: string
+          _tipo: string
+        }
+        Returns: Json
+      }
+      contpaq_normalizar: { Args: { _nombre: string }; Returns: string }
+      contpaq_ver_usuario: { Args: { _usuario: string }; Returns: boolean }
+      contpaq_vincular: {
+        Args: { _codigo: string; _id: string; _marca: string; _tipo: string }
+        Returns: undefined
       }
       count_audience_contacts: { Args: { filters: Json }; Returns: number }
       create_short_link: {

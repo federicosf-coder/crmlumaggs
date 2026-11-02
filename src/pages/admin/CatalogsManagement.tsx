@@ -23,6 +23,7 @@ import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
 import { SeguimientoEstatusTab } from "@/components/admin/SeguimientoEstatusTab";
 import { PlazaCoberturaMatrix } from "@/components/admin/PlazaCoberturaMatrix";
 import { DocumentosPlantillaCatalogoTab } from "@/components/admin/DocumentosPlantillaCatalogoTab";
+import { ContpaqCatalogo } from "@/components/admin/ContpaqCatalogo";
 
 type ProductOptionType = "marca" | "aplicacion" | "uso" | "formula" | "viscosidad" | "categoria" | "linea";
 
@@ -2400,6 +2401,7 @@ type CatalogKey =
   | "logos"
   | "seguimiento_estatus"
   | "documentos_plantilla"
+  | "contpaq"
   | "email_groups" | "system_settings";
 
 type CatalogGroup = {
@@ -2435,6 +2437,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: "ventas",
     label: "CRM y ventas",
     items: [
+      { key: "contpaq", label: "Agentes y ventas CONTPAQ" },
       { key: "industrias", label: "Industrias", description: "Editar nombre mostrado vs guardado" },
       { key: "condiciones", label: "Condiciones" },
       { key: "seguimiento_estatus", label: "Estatus de Seguimiento a Ventas", description: "Rangos por familia y ámbito" },
@@ -2461,6 +2464,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
 
 function renderCatalog(key: CatalogKey) {
   switch (key) {
+    case "contpaq": return <ContpaqCatalogo />;
     case "plazas": return <PlazasTab />;
     case "vehiculos": return <VehiculosTab />;
     case "repartidores": return <RepartidoresTab />;

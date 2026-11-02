@@ -10,3 +10,5 @@
 - The uploaded collection dashboard remains verbatim HTML; CobranzaPanel bridges only same-origin messages from its current iframe to existing collection RPCs, while cobranza-enviar authenticates server-side, resolves profile email and records delivery outcomes to prevent client-controlled recipients.
 - Team managers use the existing team_managers many-to-many table with admin/master editing and manager/admin candidates; existing database policies remain the authority for writes.
 - Quotation PDFs must confirm both storage upload and the document link before reporting success; storage failures must never appear as successful generation.
+- CONTPAQ sales are isolated from operational documents and imported atomically by brand/series/folio; agents reference RVS persons, product equivalents come from linked presentations, and the battle report freezes historical rows per monthly cut to avoid duplicate sources and drifting baselines.
+- CONTPAQ source workbooks are retained byte-for-byte in the admin-only originals table rather than public assets; this keeps customer data private and bypasses the currently timing-out storage upload service.
