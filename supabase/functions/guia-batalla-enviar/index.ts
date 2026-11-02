@@ -16,9 +16,11 @@ Deno.serve(async (req) => {
     const url = Deno.env.get("SUPABASE_URL")!, anon = Deno.env.get("SUPABASE_ANON_KEY")!, service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const authorization = req.headers.get("Authorization");
     if (!authorization?.startsWith("Bearer ")) return json({ ok: false, error: "No autenticado" }, 401);
-    const { data: auth } = await createClient(url, anon, { global: { headers: { Authorization: authorization } } }).auth.getUser();
-    if (!auth?.user) return json({ ok: false, error: "No autenticado" }, 401);
     const admin = createClient(url, service, { auth: { persistSession: false } });
+    const token = authorization.slice(7).trim();
+    const { data: auth, error: authErr } = await admin.auth.getUser(token);
+    if (!auth?.user) { console.error("auth:", authErr?.message); return json({ ok: false, error: "No autenticado" }, 401); }
+    void anon;
 
     const raw = await req.text();
     if (raw.length > 24 * 1024 * 1024) return json({ ok: false, error: "Solicitud demasiado grande" }, 413);
