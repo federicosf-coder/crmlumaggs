@@ -2467,6 +2467,27 @@ export type Database = {
         }
         Relationships: []
       }
+      contpaq_originales: {
+        Row: {
+          contenido: string
+          created_at: string
+          hash: string
+          nombre: string
+        }
+        Insert: {
+          contenido: string
+          created_at?: string
+          hash: string
+          nombre: string
+        }
+        Update: {
+          contenido?: string
+          created_at?: string
+          hash?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
       contpaq_productos: {
         Row: {
           codigo: string
@@ -11890,6 +11911,10 @@ export type Database = {
           _usuario: string
         }
         Returns: Json
+      }
+      contpaq_guardar_original: {
+        Args: { _contenido: string; _hash: string; _nombre: string }
+        Returns: undefined
       }
       contpaq_guia: {
         Args: { _marca: string; _mes: string; _usuario: string }
