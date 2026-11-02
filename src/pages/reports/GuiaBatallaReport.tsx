@@ -116,7 +116,7 @@ export default function GuiaBatallaReport() {
     const inp = archivoInput();
     const nombre = nombreArchivoGuia(inp);
     if (tipo === "pdf") return generarGuiaPdf(inp).save(`${nombre}.pdf`);
-    const blob = new Blob([generarGuiaXlsx(inp)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const blob = new Blob([generarGuiaXlsx(inp) as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = `${nombre}.xlsx`; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
