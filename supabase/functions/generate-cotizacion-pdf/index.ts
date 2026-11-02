@@ -374,7 +374,7 @@ serve(async (req) => {
     const fileName = `cotizaciones/${documento_id}-${crypto.randomUUID()}.pdf`;
     const { error: uploadErr } = await sb.storage
       .from("document-files")
-      .upload(fileName, pdfBytes, { contentType: "application/pdf", upsert: false });
+      .upload(fileName, new Blob([pdfBytes], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
 
     if (uploadErr) {
       console.error("PDF upload error:", uploadErr);
