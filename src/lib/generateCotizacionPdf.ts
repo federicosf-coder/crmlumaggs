@@ -30,7 +30,7 @@ export async function downloadCotizacionPdf(documentoId: string, onStatusChange?
       .eq("id", documentoId)
       .maybeSingle();
 
-    const { data, error } = await supabase.functions.invoke("generate-cotizacion-pdf", {
+    const { data, error, response } = await supabase.functions.invoke("generate-cotizacion-pdf", {
       body: { documento_id: documentoId },
     });
 
@@ -53,8 +53,15 @@ export async function downloadCotizacionPdf(documentoId: string, onStatusChange?
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast.success("PDF generado exitosamente");
-    
+    const guardado = response?.headers.get("x-pdf-guardado") || "ok";
+    if (guardado === "ok") {
+      toast.success("PDF generado exitosamente");
+    } else if (guardado === "pendiente") {
+      toast.warning("PDF descargado. El guardado en el documento va lento y se completará en segundo plano; el botón «Ver PDF» aparecerá en unos minutos.");
+    } else {
+      toast.error("PDF descargado, pero no se pudo guardar en el documento. Vuelve a generarlo más tarde.");
+    }
+
     // Notify caller that status may have changed
     onStatusChange?.();
   } catch (err: any) {
