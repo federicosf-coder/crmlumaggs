@@ -6,11 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageBanner } from "@/components/PageBanner";
 import { cn } from "@/lib/utils";
-import { Truck, FileText, ListChecks, TrendingUp, PieChart, Search, CreditCard, ShieldCheck, Package, Wallet } from "lucide-react";
+import { Truck, FileText, ListChecks, TrendingUp, PieChart, Search, CreditCard, ShieldCheck, Package, Wallet, Swords } from "lucide-react";
 
 const CATEGORIAS = ["Todos", "Ventas", "Crédito", "Operación"] as const;
 
 const REPORTS = [
+  {
+    title: "Guía de Batalla por Ejecutivo",
+    description: "Clientes por ejecutivo: unidades 90 días, promedio, mes anterior, avance del mes y clientes sin compra +91 días.",
+    url: "/reports/guia-batalla",
+    icon: Swords,
+    category: "Ventas",
+  },
   {
     title: "Reporte Diario Entregas Básico",
     description: "Desempeño diario por repartidor: entregas, horas, km y score.",
