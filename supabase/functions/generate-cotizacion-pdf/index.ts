@@ -367,6 +367,7 @@ serve(async (req) => {
     }
 
     const pdfBytes = await pdfDoc.save();
+    console.log("PDF rendered:", documento_id, pdfBytes.length);
 
     // Upload to storage
     const fileName = `cotizaciones/${documento_id}.pdf`;
@@ -374,17 +375,31 @@ serve(async (req) => {
       .from("document-files")
       .upload(fileName, pdfBytes, { contentType: "application/pdf", upsert: true });
 
-    let pdfPublicUrl = "";
-    if (!uploadErr) {
-      const { data: urlData } = sb.storage.from("document-files").getPublicUrl(fileName);
-      pdfPublicUrl = urlData?.publicUrl || "";
+    if (uploadErr) {
+      console.error("PDF upload error:", uploadErr);
+      throw new Error("No se pudo guardar el archivo PDF");
     }
+    console.log("PDF uploaded:", documento_id);
+    const { data: urlData } = sb.storage.from("document-files").getPublicUrl(fileName);
+    const pdfPublicUrl = urlData?.publicUrl || "";
+    if (!pdfPublicUrl) throw new Error("No se pudo obtener el enlace del PDF");
 
     const updateData: any = {};
     if (pdfPublicUrl) updateData.pdf_url = pdfPublicUrl;
     if (doc.estatus_cotizacion === "borrador") updateData.estatus_cotizacion = "impresa";
     if (Object.keys(updateData).length > 0) {
-      await sb.from("documentos").update(updateData).eq("id", documento_id);
+      // Preserve the requesting user's context for document update triggers.
+      const { data: savedDoc, error: saveErr } = await userClient
+        .from("documentos")
+        .update(updateData)
+        .eq("id", documento_id)
+        .select("id, pdf_url")
+        .single();
+      if (saveErr || savedDoc?.pdf_url !== pdfPublicUrl) {
+        console.error("PDF document link error:", saveErr || "PDF link not persisted");
+        throw new Error("El PDF se creó, pero no se pudo vincular al documento");
+      }
+      console.log("PDF linked:", documento_id);
     }
 
     return new Response(pdfBytes, {
@@ -396,7 +411,11 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("PDF generation error:", err);
-    const knownMessages = new Set(["documento_id requerido", "Documento no encontrado"]);
+    const knownMessages = new Set([
+      "documento_id requerido", "Documento no encontrado",
+      "No se pudo guardar el archivo PDF", "No se pudo obtener el enlace del PDF",
+      "El PDF se creó, pero no se pudo vincular al documento",
+    ]);
     const msg = err instanceof Error && knownMessages.has(err.message)
       ? err.message
       : "Error interno al generar PDF";

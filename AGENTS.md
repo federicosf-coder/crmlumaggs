@@ -9,3 +9,4 @@
 - Claim product billing confirmation uses the existing inv_reclamo_lineas.facturar_intercambiado field with shared normalization; the official PDF fits its complete form onto one landscape page before attaching evidence, avoiding parallel consent storage and split forms.
 - The uploaded collection dashboard remains verbatim HTML; CobranzaPanel bridges only same-origin messages from its current iframe to existing collection RPCs, while cobranza-enviar authenticates server-side, resolves profile email and records delivery outcomes to prevent client-controlled recipients.
 - Team managers use the existing team_managers many-to-many table with admin/master editing and manager/admin candidates; existing database policies remain the authority for writes.
+- Quotation PDFs must confirm both storage upload and the document link before reporting success; storage failures must never appear as successful generation.
