@@ -5,7 +5,29 @@ import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Expose-Headers": "x-pdf-guardado",
 };
+
+// Tiempo máximo que el usuario espera al almacenamiento antes de recibir su PDF.
+// Si el guardado tarda más, continúa en segundo plano y se vincula al terminar.
+const STORAGE_WAIT_MS = 8000;
+const LOGO_WAIT_MS = 4000;
+
+const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | "timeout"> =>
+  Promise.race([p, new Promise<"timeout">((r) => setTimeout(() => r("timeout"), ms))]);
+
+// Cache de logos por instancia para no descargarlos en cada PDF.
+const logoCache = new Map<string, Uint8Array>();
+async function getLogoBytes(sb: any, path: string): Promise<Uint8Array | null> {
+  const cached = logoCache.get(path);
+  if (cached) return cached;
+  const res = await withTimeout(sb.storage.from("logos").download(path), LOGO_WAIT_MS) as any;
+  if (res === "timeout") { console.error("Logo download timeout:", path); return null; }
+  if (!res?.data) return null;
+  const bytes = new Uint8Array(await res.data.arrayBuffer());
+  logoCache.set(path, bytes);
+  return bytes;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -163,9 +185,8 @@ serve(async (req) => {
     let logoBottomY = y;
     if (logoData?.storage_path) {
       try {
-        const { data: logoFile } = await sb.storage.from("logos").download(logoData.storage_path);
-        if (logoFile) {
-          const logoBytes = new Uint8Array(await logoFile.arrayBuffer());
+        const logoBytes = await getLogoBytes(sb, logoData.storage_path);
+        if (logoBytes) {
           let logoImage;
           try { logoImage = await pdfDoc.embedPng(logoBytes); } catch { logoImage = await pdfDoc.embedJpg(logoBytes); }
           const logoAspect = logoImage.width / logoImage.height;
