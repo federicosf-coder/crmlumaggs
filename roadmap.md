@@ -39,5 +39,6 @@
 ## PDF de cotizaciones
 - [x] Recuperar el PDF de COT-16933 y confirmar que almacenamiento devuelve 504 al guardar desde la función.
 - [x] Añadir comprobación de errores de archivo y vínculo para evitar éxito falso.
-- [ ] Resolver demora de almacenamiento desde funciones; bloqueado por respuestas 504 del servicio incluso con archivo nuevo y distintas formas de carga.
+- [x] Entregar el PDF en ~10 s aunque el almacenamiento tarde; guardado y vínculo terminan en segundo plano y se confirman aunque el servicio responda 504 (verificado con COT-16935).
+- [ ] Lentitud de fondo del almacenamiento (~60 s por archivo, responde 504); depende de reiniciar el backend o del servicio.
 - [x] Verificar apertura del PDF recuperado desde el documento real con la sesión de Federico.
