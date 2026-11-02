@@ -367,6 +367,7 @@ serve(async (req) => {
     }
 
     const pdfBytes = await pdfDoc.save();
+    console.log("PDF rendered:", documento_id, pdfBytes.length);
 
     // Upload to storage
     const fileName = `cotizaciones/${documento_id}.pdf`;
@@ -378,6 +379,7 @@ serve(async (req) => {
       console.error("PDF upload error:", uploadErr);
       throw new Error("No se pudo guardar el archivo PDF");
     }
+    console.log("PDF uploaded:", documento_id);
     const { data: urlData } = sb.storage.from("document-files").getPublicUrl(fileName);
     const pdfPublicUrl = urlData?.publicUrl || "";
     if (!pdfPublicUrl) throw new Error("No se pudo obtener el enlace del PDF");
@@ -397,6 +399,7 @@ serve(async (req) => {
         console.error("PDF document link error:", saveErr || "PDF link not persisted");
         throw new Error("El PDF se creó, pero no se pudo vincular al documento");
       }
+      console.log("PDF linked:", documento_id);
     }
 
     return new Response(pdfBytes, {
