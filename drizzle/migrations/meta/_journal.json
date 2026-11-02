@@ -92,6 +92,13 @@
       "when": 1793043743241,
       "tag": "0012_campaign_audience_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793656721150,
+      "tag": "0013_contpaq_historico_catalogos",
+      "breakpoints": true
     }
   ]
 }
