@@ -29,6 +29,19 @@ async function getLogoBytes(sb: any, path: string): Promise<Uint8Array | null> {
   return bytes;
 }
 
+async function uploadedFileMatches(sb: any, documentoId: string, size: number, startedAt: number): Promise<boolean> {
+  try {
+    const { data } = await sb.storage.from("document-files").list("cotizaciones", { search: documentoId, limit: 5 });
+    const f = (data || []).find((o: any) => o.name === `${documentoId}.pdf`);
+    if (!f) return false;
+    const written = new Date(f.updated_at || f.created_at || 0).getTime();
+    return Number(f.metadata?.size) === size && written >= startedAt - 5000;
+  } catch (e) {
+    console.error("PDF upload verification error:", e);
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -397,12 +410,20 @@ serve(async (req) => {
     const storeAndLink = async (): Promise<void> => {
       let uploadErr: unknown = null;
       for (let attempt = 1; attempt <= 2; attempt++) {
+        const startedAt = Date.now();
         const { error } = await sb.storage
           .from("document-files")
           .upload(fileName, pdfBytes, { contentType: "application/pdf", upsert: true });
         uploadErr = error;
         if (!error) break;
         console.error(`PDF upload error (intento ${attempt}):`, error);
+        // The storage gateway may answer 504 even though the file was written.
+        // Accept it only if this exact file (same size, written now) is present.
+        if (await uploadedFileMatches(sb, documento_id, pdfBytes.length, startedAt)) {
+          console.log("PDF upload confirmed after gateway error:", documento_id);
+          uploadErr = null;
+          break;
+        }
       }
       if (uploadErr) throw new Error("No se pudo guardar el archivo PDF");
       console.log("PDF uploaded:", documento_id);
