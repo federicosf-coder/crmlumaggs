@@ -75,7 +75,13 @@ export function ContpaqCatalogo() {
       })}
       {vista === "clientes" && data?.clientes.filter(c => match(c.codigo+" "+c.nombre)).map(c => <TableRow key={c.codigo}><TableCell>{c.codigo}</TableCell><TableCell>{c.nombre}</TableCell><TableCell>{c.rfc}</TableCell></TableRow>)}
       {vista === "productos" && data?.items.filter(p => match(p.codigo+" "+p.nombre)).map(p => <TableRow key={p.codigo}><TableCell>{p.codigo}</TableCell><TableCell>{p.nombre}{!p.producto_id && <Badge variant="destructive" className="ml-2">Sin equivalencia</Badge>}</TableCell><TableCell><Select disabled={busy} value={p.producto_id ?? "none"} onValueChange={v => accion(() => supabase.rpc("contpaq_vincular",{_marca:marca,_codigo:p.codigo,_tipo:"producto",_id:v === "none" ? null as any : v}))}><SelectTrigger className="max-w-80"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Sin producto vinculado</SelectItem>{data.productos.map(item => <SelectItem key={item.id} value={item.id}>{item.codigo} · {item.nombre_producto} · {item.presentaciones?.unidades_equivalentes ?? "—"} UE</SelectItem>)}</SelectContent></Select></TableCell></TableRow>)}
-      {vista === "cargas" && data?.cargas.filter(c => match(c.archivo)).map(c => <TableRow key={c.id}><TableCell>{c.tipo}</TableCell><TableCell><Button variant="link" onClick={async () => { const { data, error } = await supabase.storage.from("contpaq-originales").createSignedUrl(c.ruta,60); if (error) toast.error(error.message); else window.open(data.signedUrl,"_blank","noopener"); }}>{c.archivo}</Button></TableCell><TableCell>{c.filas} · {new Date(c.created_at).toLocaleDateString("es-MX")}</TableCell></TableRow>)}
+      {vista === "cargas" && data?.cargas.filter(c => match(c.archivo)).map(c => <TableRow key={c.id}><TableCell>{c.tipo}</TableCell><TableCell><Button variant="link" onClick={async () => {
+        const { data, error } = await supabase.from("contpaq_originales").select("contenido").eq("hash",c.hash).single();
+        if (error) { toast.error(error.message); return; }
+        const bytes = Uint8Array.from(atob(data.contenido),ch => ch.charCodeAt(0));
+        const url = URL.createObjectURL(new Blob([bytes],{type:"application/vnd.ms-excel"}));
+        const a = document.createElement("a"); a.href=url; a.download=c.archivo; a.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
+      }}>{c.archivo}</Button></TableCell><TableCell>{c.filas} · {new Date(c.created_at).toLocaleDateString("es-MX")}</TableCell></TableRow>)}
     </TableBody></Table></div>
   </div>;
 }

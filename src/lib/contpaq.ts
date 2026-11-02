@@ -37,8 +37,11 @@ export async function cargarContpaq(file: File, marca: string, tipo: TipoContpaq
   const filas = parseContpaq(XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" }), tipo);
   const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))).map(n => n.toString(16).padStart(2, "0")).join("");
   const ruta = `${marca}/${tipo}/${hash}.xls`;
-  const { error: uploadError } = await supabase.storage.from("contpaq-originales").upload(ruta, file);
-  if (uploadError && !/already exists|duplicate/i.test(uploadError.message)) throw uploadError;
+  let bin = "";
+  const arr = new Uint8Array(bytes);
+  for (let i = 0; i < arr.length; i += 8192) bin += String.fromCharCode(...arr.subarray(i, i + 8192));
+  const { error: originalError } = await supabase.rpc("contpaq_guardar_original", { _hash: hash, _nombre: file.name, _contenido: btoa(bin) });
+  if (originalError) throw originalError;
   const { data, error } = await supabase.rpc("contpaq_importar", { _marca: marca, _tipo: tipo, _archivo: file.name, _ruta: ruta, _hash: hash, _filas: filas });
   if (error) throw error;
   return data as { filas: number; repetido: boolean };
