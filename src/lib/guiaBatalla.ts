@@ -21,6 +21,13 @@ export interface FilaActiva {
   promedio: number;
   mesAnterior: number;
   esteMes: number;
+  /** Días promedio entre compras (12 meses previos al corte); null si hay menos de 2 compras. */
+  frecuenciaDias: number | null;
+  /** Fecha estimada de la próxima compra (YYYY-MM-DD). */
+  proximaCompra: string | null;
+  /** Unidades que se espera compre en el mes de corte. */
+  esperadoMes: number;
+  atrasado: boolean;
 }
 
 export interface FilaPerdida {
@@ -51,7 +58,7 @@ export function rangosCorte(corte: string) {
 
 export function calcularGuia(facturas: FacturaGuia[], corte: string) {
   const r = rangosCorte(corte);
-  const act = new Map<string, FilaActiva>();
+  const act = new Map<string, Omit<FilaActiva, "frecuenciaDias" | "proximaCompra" | "esperadoMes" | "atrasado">>();
   const hist = new Map<string, { cliente: string; total: number; ultima: string }>();
 
   for (const f of facturas) {
@@ -77,8 +84,40 @@ export function calcularGuia(facturas: FacturaGuia[], corte: string) {
     }
   }
 
+  // Frecuencia: compras (días distintos) antes del corte, dentro de los 12 meses.
+  const compras = new Map<string, Map<string, number>>();
+  for (const f of facturas) {
+    if (!f.empresa_id) continue;
+    const fecha = f.fecha.slice(0, 10);
+    if (fecha < r.inicioHistorico || fecha >= r.inicioCorte) continue;
+    const m = compras.get(f.empresa_id) ?? new Map<string, number>();
+    m.set(fecha, (m.get(fecha) ?? 0) + (Number(f.unidades) || 0));
+    compras.set(f.empresa_id, m);
+  }
+  const DIA = 86400000;
+  const toMs = (d: string) => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+  const toStr = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const estimar = (id: string, promedio: number) => {
+    const m = compras.get(id);
+    const fechas = m ? Array.from(m.keys()).sort() : [];
+    if (fechas.length < 2) {
+      return { frecuenciaDias: null, proximaCompra: null, esperadoMes: promedio, atrasado: false };
+    }
+    const frec = (toMs(fechas[fechas.length - 1]) - toMs(fechas[0])) / DIA / (fechas.length - 1);
+    const porCompra = Array.from(m!.values()).reduce((s, u) => s + u, 0) / fechas.length;
+    const proxMs = toMs(fechas[fechas.length - 1]) + Math.round(frec) * DIA;
+    const proxima = toStr(proxMs);
+    const atrasado = proxima < r.inicioCorte;
+    // Compras esperadas dentro del mes de corte (al menos 1 si ya está atrasado).
+    const ini = toMs(r.inicioCorte), fin = toMs(r.finCorte);
+    let n = 0;
+    for (let t = Math.max(proxMs, ini); t < fin; t += Math.max(1, Math.round(frec)) * DIA) n++;
+    if (atrasado && n === 0) n = 1;
+    return { frecuenciaDias: Math.round(frec), proximaCompra: proxima, esperadoMes: n * porCompra, atrasado };
+  };
+
   const activos = Array.from(act.values())
-    .map((a) => ({ ...a, promedio: a.u90 / 3 }))
+    .map((a) => ({ ...a, promedio: a.u90 / 3, ...estimar(a.empresa_id, a.u90 / 3) }))
     .sort((a, b) => b.u90 - a.u90 || b.esteMes - a.esteMes);
 
   const perdidos: FilaPerdida[] = Array.from(hist.entries())
@@ -91,6 +130,7 @@ export function calcularGuia(facturas: FacturaGuia[], corte: string) {
     promedio: activos.reduce((s, a) => s + a.promedio, 0),
     mesAnterior: activos.reduce((s, a) => s + a.mesAnterior, 0),
     esteMes: activos.reduce((s, a) => s + a.esteMes, 0),
+    esperadoMes: activos.reduce((s, a) => s + a.esperadoMes, 0),
     clientes: activos.length,
     sinCompraMes: activos.filter((a) => a.esteMes <= 0).length,
   };

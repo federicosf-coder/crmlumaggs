@@ -107,6 +107,7 @@ export default function GuiaBatallaReport() {
     { l: "Promedio mensual", s: "90 días ÷ 3", v: kpis.promedio },
     { l: "Mes anterior", s: mesLbl(-1), v: kpis.mesAnterior },
     { l: "Lleva este mes", s: `${MESES[cm - 1]} ${cy}`, v: kpis.esteMes, avance: kpis.promedio ? kpis.esteMes / kpis.promedio : 0 },
+    { l: "Esperado este mes", s: "según frecuencia de compra", v: kpis.esperadoMes },
   ];
 
   const th = "text-[10px] uppercase tracking-wide font-semibold text-foreground/80 border-r last:border-r-0";
@@ -141,7 +142,7 @@ export default function GuiaBatallaReport() {
           </Select>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {KPIS.map((k) => (
             <Card key={k.l}><CardContent className="p-4">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">{k.l}</p>
@@ -165,11 +166,14 @@ export default function GuiaBatallaReport() {
                   <TableHead className={cn(th, "text-right")}>Promedio mensual</TableHead>
                   <TableHead className={cn(th, "text-right")}>{mesLbl(-1)}</TableHead>
                   <TableHead className={cn(th, "text-right")}>Lleva {MESES[cm - 1]}</TableHead>
+                  <TableHead className={cn(th, "text-right")}>Frecuencia</TableHead>
+                  <TableHead className={th}>Próxima compra est.</TableHead>
+                  <TableHead className={cn(th, "text-right")}>Esperado {MESES[cm - 1]}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Cargando…</TableCell></TableRow>}
-                {!isLoading && activos.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sin clientes activos en este corte.</TableCell></TableRow>}
+                {isLoading && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Cargando…</TableCell></TableRow>}
+                {!isLoading && activos.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sin clientes activos en este corte.</TableCell></TableRow>}
                 {activos.map((a, i) => (
                   <TableRow key={a.empresa_id} className={cn(i % 2 && "bg-muted/30", a.esteMes <= 0 && "bg-destructive/5")}>
                     <TableCell className="border-r font-medium">
@@ -179,7 +183,13 @@ export default function GuiaBatallaReport() {
                     <TableCell className="border-r text-right tabular-nums">{fmt(a.u90)}</TableCell>
                     <TableCell className="border-r text-right tabular-nums">{fmt(a.promedio)}</TableCell>
                     <TableCell className="border-r text-right tabular-nums">{fmt(a.mesAnterior)}</TableCell>
-                    <TableCell className={cn("text-right tabular-nums font-semibold", a.esteMes <= 0 ? "text-destructive" : a.esteMes >= a.promedio ? "text-primary" : "")}>{fmt(a.esteMes)}</TableCell>
+                    <TableCell className={cn("border-r text-right tabular-nums font-semibold", a.esteMes <= 0 ? "text-destructive" : a.esteMes >= a.promedio ? "text-primary" : "")}>{fmt(a.esteMes)}</TableCell>
+                    <TableCell className="border-r text-right tabular-nums text-muted-foreground">{a.frecuenciaDias ? `c/${a.frecuenciaDias} días` : "—"}</TableCell>
+                    <TableCell className="border-r">
+                      {a.proximaCompra ? fecha(a.proximaCompra) : "—"}
+                      {a.atrasado && <Badge variant="destructive" className="ml-1.5 text-[9px]">Atrasado</Badge>}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">{fmt(a.esperadoMes)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
