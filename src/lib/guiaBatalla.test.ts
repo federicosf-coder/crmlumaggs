@@ -30,4 +30,20 @@ describe("guía de batalla — corte noviembre 2026", () => {
     expect(b.promedio).toBe(2);
     expect(g.perdidos.map((x) => x.empresa_id).sort()).toEqual(["B", "D"]);
   });
+
+  it("cliente que compra cada ~2 meses: fecha estimada y esperado del mes", () => {
+    const g2 = calcularGuia([f("E", "2026-05-01", 40), f("E", "2026-07-01", 40), f("E", "2026-08-31", 40)], "2026-11");
+    const e = g2.activos.find((x) => x.empresa_id === "E")!;
+    expect(e.frecuenciaDias).toBe(61);
+    expect(e.proximaCompra).toBe("2026-10-31");
+    expect(e.atrasado).toBe(true);
+    expect(e.esperadoMes).toBe(40);
+  });
+
+  it("si la próxima compra cae el mes siguiente, este mes no se espera venta", () => {
+    const g3 = calcularGuia([f("F", "2026-08-01", 30), f("F", "2026-10-20", 30)], "2026-11");
+    const x = g3.activos.find((y) => y.empresa_id === "F")!;
+    expect(x.proximaCompra).toBe("2027-01-08");
+    expect(x.esperadoMes).toBe(0);
+  });
 });
