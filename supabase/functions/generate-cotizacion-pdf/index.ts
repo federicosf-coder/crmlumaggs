@@ -390,25 +390,29 @@ serve(async (req) => {
     const pdfBytes = await pdfDoc.save();
     console.log("PDF rendered:", documento_id, pdfBytes.length);
 
-    // Upload to storage
+    // Upload to storage and link to the document. The user never waits more than
+    // STORAGE_WAIT_MS: if storage is slow, it finishes in background and the
+    // response reports "pendiente" so the client never shows a false success.
     const fileName = `cotizaciones/${documento_id}.pdf`;
-    const { error: uploadErr } = await sb.storage
-      .from("document-files")
-      .upload(fileName, pdfBytes, { contentType: "application/pdf", upsert: true });
+    const storeAndLink = async (): Promise<void> => {
+      let uploadErr: unknown = null;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const { error } = await sb.storage
+          .from("document-files")
+          .upload(fileName, pdfBytes, { contentType: "application/pdf", upsert: true });
+        uploadErr = error;
+        if (!error) break;
+        console.error(`PDF upload error (intento ${attempt}):`, error);
+      }
+      if (uploadErr) throw new Error("No se pudo guardar el archivo PDF");
+      console.log("PDF uploaded:", documento_id);
 
-    if (uploadErr) {
-      console.error("PDF upload error:", uploadErr);
-      throw new Error("No se pudo guardar el archivo PDF");
-    }
-    console.log("PDF uploaded:", documento_id);
-    const { data: urlData } = sb.storage.from("document-files").getPublicUrl(fileName);
-    const pdfPublicUrl = urlData?.publicUrl || "";
-    if (!pdfPublicUrl) throw new Error("No se pudo obtener el enlace del PDF");
+      const { data: urlData } = sb.storage.from("document-files").getPublicUrl(fileName);
+      const pdfPublicUrl = urlData?.publicUrl || "";
+      if (!pdfPublicUrl) throw new Error("No se pudo obtener el enlace del PDF");
 
-    const updateData: any = {};
-    if (pdfPublicUrl) updateData.pdf_url = pdfPublicUrl;
-    if (doc.estatus_cotizacion === "borrador") updateData.estatus_cotizacion = "impresa";
-    if (Object.keys(updateData).length > 0) {
+      const updateData: any = { pdf_url: pdfPublicUrl };
+      if (doc.estatus_cotizacion === "borrador") updateData.estatus_cotizacion = "impresa";
       // Preserve the requesting user's context for document update triggers.
       const { data: savedDoc, error: saveErr } = await userClient
         .from("documentos")
@@ -421,12 +425,29 @@ serve(async (req) => {
         throw new Error("El PDF se creó, pero no se pudo vincular al documento");
       }
       console.log("PDF linked:", documento_id);
+    };
+
+    const storePromise = storeAndLink();
+    let guardado: "ok" | "pendiente" | "error" = "ok";
+    try {
+      const r = await withTimeout(storePromise, STORAGE_WAIT_MS);
+      if (r === "timeout") {
+        guardado = "pendiente";
+        console.warn("PDF storage slow, continuing in background:", documento_id);
+        const bg = storePromise.catch((e) => console.error("PDF background store failed:", documento_id, e));
+        // @ts-ignore EdgeRuntime is provided by the edge runtime
+        if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(bg);
+      }
+    } catch (e) {
+      guardado = "error";
+      console.error("PDF store failed:", documento_id, e);
     }
 
     return new Response(pdfBytes, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/pdf",
+        "x-pdf-guardado": guardado,
         "Content-Disposition": `attachment; filename="Cotizacion_${doc.numero_cotizacion || doc.id}.pdf"`,
       },
     });
