@@ -29,3 +29,7 @@
 - [x] Reemplazar HTML idéntico y conectar lectura, guardado, destinatarios y envío; función desplegada y rechazo de sesión inválida verificado.
 - [x] Agregar selección múltiple de gerentes y verificar permisos y pruebas; 26 pruebas aprobadas y HTML de ambas marcas abre sin errores.
 - [ ] Verificar lectura, carga y envío con sesión real; recuperación de sesión propia falló, requiere iniciar sesión en la vista previa.
+
+## PDF de cotizaciones
+- [x] Recuperar el PDF de COT-16933 y confirmar que el fallo ocurre al sobrescribir su archivo almacenado.
+- [ ] Verificar generación con archivos versionados y apertura desde el documento real.
