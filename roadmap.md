@@ -1,4 +1,9 @@
 
+## Ventas CONTPAQ y Guía de Batalla
+- [ ] Guardar archivos originales y cargar clientes, agentes y ventas sin duplicados.
+- [ ] Agregar catálogos y carga de actualizaciones; vincular agentes mediante personas de RVS.
+- [ ] Conectar Guía de Batalla exclusivamente a CONTPAQ con unidades equivalentes y verificar permisos y cálculos.
+
 ## Plantillas WhatsApp
 - [x] Separar nombre técnico e idioma antes del envío individual, campañas y respuestas/alertas automáticas; 14 pruebas aprobadas, funciones desplegadas, sin enviar mensajes reales.
 
