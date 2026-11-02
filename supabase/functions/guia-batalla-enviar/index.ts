@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${lovableKey}`, "X-Connection-Api-Key": resendKey, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "LubriManager <cobranza@lumaggs.com.mx>", to: [to], cc,
+        from: "LubriManager <noreply@lumaggs.com.mx>", reply_to: "f.sarinanaf@lumaggs.com.mx", to: [to], cc,
         subject: `Guía de Batalla ${marca} — ${corte}`, html,
         attachments: [{ filename: `${nombre}.pdf`, content: b.pdf }, { filename: `${nombre}.xlsx`, content: b.xlsx }],
       }),
