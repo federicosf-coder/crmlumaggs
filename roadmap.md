@@ -1,8 +1,9 @@
 
 ## Ventas CONTPAQ y Guía de Batalla
-- [ ] Guardar archivos originales y cargar clientes, agentes y ventas sin duplicados.
-- [ ] Agregar catálogos y carga de actualizaciones; vincular agentes mediante personas de RVS.
-- [ ] Conectar Guía de Batalla exclusivamente a CONTPAQ con unidades equivalentes y verificar permisos y cálculos.
+- [x] Guardar originales privados idénticos y cargar 1,022 clientes, 79 agentes y 3,673 documentos; reimportación verificada sin duplicados.
+- [x] Agregar catálogos y carga de actualizaciones; 32 agentes heredan usuario mediante personas de RVS.
+- [x] Conectar Guía de Batalla exclusivamente a CONTPAQ con corte histórico fijo; verificar reporte de Aleida, PDF, originales y rechazo anónimo; ocho pruebas aprobadas.
+- [ ] Completar equivalencias de nueve códigos no identificados y usuarios de agentes pendientes; requiere selección de Federico en Catálogos. Los reportes afectados muestran advertencia y no inventan cantidades.
 
 ## Plantillas WhatsApp
 - [x] Separar nombre técnico e idioma antes del envío individual, campañas y respuestas/alertas automáticas; 14 pruebas aprobadas, funciones desplegadas, sin enviar mensajes reales.
