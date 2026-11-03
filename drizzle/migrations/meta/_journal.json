@@ -106,6 +106,20 @@
       "when": 1793657059356,
       "tag": "0014_contpaq_originales_privados",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793668876786,
+      "tag": "0015_guia_batalla_dedupe_crm",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793668907928,
+      "tag": "0016_guia_batalla_recalcular_corte_nov",
+      "breakpoints": true
     }
   ]
 }

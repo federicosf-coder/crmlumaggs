@@ -11912,6 +11912,7 @@ export type Database = {
         }
         Returns: Json
       }
+      contpaq_folio_clave: { Args: { _t: string }; Returns: string }
       contpaq_guardar_original: {
         Args: { _contenido: string; _hash: string; _nombre: string }
         Returns: undefined
