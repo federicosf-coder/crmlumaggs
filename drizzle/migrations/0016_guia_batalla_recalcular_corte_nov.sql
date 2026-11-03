@@ -1,0 +1,1 @@
+DELETE FROM public.contpaq_cortes WHERE mes >= DATE '2026-11-01';
