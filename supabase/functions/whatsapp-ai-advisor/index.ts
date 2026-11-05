@@ -78,24 +78,41 @@ type CatalogRow = {
   haystack: string;
 };
 
-let catalogCache: { at: number; rows: CatalogRow[] } | null = null;
+const catalogCache = new Map<string, { at: number; rows: CatalogRow[] }>();
 
-async function loadCatalog(admin: Admin): Promise<CatalogRow[]> {
-  if (catalogCache && Date.now() - catalogCache.at < 5 * 60_000) return catalogCache.rows;
-  const { data, error } = await admin
-    .from("productos")
-    .select(
-      "codigo,nombre_producto,descripcion,is_active," +
-        "presentaciones(nombre)," +
-        "marca:product_option_values!productos_marca_id_fkey(value)," +
-        "linea:product_option_values!productos_linea_id_fkey(value)," +
-        "viscosidad:product_option_values!productos_viscosidad_id_fkey(value)," +
-        "aplicacion:product_option_values!productos_aplicacion_id_fkey(value)," +
-        "uso:product_option_values!productos_uso_id_fkey(value)",
-    )
-    .eq("is_active", true);
+async function loadEmpresaMarcas(admin: Admin): Promise<Record<string, string>> {
+  const { data } = await admin.from("empresa_marcas").select("marca_id, empresa_vendedora");
+  const map: Record<string, string> = {};
+  for (const r of data ?? []) {
+    if ((r as any).marca_id) map[String((r as any).marca_id)] = String((r as any).empresa_vendedora);
+  }
+  return map;
+}
+
+async function loadCatalog(admin: Admin, cfg: WhatsAppAgentConfig): Promise<CatalogRow[]> {
+  const cached = catalogCache.get(cfg.catalogoEmpresa);
+  if (cached && Date.now() - cached.at < 5 * 60_000) return cached.rows;
+  const [marcasMap, { data, error }] = await Promise.all([
+    loadEmpresaMarcas(admin),
+    admin
+      .from("productos")
+      .select(
+        "codigo,nombre_producto,descripcion,is_active,marca_id," +
+          "presentaciones(nombre)," +
+          "marca:product_option_values!productos_marca_id_fkey(value)," +
+          "linea:product_option_values!productos_linea_id_fkey(value)," +
+          "viscosidad:product_option_values!productos_viscosidad_id_fkey(value)," +
+          "aplicacion:product_option_values!productos_aplicacion_id_fkey(value)," +
+          "uso:product_option_values!productos_uso_id_fkey(value)",
+      )
+      .eq("is_active", true),
+  ]);
   if (error) throw new Error(`Catálogo: ${error.message}`);
-  const rows: CatalogRow[] = (data ?? []).map((p: any) => {
+  // Solo los productos de la empresa del agente (Lumaggs nunca ofrece Galsa y viceversa).
+  const propios = (data ?? []).filter(
+    (p: any) => empresaDeMarca(p.marca_id ?? null, p.marca?.value ?? null, marcasMap) === cfg.catalogoEmpresa,
+  );
+  const rows: CatalogRow[] = propios.map((p: any) => {
     const row = {
       codigo: p.codigo ?? null,
       nombre_producto: p.nombre_producto ?? null,
