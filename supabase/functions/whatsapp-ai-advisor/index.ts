@@ -200,21 +200,28 @@ async function buscarCatalogo(
   return {
     coincidencia: scored.length > 0 ? "exacta" : partial.length > 0 ? "parcial" : "ninguna",
     aviso_inventario:
-      "El catálogo indica qué productos MANEJA Lumaggs. NO representa inventario ni existencia. Nunca confirmes disponibilidad, existencia ni tiempos de entrega.",
+      `El catálogo indica qué productos MANEJA ${cfg.nombreComercial}. NO representa inventario ni existencia. Nunca confirmes disponibilidad, existencia ni tiempos de entrega.`,
     resultados: [...grupos.values()],
   };
 }
 
 // ─────────────────── base de conocimiento (RAG técnico) ───────────────────
-async function buscarConocimiento(admin: Admin, args: { consulta?: string; fuente?: string }) {
+async function buscarConocimiento(admin: Admin, cfg: WhatsAppAgentConfig, args: { consulta?: string; fuente?: string }) {
   const consulta = String(args.consulta ?? "").trim();
   if (!consulta) return { fragmentos: [] };
+  // Agentes sin biblioteca propia (p. ej. Galsa) no deben usar documentos de otra empresa.
+  if (cfg.knowledgeSources && cfg.knowledgeSources.length === 0) {
+    return {
+      fragmentos: [],
+      nota: `No hay biblioteca técnica de ${cfg.nombreComercial}. Responde solo con el catálogo; para compatibilidad técnica o especificaciones no confirmadas, canaliza con el asesor.`,
+    };
+  }
   try {
     const vector = await embedOne(consulta);
     const { data, error } = await admin.rpc("match_bot_knowledge", {
       query_embedding: JSON.stringify(vector),
       match_count: 6,
-      filter_source: args.fuente ?? null,
+      filter_source: cfg.knowledgeSources?.length === 1 ? cfg.knowledgeSources[0] : (args.fuente ?? null),
     });
     if (error) return { fragmentos: [], error: error.message };
     return {
