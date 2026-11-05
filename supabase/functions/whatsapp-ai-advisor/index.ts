@@ -883,21 +883,21 @@ Deno.serve(async (req) => {
         try { args = JSON.parse(call?.function?.arguments ?? "{}"); } catch { /* ignore */ }
         let result: unknown = { error: "Herramienta desconocida" };
         try {
-          if (name === "buscar_catalogo") result = await buscarCatalogo(admin, args as any);
-          else if (name === "buscar_conocimiento") result = await buscarConocimiento(admin, args as any);
+          if (name === "buscar_catalogo") result = await buscarCatalogo(admin, cfg, args as any);
+          else if (name === "buscar_conocimiento") result = await buscarConocimiento(admin, cfg, args as any);
           else if (name === "buscar_internet") result = await buscarInternet(args as any);
           else if (name === "actualizar_ficha_lead") result = await actualizarFicha(admin, profile, args);
           else if (name === "transferir_a_asesor") {
-            const cob = evaluarCobertura(String(args.municipio ?? profile.municipio ?? ""), String(args.estado ?? ""));
+            const cob = evaluarCobertura(String(args.municipio ?? profile.municipio ?? ""), String(args.estado ?? ""), cfg.cobertura);
             if (cob === "fuera") {
-              result = await marcarFueraCobertura(admin, profile, `${args.municipio ?? ""} ${args.estado ?? ""}`.trim());
+              result = await marcarFueraCobertura(admin, profile, `${args.municipio ?? ""} ${args.estado ?? ""}`.trim(), cfg);
             } else if (cob === "desconocida") {
               result = { ok: false, error: "Ubicación no confirmada. Pregunta al cliente en qué ciudad y estado está su negocio antes de transferir. No digas que un asesor lo contactará." };
             } else {
-              result = await transferirAsesor(admin, profile, args, { waPhone, contactId });
+              result = await transferirAsesor(admin, profile, args, { waPhone, contactId }, cfg);
             }
           }
-          else if (name === "marcar_fuera_de_cobertura") result = await marcarFueraCobertura(admin, profile, String(args.ubicacion ?? ""));
+          else if (name === "marcar_fuera_de_cobertura") result = await marcarFueraCobertura(admin, profile, String(args.ubicacion ?? ""), cfg);
         } catch (e) {
           result = { error: e instanceof Error ? e.message : "error de herramienta" };
         }
