@@ -10,12 +10,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Lock, Unlock, Upload, Download, RefreshCw, Save, X, ChevronDown, History, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Search, Lock, Unlock, Upload, Download, RefreshCw, Save, X, ChevronDown, History, EyeOff, Eye, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { descargarPlantillaCostos, leerArchivoCostos, puedeEditarCostos, validarCosto, type CambioCosto, type ProductoCosto } from "@/lib/contabilidadCostos";
 import type { Json } from "@/integrations/supabase/types";
 
-type Producto = ProductoCosto & { empresas: string[] };
+type Producto = ProductoCosto & { empresas: string[]; activo?: boolean; ignorado?: boolean };
 type Historial = { id: string; codigo: string; nombre_producto: string; marca_id: string | null; costo_anterior: number | null; costo_nuevo: number | null; precios_anteriores: Json; precios_nuevos: Json; fuente: string; realizado_at: string; realizado_por: string | null };
 type SortKey = "codigo" | "nombre" | "clasificacion" | "costo" | "fecha";
 const money = (n: number | null) => n == null ? "—" : n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
@@ -53,6 +53,16 @@ export default function ListaCostos() {
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "codigo", dir: "asc" });
   const [widths, setWidths] = useState<Record<SortKey, number>>({ codigo: 130, nombre: 320, clasificacion: 170, costo: 200, fecha: 210 });
   const [desde, setDesde] = useState("");
+  const [estado, setEstado] = useState<"activos" | "inactivos" | "todos">("activos");
+  const [verIgnorados, setVerIgnorados] = useState(false);
+  const toggleIgnorar = async (p: Producto) => {
+    const { error } = p.ignorado
+      ? await supabase.from("contabilidad_costos_ignorados").delete().eq("producto_id", p.id)
+      : await supabase.from("contabilidad_costos_ignorados").insert({ producto_id: p.id });
+    if (error) { toast.error(error.message); return; }
+    toast.success(p.ignorado ? `${p.codigo} vuelve a la lista` : `${p.codigo} ignorado`);
+    await qc.invalidateQueries({ queryKey: ["contabilidad-costos"] });
+  };
   const [hasta, setHasta] = useState("");
   const autores = useQuery({ queryKey: ["contabilidad-ultimo-autor"], enabled: canView, queryFn: async () => {
     const [{ data: hist, error }, { data: profs, error: e2 }] = await Promise.all([
@@ -80,7 +90,7 @@ export default function ListaCostos() {
   const productos = productosQuery.data ?? [];
   const empresaProductos = productos.filter(p => p.empresas.includes(empresa));
   const options = [...new Map(empresaProductos.map(p => [p.marca_id ?? "sin-marca", p.marca])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
-  const selected = empresaProductos.filter(p => (!marcas.length || marcas.includes(p.marca_id ?? "sin-marca")) && normalize(`${p.codigo} ${p.nombre_producto} ${p.clasificacion}`).includes(normalize(search)));
+  const selected = empresaProductos.filter(p => (estado === "todos" || (estado === "activos") === (p.activo !== false)) && !!p.ignorado === verIgnorados && (!marcas.length || marcas.includes(p.marca_id ?? "sin-marca")) && normalize(`${p.codigo} ${p.nombre_producto} ${p.clasificacion}`).includes(normalize(search)));
   const filtered = selected.filter(p => { const d = (p.fecha_registro ?? "").slice(0, 10); return (!desde || d >= desde) && (!hasta || d <= hasta); });
   const val = (p: Producto, k: SortKey): string | number => k === "codigo" ? p.codigo : k === "nombre" ? p.nombre_producto : k === "clasificacion" ? (p.clasificacion ?? "") : k === "costo" ? (p.costo_actual ?? -1) : (p.fecha_registro ?? "");
   const rows = [...filtered].sort((a, b) => { const x = val(a, sort.key), y = val(b, sort.key); const c = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "es", { numeric: true }); return sort.dir === "asc" ? c : -c; });
@@ -131,6 +141,7 @@ export default function ListaCostos() {
     <Tabs value={tab} onValueChange={setTab}>
       <div className="flex flex-wrap justify-between gap-3 items-center"><TabsList><TabsTrigger value="costos">Costos ({selected.length})</TabsTrigger><TabsTrigger value="historial"><History className="mr-2 h-4 w-4" />Historial</TabsTrigger></TabsList></div>
       <TabsContent value="costos" className="space-y-3">
+        <div className="flex flex-wrap gap-2 items-center">{([["activos", "Activos"], ["inactivos", "Desactivados"], ["todos", "Todos"]] as const).map(([k, l]) => <Button key={k} size="sm" variant={estado === k ? "default" : "outline"} className="rounded-full" aria-pressed={estado === k} onClick={() => setEstado(k)}>{l}</Button>)}<Button size="sm" variant={verIgnorados ? "default" : "outline"} className="rounded-full" aria-pressed={verIgnorados} onClick={() => setVerIgnorados(v => !v)}><EyeOff className="mr-1 h-4 w-4" />{verIgnorados ? "Viendo ignorados" : "Ver ignorados"} ({empresaProductos.filter(p => p.ignorado).length})</Button></div>
         <div className="flex flex-wrap gap-2 items-center text-sm"><span className="text-muted-foreground">Fecha de registro/modificación:</span><Input type="date" aria-label="Desde" className="w-40 h-9" value={desde} onChange={e => setDesde(e.target.value)} /><span>a</span><Input type="date" aria-label="Hasta" className="w-40 h-9" value={hasta} onChange={e => setHasta(e.target.value)} />{(desde || hasta) && <Button size="sm" variant="ghost" onClick={() => { setDesde(""); setHasta(""); }}>Limpiar fechas</Button>}<span className="text-muted-foreground">{rows.length} de {selected.length}</span></div>
         <div className="flex flex-wrap gap-2">
           <Button variant={editing ? "secondary" : "outline"} disabled={saving} onClick={() => setEditing(v => !v)}>{editing ? <Unlock className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-4 w-4" />}{editing ? "Bloquear edición en línea" : "Permitir edición en línea"}</Button>
@@ -139,7 +150,7 @@ export default function ListaCostos() {
           <Button disabled={saving || !selected.length} onClick={() => setPending({ cambios: selected.map(p => ({ id: p.id, codigo: p.codigo, nombre: p.nombre_producto, costo: p.costo_actual, costo_anterior: p.costo_actual })), recalcular: true })}><RefreshCw className="mr-2 h-4 w-4" />Actualizar precios</Button>
           <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => void upload(e.target.files?.[0])} />
         </div>
-        {productosQuery.isError ? <p className="text-destructive">{productosQuery.error.message}</p> : <div className="[&>div]:max-h-[calc(100vh-21rem)] [&>div]:min-h-56"><Table className="table-fixed" style={{ width: Object.values(widths).reduce((a, b) => a + b, 0) }}><TableHeader className="sticky top-0 z-20 bg-background"><TableRow>{head("codigo", "Código", "sticky left-0 z-30 bg-background")}{head("nombre", "Nombre")}{head("clasificacion", "Clasificación precio")}{head("costo", "Costo del producto")}{head("fecha", "Fecha del registro")}</TableRow></TableHeader><TableBody>{rows.map(p => <TableRow key={p.id}><TableCell className="sticky left-0 bg-background font-mono text-xs">{p.codigo}</TableCell><TableCell className="truncate"><div className="truncate">{p.nombre_producto}</div><div className="text-xs text-muted-foreground">{p.marca}</div></TableCell><TableCell>{p.clasificacion}</TableCell><TableCell><CeldaCosto producto={p} enabled={puedeEditarCostos(roles, editing)} saving={saving} onSave={(producto, costo) => apply([{ id: producto.id, codigo: producto.codigo, nombre: producto.nombre_producto, costo, costo_anterior: producto.costo_actual }])} /></TableCell><TableCell className="whitespace-nowrap text-xs"><div>{p.fecha_registro ? fecha(p.fecha_registro) : "—"}</div><div className="text-muted-foreground truncate">{autores.data?.get(p.id) ?? (autores.isLoading ? "…" : "Sin cambios registrados")}</div></TableCell></TableRow>)}{!rows.length && <TableRow><TableCell colSpan={5} className="text-center py-12">{productosQuery.isLoading ? "Cargando costos…" : "Sin registros"}</TableCell></TableRow>}</TableBody></Table></div>}
+        {productosQuery.isError ? <p className="text-destructive">{productosQuery.error.message}</p> : <div className="[&>div]:max-h-[calc(100vh-21rem)] [&>div]:min-h-56"><Table className="table-fixed" style={{ width: Object.values(widths).reduce((a, b) => a + b, 0) }}><TableHeader className="sticky top-0 z-20 bg-background"><TableRow>{head("codigo", "Código", "sticky left-0 z-30 bg-background")}{head("nombre", "Nombre")}{head("clasificacion", "Clasificación precio")}{head("costo", "Costo del producto")}{head("fecha", "Fecha del registro")}<TableHead className="w-28">Ignorar</TableHead></TableRow></TableHeader><TableBody>{rows.map(p => <TableRow key={p.id}><TableCell className="sticky left-0 bg-background font-mono text-xs">{p.codigo}</TableCell><TableCell className="truncate"><div className="truncate">{p.nombre_producto}</div><div className="text-xs text-muted-foreground">{p.marca}</div></TableCell><TableCell>{p.clasificacion}</TableCell><TableCell><CeldaCosto producto={p} enabled={puedeEditarCostos(roles, editing)} saving={saving} onSave={(producto, costo) => apply([{ id: producto.id, codigo: producto.codigo, nombre: producto.nombre_producto, costo, costo_anterior: producto.costo_actual }])} /></TableCell><TableCell className="whitespace-nowrap text-xs"><div>{p.fecha_registro ? fecha(p.fecha_registro) : "—"}</div><div className="text-muted-foreground truncate">{autores.data?.get(p.id) ?? (autores.isLoading ? "…" : "Sin cambios registrados")}</div></TableCell><TableCell><Button size="sm" variant="ghost" disabled={saving} onClick={() => void toggleIgnorar(p)}>{p.ignorado ? <><Eye className="mr-1 h-4 w-4" />Restaurar</> : <><EyeOff className="mr-1 h-4 w-4" />Ignorar</>}</Button>{p.activo === false && <div className="text-xs text-muted-foreground">Desactivado</div>}</TableCell></TableRow>)}{!rows.length && <TableRow><TableCell colSpan={6} className="text-center py-12">{productosQuery.isLoading ? "Cargando costos…" : "Sin registros"}</TableCell></TableRow>}</TableBody></Table></div>}
       </TabsContent>
       <TabsContent value="historial" className="space-y-3">
         {historyQuery.isError && <p className="text-destructive">{historyQuery.error.message}</p>}
