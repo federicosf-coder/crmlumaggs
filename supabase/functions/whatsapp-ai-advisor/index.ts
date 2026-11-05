@@ -1,4 +1,8 @@
-// Asesor B2B de lubricantes Chevron para WhatsApp (Lumaggs, Baja California).
+// Asesor B2B de lubricantes para WhatsApp, con configuración por número:
+//   Mexicali (1128863556971458) -> Lumaggs / Chevron (agente original).
+//   Galsa    (318296624690022)  -> Proveedora Galsa / Phillips 66.
+// La identidad, cobertura, catálogo y fuentes de cada número viven en
+// _shared/whatsapp-agents.ts; sin configuración se usa la de Lumaggs.
 //
 // Responsabilidades separadas:
 //   catálogo comercial (CRM) -> qué productos vendemos (única fuente para ofrecer)
@@ -7,6 +11,12 @@
 //   IA                       -> interpreta, razona y explica; nunca inventa datos
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { embedOne } from "../_shared/ai-embeddings.ts";
+import {
+  empresaDeMarca,
+  evaluarCobertura,
+  resolveAgentConfig,
+  type WhatsAppAgentConfig,
+} from "../_shared/whatsapp-agents.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,24 +78,41 @@ type CatalogRow = {
   haystack: string;
 };
 
-let catalogCache: { at: number; rows: CatalogRow[] } | null = null;
+const catalogCache = new Map<string, { at: number; rows: CatalogRow[] }>();
 
-async function loadCatalog(admin: Admin): Promise<CatalogRow[]> {
-  if (catalogCache && Date.now() - catalogCache.at < 5 * 60_000) return catalogCache.rows;
-  const { data, error } = await admin
-    .from("productos")
-    .select(
-      "codigo,nombre_producto,descripcion,is_active," +
-        "presentaciones(nombre)," +
-        "marca:product_option_values!productos_marca_id_fkey(value)," +
-        "linea:product_option_values!productos_linea_id_fkey(value)," +
-        "viscosidad:product_option_values!productos_viscosidad_id_fkey(value)," +
-        "aplicacion:product_option_values!productos_aplicacion_id_fkey(value)," +
-        "uso:product_option_values!productos_uso_id_fkey(value)",
-    )
-    .eq("is_active", true);
+async function loadEmpresaMarcas(admin: Admin): Promise<Record<string, string>> {
+  const { data } = await admin.from("empresa_marcas").select("marca_id, empresa_vendedora");
+  const map: Record<string, string> = {};
+  for (const r of data ?? []) {
+    if ((r as any).marca_id) map[String((r as any).marca_id)] = String((r as any).empresa_vendedora);
+  }
+  return map;
+}
+
+async function loadCatalog(admin: Admin, cfg: WhatsAppAgentConfig): Promise<CatalogRow[]> {
+  const cached = catalogCache.get(cfg.catalogoEmpresa);
+  if (cached && Date.now() - cached.at < 5 * 60_000) return cached.rows;
+  const [marcasMap, { data, error }] = await Promise.all([
+    loadEmpresaMarcas(admin),
+    admin
+      .from("productos")
+      .select(
+        "codigo,nombre_producto,descripcion,is_active,marca_id," +
+          "presentaciones(nombre)," +
+          "marca:product_option_values!productos_marca_id_fkey(value)," +
+          "linea:product_option_values!productos_linea_id_fkey(value)," +
+          "viscosidad:product_option_values!productos_viscosidad_id_fkey(value)," +
+          "aplicacion:product_option_values!productos_aplicacion_id_fkey(value)," +
+          "uso:product_option_values!productos_uso_id_fkey(value)",
+      )
+      .eq("is_active", true),
+  ]);
   if (error) throw new Error(`Catálogo: ${error.message}`);
-  const rows: CatalogRow[] = (data ?? []).map((p: any) => {
+  // Solo los productos de la empresa del agente (Lumaggs nunca ofrece Galsa y viceversa).
+  const propios = (data ?? []).filter(
+    (p: any) => empresaDeMarca(p.marca_id ?? null, p.marca?.value ?? null, marcasMap) === cfg.catalogoEmpresa,
+  );
+  const rows: CatalogRow[] = propios.map((p: any) => {
     const row = {
       codigo: p.codigo ?? null,
       nombre_producto: p.nombre_producto ?? null,
@@ -105,15 +132,16 @@ async function loadCatalog(admin: Admin): Promise<CatalogRow[]> {
     ).replace(/[-.]/g, "");
     return row;
   });
-  catalogCache = { at: Date.now(), rows };
+  catalogCache.set(cfg.catalogoEmpresa, { at: Date.now(), rows });
   return rows;
 }
 
 async function buscarCatalogo(
   admin: Admin,
+  cfg: WhatsAppAgentConfig,
   args: { texto?: string; viscosidad?: string; aplicacion?: string; linea?: string; limite?: number },
 ) {
-  const rows = await loadCatalog(admin);
+  const rows = await loadCatalog(admin, cfg);
   const limit = Math.min(Number(args.limite ?? 8), 15);
   const terms = [args.texto, args.viscosidad, args.aplicacion, args.linea].filter(Boolean).join(" ");
   const tokens = tokenize(terms);
@@ -172,21 +200,28 @@ async function buscarCatalogo(
   return {
     coincidencia: scored.length > 0 ? "exacta" : partial.length > 0 ? "parcial" : "ninguna",
     aviso_inventario:
-      "El catálogo indica qué productos MANEJA Lumaggs. NO representa inventario ni existencia. Nunca confirmes disponibilidad, existencia ni tiempos de entrega.",
+      `El catálogo indica qué productos MANEJA ${cfg.nombreComercial}. NO representa inventario ni existencia. Nunca confirmes disponibilidad, existencia ni tiempos de entrega.`,
     resultados: [...grupos.values()],
   };
 }
 
 // ─────────────────── base de conocimiento (RAG técnico) ───────────────────
-async function buscarConocimiento(admin: Admin, args: { consulta?: string; fuente?: string }) {
+async function buscarConocimiento(admin: Admin, cfg: WhatsAppAgentConfig, args: { consulta?: string; fuente?: string }) {
   const consulta = String(args.consulta ?? "").trim();
   if (!consulta) return { fragmentos: [] };
+  // Agentes sin biblioteca propia (p. ej. Galsa) no deben usar documentos de otra empresa.
+  if (cfg.knowledgeSources && cfg.knowledgeSources.length === 0) {
+    return {
+      fragmentos: [],
+      nota: `No hay biblioteca técnica de ${cfg.nombreComercial}. Responde solo con el catálogo; para compatibilidad técnica o especificaciones no confirmadas, canaliza con el asesor.`,
+    };
+  }
   try {
     const vector = await embedOne(consulta);
     const { data, error } = await admin.rpc("match_bot_knowledge", {
       query_embedding: JSON.stringify(vector),
       match_count: 6,
-      filter_source: args.fuente ?? null,
+      filter_source: cfg.knowledgeSources?.length === 1 ? cfg.knowledgeSources[0] : (args.fuente ?? null),
     });
     if (error) return { fragmentos: [], error: error.message };
     return {
@@ -327,31 +362,10 @@ async function actualizarFicha(admin: Admin, profile: any, args: Record<string, 
 }
 
 // ───────────────────── cobertura geográfica ─────────────────────
-// Solo Baja California y San Luis Río Colorado, Sonora.
-const MUNICIPIOS_BC = [
-  "tijuana", "mexicali", "ensenada", "tecate", "rosarito", "playas de rosarito",
-  "san quintin", "san felipe", "valle de guadalupe", "maneadero", "vicente guerrero",
-  "guadalupe victoria", "ciudad morelos", "los algodones", "algodones", "el sauzal",
-  "la rumorosa", "valle de la trinidad", "camalu", "el rosario",
-];
-function evaluarCobertura(municipio: string, estado: string): "dentro" | "fuera" | "desconocida" {
-  const m = norm(municipio);
-  const e = norm(estado);
-  const txt = `${m} ${e}`.trim();
-  if (!txt) return "desconocida";
-  if (/san luis rio colorado|\bslrc\b/.test(txt)) return "dentro";
-  if (/baja california sur|\bbcs\b|la paz|los cabos|cabo san lucas|comondu|loreto|mulege/.test(txt)) return "fuera";
-  if (/baja california|\bb\.?\s?c\.?\b/.test(e) || /baja california/.test(m)) return "dentro";
-  if (MUNICIPIOS_BC.some((x) => m === x || m.includes(x))) {
-    // Si el estado declarado contradice (otro estado/país), queda fuera
-    if (e && !/baja california|\bbc\b/.test(e)) return "fuera";
-    return "dentro";
-  }
-  if (e || m) return "fuera";
-  return "desconocida";
-}
+// La lógica de cobertura vive en _shared/whatsapp-agents.ts (por número):
+// Lumaggs = Baja California + San Luis Río Colorado; Galsa = BC + todo Sonora.
 
-async function marcarFueraCobertura(admin: Admin, profile: any, ubicacion: string) {
+async function marcarFueraCobertura(admin: Admin, profile: any, ubicacion: string, cfg: WhatsAppAgentConfig) {
   await admin
     .from("bot_lead_profiles")
     .update({
@@ -363,13 +377,13 @@ async function marcarFueraCobertura(admin: Admin, profile: any, ubicacion: strin
   return {
     ok: true,
     fuera_de_cobertura: true,
-    instruccion: "Responde breve que la atención comercial está limitada a Baja California y San Luis Río Colorado. No prometas contacto ni seguimiento.",
+    instruccion: `Responde breve y amable con este sentido: "${cfg.fueraCoberturaTexto}". No prometas contacto ni seguimiento.`,
   };
 }
 
 async function transferirAsesor(admin: Admin, profile: any, args: Record<string, unknown>, ctx: {
   waPhone: string; contactId: string | null;
-}) {
+}, cfg: WhatsAppAgentConfig) {
   await actualizarFicha(admin, profile, { ...args, conversation_stage: "transferred" });
 
   const resumen = String(profile.resumen ?? args?.resumen ?? "").slice(0, 4000);
@@ -456,7 +470,8 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
         interes: profile.intent ?? "asesoria_lubricantes",
         contact_id: ctx.contactId,
         payload: {
-          origen: "whatsapp_asesor_ia",
+          origen: cfg.leadOrigen,
+          empresa: cfg.leadEmpresa,
           conversation_id: profile.conversation_id,
           ficha: {
             tipo_cliente: profile.tipo_cliente,
@@ -486,14 +501,18 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
 }
 
 // ─────────────────────────── prompt ───────────────────────────
-function systemPrompt(profile: any, contexto: string): string {
-  return `Eres asesor comercial y técnico de LUMAGGS, distribuidor autorizado Chevron para clientes empresariales (B2B) de Baja California. Atiendes por WhatsApp en español mexicano, con tono profesional, cercano y breve.
+function systemPrompt(profile: any, contexto: string, cfg: WhatsAppAgentConfig): string {
+  return `${cfg.identidad} Atiendes por WhatsApp en español mexicano, con tono profesional, cercano y breve.
 
 PRECISIÓN ANTES QUE NATURALIDAD. Nunca inventes. Si no tienes certeza, dilo y pide solo el dato faltante o transfiere al asesor.
 
 SEPARACIÓN DE FUENTES (obligatoria):
 - buscar_catalogo: ÚNICA fuente para saber qué vendemos. Todo producto se busca aquí PRIMERO.
-- buscar_conocimiento: biblioteca técnica de Lumaggs (digest Chevron, guías de venta, comparativos, fichas). CONSÚLTALA SIEMPRE antes de responder sobre compatibilidad con maquinaria/equipo, aplicaciones, especificaciones o usos. No define qué vendemos.
+${
+    cfg.tieneBiblioteca
+      ? `- buscar_conocimiento: biblioteca técnica de ${cfg.nombreComercial} (digest, guías de venta, comparativos, fichas). CONSÚLTALA SIEMPRE antes de responder sobre compatibilidad con maquinaria/equipo, aplicaciones, especificaciones o usos. No define qué vendemos.`
+      : `- buscar_conocimiento: ${cfg.nombreComercial} NO cuenta con biblioteca técnica propia. Para compatibilidad con maquinaria/equipo, aplicaciones o especificaciones que el catálogo no indique expresamente, NO afirmes nada: indica que un asesor lo confirmará.`
+  }
 - buscar_internet: solo investigación de aplicaciones (qué requiere un motor/equipo). Nunca sustituye al catálogo.
 - Tú razonas y explicas; no generas datos técnicos que no vengan de esas fuentes.
 
@@ -506,7 +525,11 @@ REGLAS DURAS:
 5. Si el cliente ya nombró el producto, no preguntes por el vehículo.
 6. Si una consulta técnica no se puede resolver con certeza, pide ÚNICAMENTE el dato faltante (motor, año, servicio, tipo de equipo) o transfiere. Jamás completes con suposiciones.
 7. Mensajes cortos (2-6 líneas), sin listas largas ni tecnicismos innecesarios.
-8. Compatibilidad técnica: antes de afirmar que un producto sirve para cierta maquinaria/equipo, busca en la biblioteca (buscar_conocimiento). Nunca supongas compatibilidad por categoría. Si la biblioteca no lo cubre, dilo y canaliza con el asesor.
+${
+    cfg.tieneBiblioteca
+      ? "8. Compatibilidad técnica: antes de afirmar que un producto sirve para cierta maquinaria/equipo, busca en la biblioteca (buscar_conocimiento). Nunca supongas compatibilidad por categoría. Si la biblioteca no lo cubre, dilo y canaliza con el asesor."
+      : "8. Compatibilidad técnica: solo afirma que un producto sirve para cierta maquinaria/equipo si el catálogo lo indica expresamente. Si no consta, dilo y canaliza con el asesor."
+  }
 9. UNA SOLA PREGUNTA PENDIENTE por mensaje. Si solo falta el municipio, pregunta únicamente el municipio.
 10. Nunca envíes dos mensajes seguidos pidiendo esencialmente lo mismo. Si tu mensaje anterior ya hizo esa pregunta, espera la respuesta.
 11. No cambies el producto solicitado por otra variante específica sin confirmación. Si "Delo 400 15W-40" tiene varias variantes en catálogo (XLE, SB...), confirma cuál; si la coincidencia es inequívoca, usa el nombre comercial del catálogo.
@@ -531,15 +554,14 @@ ETAPAS (conversation_stage): information, consultation, product_identified, quot
 - NO se requiere un producto identificado para transferir: un cliente puede necesitar asesoría sin saber qué producto quiere.
 
 FICHA PROGRESIVA: en CADA turno donde aparezca información nueva llama a actualizar_ficha_lead con solo los campos nuevos (nombre, empresa, tipo de cliente, municipio, intención, productos, vehículos, contexto de negocio, recomendaciones, resumen, notas y la etapa). No esperes al final.
-
-TRANSFERENCIA: cuando haya intención comercial suficiente y ya tengas el municipio Y el estado, y estén DENTRO DE COBERTURA, llama a transferir_a_asesor y despídete diciendo que un asesor de Lumaggs continuará la conversación. No prometas tiempos. ANTES de transferir asegúrate de que la ficha tenga TODO lo conocido (empresa, contacto, producto con presentación y cantidad actualizadas, municipio, intención); el resumen debe permitir al asesor cotizar sin volver a preguntar nada.
+${cfg.calificacionExtra ? `\nCALIFICACIÓN ADICIONAL:\n${cfg.calificacionExtra}\n` : ""}
+TRANSFERENCIA: cuando haya intención comercial suficiente y ya tengas el municipio Y el estado, y estén DENTRO DE COBERTURA, llama a transferir_a_asesor y despídete diciendo que un asesor de ${cfg.empresaTransferencia} continuará la conversación. No prometas tiempos. ANTES de transferir asegúrate de que la ficha tenga TODO lo conocido (empresa, contacto, producto con presentación y cantidad actualizadas, municipio, intención); el resumen debe permitir al asesor cotizar sin volver a preguntar nada.
 
 REGLA CRÍTICA — COBERTURA GEOGRÁFICA (prioridad sobre cualquier otra regla comercial):
-- SOLO se atienden negocios/operaciones ubicados en BAJA CALIFORNIA (Tijuana, Mexicali, Ensenada, Tecate, Playas de Rosarito, San Quintín, San Felipe y sus localidades) y en SAN LUIS RÍO COLORADO, SONORA.
-- FUERA DE COBERTURA: resto de Sonora, Baja California Sur, Sinaloa, Chihuahua, Jalisco, CDMX, cualquier otro estado, Estados Unidos u otro país.
+- ${cfg.coberturaDescripcion}
 - La ubicación se determina SOLO por lo que el cliente dice sobre dónde está su negocio u operación. Nunca la supongas por la lada o el número de teléfono.
 - Si aún no la conoces y vas a pasar a intención comercial, pregunta: "¿En qué ciudad y estado se encuentra tu negocio?" antes de registrar o transferir.
-- Si está FUERA DE COBERTURA: llama a marcar_fuera_de_cobertura y responde breve y amable, por ejemplo: "Gracias por contactarnos. Actualmente nuestra atención comercial está limitada a Baja California y San Luis Río Colorado, por lo que por el momento no podemos atender operaciones fuera de esta zona." NO transfieras, NO pidas más datos, NO ofrezcas contacto posterior y PROHIBIDO decir o insinuar "un asesor te contactará", "te canalizaremos", "registraremos tus datos" o similares.
+- Si está FUERA DE COBERTURA: llama a marcar_fuera_de_cobertura y responde breve y amable, por ejemplo: "${cfg.fueraCoberturaTexto}" NO transfieras, NO pidas más datos, NO ofrezcas contacto posterior y PROHIBIDO decir o insinuar "un asesor te contactará", "te canalizaremos", "registraremos tus datos" o similares.
 
 FICHA ACTUAL:
 ${JSON.stringify({
@@ -560,12 +582,16 @@ DATOS QUE YA CONOCES DEL CRM (no los vuelvas a preguntar):
 ${contexto || "Sin registro previo en el CRM."}`;
 }
 
-const TOOLS = [
+function buildTools(cfg: WhatsAppAgentConfig) {
+  const coberturaCorta = cfg.cobertura === "bc_sonora"
+    ? "Baja California o Sonora"
+    : "Baja California o San Luis Río Colorado, Sonora";
+  return [
   {
     type: "function",
     function: {
       name: "buscar_catalogo",
-      description: "Búsqueda estructurada en el catálogo comercial de Lumaggs. Única fuente válida para saber qué productos se venden.",
+      description: `Búsqueda estructurada en el catálogo comercial de ${cfg.nombreComercial}. Única fuente válida para saber qué productos se venden.`,
       parameters: {
         type: "object",
         properties: {
@@ -583,7 +609,9 @@ const TOOLS = [
     type: "function",
     function: {
       name: "buscar_conocimiento",
-      description: "Biblioteca técnica de Lumaggs (digest Chevron, guías de venta, comparativos, fichas técnicas y hojas de seguridad). Úsala SIEMPRE antes de responder sobre compatibilidad con maquinaria/equipo, aplicaciones, especificaciones o usos.",
+      description: cfg.tieneBiblioteca
+        ? `Biblioteca técnica de ${cfg.nombreComercial} (digest, guías de venta, comparativos, fichas técnicas y hojas de seguridad). Úsala SIEMPRE antes de responder sobre compatibilidad con maquinaria/equipo, aplicaciones, especificaciones o usos.`
+        : `Biblioteca técnica. ${cfg.nombreComercial} no cuenta con biblioteca propia: si el catálogo no responde la duda técnica, canaliza con el asesor.`,
       parameters: {
         type: "object",
         properties: { consulta: { type: "string" }, fuente: { type: "string" } },
@@ -646,7 +674,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "transferir_a_asesor",
-      description: "Marca la conversación lista para el asesor humano y registra el prospecto. Requiere intención comercial, municipio y estado DENTRO de cobertura (Baja California o San Luis Río Colorado, Sonora). Si es cotización, procura tener producto, presentación y cantidad antes de llamarla.",
+      description: `Marca la conversación lista para el asesor humano y registra el prospecto. Requiere intención comercial, municipio y estado DENTRO de cobertura (${coberturaCorta}). Si es cotización, procura tener producto, presentación y cantidad antes de llamarla.`,
       parameters: {
         type: "object",
         properties: {
@@ -663,7 +691,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "marcar_fuera_de_cobertura",
-      description: "Úsala cuando el cliente indique que su negocio está fuera de Baja California y de San Luis Río Colorado, Sonora. Cierra el flujo comercial sin crear prospecto.",
+      description: `Úsala cuando el cliente indique que su negocio está fuera de ${coberturaCorta}. Cierra el flujo comercial sin crear prospecto.`,
       parameters: {
         type: "object",
         properties: { ubicacion: { type: "string", description: "Ciudad/estado/país que indicó el cliente." } },
@@ -671,7 +699,8 @@ const TOOLS = [
       },
     },
   },
-];
+  ];
+}
 
 // ─────────────────────────── envío WhatsApp ───────────────────────────
 async function sendAndLog(admin: Admin, p: {
@@ -727,6 +756,9 @@ Deno.serve(async (req) => {
     const whatsappAccountId: string | null = body?.whatsapp_account_id ?? null;
     const dryRun = Boolean(body?.dry_run);
     if (!waPhone) return json({ error: "Falta wa_phone" }, 400);
+
+    // Configuración del agente según el número de WhatsApp que recibió el mensaje.
+    const cfg = resolveAgentConfig(businessPhoneId);
 
     // ── ficha (crear si no existe) ──
     let profile: any = null;
@@ -805,7 +837,7 @@ Deno.serve(async (req) => {
     }
 
     const messages: any[] = [
-      { role: "system", content: systemPrompt(profile, contexto) },
+      { role: "system", content: systemPrompt(profile, contexto, cfg) },
       ...ordered
         .filter((m: any) => (m.message_body ?? "").trim())
         .map((m: any) => ({
@@ -829,7 +861,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${apiKey}`,
           "Lovable-API-Key": apiKey,
         },
-        body: JSON.stringify({ model: MODEL, messages, tools: TOOLS, temperature: 0.3 }),
+        body: JSON.stringify({ model: MODEL, messages, tools: buildTools(cfg), temperature: 0.3 }),
       });
       if (!res.ok) {
         const t = await res.text();
@@ -851,21 +883,21 @@ Deno.serve(async (req) => {
         try { args = JSON.parse(call?.function?.arguments ?? "{}"); } catch { /* ignore */ }
         let result: unknown = { error: "Herramienta desconocida" };
         try {
-          if (name === "buscar_catalogo") result = await buscarCatalogo(admin, args as any);
-          else if (name === "buscar_conocimiento") result = await buscarConocimiento(admin, args as any);
+          if (name === "buscar_catalogo") result = await buscarCatalogo(admin, cfg, args as any);
+          else if (name === "buscar_conocimiento") result = await buscarConocimiento(admin, cfg, args as any);
           else if (name === "buscar_internet") result = await buscarInternet(args as any);
           else if (name === "actualizar_ficha_lead") result = await actualizarFicha(admin, profile, args);
           else if (name === "transferir_a_asesor") {
-            const cob = evaluarCobertura(String(args.municipio ?? profile.municipio ?? ""), String(args.estado ?? ""));
+            const cob = evaluarCobertura(String(args.municipio ?? profile.municipio ?? ""), String(args.estado ?? ""), cfg.cobertura);
             if (cob === "fuera") {
-              result = await marcarFueraCobertura(admin, profile, `${args.municipio ?? ""} ${args.estado ?? ""}`.trim());
+              result = await marcarFueraCobertura(admin, profile, `${args.municipio ?? ""} ${args.estado ?? ""}`.trim(), cfg);
             } else if (cob === "desconocida") {
               result = { ok: false, error: "Ubicación no confirmada. Pregunta al cliente en qué ciudad y estado está su negocio antes de transferir. No digas que un asesor lo contactará." };
             } else {
-              result = await transferirAsesor(admin, profile, args, { waPhone, contactId });
+              result = await transferirAsesor(admin, profile, args, { waPhone, contactId }, cfg);
             }
           }
-          else if (name === "marcar_fuera_de_cobertura") result = await marcarFueraCobertura(admin, profile, String(args.ubicacion ?? ""));
+          else if (name === "marcar_fuera_de_cobertura") result = await marcarFueraCobertura(admin, profile, String(args.ubicacion ?? ""), cfg);
         } catch (e) {
           result = { error: e instanceof Error ? e.message : "error de herramienta" };
         }

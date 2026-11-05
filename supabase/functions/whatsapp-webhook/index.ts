@@ -288,42 +288,9 @@ const ROUTING_ACCOUNTS: Record<string, {
       },
     ],
   },
-  // Galsa (Proveedora Galsa · +52 1 686 561 8533)
-  "318296624690022": {
-    empresa: "Proveedora Galsa",
-    zonas: [
-      {
-        id: "mexicali",
-        label: "Mexicali",
-        telefono: "5216861790126",
-        keywords: ["1", "1️⃣", "mexicali"],
-      },
-      {
-        id: "costa",
-        label: "Tijuana, Ensenada, Tecate, San Quintín, Rosarito",
-        telefono: "5216645634361",
-        keywords: [
-          "2", "2️⃣", "tijuana", "ensenada", "tecate", "san quintin", "san quintín",
-          "rosarito", "costa",
-        ],
-      },
-      {
-        id: "valle",
-        label: "Valle de Mexicali",
-        telefono: "5216861682488",
-        keywords: ["3", "3️⃣", "valle", "valle de mexicali"],
-      },
-      {
-        id: "san-luis",
-        label: "San Luis R.C.",
-        telefono: "5216531517816",
-        keywords: [
-          "4", "4️⃣", "san luis", "san luis rc", "san luis r.c.",
-          "san luis rio colorado", "san luis río colorado",
-        ],
-      },
-    ],
-  },
+  // NOTA: Galsa (318296624690022) ya no usa derivación por zona: desde
+  // 2026-11-05 lo atiende el asesor de IA (whatsapp-ai-advisor) con
+  // configuración propia en _shared/whatsapp-agents.ts.
 };
 
 function buildZonaPrompt(cfg: typeof ROUTING_ACCOUNTS[string]): string {

@@ -1,4 +1,11 @@
 
+## Agente IA WhatsApp Galsa
+- [x] Configuración por número en `_shared/whatsapp-agents.ts` (identidad, cobertura, catálogo, conocimiento, lead) sin tocar Mexicali ni Tijuana.
+- [x] Refactor de whatsapp-ai-advisor para usar la configuración por número; cobertura Galsa = Baja California + todo Sonora; catálogo solo productos Galsa (empresa_marcas); sin biblioteca Chevron.
+- [x] Retirar Galsa del menú de zonas (ROUTING_ACCOUNTS) y activar ai_advisor_enabled en su cuenta (migración aplicada, sesiones del menú cerradas).
+- [x] 35 pruebas unitarias aprobadas; dry_run desplegado: identidad Galsa, producto del catálogo Galsa, Hermosillo dentro de cobertura, Guadalajara fuera sin promesa, regresión Mexicali intacta; typecheck limpio; fichas de prueba eliminadas.
+- [ ] Observar las primeras conversaciones reales del número Galsa y ajustar tono/cobertura si hace falta.
+
 ## Contabilidad: Lista de Costos
 - [x] Crear filtros por empresa, búsqueda y marcas múltiples; tabla con edición de costos inicialmente bloqueada.
 - [x] Guardar costos y recalcular precios con reglas del catálogo, autorización exclusiva y registro consultable.
