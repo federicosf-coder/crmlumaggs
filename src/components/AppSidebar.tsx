@@ -46,6 +46,7 @@ const mainItems: NavItem[] = [
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
   { title: "Seguimiento a Ventas", url: "/seguimiento", icon: TrendingUp, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Cobranza", url: "/cobranza", icon: Wallet, roles: ["admin", "manager", "accounting"] },
+  { title: "Panel de Cobranza", url: "/cobranza/panel", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
   { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
   { title: "Biblioteca", url: "/biblioteca", icon: FolderOpen, roles: "all" },
   { title: "Solicitudes de Crédito", url: "/credito", icon: FileCheck, roles: ["admin", "manager", "sales", "customer_service", "accounting"] },
@@ -101,7 +102,7 @@ export function AppSidebar() {
   const prospectosAccess = useModuleAccess("prospectos");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
   const [contabilidadOpen, setContabilidadOpen] = useState(
-    location.pathname.startsWith("/contabilidad") || location.pathname.startsWith("/cobranza/panel")
+    location.pathname.startsWith("/contabilidad")
   );
   const [documentosOpen, setDocumentosOpen] = useState(
     location.pathname.startsWith("/documents") || location.pathname.startsWith("/devoluciones") || location.pathname.startsWith("/autorizacion-precios") || location.pathname.startsWith("/entregas-corporativas")
@@ -358,7 +359,6 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                   <CollapsibleContent>
                     {[
-                      { url: "/cobranza/panel", title: "Panel de Cobranza", icon: BarChart3 },
                       { url: "/contabilidad/listas-precio", title: "Listas de Precio", icon: TableProperties },
                       { url: "/contabilidad/costos", title: "Lista de Costos", icon: DollarSign },
                       { url: "/contabilidad/cfdis", title: "Estatus de CFDIs", icon: FileCheck },
