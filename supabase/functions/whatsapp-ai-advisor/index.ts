@@ -132,15 +132,16 @@ async function loadCatalog(admin: Admin, cfg: WhatsAppAgentConfig): Promise<Cata
     ).replace(/[-.]/g, "");
     return row;
   });
-  catalogCache = { at: Date.now(), rows };
+  catalogCache.set(cfg.catalogoEmpresa, { at: Date.now(), rows });
   return rows;
 }
 
 async function buscarCatalogo(
   admin: Admin,
+  cfg: WhatsAppAgentConfig,
   args: { texto?: string; viscosidad?: string; aplicacion?: string; linea?: string; limite?: number },
 ) {
-  const rows = await loadCatalog(admin);
+  const rows = await loadCatalog(admin, cfg);
   const limit = Math.min(Number(args.limite ?? 8), 15);
   const terms = [args.texto, args.viscosidad, args.aplicacion, args.linea].filter(Boolean).join(" ");
   const tokens = tokenize(terms);
