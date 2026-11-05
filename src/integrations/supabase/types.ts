@@ -2218,6 +2218,39 @@ export type Database = {
           },
         ]
       }
+      contabilidad_costos_ignorados: {
+        Row: {
+          ignorado_at: string
+          ignorado_por: string | null
+          producto_id: string
+        }
+        Insert: {
+          ignorado_at?: string
+          ignorado_por?: string | null
+          producto_id: string
+        }
+        Update: {
+          ignorado_at?: string
+          ignorado_por?: string | null
+          producto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contabilidad_costos_ignorados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: true
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contabilidad_costos_ignorados_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: true
+            referencedRelation: "vw_clasificacion_pendiente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_ejecutivos: {
         Row: {
           contact_id: string
