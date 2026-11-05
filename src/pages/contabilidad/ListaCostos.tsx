@@ -96,7 +96,7 @@ export default function ListaCostos() {
     return { rows: data as Historial[], total: count ?? 0 };
   } });
   const users = useQuery({ queryKey: ["contabilidad-autores"], enabled: canView && tab === "historial", queryFn: async () => { const { data, error } = await supabase.from("profiles").select("user_id,full_name"); if (error) throw error; return new Map(data.map(p => [p.user_id, p.full_name])); } });
-  const refresh = async () => { await Promise.all([qc.invalidateQueries({ queryKey: ["contabilidad-costos"] }), qc.invalidateQueries({ queryKey: ["contabilidad-costos-historial"] }), qc.invalidateQueries({ queryKey: ["productos"] })]); };
+  const refresh = async () => { await Promise.all([qc.invalidateQueries({ queryKey: ["contabilidad-costos"] }), qc.invalidateQueries({ queryKey: ["contabilidad-costos-historial"] }), qc.invalidateQueries({ queryKey: ["productos"] }), qc.invalidateQueries({ queryKey: ["contabilidad-ultimo-autor"] })]); };
   const apply = async (cambios: CambioCosto[], recalcular = false, fuente = "edicion") => {
     setSaving(true);
     try {
