@@ -1319,7 +1319,7 @@ export function ProductosTab({ soloNuevo }: { soloNuevo?: { onClose: (creado: bo
 
             {ALL_OPTION_TYPES.map(t => (
               <div key={t}>
-                <Label>{OPTION_TYPE_LABELS[t]}</Label>
+                <Label>{OPTION_TYPE_LABELS[t]}{soloNuevo && t === "marca" ? " *" : ""}</Label>
                 <Select value={(form as any)[`${t}_id`] || ""} onValueChange={v => set(`${t}_id`, v)}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>{optionsFor(t).map(o => <SelectItem key={o.id} value={o.id}>{o.value}</SelectItem>)}</SelectContent>
@@ -1328,7 +1328,7 @@ export function ProductosTab({ soloNuevo }: { soloNuevo?: { onClose: (creado: bo
             ))}
 
             <div className="md:col-span-2">
-              <Label>Clasificación de Precio</Label>
+              <Label>Clasificación de Precio{soloNuevo ? " *" : ""}</Label>
               <Select
                 value={form.precio_clasificacion_id || "__none__"}
                 onValueChange={v => set("precio_clasificacion_id", v === "__none__" ? "" : v)}

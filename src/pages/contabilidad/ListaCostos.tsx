@@ -13,6 +13,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, Lock, Unlock, Upload, Download, RefreshCw, Save, X, ChevronDown, History, EyeOff, Eye, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { descargarPlantillaCostos, leerArchivoCostos, puedeEditarCostos, validarCosto, type CambioCosto, type ProductoCosto } from "@/lib/contabilidadCostos";
+import { ProductosTab } from "@/pages/inventory/ProductCatalog";
+import { Plus } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
 
 type Producto = ProductoCosto & { empresas: string[]; activo?: boolean; ignorado?: boolean };
@@ -55,6 +57,7 @@ export default function ListaCostos() {
   const [desde, setDesde] = useState("");
   const [estado, setEstado] = useState<"activos" | "inactivos" | "todos">("activos");
   const [verIgnorados, setVerIgnorados] = useState(false);
+  const [nuevo, setNuevo] = useState(false);
   const toggleIgnorar = async (p: Producto) => {
     const { error } = p.ignorado
       ? await supabase.from("contabilidad_costos_ignorados").delete().eq("producto_id", p.id)
@@ -145,6 +148,7 @@ export default function ListaCostos() {
         <div className="flex flex-wrap gap-2 items-center text-sm"><span className="text-muted-foreground">Fecha de registro/modificación:</span><Input type="date" aria-label="Desde" className="w-40 h-9" value={desde} onChange={e => setDesde(e.target.value)} /><span>a</span><Input type="date" aria-label="Hasta" className="w-40 h-9" value={hasta} onChange={e => setHasta(e.target.value)} />{(desde || hasta) && <Button size="sm" variant="ghost" onClick={() => { setDesde(""); setHasta(""); }}>Limpiar fechas</Button>}<span className="text-muted-foreground">{rows.length} de {selected.length}</span></div>
         <div className="flex flex-wrap gap-2">
           <Button variant={editing ? "secondary" : "outline"} disabled={saving} onClick={() => setEditing(v => !v)}>{editing ? <Unlock className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-4 w-4" />}{editing ? "Bloquear edición en línea" : "Permitir edición en línea"}</Button>
+          <Button variant="outline" disabled={saving} onClick={() => setNuevo(true)}><Plus className="mr-2 h-4 w-4" />Agregar producto</Button>
           <Button variant="outline" disabled={saving || productosQuery.isLoading} onClick={() => inputRef.current?.click()}><Upload className="mr-2 h-4 w-4" />Subir costos</Button>
           <Button variant="outline" onClick={descargarPlantillaCostos}><Download className="mr-2 h-4 w-4" />Plantilla Excel</Button>
           <Button disabled={saving || !selected.length} onClick={() => setPending({ cambios: selected.map(p => ({ id: p.id, codigo: p.codigo, nombre: p.nombre_producto, costo: p.costo_actual, costo_anterior: p.costo_actual })), recalcular: true })}><RefreshCw className="mr-2 h-4 w-4" />Actualizar precios</Button>
@@ -158,6 +162,7 @@ export default function ListaCostos() {
         <div className="flex justify-between items-center text-sm text-muted-foreground"><span>{historyQuery.data?.total ?? 0} cambios</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={!historyPage} onClick={() => setHistoryPage(p => p - 1)}>Anterior</Button><Button size="sm" variant="outline" disabled={(historyPage + 1) * 100 >= (historyQuery.data?.total ?? 0)} onClick={() => setHistoryPage(p => p + 1)}>Siguiente</Button></div></div>
       </TabsContent>
     </Tabs>
+    {nuevo && <ProductosTab soloNuevo={{ onClose: creado => { setNuevo(false); if (creado) void refresh(); } }} />}
     <Dialog open={!!pending} onOpenChange={open => { if (!open && !saving) setPending(null); }}><DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden"><DialogHeader className="bg-muted/50 px-5 py-4 border-b"><DialogTitle>{pending?.recalcular ? "Actualizar precios" : "Confirmar carga de costos"}</DialogTitle><DialogDescription>{pending?.archivo ?? `${selected.length} productos seleccionados`}</DialogDescription></DialogHeader><div className="px-5 py-4 overflow-auto space-y-3"><p className="text-sm">{pending?.cambios.length ?? 0} registros. Se aplicarán las reglas vigentes del catálogo y se guardará el historial.</p><Table><TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Costo anterior</TableHead><TableHead>Costo nuevo</TableHead></TableRow></TableHeader><TableBody>{pending?.cambios.map(c => <TableRow key={c.id}><TableCell>{c.codigo}</TableCell><TableCell>{money(c.costo_anterior)}</TableCell><TableCell>{money(c.costo)}</TableCell></TableRow>)}</TableBody></Table></div><DialogFooter className="border-t bg-muted/30 px-5 py-3"><Button variant="outline" disabled={saving} onClick={() => setPending(null)}>Cancelar</Button><Button disabled={saving || !pending?.cambios.length} onClick={() => void confirm()}>{saving ? "Guardando…" : pending?.recalcular ? "Actualizar precios" : "Aplicar costos y actualizar precios"}</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={!!detalle} onOpenChange={open => { if (!open) setDetalle(null); }}><DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden"><DialogHeader className="bg-muted/50 px-5 py-4 border-b"><DialogTitle>Cambios de precios — {detalle?.codigo}</DialogTitle><DialogDescription>{detalle?.nombre_producto}</DialogDescription></DialogHeader><div className="px-5 py-4 overflow-auto"><Table><TableHeader><TableRow><TableHead>Lista</TableHead><TableHead>Anterior</TableHead><TableHead>Nuevo</TableHead></TableRow></TableHeader><TableBody>{detalle && Object.keys(detalle.precios_nuevos as object).map(key => { const old = (detalle.precios_anteriores as Record<string, number>)[key]; const next = (detalle.precios_nuevos as Record<string, number>)[key]; return <TableRow key={key} className={old !== next ? "font-medium" : ""}><TableCell>{key}</TableCell><TableCell>{money(old)}</TableCell><TableCell>{money(next)}</TableCell></TableRow>; })}</TableBody></Table></div><DialogFooter className="border-t bg-muted/30 px-5 py-3"><Button variant="outline" onClick={() => setDetalle(null)}>Cerrar</Button></DialogFooter></DialogContent></Dialog>
   </div>;
