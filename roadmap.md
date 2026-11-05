@@ -1,4 +1,9 @@
 
+## Contabilidad: Lista de Costos
+- [ ] Crear filtros por empresa, búsqueda y marcas múltiples; tabla con edición de costos inicialmente bloqueada.
+- [ ] Guardar costos y recalcular precios con reglas del catálogo, autorización exclusiva y registro consultable.
+- [ ] Permitir carga de costos, actualización de precios y verificar reglas y flujo completo.
+
 ## Ventas CONTPAQ y Guía de Batalla
 - [x] Guardar originales privados idénticos y cargar 1,022 clientes, 79 agentes y 3,673 documentos; reimportación verificada sin duplicados.
 - [x] Agregar catálogos y carga de actualizaciones; 32 agentes heredan usuario mediante personas de RVS.
