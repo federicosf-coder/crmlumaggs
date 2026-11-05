@@ -609,7 +609,9 @@ function buildTools(cfg: WhatsAppAgentConfig) {
     type: "function",
     function: {
       name: "buscar_conocimiento",
-      description: "Biblioteca técnica de Lumaggs (digest Chevron, guías de venta, comparativos, fichas técnicas y hojas de seguridad). Úsala SIEMPRE antes de responder sobre compatibilidad con maquinaria/equipo, aplicaciones, especificaciones o usos.",
+      description: cfg.tieneBiblioteca
+        ? `Biblioteca técnica de ${cfg.nombreComercial} (digest, guías de venta, comparativos, fichas técnicas y hojas de seguridad). Úsala SIEMPRE antes de responder sobre compatibilidad con maquinaria/equipo, aplicaciones, especificaciones o usos.`
+        : `Biblioteca técnica. ${cfg.nombreComercial} no cuenta con biblioteca propia: si el catálogo no responde la duda técnica, canaliza con el asesor.`,
       parameters: {
         type: "object",
         properties: { consulta: { type: "string" }, fuente: { type: "string" } },
