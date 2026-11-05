@@ -2155,6 +2155,69 @@ export type Database = {
         }
         Relationships: []
       }
+      contabilidad_costos_historial: {
+        Row: {
+          codigo: string
+          costo_anterior: number | null
+          costo_nuevo: number | null
+          fuente: string
+          id: string
+          lote_id: string | null
+          marca_id: string | null
+          nombre_producto: string
+          precios_anteriores: Json
+          precios_nuevos: Json
+          producto_id: string
+          realizado_at: string
+          realizado_por: string | null
+        }
+        Insert: {
+          codigo: string
+          costo_anterior?: number | null
+          costo_nuevo?: number | null
+          fuente?: string
+          id?: string
+          lote_id?: string | null
+          marca_id?: string | null
+          nombre_producto: string
+          precios_anteriores: Json
+          precios_nuevos: Json
+          producto_id: string
+          realizado_at?: string
+          realizado_por?: string | null
+        }
+        Update: {
+          codigo?: string
+          costo_anterior?: number | null
+          costo_nuevo?: number | null
+          fuente?: string
+          id?: string
+          lote_id?: string | null
+          marca_id?: string | null
+          nombre_producto?: string
+          precios_anteriores?: Json
+          precios_nuevos?: Json
+          producto_id?: string
+          realizado_at?: string
+          realizado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contabilidad_costos_historial_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contabilidad_costos_historial_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clasificacion_pendiente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_ejecutivos: {
         Row: {
           contact_id: string
@@ -8928,6 +8991,7 @@ export type Database = {
           costo_mercado_pendiente_baja: boolean
           costo_mercado_pendiente_desde: string | null
           costo_mercado_vigente: number | null
+          costo_registro_at: string | null
           creado_automaticamente: boolean
           created_at: string
           created_by: string | null
@@ -8970,6 +9034,7 @@ export type Database = {
           costo_mercado_pendiente_baja?: boolean
           costo_mercado_pendiente_desde?: string | null
           costo_mercado_vigente?: number | null
+          costo_registro_at?: string | null
           creado_automaticamente?: boolean
           created_at?: string
           created_by?: string | null
@@ -9012,6 +9077,7 @@ export type Database = {
           costo_mercado_pendiente_baja?: boolean
           costo_mercado_pendiente_desde?: string | null
           costo_mercado_vigente?: number | null
+          costo_registro_at?: string | null
           creado_automaticamente?: boolean
           created_at?: string
           created_by?: string | null
@@ -11897,6 +11963,16 @@ export type Database = {
           _empresa_vendedora: Database["public"]["Enums"]["empresa_vendedora"]
         }
         Returns: boolean
+      }
+      contabilidad_costos_aplicar: {
+        Args: { p_cambios: Json; p_fuente?: string; p_recalcular?: boolean }
+        Returns: Json
+      }
+      contabilidad_costos_listar: { Args: never; Returns: Json }
+      contabilidad_costos_permitido: { Args: never; Returns: boolean }
+      contabilidad_precios_snapshot: {
+        Args: { p: Database["public"]["Tables"]["productos"]["Row"] }
+        Returns: Json
       }
       contpaq_admin: { Args: never; Returns: boolean }
       contpaq_asignar_usuario: {
