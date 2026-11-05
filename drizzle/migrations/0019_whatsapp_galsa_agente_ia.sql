@@ -1,0 +1,1 @@
+update public.whatsapp_accounts set ai_advisor_enabled = true where business_phone_number_id = '318296624690022'; update public.whatsapp_routing_sessions set estado = 'reemplazado_agente_ia', updated_at = now() where business_phone_number_id = '318296624690022' and estado <> 'finalizado';

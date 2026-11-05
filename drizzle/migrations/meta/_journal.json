@@ -134,6 +134,13 @@
       "when": 1793906906996,
       "tag": "0018_contabilidad_costos_ignorados",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793914857383,
+      "tag": "0019_whatsapp_galsa_agente_ia",
+      "breakpoints": true
     }
   ]
 }
