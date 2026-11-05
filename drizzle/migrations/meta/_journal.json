@@ -120,6 +120,13 @@
       "when": 1793668907928,
       "tag": "0016_guia_batalla_recalcular_corte_nov",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793904529380,
+      "tag": "0017_contabilidad_lista_costos_auditada",
+      "breakpoints": true
     }
   ]
 }

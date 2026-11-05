@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ModulePlaceholder from "@/pages/ModulePlaceholder";
+import ListaCostos from "./ListaCostos";
 
 export const CONTABILIDAD_ROLES = ["master", "accounting"] as const;
 
@@ -13,8 +14,10 @@ const SUBMODULOS = {
 export type SubmoduloContabilidad = keyof typeof SUBMODULOS;
 
 export default function ContabilidadModulo({ submodulo }: { submodulo: SubmoduloContabilidad }) {
-  const { hasAnyRole, roles } = useAuth();
-  if (roles.length > 0 && !hasAnyRole([...CONTABILIDAD_ROLES])) return <Navigate to="/" replace />;
+  const { hasAnyRole, loading } = useAuth();
+  if (loading) return null;
+  if (!hasAnyRole([...CONTABILIDAD_ROLES])) return <Navigate to="/" replace />;
+  if (submodulo === "costos") return <ListaCostos />;
   const info = SUBMODULOS[submodulo];
   return <ModulePlaceholder title={info.title} description={info.description} />;
 }
