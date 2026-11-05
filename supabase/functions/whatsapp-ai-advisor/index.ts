@@ -674,7 +674,7 @@ function buildTools(cfg: WhatsAppAgentConfig) {
     type: "function",
     function: {
       name: "transferir_a_asesor",
-      description: "Marca la conversación lista para el asesor humano y registra el prospecto. Requiere intención comercial, municipio y estado DENTRO de cobertura (Baja California o San Luis Río Colorado, Sonora). Si es cotización, procura tener producto, presentación y cantidad antes de llamarla.",
+      description: `Marca la conversación lista para el asesor humano y registra el prospecto. Requiere intención comercial, municipio y estado DENTRO de cobertura (${coberturaCorta}). Si es cotización, procura tener producto, presentación y cantidad antes de llamarla.`,
       parameters: {
         type: "object",
         properties: {
@@ -691,7 +691,7 @@ function buildTools(cfg: WhatsAppAgentConfig) {
     type: "function",
     function: {
       name: "marcar_fuera_de_cobertura",
-      description: "Úsala cuando el cliente indique que su negocio está fuera de Baja California y de San Luis Río Colorado, Sonora. Cierra el flujo comercial sin crear prospecto.",
+      description: `Úsala cuando el cliente indique que su negocio está fuera de ${coberturaCorta}. Cierra el flujo comercial sin crear prospecto.`,
       parameters: {
         type: "object",
         properties: { ubicacion: { type: "string", description: "Ciudad/estado/país que indicó el cliente." } },
