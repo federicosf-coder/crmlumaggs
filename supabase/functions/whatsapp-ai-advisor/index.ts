@@ -699,7 +699,8 @@ function buildTools(cfg: WhatsAppAgentConfig) {
       },
     },
   },
-];
+  ];
+}
 
 // ─────────────────────────── envío WhatsApp ───────────────────────────
 async function sendAndLog(admin: Admin, p: {
