@@ -1,4 +1,8 @@
-// Asesor B2B de lubricantes Chevron para WhatsApp (Lumaggs, Baja California).
+// Asesor B2B de lubricantes para WhatsApp, con configuración por número:
+//   Mexicali (1128863556971458) -> Lumaggs / Chevron (agente original).
+//   Galsa    (318296624690022)  -> Proveedora Galsa / Phillips 66.
+// La identidad, cobertura, catálogo y fuentes de cada número viven en
+// _shared/whatsapp-agents.ts; sin configuración se usa la de Lumaggs.
 //
 // Responsabilidades separadas:
 //   catálogo comercial (CRM) -> qué productos vendemos (única fuente para ofrecer)
@@ -7,6 +11,12 @@
 //   IA                       -> interpreta, razona y explica; nunca inventa datos
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { embedOne } from "../_shared/ai-embeddings.ts";
+import {
+  empresaDeMarca,
+  evaluarCobertura,
+  resolveAgentConfig,
+  type WhatsAppAgentConfig,
+} from "../_shared/whatsapp-agents.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
