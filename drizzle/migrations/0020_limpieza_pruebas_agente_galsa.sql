@@ -1,0 +1,1 @@
+delete from public.bot_lead_profiles where wa_phone like '5219990000%';

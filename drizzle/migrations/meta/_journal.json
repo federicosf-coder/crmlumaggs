@@ -141,6 +141,13 @@
       "when": 1793914857383,
       "tag": "0019_whatsapp_galsa_agente_ia",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793914972217,
+      "tag": "0020_limpieza_pruebas_agente_galsa",
+      "breakpoints": true
     }
   ]
 }
