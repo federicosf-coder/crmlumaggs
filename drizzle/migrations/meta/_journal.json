@@ -127,6 +127,13 @@
       "when": 1793904529380,
       "tag": "0017_contabilidad_lista_costos_auditada",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793906906996,
+      "tag": "0018_contabilidad_costos_ignorados",
+      "breakpoints": true
     }
   ]
 }
