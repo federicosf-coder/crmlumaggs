@@ -1,8 +1,8 @@
 
 ## Contabilidad: Lista de Costos
-- [ ] Crear filtros por empresa, búsqueda y marcas múltiples; tabla con edición de costos inicialmente bloqueada.
-- [ ] Guardar costos y recalcular precios con reglas del catálogo, autorización exclusiva y registro consultable.
-- [ ] Permitir carga de costos, actualización de precios y verificar reglas y flujo completo.
+- [x] Crear filtros por empresa, búsqueda y marcas múltiples; tabla con edición de costos inicialmente bloqueada.
+- [x] Guardar costos y recalcular precios con reglas del catálogo, autorización exclusiva y registro consultable.
+- [x] Permitir carga de costos con vista previa, actualización de precios y verificar nueve pruebas; guardado real con producto temporal, recálculo, historial, estabilidad de fecha y conflicto concurrente comprobados; prueba retirada sin modificar productos comerciales.
 
 ## Ventas CONTPAQ y Guía de Batalla
 - [x] Guardar originales privados idénticos y cargar 1,022 clientes, 79 agentes y 3,673 documentos; reimportación verificada sin duplicados.

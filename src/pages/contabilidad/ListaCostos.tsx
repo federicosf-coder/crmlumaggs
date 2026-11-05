@@ -58,7 +58,7 @@ export default function ListaCostos() {
   const empresaProductos = productos.filter(p => p.empresas.includes(empresa));
   const options = [...new Map(empresaProductos.map(p => [p.marca_id ?? "sin-marca", p.marca])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
   const selected = empresaProductos.filter(p => (!marcas.length || marcas.includes(p.marca_id ?? "sin-marca")) && normalize(`${p.codigo} ${p.nombre_producto} ${p.clasificacion}`).includes(normalize(search)));
-  const historyQuery = useQuery({ queryKey: ["contabilidad-costos-historial", empresa, marcas, search, historyPage], enabled: canView && tab === "historial", queryFn: async () => {
+  const historyQuery = useQuery({ queryKey: ["contabilidad-costos-historial", empresa, marcas, search, historyPage, selected.map(p => p.id)], enabled: canView && productosQuery.isSuccess && tab === "historial", queryFn: async () => {
     const ids = selected.map(p => p.id);
     if (!ids.length) return { rows: [] as Historial[], total: 0 };
     const { data, error, count } = await supabase.from("contabilidad_costos_historial").select("*", { count: "exact" }).in("producto_id", ids).order("realizado_at", { ascending: false }).range(historyPage * 100, historyPage * 100 + 99);
