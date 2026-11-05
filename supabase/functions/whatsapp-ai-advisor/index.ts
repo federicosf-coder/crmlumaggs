@@ -757,6 +757,9 @@ Deno.serve(async (req) => {
     const dryRun = Boolean(body?.dry_run);
     if (!waPhone) return json({ error: "Falta wa_phone" }, 400);
 
+    // Configuración del agente según el número de WhatsApp que recibió el mensaje.
+    const cfg = resolveAgentConfig(businessPhoneId);
+
     // ── ficha (crear si no existe) ──
     let profile: any = null;
     if (conversationId) {
@@ -834,7 +837,7 @@ Deno.serve(async (req) => {
     }
 
     const messages: any[] = [
-      { role: "system", content: systemPrompt(profile, contexto) },
+      { role: "system", content: systemPrompt(profile, contexto, cfg) },
       ...ordered
         .filter((m: any) => (m.message_body ?? "").trim())
         .map((m: any) => ({
@@ -858,7 +861,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${apiKey}`,
           "Lovable-API-Key": apiKey,
         },
-        body: JSON.stringify({ model: MODEL, messages, tools: TOOLS, temperature: 0.3 }),
+        body: JSON.stringify({ model: MODEL, messages, tools: buildTools(cfg), temperature: 0.3 }),
       });
       if (!res.ok) {
         const t = await res.text();
