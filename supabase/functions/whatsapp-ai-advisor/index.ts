@@ -470,7 +470,8 @@ async function transferirAsesor(admin: Admin, profile: any, args: Record<string,
         interes: profile.intent ?? "asesoria_lubricantes",
         contact_id: ctx.contactId,
         payload: {
-          origen: "whatsapp_asesor_ia",
+          origen: cfg.leadOrigen,
+          empresa: cfg.leadEmpresa,
           conversation_id: profile.conversation_id,
           ficha: {
             tipo_cliente: profile.tipo_cliente,
