@@ -582,12 +582,16 @@ DATOS QUE YA CONOCES DEL CRM (no los vuelvas a preguntar):
 ${contexto || "Sin registro previo en el CRM."}`;
 }
 
-const TOOLS = [
+function buildTools(cfg: WhatsAppAgentConfig) {
+  const coberturaCorta = cfg.cobertura === "bc_sonora"
+    ? "Baja California o Sonora"
+    : "Baja California o San Luis Río Colorado, Sonora";
+  return [
   {
     type: "function",
     function: {
       name: "buscar_catalogo",
-      description: "Búsqueda estructurada en el catálogo comercial de Lumaggs. Única fuente válida para saber qué productos se venden.",
+      description: `Búsqueda estructurada en el catálogo comercial de ${cfg.nombreComercial}. Única fuente válida para saber qué productos se venden.`,
       parameters: {
         type: "object",
         properties: {
