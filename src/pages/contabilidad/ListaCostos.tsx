@@ -93,8 +93,11 @@ export default function ListaCostos() {
     <div className="flex gap-2">{[["lumaggs_chevron", "Lumaggs"], ["galsa_phillips66", "Galsa"]].map(([key, label]) => <Button key={key} variant={empresa === key ? "default" : "outline"} className="rounded-full px-6" aria-pressed={empresa === key} disabled={saving} onClick={() => { setEmpresa(key); setMarcas([]); setEditing(false); setHistoryPage(0); }}>{label}</Button>)}</div>
     <div className="flex flex-wrap gap-3 items-center">
       <div className="relative flex-1 min-w-48"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Buscar productos" placeholder="Buscar código, nombre o clasificación" value={search} onChange={e => { setSearch(e.target.value); setHistoryPage(0); }} className="pl-9" /></div>
-      {empresa === "galsa_phillips66" && <Popover><PopoverTrigger asChild><Button variant="outline">{marcas.length ? `${marcas.length} marcas` : "Todas las marcas"}<ChevronDown className="ml-2 h-4 w-4" /></Button></PopoverTrigger><PopoverContent className="w-64 space-y-3"><Button variant="ghost" size="sm" onClick={() => { setMarcas([]); setHistoryPage(0); }}>Todas las marcas</Button>{options.map(([id, label]) => <label key={id} className="flex gap-2 items-center text-sm"><Checkbox checked={marcas.includes(id)} onCheckedChange={checked => { setMarcas(current => checked ? [...current, id] : current.filter(m => m !== id)); setHistoryPage(0); }} />{label}</label>)}</PopoverContent></Popover>}
     </div>
+    {empresa === "galsa_phillips66" && <div className="flex flex-wrap gap-2" role="group" aria-label="Marcas">
+      <Button size="sm" variant={!marcas.length ? "default" : "outline"} className="rounded-full" aria-pressed={!marcas.length} onClick={() => { setMarcas([]); setHistoryPage(0); }}>Todas las marcas</Button>
+      {options.map(([id, label]) => { const on = marcas.includes(id); return <Button key={id} size="sm" variant={on ? "default" : "outline"} className="rounded-full" aria-pressed={on} onClick={() => { setMarcas(current => on ? current.filter(m => m !== id) : [...current, id]); setHistoryPage(0); }}>{label}</Button>; })}
+    </div>}
     <Tabs value={tab} onValueChange={setTab}>
       <div className="flex flex-wrap justify-between gap-3 items-center"><TabsList><TabsTrigger value="costos">Costos ({selected.length})</TabsTrigger><TabsTrigger value="historial"><History className="mr-2 h-4 w-4" />Historial</TabsTrigger></TabsList></div>
       <TabsContent value="costos" className="space-y-3">
