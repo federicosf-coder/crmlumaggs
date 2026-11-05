@@ -362,31 +362,10 @@ async function actualizarFicha(admin: Admin, profile: any, args: Record<string, 
 }
 
 // ───────────────────── cobertura geográfica ─────────────────────
-// Solo Baja California y San Luis Río Colorado, Sonora.
-const MUNICIPIOS_BC = [
-  "tijuana", "mexicali", "ensenada", "tecate", "rosarito", "playas de rosarito",
-  "san quintin", "san felipe", "valle de guadalupe", "maneadero", "vicente guerrero",
-  "guadalupe victoria", "ciudad morelos", "los algodones", "algodones", "el sauzal",
-  "la rumorosa", "valle de la trinidad", "camalu", "el rosario",
-];
-function evaluarCobertura(municipio: string, estado: string): "dentro" | "fuera" | "desconocida" {
-  const m = norm(municipio);
-  const e = norm(estado);
-  const txt = `${m} ${e}`.trim();
-  if (!txt) return "desconocida";
-  if (/san luis rio colorado|\bslrc\b/.test(txt)) return "dentro";
-  if (/baja california sur|\bbcs\b|la paz|los cabos|cabo san lucas|comondu|loreto|mulege/.test(txt)) return "fuera";
-  if (/baja california|\bb\.?\s?c\.?\b/.test(e) || /baja california/.test(m)) return "dentro";
-  if (MUNICIPIOS_BC.some((x) => m === x || m.includes(x))) {
-    // Si el estado declarado contradice (otro estado/país), queda fuera
-    if (e && !/baja california|\bbc\b/.test(e)) return "fuera";
-    return "dentro";
-  }
-  if (e || m) return "fuera";
-  return "desconocida";
-}
+// La lógica de cobertura vive en _shared/whatsapp-agents.ts (por número):
+// Lumaggs = Baja California + San Luis Río Colorado; Galsa = BC + todo Sonora.
 
-async function marcarFueraCobertura(admin: Admin, profile: any, ubicacion: string) {
+async function marcarFueraCobertura(admin: Admin, profile: any, ubicacion: string, cfg: WhatsAppAgentConfig) {
   await admin
     .from("bot_lead_profiles")
     .update({
@@ -398,13 +377,13 @@ async function marcarFueraCobertura(admin: Admin, profile: any, ubicacion: strin
   return {
     ok: true,
     fuera_de_cobertura: true,
-    instruccion: "Responde breve que la atención comercial está limitada a Baja California y San Luis Río Colorado. No prometas contacto ni seguimiento.",
+    instruccion: `Responde breve y amable con este sentido: "${cfg.fueraCoberturaTexto}". No prometas contacto ni seguimiento.`,
   };
 }
 
 async function transferirAsesor(admin: Admin, profile: any, args: Record<string, unknown>, ctx: {
   waPhone: string; contactId: string | null;
-}) {
+}, cfg: WhatsAppAgentConfig) {
   await actualizarFicha(admin, profile, { ...args, conversation_stage: "transferred" });
 
   const resumen = String(profile.resumen ?? args?.resumen ?? "").slice(0, 4000);
