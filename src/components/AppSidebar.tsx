@@ -9,7 +9,7 @@ import {
   FileCheck, Boxes, ChevronDown, Link2,
   Sliders, ClipboardList, ShieldAlert, Network, Gauge, DollarSign, TableProperties,
   Workflow,
-  CalendarCheck, BadgeDollarSign, Upload, Lock,
+  CalendarCheck, BadgeDollarSign, Upload, Lock, Calculator,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -46,7 +46,6 @@ const mainItems: NavItem[] = [
   { title: "Directorio", url: "/directory", icon: BookOpen, roles: "all" },
   { title: "Seguimiento a Ventas", url: "/seguimiento", icon: TrendingUp, roles: ["admin", "manager", "sales", "customer_service"] },
   { title: "Cobranza", url: "/cobranza", icon: Wallet, roles: ["admin", "manager", "accounting"] },
-  { title: "Panel de Cobranza", url: "/cobranza/panel", icon: BarChart3, roles: ["admin", "manager", "accounting"] },
   { title: "Tareas y Actividades", url: "/activities", icon: FolderKanban, roles: "all" },
   { title: "Biblioteca", url: "/biblioteca", icon: FolderOpen, roles: "all" },
   { title: "Solicitudes de Crédito", url: "/credito", icon: FileCheck, roles: ["admin", "manager", "sales", "customer_service", "accounting"] },
@@ -101,6 +100,9 @@ export function AppSidebar() {
   const cobranzaAccess = useModuleAccess("cobranza");
   const prospectosAccess = useModuleAccess("prospectos");
   const [inventarioOpen, setInventarioOpen] = useState(location.pathname.startsWith("/inventario"));
+  const [contabilidadOpen, setContabilidadOpen] = useState(
+    location.pathname.startsWith("/contabilidad") || location.pathname.startsWith("/cobranza/panel")
+  );
   const [documentosOpen, setDocumentosOpen] = useState(
     location.pathname.startsWith("/documents") || location.pathname.startsWith("/devoluciones") || location.pathname.startsWith("/autorizacion-precios") || location.pathname.startsWith("/entregas-corporativas")
   );
@@ -342,6 +344,37 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 );
               })}
+
+              {hasAnyRole(["master", "accounting"]) && (
+                <Collapsible open={contabilidadOpen} onOpenChange={setContabilidadOpen}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="hover:bg-sidebar-accent/50">
+                        <Calculator className="mr-2 h-4 w-4" />
+                        {!collapsed && <span className="flex-1 text-left">Contabilidad</span>}
+                        {!collapsed && <ChevronDown className={`h-4 w-4 transition-transform ${contabilidadOpen ? "rotate-180" : ""}`} />}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                  </SidebarMenuItem>
+                  <CollapsibleContent>
+                    {[
+                      { url: "/cobranza/panel", title: "Panel de Cobranza", icon: BarChart3 },
+                      { url: "/contabilidad/listas-precio", title: "Listas de Precio", icon: TableProperties },
+                      { url: "/contabilidad/costos", title: "Lista de Costos", icon: DollarSign },
+                      { url: "/contabilidad/cfdis", title: "Estatus de CFDIs", icon: FileCheck },
+                    ].map((sub) => (
+                      <SidebarMenuItem key={sub.url}>
+                        <SidebarMenuButton asChild>
+                          <NavLink to={sub.url} className="pl-8 hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                            <sub.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && <span>{sub.title}</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
