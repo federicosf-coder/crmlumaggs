@@ -88,8 +88,6 @@ export function resolveAgentConfig(businessPhoneId: string | null | undefined): 
 // ───────────────────── cobertura geográfica ─────────────────────
 const normalizar = (s: unknown) =>
   String(s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-// Nota: la clase anterior usa los caracteres combinantes U+0300–U+036F literales;
-// equivale a /[\u0300-\u036f]/g (misma normalización que usa el asesor original).
 
 const MUNICIPIOS_BC = [
   "tijuana", "mexicali", "ensenada", "tecate", "rosarito", "playas de rosarito",
