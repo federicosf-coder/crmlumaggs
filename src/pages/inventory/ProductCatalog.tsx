@@ -368,7 +368,7 @@ function ProductClientsDialog({
   );
 }
 
-function ProductosTab() {
+export function ProductosTab({ soloNuevo }: { soloNuevo?: { onClose: (creado: boolean) => void; empresa?: string } } = {}) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -827,6 +827,7 @@ function ProductosTab() {
         setForm(emptyProduct);
         setEditingId(null);
         toast.success(editingId ? "Producto actualizado" : "Producto creado");
+        soloNuevo?.onClose(true);
       }
     },
     onError: (e: any) => toast.error(e.message),
@@ -920,8 +921,8 @@ function ProductosTab() {
 
 
   return (
-    <Card>
-      <CardHeader className="gap-4">
+    <Card className={soloNuevo ? "contents border-0" : undefined}>
+      {!soloNuevo && <><CardHeader className="gap-4">
         <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
         <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> Catálogo de Productos</CardTitle>
         <div className="flex items-center gap-2 flex-wrap">
@@ -1236,7 +1237,7 @@ function ProductosTab() {
             </Table>
           </div>
         )}
-      </CardContent>
+      </CardContent></>}
 
       <Dialog open={!!porLlegarCodigo} onOpenChange={(v) => { if (!v) setPorLlegarCodigo(null); }}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden">
@@ -1277,7 +1278,7 @@ function ProductosTab() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyProduct); setHuerfanoContext(null); } }}>
+      <Dialog open={soloNuevo ? true : open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingId(null); setForm(emptyProduct); setHuerfanoContext(null); soloNuevo?.onClose(false); } }}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingId ? "Editar Producto" : "Nuevo Producto"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1365,7 +1366,7 @@ function ProductosTab() {
             <div className="md:col-span-2 flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={handleSaveClick}
-                disabled={!form.codigo || !form.nombre_producto || !form.producto_base_id || save.isPending}
+                disabled={!form.codigo || !form.nombre_producto || !form.producto_base_id || (!!soloNuevo && (!form.marca_id || !form.precio_clasificacion_id)) || save.isPending}
                 className="flex-1"
               >
                 {save.isPending ? "Guardando..." : editingId ? "Actualizar Producto" : "Guardar Producto"}
