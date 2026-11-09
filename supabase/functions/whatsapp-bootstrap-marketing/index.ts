@@ -71,7 +71,6 @@ Deno.serve(async (req) => {
       business_phone_number_id: PHONE_ID,
       waba_id: WABA_ID,
       display_phone,
-      color: "#db2777",
       is_active: true,
     };
 
