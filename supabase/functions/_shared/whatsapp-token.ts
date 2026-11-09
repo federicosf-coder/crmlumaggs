@@ -16,7 +16,8 @@ export function isMarketingLine(ids: { phoneId?: string | null; wabaId?: string 
 
 export function whatsappTokenFor(
   ids: { phoneId?: string | null; wabaId?: string | null } = {},
-  env: (name: string) => string | undefined = (n) => Deno.env.get(n),
+  env: (name: string) => string | undefined = (n) =>
+    (globalThis as unknown as { Deno?: { env: { get(k: string): string | undefined } } }).Deno?.env.get(n),
 ): string | undefined {
   if (isMarketingLine(ids)) {
     return env("WHATSAPP_ACCESS_TOKEN_MARKETING") || env("WHATSAPP_ACCESS_TOKEN");
