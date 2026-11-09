@@ -13,3 +13,4 @@
 - CONTPAQ sales are isolated from operational documents and imported atomically by brand/series/folio; agents reference RVS persons, product equivalents come from linked presentations, and the battle report freezes historical rows per monthly cut to avoid duplicate sources and drifting baselines.
 - CONTPAQ source workbooks are retained byte-for-byte in the admin-only originals table rather than public assets; this keeps customer data private and bypasses the currently timing-out storage upload service.
 - Accounting costs use a role-validated atomic RPC with existing catalog margin precedence and rounding; product triggers timestamp real edits and audit every cost/price change so other edit paths remain traceable.
+- WhatsApp Meta access tokens are resolved per phone number/WABA through supabase/functions/_shared/whatsapp-token.ts; lines in separate Meta business accounts use their own secret so one system user never needs access to every account.

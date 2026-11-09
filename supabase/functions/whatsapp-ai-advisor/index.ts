@@ -10,6 +10,7 @@
 //   búsqueda web             -> investigación de aplicaciones
 //   IA                       -> interpreta, razona y explica; nunca inventa datos
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { whatsappTokenFor } from "../_shared/whatsapp-token.ts";
 import { embedOne } from "../_shared/ai-embeddings.ts";
 import {
   empresaDeMarca,
@@ -707,7 +708,7 @@ async function sendAndLog(admin: Admin, p: {
   toPhone: string; text: string; businessPhoneId: string | null;
   conversationId: string | null; contactId: string | null; whatsappAccountId: string | null;
 }) {
-  const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+  const TOKEN = whatsappTokenFor({ phoneId: p.businessPhoneId });
   let ok = false; let waId: string | null = null;
   if (TOKEN && p.businessPhoneId) {
     const r = await fetch(`https://graph.facebook.com/v21.0/${p.businessPhoneId}/messages`, {

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { whatsappTokenFor } from "../_shared/whatsapp-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -116,6 +117,7 @@ Deno.serve(async (req) => {
       wabaId = acct?.waba_id ?? null;
     }
     if (!wabaId) return json({ error: "No hay WABA configurado" }, 400);
+    const WABA_TOKEN = whatsappTokenFor({ wabaId }) ?? TOKEN;
 
     // Construir componente BODY con examples (obligatorio si hay variables)
     const examples =
@@ -156,7 +158,7 @@ Deno.serve(async (req) => {
 
         const sessRes = await fetch(
           `https://graph.facebook.com/v21.0/${APP_ID}/uploads?file_name=${encodeURIComponent(fileName)}&file_length=${fileLength}&file_type=${encodeURIComponent(contentType)}`,
-          { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` } },
+          { method: "POST", headers: { Authorization: `Bearer ${WABA_TOKEN}` } },
         );
         const sessData = await sessRes.json().catch(() => ({}));
         if (!sessRes.ok || !sessData?.id) {
@@ -167,7 +169,7 @@ Deno.serve(async (req) => {
         const upRes = await fetch(`https://graph.facebook.com/v21.0/${sessionId}`, {
           method: "POST",
           headers: {
-            Authorization: `OAuth ${TOKEN}`,
+            Authorization: `OAuth ${WABA_TOKEN}`,
             file_offset: "0",
             "Content-Type": contentType,
           },
@@ -221,7 +223,7 @@ Deno.serve(async (req) => {
     // POST a Meta
     const r = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/message_templates`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${WABA_TOKEN}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         name,
         language,

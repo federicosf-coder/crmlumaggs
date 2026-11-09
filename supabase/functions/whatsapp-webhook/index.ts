@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { whatsappTokenFor } from "../_shared/whatsapp-token.ts";
 import { normalizeWhatsAppTemplate } from "../_shared/whatsapp-template.ts";
 
 const corsHeaders = {
@@ -42,7 +43,7 @@ function isWithinBusinessHours(settings: any, now: Date): boolean {
 }
 
 function resolveCredentials(phoneNumberId: string | null | undefined) {
-  const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+  const TOKEN = whatsappTokenFor({ phoneId: phoneNumberId });
   return { TOKEN, phoneId: phoneNumberId ?? null };
 }
 
@@ -57,6 +58,7 @@ async function downloadAndStoreMedia(
   fallbackFilename: string | null,
   fallbackMime: string | null,
   conversationId: string | null,
+  businessPhoneId: string | null = null,
 ): Promise<{
   storage_path: string | null;
   public_url: string | null;
@@ -64,7 +66,7 @@ async function downloadAndStoreMedia(
   filename: string | null;
   size_bytes: number | null;
 }> {
-  const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+  const TOKEN = whatsappTokenFor({ phoneId: businessPhoneId });
   if (!TOKEN || !mediaId) {
     return {
       storage_path: null,
@@ -742,6 +744,7 @@ Deno.serve(async (req) => {
                     mediaNode?.filename ?? null,
                     mediaNode?.mime_type ?? null,
                     conversationId,
+                    businessPhoneId,
                   );
                 }
               }
