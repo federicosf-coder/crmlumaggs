@@ -54,3 +54,8 @@
 - [x] Entregar el PDF en ~10 s aunque el almacenamiento tarde; guardado y vínculo terminan en segundo plano y se confirman aunque el servicio responda 504 (verificado con COT-16935).
 - [ ] Lentitud de fondo del almacenamiento (~60 s por archivo, responde 504); depende de reiniciar el backend o del servicio.
 - [x] Verificar apertura del PDF recuperado desde el documento real con la sesión de Federico.
+
+## Número Marketing (WhatsApp)
+- [x] Guardar la llave del usuario del sistema de Marketing y usarla solo para ese número; los demás conservan la suya (sincronización de las 4 cuentas sin errores).
+- [ ] Registrar el número en Meta; requiere el PIN de 6 dígitos de Hector.
+- [ ] Activar el aviso de mensajes entrantes; Meta rechazó la suscripción por permisos, requiere control total del usuario del sistema sobre la cuenta y la app asignada.
