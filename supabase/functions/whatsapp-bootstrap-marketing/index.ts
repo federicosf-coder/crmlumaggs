@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { MARKETING_PHONE_NUMBER_ID, MARKETING_WABA_ID, whatsappTokenFor } from "../_shared/whatsapp-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,11 +19,11 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    const PHONE_ID = "703809879478757";
-    const WABA_ID = "638737319188899";
+    const PHONE_ID = MARKETING_PHONE_NUMBER_ID;
+    const WABA_ID = MARKETING_WABA_ID;
+    const TOKEN = whatsappTokenFor({ phoneId: PHONE_ID, wabaId: WABA_ID });
     if (!TOKEN || !PHONE_ID || !WABA_ID) {
-      return json({ error: "Faltan secrets WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID_3 / WHATSAPP_WABA_ID_3" }, 500);
+      return json({ error: "Falta la llave WHATSAPP_ACCESS_TOKEN_MARKETING" }, 500);
     }
 
     // Suscribir la app al WABA para que Meta envíe eventos de webhook (mensajes entrantes, estados, etc.)

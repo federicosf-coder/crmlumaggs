@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { whatsappTokenFor } from "../_shared/whatsapp-token.ts";
 import { normalizeWhatsAppTemplate } from "../_shared/whatsapp-template.ts";
 
 const corsHeaders = {
@@ -211,6 +212,7 @@ Deno.serve(async (req) => {
       activePhoneId = defaultAcct?.business_phone_number_id ?? PHONE_ID_1 ?? PHONE_ID_2 ?? PHONE_ID_3 ?? null;
     }
     if (!activePhoneId) return json({ error: "No hay phone_number_id configurado para esta conversación" }, 500);
+    const LINE_TOKEN = whatsappTokenFor({ phoneId: activePhoneId }) ?? TOKEN;
 
     // Validate the chosen line is registered & active.
     const { data: acctCheck } = await admin
@@ -272,7 +274,7 @@ Deno.serve(async (req) => {
       );
       const upRes = await fetch(`https://graph.facebook.com/v21.0/${activePhoneId}/media`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${TOKEN}` },
+        headers: { Authorization: `Bearer ${LINE_TOKEN}` },
         body: form,
       });
       const upData = await upRes.json().catch(() => ({}));
@@ -325,7 +327,7 @@ Deno.serve(async (req) => {
     const postToMeta = async (p: Record<string, unknown>) => {
       const res = await fetch(`https://graph.facebook.com/v21.0/${activePhoneId}/messages`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${LINE_TOKEN}`, "Content-Type": "application/json" },
         body: JSON.stringify(p),
       });
       const d = await res.json().catch(() => ({}));

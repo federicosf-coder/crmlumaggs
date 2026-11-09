@@ -1,3 +1,4 @@
+import { whatsappTokenFor } from "../_shared/whatsapp-token.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
     const metaRes = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${whatsappTokenFor({ phoneId: phoneNumberId }) ?? token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ messaging_product: "whatsapp", pin }),

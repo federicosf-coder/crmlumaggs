@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { whatsappTokenFor } from "../_shared/whatsapp-token.ts";
 import { normalizeWhatsAppTemplate } from "../_shared/whatsapp-template.ts";
 
 const corsHeaders = {
@@ -104,6 +105,7 @@ Deno.serve(async (req) => {
     if (!activePhoneId) {
       return json({ error: "No hay business_phone_number_id configurado para la campaña" }, 500);
     }
+    const LINE_TOKEN = whatsappTokenFor({ phoneId: activePhoneId }) ?? TOKEN;
 
     // Separar la etiqueta visible del nombre técnico antes de consultar o enviar.
     let templateIdentity: ReturnType<typeof normalizeWhatsAppTemplate>;
@@ -248,7 +250,7 @@ Deno.serve(async (req) => {
 
         const res = await fetch(`https://graph.facebook.com/v21.0/${activePhoneId}/messages`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+          headers: { Authorization: `Bearer ${LINE_TOKEN}`, "Content-Type": "application/json" },
           signal: AbortSignal.timeout(MESSAGE_TIMEOUT_MS),
           body: JSON.stringify({
             messaging_product: "whatsapp",

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { whatsappTokenFor } from "../_shared/whatsapp-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
     for (const waba of wabaSet) {
       const r = await fetch(
         `https://graph.facebook.com/v21.0/${waba}/message_templates?limit=200`,
-        { headers: { Authorization: `Bearer ${TOKEN}` } },
+        { headers: { Authorization: `Bearer ${whatsappTokenFor({ wabaId: waba }) ?? TOKEN}` } },
       );
       const data = await r.json();
       if (!r.ok) {
