@@ -6,7 +6,21 @@ async function get(path: string, tok?: string) {
     return await r.json();
   } catch (e) { return String(e); }
 }
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  if (req.method === "POST") {
+    const tok = Deno.env.get("WHATSAPP_ACCESS_TOKEN_MARKETING")!;
+    const r = await fetch(`${G}/1127465449904495/subscribed_apps`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
+      body: JSON.stringify({
+        override_callback_uri: "https://fnqeicdqblkhfpyboxre.supabase.co/functions/v1/whatsapp-webhook",
+        verify_token: "LumaggsCRM2026",
+      }),
+    });
+    const post = await r.json();
+    const after = await get("1127465449904495/subscribed_apps", tok);
+    return new Response(JSON.stringify({ post, after }, null, 1), { headers: { "Content-Type": "application/json" } });
+  }
   const toks: Record<string, string | undefined> = {
     marketing: Deno.env.get("WHATSAPP_ACCESS_TOKEN_MARKETING"),
     crm: Deno.env.get("WHATSAPP_ACCESS_TOKEN_CRM_LUMAGGS"),
