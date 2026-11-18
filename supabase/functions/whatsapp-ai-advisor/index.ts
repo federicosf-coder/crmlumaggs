@@ -867,6 +867,18 @@ Deno.serve(async (req) => {
       if (!res.ok) {
         const t = await res.text();
         console.error(`[wa-advisor] gateway ${res.status}: ${t.slice(0, 500)}`);
+        if ((res.status === 402 || res.status === 429) && !dryRun) {
+          // Respaldo: la IA no está disponible (sin créditos / saturada). Avisar al cliente
+          // una sola vez por conversación y dejarla para un asesor humano.
+          const fallback = `Gracias por escribir a ${cfg.empresaTransferencia}. En breve un asesor te atiende por este medio.`;
+          const yaAvisado = ordered.some((m: any) => m.direction === "outbound" && m.message_body === fallback);
+          let sent = false;
+          if (!yaAvisado) {
+            sent = await sendAndLog(admin, { toPhone: waPhone, text: fallback, businessPhoneId, conversationId, contactId, whatsappAccountId });
+          }
+          await admin.from("bot_lead_profiles").update({ conversation_stage: "human_active" }).eq("id", profile.id);
+          return json({ fallback: true, sent, ai_status: res.status });
+        }
         return json({ error: `AI ${res.status}`, detail: t.slice(0, 500) }, res.status === 429 || res.status === 402 ? res.status : 500);
       }
       const data = await res.json();
